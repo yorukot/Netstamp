@@ -14,31 +14,40 @@ import (
 
 func mapPage(row sqlc.PublicStatusPage) domainpublic.Page {
 	return domainpublic.Page{
-		ID:                row.ID.String(),
-		ProjectID:         row.ProjectID.String(),
-		Slug:              row.Slug,
-		Title:             row.Title,
-		Description:       row.Description,
-		Enabled:           row.Enabled,
-		DefaultChartMode:  domainpublic.ChartMode(row.DefaultChartMode),
-		DefaultChartRange: domainpublic.ChartRange(row.DefaultChartRange),
-		CreatedByUserID:   row.CreatedByUserID.String(),
-		CreatedAt:         row.CreatedAt,
-		UpdatedAt:         row.UpdatedAt,
-		DeletedAt:         row.DeletedAt,
+		ID:                  row.ID.String(),
+		ProjectID:           row.ProjectID.String(),
+		Slug:                row.Slug,
+		Title:               row.Title,
+		Description:         row.Description,
+		Enabled:             row.Enabled,
+		FooterText:          row.FooterText,
+		BannerImageURL:      row.BannerImageUrl,
+		Theme:               domainpublic.Theme(row.Theme),
+		ShowTargets:         row.ShowTargets,
+		ShowProbeNames:      row.ShowProbeNames,
+		ShowProbeLocations:  row.ShowProbeLocations,
+		ShowIncidentHistory: row.ShowIncidentHistory,
+		ShowGeneratedAt:     row.ShowGeneratedAt,
+		CustomCSS:           row.CustomCss,
+		DefaultChartMode:    domainpublic.ChartMode(row.DefaultChartMode),
+		DefaultChartRange:   domainpublic.ChartRange(row.DefaultChartRange),
+		CreatedByUserID:     row.CreatedByUserID.String(),
+		CreatedAt:           row.CreatedAt,
+		UpdatedAt:           row.UpdatedAt,
+		DeletedAt:           row.DeletedAt,
 	}
 }
 
 func mapElement(row sqlc.GetPublicStatusPageElementRow) domainpublic.Element {
-	return newElement(row.ID, row.PublicPageID, row.ProjectID, row.ParentElementID, row.Kind, row.CheckID, row.AssignmentSelectionMode, row.Title, row.Description, row.SortOrder, row.ChartMode, row.ChartRange, row.CreatedAt, row.UpdatedAt)
+	return newElement(row.ID, row.PublicPageID, row.ProjectID, row.ParentElementID, row.Kind, row.CheckID, row.AssignmentSelectionMode, row.Title, row.Description, row.SortOrder, row.DisplayMode, row.ChartMode, row.ChartRange, row.CreatedAt, row.UpdatedAt)
 }
 
 func mapCreatedElement(row sqlc.CreatePublicStatusPageElementRow) domainpublic.Element {
-	return newElement(row.ID, row.PublicPageID, row.ProjectID, row.ParentElementID, row.Kind, row.CheckID, row.AssignmentSelectionMode, row.Title, row.Description, row.SortOrder, row.ChartMode, row.ChartRange, row.CreatedAt, row.UpdatedAt)
+	return newElement(row.ID, row.PublicPageID, row.ProjectID, row.ParentElementID, row.Kind, row.CheckID, row.AssignmentSelectionMode, row.Title, row.Description, row.SortOrder, row.DisplayMode, row.ChartMode, row.ChartRange, row.CreatedAt, row.UpdatedAt)
 }
 
 func mapUpdatedElement(row sqlc.UpdatePublicStatusPageElementRow) domainpublic.Element {
-	return newElement(row.ID, row.PublicPageID, row.ProjectID, row.ParentElementID, row.Kind, row.CheckID, row.AssignmentSelectionMode, row.Title, row.Description, row.SortOrder, row.ChartMode, row.ChartRange, row.CreatedAt, row.UpdatedAt)
+	return newElement(row.ID, row.PublicPageID, row.ProjectID, row.ParentElementID, row.Kind, row.CheckID, row.AssignmentSelectionMode, row.Title, row.Description, row.SortOrder, row.DisplayMode, row.ChartMode, row.ChartRange, row.CreatedAt, row.UpdatedAt)
 }
 
 func newElement(
@@ -52,6 +61,7 @@ func newElement(
 	title *string,
 	description *string,
 	sortOrder int32,
+	displayMode sqlc.PublicStatusElementDisplayMode,
 	chartMode sqlc.PublicStatusChartMode,
 	chartRangeValue *sqlc.PublicStatusChartRange,
 	createdAt time.Time,
@@ -68,6 +78,7 @@ func newElement(
 		Title:                   title,
 		Description:             description,
 		SortOrder:               sortOrder,
+		DisplayMode:             domainpublic.ElementDisplayMode(displayMode),
 		ChartMode:               domainpublic.ChartMode(chartMode),
 		ChartRange:              chartRange(chartRangeValue),
 		CreatedAt:               createdAt,
@@ -87,6 +98,7 @@ func mapListElement(row sqlc.ListPublicStatusPageElementsRow) domainpublic.Eleme
 		Title:                   row.Title,
 		Description:             row.Description,
 		SortOrder:               row.SortOrder,
+		DisplayMode:             domainpublic.ElementDisplayMode(row.DisplayMode),
 		ChartMode:               domainpublic.ChartMode(row.ChartMode),
 		ChartRange:              chartRange(row.ChartRange),
 		CreatedAt:               row.CreatedAt,
@@ -115,6 +127,8 @@ func mapAssignment(row sqlc.ListPublicStatusAssignmentsRow) domainpublic.Assignm
 		row.ProbeID,
 		row.ProbeName,
 		row.ProbeLocationName,
+		row.ProbeLatitude,
+		row.ProbeLongitude,
 		row.LatestStartedAt,
 		row.LatestStatus,
 		row.LatencyAvgMs,
@@ -136,6 +150,8 @@ func mapElementAssignment(row sqlc.ListPublicStatusElementAssignmentsRow) domain
 		row.ProbeID,
 		row.ProbeName,
 		row.ProbeLocationName,
+		row.ProbeLatitude,
+		row.ProbeLongitude,
 		row.LatestStartedAt,
 		row.LatestStatus,
 		row.LatencyAvgMs,
@@ -156,6 +172,8 @@ func mapAssignmentFields(
 	probeID uuid.UUID,
 	probeName string,
 	probeLocationName *string,
+	probeLatitude any,
+	probeLongitude any,
 	latestStartedAt time.Time,
 	latestStatus string,
 	latencyAvgMs *float64,
@@ -174,6 +192,8 @@ func mapAssignmentFields(
 		ProbeID:           probeID.String(),
 		ProbeName:         probeName,
 		ProbeLocationName: probeLocationName,
+		ProbeLatitude:     optionalFloat64(probeLatitude),
+		ProbeLongitude:    optionalFloat64(probeLongitude),
 		LatestStartedAt:   latestStartedAt,
 		LatestStatus:      latestStatus,
 		LatencyAvgMs:      latencyAvgMs,
@@ -227,6 +247,10 @@ func sqlcElementKind(value domainpublic.ElementKind) sqlc.PublicStatusElementKin
 	return sqlc.PublicStatusElementKind(value)
 }
 
+func sqlcElementDisplayMode(value domainpublic.ElementDisplayMode) sqlc.PublicStatusElementDisplayMode {
+	return sqlc.PublicStatusElementDisplayMode(value)
+}
+
 func sqlcAssignmentSelectionMode(value *domainpublic.AssignmentSelectionMode) interface{} {
 	if value == nil {
 		return nil
@@ -273,4 +297,14 @@ func stringUUID(value *uuid.UUID) *string {
 	}
 	output := value.String()
 	return &output
+}
+
+func optionalFloat64(value any) *float64 {
+	if value == nil {
+		return nil
+	}
+	if number, ok := value.(float64); ok {
+		return &number
+	}
+	return nil
 }

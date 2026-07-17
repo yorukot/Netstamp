@@ -9,16 +9,25 @@ import (
 )
 
 type pageBody struct {
-	ID                string                  `json:"id"`
-	ProjectID         string                  `json:"projectId,omitempty"`
-	Slug              string                  `json:"slug"`
-	Title             string                  `json:"title"`
-	Description       *string                 `json:"description,omitempty"`
-	Enabled           bool                    `json:"enabled"`
-	DefaultChartMode  domainpublic.ChartMode  `json:"defaultChartMode"`
-	DefaultChartRange domainpublic.ChartRange `json:"defaultChartRange"`
-	CreatedAt         time.Time               `json:"createdAt,omitempty"`
-	UpdatedAt         time.Time               `json:"updatedAt"`
+	ID                  string                  `json:"id"`
+	ProjectID           string                  `json:"projectId,omitempty"`
+	Slug                string                  `json:"slug"`
+	Title               string                  `json:"title"`
+	Description         *string                 `json:"description,omitempty"`
+	Enabled             bool                    `json:"enabled"`
+	FooterText          *string                 `json:"footerText,omitempty"`
+	BannerImageURL      *string                 `json:"bannerImageUrl,omitempty"`
+	Theme               domainpublic.Theme      `json:"theme"`
+	ShowTargets         bool                    `json:"showTargets"`
+	ShowProbeNames      bool                    `json:"showProbeNames"`
+	ShowProbeLocations  bool                    `json:"showProbeLocations"`
+	ShowIncidentHistory bool                    `json:"showIncidentHistory"`
+	ShowGeneratedAt     bool                    `json:"showGeneratedAt"`
+	CustomCSS           *string                 `json:"customCss,omitempty"`
+	DefaultChartMode    domainpublic.ChartMode  `json:"defaultChartMode"`
+	DefaultChartRange   domainpublic.ChartRange `json:"defaultChartRange"`
+	CreatedAt           time.Time               `json:"createdAt,omitempty"`
+	UpdatedAt           time.Time               `json:"updatedAt"`
 }
 
 type elementBody struct {
@@ -32,6 +41,7 @@ type elementBody struct {
 	Title                   *string                               `json:"title,omitempty"`
 	Description             *string                               `json:"description,omitempty"`
 	SortOrder               int32                                 `json:"sortOrder"`
+	DisplayMode             domainpublic.ElementDisplayMode       `json:"displayMode"`
 	ChartMode               domainpublic.ChartMode                `json:"chartMode"`
 	ChartRange              *domainpublic.ChartRange              `json:"chartRange,omitempty"`
 	CheckName               *string                               `json:"checkName,omitempty"`
@@ -93,37 +103,43 @@ type dailyStatusDayBody struct {
 }
 
 type publicPageBody struct {
-	ID                string                  `json:"id"`
-	Slug              string                  `json:"slug"`
-	Title             string                  `json:"title"`
-	Description       *string                 `json:"description,omitempty"`
-	Status            domainpublic.Status     `json:"status"`
-	DefaultChartMode  domainpublic.ChartMode  `json:"defaultChartMode"`
-	DefaultChartRange domainpublic.ChartRange `json:"defaultChartRange"`
-	UpdatedAt         time.Time               `json:"updatedAt"`
+	ID                  string                  `json:"id"`
+	Slug                string                  `json:"slug"`
+	Title               string                  `json:"title"`
+	Description         *string                 `json:"description,omitempty"`
+	Status              domainpublic.Status     `json:"status"`
+	FooterText          *string                 `json:"footerText,omitempty"`
+	BannerImageURL      *string                 `json:"bannerImageUrl,omitempty"`
+	Theme               domainpublic.Theme      `json:"theme"`
+	ShowIncidentHistory bool                    `json:"showIncidentHistory"`
+	ShowGeneratedAt     bool                    `json:"showGeneratedAt"`
+	CustomCSS           *string                 `json:"customCss,omitempty"`
+	DefaultChartMode    domainpublic.ChartMode  `json:"defaultChartMode"`
+	DefaultChartRange   domainpublic.ChartRange `json:"defaultChartRange"`
+	UpdatedAt           time.Time               `json:"updatedAt"`
 }
 
 type publicElementBody struct {
-	ID                    string                   `json:"id"`
-	Kind                  domainpublic.ElementKind `json:"kind"`
-	CheckID               *string                  `json:"checkId,omitempty"`
-	Title                 string                   `json:"title"`
-	Description           *string                  `json:"description,omitempty"`
-	Type                  any                      `json:"type,omitempty"`
-	Target                *string                  `json:"target,omitempty"`
-	Status                domainpublic.Status      `json:"status"`
-	LatestStartedAt       *time.Time               `json:"latestStartedAt,omitempty"`
-	LatestStatus          *string                  `json:"latestStatus,omitempty"`
-	ChartMode             domainpublic.ChartMode   `json:"chartMode,omitempty"`
-	ChartRange            domainpublic.ChartRange  `json:"chartRange,omitempty"`
-	AssignmentCount       int32                    `json:"assignmentCount,omitempty"`
-	SuccessfulAssignments int32                    `json:"successfulAssignments,omitempty"`
-	FailingAssignments    int32                    `json:"failingAssignments,omitempty"`
-	StaleAssignments      int32                    `json:"staleAssignments,omitempty"`
-	Metrics               *metricsBody             `json:"metrics,omitempty"`
-	Chart                 *chartBody               `json:"chart,omitempty"`
-	Assignments           []publicAssignmentBody   `json:"assignments,omitempty"`
-	Children              []publicElementBody      `json:"children,omitempty"`
+	ID                    string                          `json:"id"`
+	Kind                  domainpublic.ElementKind        `json:"kind"`
+	Title                 string                          `json:"title"`
+	Description           *string                         `json:"description,omitempty"`
+	Type                  any                             `json:"type,omitempty"`
+	Target                *string                         `json:"target,omitempty"`
+	Status                domainpublic.Status             `json:"status"`
+	LatestStartedAt       *time.Time                      `json:"latestStartedAt,omitempty"`
+	LatestStatus          *string                         `json:"latestStatus,omitempty"`
+	DisplayMode           domainpublic.ElementDisplayMode `json:"displayMode"`
+	ChartMode             domainpublic.ChartMode          `json:"chartMode,omitempty"`
+	ChartRange            domainpublic.ChartRange         `json:"chartRange,omitempty"`
+	AssignmentCount       int32                           `json:"assignmentCount,omitempty"`
+	SuccessfulAssignments int32                           `json:"successfulAssignments,omitempty"`
+	FailingAssignments    int32                           `json:"failingAssignments,omitempty"`
+	StaleAssignments      int32                           `json:"staleAssignments,omitempty"`
+	Metrics               *metricsBody                    `json:"metrics,omitempty"`
+	Chart                 *chartBody                      `json:"chart,omitempty"`
+	Assignments           []publicAssignmentBody          `json:"assignments,omitempty"`
+	Children              []publicElementBody             `json:"children,omitempty"`
 }
 
 type metricsBody struct {
@@ -134,14 +150,13 @@ type metricsBody struct {
 }
 
 type publicAssignmentBody struct {
-	AssignmentID      string       `json:"assignmentId"`
-	CheckID           string       `json:"checkId"`
 	CheckTitle        string       `json:"checkTitle"`
 	Type              any          `json:"type"`
-	Target            string       `json:"target"`
-	ProbeID           string       `json:"probeId"`
-	ProbeName         string       `json:"probeName"`
+	Target            *string      `json:"target,omitempty"`
+	ProbeName         *string      `json:"probeName,omitempty"`
 	ProbeLocationName *string      `json:"probeLocationName,omitempty"`
+	Latitude          *float64     `json:"latitude,omitempty"`
+	Longitude         *float64     `json:"longitude,omitempty"`
 	LatestStartedAt   *time.Time   `json:"latestStartedAt,omitempty"`
 	LatestStatus      *string      `json:"latestStatus,omitempty"`
 	Metrics           *metricsBody `json:"metrics,omitempty"`
@@ -168,7 +183,6 @@ type publicIncidentsBody struct {
 
 type incidentBody struct {
 	ID              string           `json:"id"`
-	CheckID         string           `json:"checkId"`
 	CheckTitle      string           `json:"checkTitle"`
 	Status          string           `json:"status"`
 	Severity        string           `json:"severity"`
@@ -187,15 +201,24 @@ type incidentSummary struct {
 
 func newPageBody(page domainpublic.Page, includeProjectID bool) pageBody {
 	body := pageBody{
-		ID:                page.ID,
-		Slug:              page.Slug,
-		Title:             page.Title,
-		Description:       page.Description,
-		Enabled:           page.Enabled,
-		DefaultChartMode:  page.DefaultChartMode,
-		DefaultChartRange: page.DefaultChartRange,
-		CreatedAt:         page.CreatedAt,
-		UpdatedAt:         page.UpdatedAt,
+		ID:                  page.ID,
+		Slug:                page.Slug,
+		Title:               page.Title,
+		Description:         page.Description,
+		Enabled:             page.Enabled,
+		FooterText:          page.FooterText,
+		BannerImageURL:      page.BannerImageURL,
+		Theme:               page.Theme,
+		ShowTargets:         page.ShowTargets,
+		ShowProbeNames:      page.ShowProbeNames,
+		ShowProbeLocations:  page.ShowProbeLocations,
+		ShowIncidentHistory: page.ShowIncidentHistory,
+		ShowGeneratedAt:     page.ShowGeneratedAt,
+		CustomCSS:           page.CustomCSS,
+		DefaultChartMode:    page.DefaultChartMode,
+		DefaultChartRange:   page.DefaultChartRange,
+		CreatedAt:           page.CreatedAt,
+		UpdatedAt:           page.UpdatedAt,
 	}
 	if includeProjectID {
 		body.ProjectID = page.ProjectID
@@ -215,6 +238,7 @@ func newElementBody(element domainpublic.Element) elementBody {
 		Title:                   element.Title,
 		Description:             element.Description,
 		SortOrder:               element.SortOrder,
+		DisplayMode:             element.DisplayMode,
 		ChartMode:               element.ChartMode,
 		ChartRange:              element.ChartRange,
 		CheckName:               element.CheckName,
@@ -257,7 +281,7 @@ func newPublicStatusSummaryResponse(summary apppublic.PublicSummary) publicStatu
 
 func newPublicStatusElementsResponse(elements apppublic.PublicElements) publicStatusElementsResponseBody {
 	return publicStatusElementsResponseBody{
-		Elements:    newPublicElementBodies(elements.Elements),
+		Elements:    newPublicElementBodies(elements.Elements, elements.Page),
 		GeneratedAt: elements.GeneratedAt,
 	}
 }
@@ -298,36 +322,41 @@ func newPublicStatusElementDailyStatusResponse(dailyStatus apppublic.PublicEleme
 
 func newPublicPageBody(page domainpublic.Page, status domainpublic.Status) publicPageBody {
 	return publicPageBody{
-		ID:                page.ID,
-		Slug:              page.Slug,
-		Title:             page.Title,
-		Description:       page.Description,
-		Status:            status,
-		DefaultChartMode:  page.DefaultChartMode,
-		DefaultChartRange: page.DefaultChartRange,
-		UpdatedAt:         page.UpdatedAt,
+		ID:                  page.ID,
+		Slug:                page.Slug,
+		Title:               page.Title,
+		Description:         page.Description,
+		Status:              status,
+		FooterText:          page.FooterText,
+		BannerImageURL:      page.BannerImageURL,
+		Theme:               page.Theme,
+		ShowIncidentHistory: page.ShowIncidentHistory,
+		ShowGeneratedAt:     page.ShowGeneratedAt,
+		CustomCSS:           page.CustomCSS,
+		DefaultChartMode:    page.DefaultChartMode,
+		DefaultChartRange:   page.DefaultChartRange,
+		UpdatedAt:           page.UpdatedAt,
 	}
 }
 
-func newPublicElementBodies(elements []domainpublic.RenderedElement) []publicElementBody {
+func newPublicElementBodies(elements []domainpublic.RenderedElement, page domainpublic.Page) []publicElementBody {
 	values := make([]publicElementBody, 0, len(elements))
 	for _, element := range elements {
-		values = append(values, newPublicElementBody(element))
+		values = append(values, newPublicElementBody(element, page))
 	}
 	return values
 }
 
-func newPublicElementBody(element domainpublic.RenderedElement) publicElementBody {
+func newPublicElementBody(element domainpublic.RenderedElement, page domainpublic.Page) publicElementBody {
 	body := publicElementBody{
 		ID:                    element.ID,
 		Kind:                  element.Kind,
-		CheckID:               element.CheckID,
 		Title:                 publicElementTitle(element),
 		Description:           elementDescription(element),
-		Target:                element.CheckTarget,
 		Status:                element.Status,
 		LatestStartedAt:       element.LatestStartedAt,
 		LatestStatus:          element.LatestStatus,
+		DisplayMode:           element.DisplayMode,
 		ChartMode:             element.ResolvedChartMode,
 		ChartRange:            element.ResolvedChartRange,
 		AssignmentCount:       element.AssignmentCount,
@@ -336,8 +365,11 @@ func newPublicElementBody(element domainpublic.RenderedElement) publicElementBod
 		StaleAssignments:      element.StaleAssignments,
 		Metrics:               newMetricsBody(element.Metrics),
 		Chart:                 newChartBody(element.Chart),
-		Assignments:           newPublicAssignmentBodies(element.Assignments),
-		Children:              newPublicElementBodies(element.Children),
+		Assignments:           newPublicAssignmentBodies(element.Assignments, page),
+		Children:              newPublicElementBodies(element.Children, page),
+	}
+	if page.ShowTargets {
+		body.Target = element.CheckTarget
 	}
 	if element.CheckType != nil {
 		body.Type = *element.CheckType
@@ -368,23 +400,31 @@ func elementDescription(element domainpublic.RenderedElement) *string {
 	return element.CheckDescription
 }
 
-func newPublicAssignmentBodies(assignments []domainpublic.Assignment) []publicAssignmentBody {
+func newPublicAssignmentBodies(assignments []domainpublic.Assignment, page domainpublic.Page) []publicAssignmentBody {
 	values := make([]publicAssignmentBody, 0, len(assignments))
 	for _, assignment := range assignments {
 		latestStartedAt, latestStatus := latestAssignmentFields(assignment)
-		values = append(values, publicAssignmentBody{
-			AssignmentID:      assignment.AssignmentID,
-			CheckID:           assignment.CheckID,
-			CheckTitle:        assignment.CheckName,
-			Type:              assignment.CheckType,
-			Target:            assignment.CheckTarget,
-			ProbeID:           assignment.ProbeID,
-			ProbeName:         assignment.ProbeName,
-			ProbeLocationName: assignment.ProbeLocationName,
-			LatestStartedAt:   latestStartedAt,
-			LatestStatus:      latestStatus,
-			Metrics:           assignmentMetricsBody(assignment),
-		})
+		body := publicAssignmentBody{
+			CheckTitle:      assignment.CheckName,
+			Type:            assignment.CheckType,
+			LatestStartedAt: latestStartedAt,
+			LatestStatus:    latestStatus,
+			Metrics:         assignmentMetricsBody(assignment),
+		}
+		if page.ShowTargets {
+			target := assignment.CheckTarget
+			body.Target = &target
+		}
+		if page.ShowProbeNames {
+			probeName := assignment.ProbeName
+			body.ProbeName = &probeName
+		}
+		if page.ShowProbeLocations {
+			body.ProbeLocationName = assignment.ProbeLocationName
+			body.Latitude = assignment.ProbeLatitude
+			body.Longitude = assignment.ProbeLongitude
+		}
+		values = append(values, body)
 	}
 	return values
 }
@@ -456,7 +496,6 @@ func newIncidentBodies(incidents []domainpublic.Incident) []incidentBody {
 	for _, incident := range incidents {
 		values = append(values, incidentBody{
 			ID:              incident.ID,
-			CheckID:         incident.CheckID,
 			CheckTitle:      incident.CheckName,
 			Status:          incident.Status,
 			Severity:        incident.Severity,

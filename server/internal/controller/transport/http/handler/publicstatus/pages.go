@@ -33,14 +33,23 @@ func (h *Handler) handleCreatePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	page, err := h.service.CreatePage(r.Context(), apppublic.CreatePageInput{
-		CurrentUserID:     userID,
-		ProjectRef:        httpx.Path(r, "ref"),
-		Slug:              body.Slug,
-		Title:             body.Title,
-		Description:       body.Description,
-		Enabled:           defaultBool(body.Enabled, true),
-		DefaultChartMode:  defaultPageChartMode(body.DefaultChartMode),
-		DefaultChartRange: defaultChartRange(body.DefaultChartRange),
+		CurrentUserID:       userID,
+		ProjectRef:          httpx.Path(r, "ref"),
+		Slug:                body.Slug,
+		Title:               body.Title,
+		Description:         body.Description,
+		Enabled:             defaultBool(body.Enabled, true),
+		FooterText:          body.FooterText,
+		BannerImageURL:      body.BannerImageURL,
+		Theme:               defaultPageTheme(body.Theme),
+		ShowTargets:         defaultBool(body.ShowTargets, false),
+		ShowProbeNames:      defaultBool(body.ShowProbeNames, false),
+		ShowProbeLocations:  defaultBool(body.ShowProbeLocations, false),
+		ShowIncidentHistory: defaultBool(body.ShowIncidentHistory, true),
+		ShowGeneratedAt:     defaultBool(body.ShowGeneratedAt, true),
+		CustomCSS:           body.CustomCSS,
+		DefaultChartMode:    defaultPageChartMode(body.DefaultChartMode),
+		DefaultChartRange:   defaultChartRange(body.DefaultChartRange),
 	})
 	if err != nil {
 		httpx.WriteProblem(w, r, mapPublicStatusError(err, "create public status page failed"))
@@ -75,15 +84,24 @@ func (h *Handler) handleUpdatePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	page, err := h.service.UpdatePage(r.Context(), apppublic.UpdatePageInput{
-		CurrentUserID:     userID,
-		ProjectRef:        httpx.Path(r, "ref"),
-		PageID:            httpx.Path(r, "page_id"),
-		Slug:              body.Slug,
-		Title:             body.Title,
-		Description:       body.Description,
-		Enabled:           defaultBool(body.Enabled, true),
-		DefaultChartMode:  defaultPageChartMode(body.DefaultChartMode),
-		DefaultChartRange: defaultChartRange(body.DefaultChartRange),
+		CurrentUserID:       userID,
+		ProjectRef:          httpx.Path(r, "ref"),
+		PageID:              httpx.Path(r, "page_id"),
+		Slug:                body.Slug,
+		Title:               body.Title,
+		Description:         body.Description,
+		Enabled:             defaultBool(body.Enabled, true),
+		FooterText:          body.FooterText,
+		BannerImageURL:      body.BannerImageURL,
+		Theme:               defaultPageTheme(body.Theme),
+		ShowTargets:         defaultBool(body.ShowTargets, false),
+		ShowProbeNames:      defaultBool(body.ShowProbeNames, false),
+		ShowProbeLocations:  defaultBool(body.ShowProbeLocations, false),
+		ShowIncidentHistory: defaultBool(body.ShowIncidentHistory, true),
+		ShowGeneratedAt:     defaultBool(body.ShowGeneratedAt, true),
+		CustomCSS:           body.CustomCSS,
+		DefaultChartMode:    defaultPageChartMode(body.DefaultChartMode),
+		DefaultChartRange:   defaultChartRange(body.DefaultChartRange),
 	})
 	if err != nil {
 		httpx.WriteProblem(w, r, mapPublicStatusError(err, "update public status page failed"))

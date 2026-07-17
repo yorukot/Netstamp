@@ -8,6 +8,7 @@ import styles from "./StatusElementEditorDrawer.module.css";
 
 type StatusElementSubmitInput = CreatePublicStatusElementInput;
 type AssignmentSelectionMode = NonNullable<CreatePublicStatusElementInput["assignmentSelectionMode"]>;
+type PublicStatusElementDisplayMode = CreatePublicStatusElementInput["displayMode"];
 
 interface StatusElementFormInput {
 	parentElementId?: string;
@@ -18,6 +19,7 @@ interface StatusElementFormInput {
 	title: string;
 	description: string;
 	sortOrder: number;
+	displayMode: PublicStatusElementDisplayMode;
 	chartMode: PublicStatusElementChartMode;
 	chartRange?: PublicStatusChartRange;
 }
@@ -59,6 +61,13 @@ const chartModeOptions: Array<{ value: PublicStatusElementChartMode; label: stri
 	{ value: "compact", label: "Compact" }
 ];
 
+const displayModeOptions: Array<{ value: PublicStatusElementDisplayMode; label: string }> = [
+	{ value: "status", label: "Service status" },
+	{ value: "history", label: "Incident history" },
+	{ value: "latency", label: "Latency chart" },
+	{ value: "map", label: "Probe map" }
+];
+
 const chartRangeOptions: Array<{ value: string; label: string }> = [
 	{ value: "", label: "Inherit range" },
 	{ value: "24h", label: "24 hours" },
@@ -76,6 +85,7 @@ function initialState(element?: ApiPublicStatusElement | null): StatusElementFor
 		title: element?.title ?? "",
 		description: element?.description ?? "",
 		sortOrder: element?.sortOrder ?? 0,
+		displayMode: element?.displayMode ?? "status",
 		chartMode: element?.chartMode ?? "inherit",
 		chartRange: element?.chartRange
 	};
@@ -241,6 +251,7 @@ export function StatusElementEditorDrawer({ open, element, elements, assignments
 			title: title || undefined,
 			description: description || undefined,
 			sortOrder,
+			displayMode: form.displayMode,
 			chartMode: form.chartMode || "inherit",
 			chartRange: form.chartRange || undefined
 		});
@@ -297,6 +308,9 @@ export function StatusElementEditorDrawer({ open, element, elements, assignments
 				<TextField label="Title override" value={form.title} maxLength={1024} onChange={event => update("title", event.currentTarget.value)} />
 				<TextAreaField label="Description override" value={form.description} maxLength={1024} rows={4} onChange={event => update("description", event.currentTarget.value)} />
 				<TextField label="Order" type="number" min={0} value={String(form.sortOrder)} onChange={event => update("sortOrder", Number(event.currentTarget.value))} />
+				{isFolder ? null : (
+					<SelectField label="Display" value={form.displayMode} options={displayModeOptions} onChange={event => update("displayMode", event.currentTarget.value as PublicStatusElementDisplayMode)} />
+				)}
 				<SelectField
 					label="Chart mode"
 					value={form.chartMode || "inherit"}

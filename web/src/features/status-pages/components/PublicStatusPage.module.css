@@ -28,6 +28,11 @@
 	background-size: cover;
 }
 
+.bannerImage {
+	display: block;
+	object-fit: cover;
+}
+
 .heroBody {
 	display: grid;
 	gap: 1.5rem;
@@ -489,6 +494,17 @@
 	color: var(--ns-text-subtle);
 	font: 0.75rem/1.4 var(--ns-font-mono);
 	padding-top: 0.75rem;
+}
+
+.probeMap {
+	min-height: 20rem;
+	border: 1px solid var(--ns-border-faint);
+}
+
+.mapUnavailable {
+	border: 1px solid var(--ns-border-faint);
+	color: var(--ns-text-muted);
+	padding: 1rem;
 }
 
 .footer {

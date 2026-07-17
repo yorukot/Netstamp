@@ -11741,6 +11741,11 @@
 						"format": "int32",
 						"minimum": 0
 					},
+					"displayMode": {
+						"type": "string",
+						"enum": ["status", "history", "latency", "map"],
+						"default": "status"
+					},
 					"chartMode": {
 						"type": "string",
 						"enum": ["inherit", "off", "compact"],
@@ -11775,6 +11780,46 @@
 					"enabled": {
 						"type": "boolean",
 						"default": true
+					},
+					"footerText": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 2048
+					},
+					"bannerImageUrl": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 2048
+					},
+					"theme": {
+						"type": "string",
+						"enum": ["light", "dark", "auto"],
+						"default": "auto"
+					},
+					"showTargets": {
+						"type": "boolean",
+						"default": false
+					},
+					"showProbeNames": {
+						"type": "boolean",
+						"default": false
+					},
+					"showProbeLocations": {
+						"type": "boolean",
+						"default": false
+					},
+					"showIncidentHistory": {
+						"type": "boolean",
+						"default": true
+					},
+					"showGeneratedAt": {
+						"type": "boolean",
+						"default": true
+					},
+					"customCss": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 65536
 					},
 					"defaultChartMode": {
 						"type": "string",
@@ -14061,7 +14106,7 @@
 			},
 			"PublicStatusElement": {
 				"type": "object",
-				"required": ["id", "publicPageId", "kind", "assignmentIds", "sortOrder", "chartMode", "createdAt", "updatedAt"],
+				"required": ["id", "publicPageId", "kind", "assignmentIds", "sortOrder", "displayMode", "chartMode", "createdAt", "updatedAt"],
 				"properties": {
 					"id": {
 						"$ref": "#/components/schemas/uuid"
@@ -14103,6 +14148,10 @@
 						"type": "integer",
 						"format": "int32",
 						"minimum": 0
+					},
+					"displayMode": {
+						"type": "string",
+						"enum": ["status", "history", "latency", "map"]
 					},
 					"chartMode": {
 						"type": "string",
@@ -14196,12 +14245,9 @@
 			},
 			"PublicStatusIncident": {
 				"type": "object",
-				"required": ["id", "checkId", "checkTitle", "status", "severity", "openedAt", "lastTriggeredAt"],
+				"required": ["id", "checkTitle", "status", "severity", "openedAt", "lastTriggeredAt"],
 				"properties": {
 					"id": {
-						"$ref": "#/components/schemas/uuid"
-					},
-					"checkId": {
 						"$ref": "#/components/schemas/uuid"
 					},
 					"checkTitle": {
@@ -14312,7 +14358,23 @@
 			},
 			"PublicStatusPage": {
 				"type": "object",
-				"required": ["id", "projectId", "slug", "title", "enabled", "defaultChartMode", "defaultChartRange", "createdAt", "updatedAt"],
+				"required": [
+					"id",
+					"projectId",
+					"slug",
+					"title",
+					"enabled",
+					"theme",
+					"showTargets",
+					"showProbeNames",
+					"showProbeLocations",
+					"showIncidentHistory",
+					"showGeneratedAt",
+					"defaultChartMode",
+					"defaultChartRange",
+					"createdAt",
+					"updatedAt"
+				],
 				"properties": {
 					"id": {
 						"$ref": "#/components/schemas/uuid"
@@ -14338,6 +14400,40 @@
 					},
 					"enabled": {
 						"type": "boolean"
+					},
+					"footerText": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 2048
+					},
+					"bannerImageUrl": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 2048
+					},
+					"theme": {
+						"type": "string",
+						"enum": ["light", "dark", "auto"]
+					},
+					"showTargets": {
+						"type": "boolean"
+					},
+					"showProbeNames": {
+						"type": "boolean"
+					},
+					"showProbeLocations": {
+						"type": "boolean"
+					},
+					"showIncidentHistory": {
+						"type": "boolean"
+					},
+					"showGeneratedAt": {
+						"type": "boolean"
+					},
+					"customCss": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 65536
 					},
 					"defaultChartMode": {
 						"type": "string",
@@ -14395,7 +14491,7 @@
 			},
 			"PublicStatusPageSummary": {
 				"type": "object",
-				"required": ["id", "slug", "title", "status", "defaultChartMode", "defaultChartRange", "updatedAt"],
+				"required": ["id", "slug", "title", "status", "theme", "showIncidentHistory", "showGeneratedAt", "defaultChartMode", "defaultChartRange", "updatedAt"],
 				"properties": {
 					"id": {
 						"$ref": "#/components/schemas/uuid"
@@ -14420,6 +14516,31 @@
 						"type": "string",
 						"enum": ["operational", "degraded", "down", "unknown"]
 					},
+					"footerText": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 2048
+					},
+					"bannerImageUrl": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 2048
+					},
+					"theme": {
+						"type": "string",
+						"enum": ["light", "dark", "auto"]
+					},
+					"showIncidentHistory": {
+						"type": "boolean"
+					},
+					"showGeneratedAt": {
+						"type": "boolean"
+					},
+					"customCss": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 65536
+					},
 					"defaultChartMode": {
 						"type": "string",
 						"enum": ["off", "compact"]
@@ -14436,14 +14557,8 @@
 			},
 			"PublicStatusPublicAssignment": {
 				"type": "object",
-				"required": ["assignmentId", "checkId", "checkTitle", "type", "target", "probeId", "probeName"],
+				"required": ["checkTitle", "type"],
 				"properties": {
-					"assignmentId": {
-						"$ref": "#/components/schemas/uuid"
-					},
-					"checkId": {
-						"$ref": "#/components/schemas/uuid"
-					},
 					"checkTitle": {
 						"type": "string"
 					},
@@ -14454,14 +14569,19 @@
 					"target": {
 						"$ref": "#/components/schemas/CheckTarget"
 					},
-					"probeId": {
-						"$ref": "#/components/schemas/uuid"
-					},
 					"probeName": {
 						"type": "string"
 					},
 					"probeLocationName": {
 						"type": "string"
+					},
+					"latitude": {
+						"type": "number",
+						"format": "double"
+					},
+					"longitude": {
+						"type": "number",
+						"format": "double"
 					},
 					"latestStartedAt": {
 						"type": "string",
@@ -14478,7 +14598,7 @@
 			},
 			"PublicStatusPublicElement": {
 				"type": "object",
-				"required": ["id", "kind", "title", "status"],
+				"required": ["id", "kind", "title", "status", "displayMode"],
 				"properties": {
 					"id": {
 						"$ref": "#/components/schemas/uuid"
@@ -14486,9 +14606,6 @@
 					"kind": {
 						"type": "string",
 						"enum": ["folder", "assignment_group"]
-					},
-					"checkId": {
-						"$ref": "#/components/schemas/uuid"
 					},
 					"title": {
 						"type": "string",
@@ -14517,6 +14634,10 @@
 					"latestStatus": {
 						"type": "string",
 						"enum": ["successful", "timeout", "error", "partial"]
+					},
+					"displayMode": {
+						"type": "string",
+						"enum": ["status", "history", "latency", "map"]
 					},
 					"chartMode": {
 						"type": "string",
@@ -16610,6 +16731,11 @@
 						"format": "int32",
 						"minimum": 0
 					},
+					"displayMode": {
+						"type": "string",
+						"enum": ["status", "history", "latency", "map"],
+						"default": "status"
+					},
 					"chartMode": {
 						"type": "string",
 						"enum": ["inherit", "off", "compact"],
@@ -16645,6 +16771,46 @@
 					"enabled": {
 						"type": "boolean",
 						"default": true
+					},
+					"footerText": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 2048
+					},
+					"bannerImageUrl": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 2048
+					},
+					"theme": {
+						"type": "string",
+						"enum": ["light", "dark", "auto"],
+						"default": "auto"
+					},
+					"showTargets": {
+						"type": "boolean",
+						"default": false
+					},
+					"showProbeNames": {
+						"type": "boolean",
+						"default": false
+					},
+					"showProbeLocations": {
+						"type": "boolean",
+						"default": false
+					},
+					"showIncidentHistory": {
+						"type": "boolean",
+						"default": true
+					},
+					"showGeneratedAt": {
+						"type": "boolean",
+						"default": true
+					},
+					"customCss": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 65536
 					},
 					"defaultChartMode": {
 						"type": "string",

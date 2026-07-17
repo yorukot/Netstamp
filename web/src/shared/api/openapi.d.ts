@@ -2637,6 +2637,11 @@ export interface components {
 			/** Format: int32 */
 			sortOrder: number;
 			/**
+			 * @default status
+			 * @enum {string}
+			 */
+			displayMode: "status" | "history" | "latency" | "map";
+			/**
 			 * @default inherit
 			 * @enum {string}
 			 */
@@ -2650,6 +2655,24 @@ export interface components {
 			description?: string;
 			/** @default true */
 			enabled: boolean;
+			footerText?: string;
+			bannerImageUrl?: string;
+			/**
+			 * @default auto
+			 * @enum {string}
+			 */
+			theme: "light" | "dark" | "auto";
+			/** @default false */
+			showTargets: boolean;
+			/** @default false */
+			showProbeNames: boolean;
+			/** @default false */
+			showProbeLocations: boolean;
+			/** @default true */
+			showIncidentHistory: boolean;
+			/** @default true */
+			showGeneratedAt: boolean;
+			customCss?: string;
 			/**
 			 * @default off
 			 * @enum {string}
@@ -3999,6 +4022,8 @@ export interface components {
 			/** Format: int32 */
 			sortOrder: number;
 			/** @enum {string} */
+			displayMode: "status" | "history" | "latency" | "map";
+			/** @enum {string} */
 			chartMode: "inherit" | "off" | "compact";
 			/** @enum {string} */
 			chartRange?: "24h" | "7d" | "30d";
@@ -4035,7 +4060,6 @@ export interface components {
 		};
 		PublicStatusIncident: {
 			id: components["schemas"]["uuid"];
-			checkId: components["schemas"]["uuid"];
 			checkTitle: string;
 			/** @enum {string} */
 			status: "open" | "acknowledged" | "resolved";
@@ -4084,6 +4108,16 @@ export interface components {
 			title: string;
 			description?: string;
 			enabled: boolean;
+			footerText?: string;
+			bannerImageUrl?: string;
+			/** @enum {string} */
+			theme: "light" | "dark" | "auto";
+			showTargets: boolean;
+			showProbeNames: boolean;
+			showProbeLocations: boolean;
+			showIncidentHistory: boolean;
+			showGeneratedAt: boolean;
+			customCss?: string;
 			/** @enum {string} */
 			defaultChartMode: "off" | "compact";
 			/** @enum {string} */
@@ -4110,6 +4144,13 @@ export interface components {
 			description?: string;
 			/** @enum {string} */
 			status: "operational" | "degraded" | "down" | "unknown";
+			footerText?: string;
+			bannerImageUrl?: string;
+			/** @enum {string} */
+			theme: "light" | "dark" | "auto";
+			showIncidentHistory: boolean;
+			showGeneratedAt: boolean;
+			customCss?: string;
 			/** @enum {string} */
 			defaultChartMode: "off" | "compact";
 			/** @enum {string} */
@@ -4118,15 +4159,16 @@ export interface components {
 			updatedAt: string;
 		};
 		PublicStatusPublicAssignment: {
-			assignmentId: components["schemas"]["uuid"];
-			checkId: components["schemas"]["uuid"];
 			checkTitle: string;
 			/** @enum {string} */
 			type: "ping" | "tcp" | "traceroute" | "http";
-			target: components["schemas"]["CheckTarget"];
-			probeId: components["schemas"]["uuid"];
-			probeName: string;
+			target?: components["schemas"]["CheckTarget"];
+			probeName?: string;
 			probeLocationName?: string;
+			/** Format: double */
+			latitude?: number;
+			/** Format: double */
+			longitude?: number;
 			/** Format: date-time */
 			latestStartedAt?: string;
 			/** @enum {string} */
@@ -4137,7 +4179,6 @@ export interface components {
 			id: components["schemas"]["uuid"];
 			/** @enum {string} */
 			kind: "folder" | "assignment_group";
-			checkId?: components["schemas"]["uuid"];
 			title: string;
 			description?: string;
 			/** @enum {string} */
@@ -4149,6 +4190,8 @@ export interface components {
 			latestStartedAt?: string;
 			/** @enum {string} */
 			latestStatus?: "successful" | "timeout" | "error" | "partial";
+			/** @enum {string} */
+			displayMode: "status" | "history" | "latency" | "map";
 			/** @enum {string} */
 			chartMode?: "off" | "compact";
 			/** @enum {string} */
@@ -5291,6 +5334,11 @@ export interface components {
 			/** Format: int32 */
 			sortOrder: number;
 			/**
+			 * @default status
+			 * @enum {string}
+			 */
+			displayMode: "status" | "history" | "latency" | "map";
+			/**
 			 * @default inherit
 			 * @enum {string}
 			 */
@@ -5305,6 +5353,24 @@ export interface components {
 			description?: string;
 			/** @default true */
 			enabled: boolean;
+			footerText?: string;
+			bannerImageUrl?: string;
+			/**
+			 * @default auto
+			 * @enum {string}
+			 */
+			theme: "light" | "dark" | "auto";
+			/** @default false */
+			showTargets: boolean;
+			/** @default false */
+			showProbeNames: boolean;
+			/** @default false */
+			showProbeLocations: boolean;
+			/** @default true */
+			showIncidentHistory: boolean;
+			/** @default true */
+			showGeneratedAt: boolean;
+			customCss?: string;
 			/**
 			 * @default off
 			 * @enum {string}

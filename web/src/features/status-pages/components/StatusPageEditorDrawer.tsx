@@ -41,6 +41,15 @@ function initialState(page?: ApiPublicStatusPage | null): StatusPageFormInput {
 		title: page?.title ?? "",
 		description: page?.description ?? "",
 		enabled: page?.enabled ?? true,
+		footerText: page?.footerText ?? "",
+		bannerImageUrl: page?.bannerImageUrl ?? "",
+		theme: page?.theme ?? "auto",
+		showTargets: page?.showTargets ?? false,
+		showProbeNames: page?.showProbeNames ?? false,
+		showProbeLocations: page?.showProbeLocations ?? false,
+		showIncidentHistory: page?.showIncidentHistory ?? true,
+		showGeneratedAt: page?.showGeneratedAt ?? true,
+		customCss: page?.customCss ?? "",
 		defaultChartMode: page?.defaultChartMode ?? "off",
 		defaultChartRange: page?.defaultChartRange ?? "24h"
 	};

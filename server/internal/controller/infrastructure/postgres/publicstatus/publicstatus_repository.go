@@ -84,14 +84,23 @@ func (r *Repository) CreatePage(ctx context.Context, input domainpublic.Page) (d
 		return domainpublic.Page{}, err
 	}
 	row, err := r.queries.CreatePublicStatusPage(ctx, sqlc.CreatePublicStatusPageParams{
-		ProjectID:         projectID,
-		Slug:              input.Slug,
-		Title:             input.Title,
-		Description:       input.Description,
-		Enabled:           input.Enabled,
-		DefaultChartMode:  sqlcChartMode(input.DefaultChartMode),
-		DefaultChartRange: sqlcChartRange(input.DefaultChartRange),
-		CreatedByUserID:   createdByUserID,
+		ProjectID:           projectID,
+		Slug:                input.Slug,
+		Title:               input.Title,
+		Description:         input.Description,
+		Enabled:             input.Enabled,
+		FooterText:          input.FooterText,
+		BannerImageUrl:      input.BannerImageURL,
+		Theme:               sqlc.PublicStatusTheme(input.Theme),
+		ShowTargets:         input.ShowTargets,
+		ShowProbeNames:      input.ShowProbeNames,
+		ShowProbeLocations:  input.ShowProbeLocations,
+		ShowIncidentHistory: input.ShowIncidentHistory,
+		ShowGeneratedAt:     input.ShowGeneratedAt,
+		CustomCss:           input.CustomCSS,
+		DefaultChartMode:    sqlcChartMode(input.DefaultChartMode),
+		DefaultChartRange:   sqlcChartRange(input.DefaultChartRange),
+		CreatedByUserID:     createdByUserID,
 	})
 	if err != nil {
 		postgres.RecordDBSpanError(span, err)
@@ -109,14 +118,23 @@ func (r *Repository) UpdatePage(ctx context.Context, input domainpublic.Page) (d
 		return domainpublic.Page{}, err
 	}
 	row, err := r.queries.UpdatePublicStatusPage(ctx, sqlc.UpdatePublicStatusPageParams{
-		ProjectID:         projectID,
-		ID:                pageID,
-		Slug:              input.Slug,
-		Title:             input.Title,
-		Description:       input.Description,
-		Enabled:           input.Enabled,
-		DefaultChartMode:  sqlcChartMode(input.DefaultChartMode),
-		DefaultChartRange: sqlcChartRange(input.DefaultChartRange),
+		ProjectID:           projectID,
+		ID:                  pageID,
+		Slug:                input.Slug,
+		Title:               input.Title,
+		Description:         input.Description,
+		Enabled:             input.Enabled,
+		FooterText:          input.FooterText,
+		BannerImageUrl:      input.BannerImageURL,
+		Theme:               sqlc.PublicStatusTheme(input.Theme),
+		ShowTargets:         input.ShowTargets,
+		ShowProbeNames:      input.ShowProbeNames,
+		ShowProbeLocations:  input.ShowProbeLocations,
+		ShowIncidentHistory: input.ShowIncidentHistory,
+		ShowGeneratedAt:     input.ShowGeneratedAt,
+		CustomCss:           input.CustomCSS,
+		DefaultChartMode:    sqlcChartMode(input.DefaultChartMode),
+		DefaultChartRange:   sqlcChartRange(input.DefaultChartRange),
 	})
 	if err != nil {
 		postgres.RecordDBSpanError(span, err)
@@ -211,6 +229,7 @@ func (r *Repository) CreateElement(ctx context.Context, input domainpublic.Eleme
 			Title:                   input.Title,
 			Description:             input.Description,
 			SortOrder:               input.SortOrder,
+			DisplayMode:             sqlcElementDisplayMode(input.DisplayMode),
 			ChartMode:               sqlcChartMode(input.ChartMode),
 			ChartRange:              sqlcOptionalChartRange(input.ChartRange),
 		})
@@ -259,6 +278,7 @@ func (r *Repository) UpdateElement(ctx context.Context, input domainpublic.Eleme
 			Title:                   input.Title,
 			Description:             input.Description,
 			SortOrder:               input.SortOrder,
+			DisplayMode:             sqlcElementDisplayMode(input.DisplayMode),
 			ChartMode:               sqlcChartMode(input.ChartMode),
 			ChartRange:              sqlcOptionalChartRange(input.ChartRange),
 		})

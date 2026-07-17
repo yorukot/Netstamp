@@ -14,13 +14,16 @@ import netstampLogo from "@netstamp/brand/assets/netstamp-logo-light.svg";
 import { Badge, Panel, Spinner, type BadgeTone } from "@netstamp/ui";
 import { CaretDownIcon } from "@phosphor-icons/react/dist/csr/CaretDown";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import styles from "./PublicStatusPage.module.css";
 
 type PublicIncident = ApiPublicStatusIncidentsResponse["incidents"]["active"][number];
 type PublicAssignment = NonNullable<ApiPublicStatusPublicElement["assignments"]>[number];
 type DailyStatusDay = ApiPublicStatusElementDailyStatusResponse["days"][number];
+type PublicPageTheme = ApiPublicStatusSummaryResponse["page"]["theme"];
+
+const NetworkMap = lazy(() => import("@/shared/visualizations/NetworkMap").then(module => ({ default: module.NetworkMap })));
 
 export function PublicStatusPage() {
 	const { slug = "" } = useParams();
@@ -39,6 +42,7 @@ export function PublicStatusPage() {
 		enabled: Boolean(slug),
 		select: data => data as ApiPublicStatusIncidentsResponse
 	});
+	const mapTheme = usePublicStatusTheme(summaryQuery.data?.page.theme);
 
 	if (summaryQuery.isPending) {
 		return (
@@ -65,13 +69,19 @@ export function PublicStatusPage() {
 
 	const summary = summaryQuery.data;
 	const activeIncidents = incidentsQuery.data?.incidents.active ?? [];
-	const resolvedIncidents = incidentsQuery.data?.incidents.recentResolved ?? [];
+	const resolvedIncidents = summary.page.showIncidentHistory ? (incidentsQuery.data?.incidents.recentResolved ?? []) : [];
+	const defaultFooter = "Measurements are collected by configured Netstamp probes. Status reflects observed availability and is not an independent SLA certification.";
 
 	return (
 		<main className={styles.page} data-status={summary.page.status}>
+			{summary.page.customCss ? <style>{summary.page.customCss}</style> : null}
 			<div className={styles.shell}>
 				<header className={styles.hero}>
-					<div className={styles.banner} role="img" aria-label="Network telemetry paths between global monitoring locations" />
+					{summary.page.bannerImageUrl ? (
+						<img className={`${styles.banner} ${styles.bannerImage}`} src={summary.page.bannerImageUrl} alt="" />
+					) : (
+						<div className={styles.banner} role="img" aria-label="Network telemetry paths between global monitoring locations" />
+					)}
 					<div className={styles.heroBody}>
 						<div className={styles.brandRow}>
 							<img src={netstampLogo} alt="Netstamp" />
@@ -82,10 +92,12 @@ export function PublicStatusPage() {
 								<h1>{summary.page.title}</h1>
 								{summary.page.description ? <p>{summary.page.description}</p> : null}
 							</div>
-							<div className={styles.generated}>
-								<span>Last checked</span>
-								<strong>{formatDateTime(summary.generatedAt)}</strong>
-							</div>
+							{summary.page.showGeneratedAt ? (
+								<div className={styles.generated}>
+									<span>Last checked</span>
+									<strong>{formatDateTime(summary.generatedAt)}</strong>
+								</div>
+							) : null}
 						</div>
 					</div>
 				</header>
@@ -100,11 +112,11 @@ export function PublicStatusPage() {
 				</section>
 
 				<IncidentSection activeIncidents={activeIncidents} resolvedIncidents={resolvedIncidents} isLoading={incidentsQuery.isPending} hasError={Boolean(incidentsQuery.error)} />
-				<ElementSection slug={slug} elements={elementsQuery.data?.elements ?? []} isLoading={elementsQuery.isPending} hasError={Boolean(elementsQuery.error)} />
+				<ElementSection slug={slug} elements={elementsQuery.data?.elements ?? []} isLoading={elementsQuery.isPending} hasError={Boolean(elementsQuery.error)} mapTheme={mapTheme} />
 
 				<footer className={styles.footer}>
-					<p>Measurements are collected by configured Netstamp probes. Status reflects observed availability and is not an independent SLA certification.</p>
-					<span>Updated {formatDateTime(summary.generatedAt)}</span>
+					<p>{summary.page.footerText || defaultFooter}</p>
+					{summary.page.showGeneratedAt ? <span>Updated {formatDateTime(summary.generatedAt)}</span> : null}
 				</footer>
 			</div>
 		</main>
@@ -218,7 +230,19 @@ function IncidentRow({ incident }: { incident: PublicIncident }) {
 	);
 }
 
-function ElementSection({ slug, elements, isLoading, hasError }: { slug: string; elements: ApiPublicStatusPublicElement[]; isLoading: boolean; hasError: boolean }) {
+function ElementSection({
+	slug,
+	elements,
+	isLoading,
+	hasError,
+	mapTheme
+}: {
+	slug: string;
+	elements: ApiPublicStatusPublicElement[];
+	isLoading: boolean;
+	hasError: boolean;
+	mapTheme: "light" | "dark";
+}) {
 	if (isLoading) {
 		return (
 			<section className={styles.elements} aria-label="Status checks">
@@ -239,12 +263,16 @@ function ElementSection({ slug, elements, isLoading, hasError }: { slug: string;
 
 	return (
 		<section className={styles.elements} aria-label="Status checks">
-			{elements.length ? elements.map(element => <PublicElement key={element.id} slug={slug} element={element} />) : <div className={styles.empty}>No public status elements are configured.</div>}
+			{elements.length ? (
+				elements.map(element => <PublicElement key={element.id} slug={slug} element={element} mapTheme={mapTheme} />)
+			) : (
+				<div className={styles.empty}>No public status elements are configured.</div>
+			)}
 		</section>
 	);
 }
 
-function PublicElement({ slug, element }: { slug: string; element: ApiPublicStatusPublicElement }) {
+function PublicElement({ slug, element, mapTheme }: { slug: string; element: ApiPublicStatusPublicElement; mapTheme: "light" | "dark" }) {
 	if (element.kind === "folder") {
 		return (
 			<section className={styles.folder} aria-labelledby={`status-group-${element.id}`}>
@@ -257,18 +285,19 @@ function PublicElement({ slug, element }: { slug: string; element: ApiPublicStat
 				</div>
 				<div className={styles.folderChildren}>
 					{element.children?.map(child => (
-						<PublicElement key={child.id} slug={slug} element={child} />
+						<PublicElement key={child.id} slug={slug} element={child} mapTheme={mapTheme} />
 					))}
 				</div>
 			</section>
 		);
 	}
 
-	return <ExpandableStatusRow slug={slug} element={element} />;
+	return <ExpandableStatusRow slug={slug} element={element} mapTheme={mapTheme} />;
 }
 
-function ExpandableStatusRow({ slug, element }: { slug: string; element: ApiPublicStatusPublicElement }) {
+function ExpandableStatusRow({ slug, element, mapTheme }: { slug: string; element: ApiPublicStatusPublicElement; mapTheme: "light" | "dark" }) {
 	const [expanded, setExpanded] = useState(false);
+	const showChart = element.displayMode === "latency" || element.chartMode === "compact";
 
 	return (
 		<article className={styles.check} data-expanded={expanded}>
@@ -279,6 +308,7 @@ function ExpandableStatusRow({ slug, element }: { slug: string; element: ApiPubl
 						<h3>{element.title}</h3>
 						<div className={styles.checkMeta}>
 							{element.type ? <span>{checkTypeLabel(element.type)}</span> : <span>{element.assignmentCount ?? element.assignments?.length ?? 0} viewpoints</span>}
+							<span>{displayModeLabel(element.displayMode)}</span>
 							{element.latestStartedAt ? <span>Checked {formatDateTime(element.latestStartedAt)}</span> : null}
 						</div>
 					</div>
@@ -298,8 +328,9 @@ function ExpandableStatusRow({ slug, element }: { slug: string; element: ApiPubl
 				</div>
 				<Metrics element={element} />
 				<AssignmentRows assignments={element.assignments ?? []} />
-				{element.chart?.series.length ? <ChartPanel className={styles.chart} option={publicStatusChartOption(element)} height="12rem" /> : null}
-				{!element.chart?.series.length && element.chartMode === "compact" ? <LazyPublicElementChart slug={slug} element={element} /> : null}
+				{expanded && element.displayMode === "map" ? <AssignmentMap assignments={element.assignments ?? []} theme={mapTheme} /> : null}
+				{showChart && element.chart?.series.length ? <ChartPanel className={styles.chart} option={publicStatusChartOption(element)} height="12rem" /> : null}
+				{showChart && !element.chart?.series.length ? <LazyPublicElementChart slug={slug} element={element} /> : null}
 			</div>
 		</article>
 	);
@@ -437,23 +468,103 @@ function AssignmentRows({ assignments }: { assignments: PublicAssignment[] }) {
 
 	return (
 		<div className={styles.publicAssignmentRows}>
-			{assignments.map(assignment => (
-				<div key={assignment.assignmentId} className={styles.publicAssignmentRow}>
-					<div className={styles.publicAssignmentCopy}>
-						<strong>{assignment.checkTitle}</strong>
-						<span>
-							{checkTypeLabel(assignment.type)} / {assignment.target} / {assignment.probeName}
-						</span>
-						{assignment.latestStartedAt ? <span>Latest {formatDateTime(assignment.latestStartedAt)}</span> : null}
+			{assignments.map((assignment, index) => {
+				const context = [checkTypeLabel(assignment.type), assignment.target, assignment.probeName, assignment.probeLocationName].filter(Boolean);
+				return (
+					<div key={`${assignment.checkTitle}-${assignment.probeName ?? assignment.probeLocationName ?? index}`} className={styles.publicAssignmentRow}>
+						<div className={styles.publicAssignmentCopy}>
+							<strong>{assignment.checkTitle}</strong>
+							{context.length ? <span>{context.join(" / ")}</span> : null}
+							{assignment.latestStartedAt ? <span>Latest {formatDateTime(assignment.latestStartedAt)}</span> : null}
+						</div>
+						<div className={styles.publicAssignmentStatus}>
+							<Badge tone={latestStatusTone(assignment.latestStatus)}>{latestStatusLabel(assignment.latestStatus)}</Badge>
+							<AssignmentMetrics assignment={assignment} />
+						</div>
 					</div>
-					<div className={styles.publicAssignmentStatus}>
-						<Badge tone={latestStatusTone(assignment.latestStatus)}>{latestStatusLabel(assignment.latestStatus)}</Badge>
-						<AssignmentMetrics assignment={assignment} />
-					</div>
-				</div>
-			))}
+				);
+			})}
 		</div>
 	);
+}
+
+function AssignmentMap({ assignments, theme }: { assignments: PublicAssignment[]; theme: "light" | "dark" }) {
+	const markers = useMemo(
+		() =>
+			assignments.flatMap((assignment, index) => {
+				if (typeof assignment.latitude !== "number" || typeof assignment.longitude !== "number") {
+					return [];
+				}
+				return [
+					{
+						id: `public-probe-${index}`,
+						name: assignment.probeName ?? assignment.probeLocationName ?? `Viewpoint ${index + 1}`,
+						coordinates: [assignment.longitude, assignment.latitude] as [number, number],
+						status: assignment.latestStatus === "error" || assignment.latestStatus === "timeout" ? "offline" : "online"
+					}
+				];
+			}),
+		[assignments]
+	);
+
+	if (!markers.length) {
+		return <div className={styles.mapUnavailable}>No public probe locations are available for this block.</div>;
+	}
+
+	return (
+		<Suspense fallback={<Spinner label="Loading probe map" layout="panel" size="lg" />}>
+			<NetworkMap className={styles.probeMap} probes={markers} selectedId="" mode="fleet" theme={theme} />
+		</Suspense>
+	);
+}
+
+function displayModeLabel(mode: ApiPublicStatusPublicElement["displayMode"]) {
+	switch (mode) {
+		case "history":
+			return "30-day history";
+		case "latency":
+			return "Latency";
+		case "map":
+			return "Probe map";
+		default:
+			return "Live status";
+	}
+}
+
+function usePublicStatusTheme(theme: PublicPageTheme | undefined) {
+	const preferredTheme = () => (typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+	const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">(() => (theme === "light" || theme === "dark" ? theme : preferredTheme()));
+
+	useEffect(() => {
+		if (!theme) {
+			return;
+		}
+
+		const root = document.documentElement;
+		const previousTheme = root.dataset.theme;
+		const preference = window.matchMedia("(prefers-color-scheme: light)");
+		const applyTheme = () => {
+			const nextTheme = theme === "auto" ? (preference.matches ? "light" : "dark") : theme;
+			root.dataset.theme = nextTheme;
+			setResolvedTheme(nextTheme);
+		};
+
+		applyTheme();
+		if (theme === "auto") {
+			preference.addEventListener("change", applyTheme);
+		}
+
+		return () => {
+			preference.removeEventListener("change", applyTheme);
+			if (previousTheme) {
+				root.dataset.theme = previousTheme;
+			} else {
+				delete root.dataset.theme;
+			}
+		};
+	}, [theme]);
+
+	return resolvedTheme;
 }
 
 function latestStatusTone(status: string | undefined): BadgeTone {

@@ -38,7 +38,7 @@ func (s *Service) GetPublicElements(ctx context.Context, input PublicElementsInp
 		return PublicElements{}, recordPublicQueryFailure(span, PublicStatusReasonElementListFailed, err)
 	}
 	markPublicQuerySuccess(span)
-	return PublicElements{Elements: snapshot.elements, GeneratedAt: snapshot.generatedAt}, nil
+	return PublicElements{Page: snapshot.page, Elements: snapshot.elements, GeneratedAt: snapshot.generatedAt}, nil
 }
 
 func (s *Service) GetPublicIncidents(ctx context.Context, input PublicIncidentsInput) (PublicIncidents, error) {
