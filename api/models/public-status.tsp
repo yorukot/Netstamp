@@ -255,6 +255,11 @@ model PublicStatusPageDetailResponse {
 	elements: PublicStatusElement[];
 }
 
+model PublicStatusEditorContextResponse {
+	projectRef: string;
+	pageId: uuid;
+}
+
 model PublicStatusElementResponse {
 	element: PublicStatusElement;
 }

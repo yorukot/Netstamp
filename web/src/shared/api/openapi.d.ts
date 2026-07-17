@@ -1325,6 +1325,23 @@ export interface paths {
 		patch: operations["updateProjectPublicStatusElement"];
 		trace?: never;
 	};
+	"/public/status-pages/{slug}/editor-context": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Get editor context for an editable public status page */
+		get: operations["getPublicStatusEditorContext"];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	"/public/status-pages/{slug}/elements": {
 		parameters: {
 			query?: never;
@@ -4006,6 +4023,10 @@ export interface components {
 			incidentCount: number;
 			/** @enum {string} */
 			severity?: "info" | "warning" | "critical";
+		};
+		PublicStatusEditorContextResponse: {
+			projectRef: string;
+			pageId: components["schemas"]["uuid"];
 		};
 		PublicStatusElement: {
 			id: components["schemas"]["uuid"];
@@ -11780,6 +11801,73 @@ export interface operations {
 				};
 				content: {
 					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	getPublicStatusEditorContext: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				slug: components["parameters"]["PublicStatusSlugPathParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["PublicStatusEditorContextResponse"];
 				};
 			};
 			/** @description Access is unauthorized. */

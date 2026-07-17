@@ -18,3 +18,4 @@ export const SettingsPage = lazy(() => import("@/features/settings/components/Se
 export const ProjectPage = lazy(() => import("@/features/project/components/ProjectPage").then(module => ({ default: module.ProjectPage })));
 export const PublicStatusPage = lazy(() => import("@/features/status-pages/components/PublicStatusPage").then(module => ({ default: module.PublicStatusPage })));
 export const StatusPagesPage = lazy(() => import("@/features/status-pages/components/StatusPagesPage").then(module => ({ default: module.StatusPagesPage })));
+export const StatusPageBuilderPage = lazy(() => import("@/features/status-pages/components/StatusPageBuilderPage").then(module => ({ default: module.StatusPageBuilderPage })));

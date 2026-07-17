@@ -111,6 +111,16 @@ type PublicSummaryInput struct {
 	Now  time.Time
 }
 
+type EditorContextInput struct {
+	CurrentUserID string
+	Slug          string
+}
+
+type EditorContext struct {
+	ProjectRef string
+	PageID     string
+}
+
 type PublicElementsInput struct {
 	Slug string
 	Now  time.Time

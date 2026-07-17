@@ -606,6 +606,29 @@ func TestGetPublicElementDailyStatusRejectsUnsupportedRange(t *testing.T) {
 	}
 }
 
+func TestGetEditorContextReturnsProjectRouteForAdministrators(t *testing.T) {
+	now := time.Date(2026, 7, 17, 12, 0, 0, 0, time.UTC)
+	service := NewService(&fakePublicStatusRepository{page: testPage(now)}, fakeProjectAccess{role: domainproject.RoleAdmin}, nil, nil, nil)
+
+	context, err := service.GetEditorContext(context.Background(), EditorContextInput{CurrentUserID: testUserID, Slug: "main"})
+	if err != nil {
+		t.Fatalf("GetEditorContext returned error: %v", err)
+	}
+	if context.ProjectRef != "main" || context.PageID != testPageID {
+		t.Fatalf("GetEditorContext = %#v, want project main and page %s", context, testPageID)
+	}
+}
+
+func TestGetEditorContextRejectsReadOnlyMembers(t *testing.T) {
+	now := time.Date(2026, 7, 17, 12, 0, 0, 0, time.UTC)
+	service := NewService(&fakePublicStatusRepository{page: testPage(now)}, fakeProjectAccess{role: domainproject.RoleViewer}, nil, nil, nil)
+
+	_, err := service.GetEditorContext(context.Background(), EditorContextInput{CurrentUserID: testUserID, Slug: "main"})
+	if !errors.Is(err, ErrForbidden) {
+		t.Fatalf("GetEditorContext error = %v, want ErrForbidden", err)
+	}
+}
+
 func TestUpdateElementRejectsKindChange(t *testing.T) {
 	now := time.Date(2026, 6, 21, 12, 0, 0, 0, time.UTC)
 	elementID := "55555555-5555-5555-5555-555555555555"

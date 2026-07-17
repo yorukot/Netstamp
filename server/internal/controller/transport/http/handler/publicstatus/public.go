@@ -19,6 +19,23 @@ func (h *Handler) handleGetPublicStatusSummary(w http.ResponseWriter, r *http.Re
 	httpx.WriteJSON(w, http.StatusOK, newPublicStatusSummaryResponse(summary))
 }
 
+func (h *Handler) handleGetPublicStatusEditorContext(w http.ResponseWriter, r *http.Request) {
+	userID, err := currentUserID(r.Context())
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	context, err := h.service.GetEditorContext(r.Context(), apppublic.EditorContextInput{
+		CurrentUserID: userID,
+		Slug:          httpx.Path(r, "slug"),
+	})
+	if err != nil {
+		httpx.WriteProblem(w, r, mapPublicStatusError(err, "get public status editor context failed"))
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, publicStatusEditorContextResponseBody{ProjectRef: context.ProjectRef, PageID: context.PageID})
+}
+
 func (h *Handler) handleGetPublicStatusElements(w http.ResponseWriter, r *http.Request) {
 	elements, err := h.service.GetPublicElements(r.Context(), apppublic.PublicElementsInput{
 		Slug: httpx.Path(r, "slug"),

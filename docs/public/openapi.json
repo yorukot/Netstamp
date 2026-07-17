@@ -7828,6 +7828,88 @@
 				]
 			}
 		},
+		"/public/status-pages/{slug}/editor-context": {
+			"get": {
+				"operationId": "getPublicStatusEditorContext",
+				"summary": "Get editor context for an editable public status page",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/PublicStatusSlugPathParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PublicStatusEditorContextResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Public Status Pages"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
+					}
+				]
+			}
+		},
 		"/public/status-pages/{slug}/elements": {
 			"get": {
 				"operationId": "getPublicStatusElements",
@@ -14101,6 +14183,18 @@
 					"severity": {
 						"type": "string",
 						"enum": ["info", "warning", "critical"]
+					}
+				}
+			},
+			"PublicStatusEditorContextResponse": {
+				"type": "object",
+				"required": ["projectRef", "pageId"],
+				"properties": {
+					"projectRef": {
+						"type": "string"
+					},
+					"pageId": {
+						"$ref": "#/components/schemas/uuid"
 					}
 				}
 			},

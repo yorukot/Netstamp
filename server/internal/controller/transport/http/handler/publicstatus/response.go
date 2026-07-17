@@ -74,6 +74,11 @@ type publicStatusSummaryResponseBody struct {
 	GeneratedAt time.Time      `json:"generatedAt"`
 }
 
+type publicStatusEditorContextResponseBody struct {
+	ProjectRef string `json:"projectRef"`
+	PageID     string `json:"pageId"`
+}
+
 type publicStatusElementsResponseBody struct {
 	Elements    []publicElementBody `json:"elements"`
 	GeneratedAt time.Time           `json:"generatedAt"`

@@ -107,6 +107,19 @@ interface ProjectPublicStatusPageService {
 @tag("Public Status Pages")
 @route("/public/status-pages")
 interface PublicStatusPageService {
+	@useAuth(UserOrTokenAuth)
+	@operationId("getPublicStatusEditorContext")
+	@summary("Get editor context for an editable public status page")
+	@get
+	@route("/{slug}/editor-context")
+	getPublicStatusEditorContext(...PublicStatusSlugPathParam):
+		| OkJson<PublicStatusEditorContextResponse>
+		| UnauthorizedProblem
+		| ForbiddenProblem
+		| NotFoundProblem
+		| UnprocessableEntityProblem
+		| InternalServerProblem;
+
 	@operationId("getPublicStatusSummary")
 	@summary("Get public status page summary")
 	@get

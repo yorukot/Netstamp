@@ -1,22 +1,17 @@
 import { formatDateTime, publicStatusPath } from "@/features/status-pages/api/statusPageAdapters";
-import { useCreatePublicStatusPageMutation, useUpdatePublicStatusPageMutation } from "@/shared/api/mutations";
+import { pathForStatusPageEditor } from "@/routes/routePaths";
 import { projectQueries } from "@/shared/api/queries";
-import type { ApiPublicStatusPage, CreatePublicStatusPageInput } from "@/shared/api/types";
+import type { ApiPublicStatusPage } from "@/shared/api/types";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { pushErrorToast, pushToast } from "@/shared/toast/toastStore";
-import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
 import { Badge, Button, DataTable, Panel, Spinner, type DataColumn } from "@netstamp/ui";
 import { CopyIcon } from "@phosphor-icons/react/dist/csr/Copy";
 import { PlusIcon } from "@phosphor-icons/react/dist/csr/Plus";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
 import { Link } from "react-router-dom";
-import { StatusPageEditorDrawer } from "./StatusPageEditorDrawer";
 import styles from "./StatusPagesPage.module.css";
-
-type PageEditorState = { mode: "create" } | { mode: "edit"; page: ApiPublicStatusPage } | null;
 
 const emptyPages: ApiPublicStatusPage[] = [];
 
@@ -26,39 +21,11 @@ function absolutePublicStatusURL(slug: string) {
 
 export function StatusPagesPage() {
 	const { projectRef } = useCurrentProject();
-	const [pageEditor, setPageEditor] = useState<PageEditorState>(null);
 	const pagesQuery = useQuery({
 		...projectQueries.statusPages(projectRef || ""),
 		enabled: Boolean(projectRef)
 	});
 	const pages = pagesQuery.data?.pages ?? emptyPages;
-	const createPageMutation = useCreatePublicStatusPageMutation(projectRef);
-	const updatePageMutation = useUpdatePublicStatusPageMutation(projectRef);
-	const savingPage = createPageMutation.isPending || updatePageMutation.isPending;
-
-	function handlePageSubmit(body: CreatePublicStatusPageInput) {
-		if (pageEditor?.mode === "edit") {
-			updatePageMutation.mutate(
-				{ pageId: pageEditor.page.id, previousSlug: pageEditor.page.slug, body },
-				{
-					onSuccess: data => {
-						setPageEditor(null);
-						pushToast({ title: "Status page updated", message: data.page.title, tone: "success" });
-					},
-					onError: error => pushErrorToast(requestErrorMessage(error))
-				}
-			);
-			return;
-		}
-
-		createPageMutation.mutate(body, {
-			onSuccess: data => {
-				setPageEditor(null);
-				pushToast({ title: "Status page created", message: data.page.title, tone: "success" });
-			},
-			onError: error => pushErrorToast(requestErrorMessage(error))
-		});
-	}
 
 	async function copyPageLink(page: ApiPublicStatusPage) {
 		try {
@@ -105,9 +72,11 @@ export function StatusPagesPage() {
 			<ScreenHeader
 				title="Status Pages"
 				actions={
-					<Button type="button" onClick={() => setPageEditor({ mode: "create" })}>
-						<PlusIcon aria-hidden="true" focusable="false" />
-						New Page
+					<Button asChild>
+						<Link to={pathForStatusPageEditor(projectRef)}>
+							<PlusIcon aria-hidden="true" focusable="false" />
+							New Page
+						</Link>
 					</Button>
 				}
 			/>
@@ -126,8 +95,8 @@ export function StatusPagesPage() {
 						emptyLabel="No status pages yet. Create a page to share service health."
 						rowActions={page => (
 							<div className={styles.rowActions}>
-								<Button type="button" variant="outline" size="sm" onClick={() => setPageEditor({ mode: "edit", page })}>
-									Edit
+								<Button asChild variant="outline" size="sm">
+									<Link to={pathForStatusPageEditor(projectRef, page.id)}>Edit</Link>
 								</Button>
 								<Button type="button" variant="ghost" size="sm" onClick={() => void copyPageLink(page)}>
 									<CopyIcon aria-hidden="true" focusable="false" />
@@ -141,17 +110,6 @@ export function StatusPagesPage() {
 					/>
 				)}
 			</Panel>
-
-			{pageEditor ? (
-				<StatusPageEditorDrawer
-					key={pageEditor.mode === "edit" ? pageEditor.page.id : "create"}
-					open
-					page={pageEditor.mode === "edit" ? pageEditor.page : null}
-					saving={savingPage}
-					onClose={() => setPageEditor(null)}
-					onSubmit={handlePageSubmit}
-				/>
-			) : null}
 		</PageStack>
 	);
 }

@@ -1,7 +1,10 @@
+import { useSession } from "@/features/auth/session/SessionContext";
 import { checkTypeLabel, formatDateTime, formatMetric, publicStatusChartOption, severityTone, statusLabel, statusTone } from "@/features/status-pages/api/statusPageAdapters";
+import { pathForStatusPageEditor } from "@/routes/routePaths";
 import { hasApiProblemCode } from "@/shared/api/client";
 import { publicStatusQueries } from "@/shared/api/queries";
 import type {
+	ApiPublicStatusEditorContextResponse,
 	ApiPublicStatusElementChartResponse,
 	ApiPublicStatusElementDailyStatusResponse,
 	ApiPublicStatusElementsResponse,
@@ -10,12 +13,13 @@ import type {
 	ApiPublicStatusSummaryResponse
 } from "@/shared/api/types";
 import { ChartPanel } from "@/shared/visualizations/ChartPanel";
-import netstampLogo from "@netstamp/brand/assets/netstamp-logo-light.svg";
-import { Badge, Panel, Spinner, type BadgeTone } from "@netstamp/ui";
+import netstampLogoDark from "@netstamp/brand/assets/netstamp-logo-dark.svg";
+import netstampLogoLight from "@netstamp/brand/assets/netstamp-logo-light.svg";
+import { Badge, Button, Panel, Spinner, type BadgeTone } from "@netstamp/ui";
 import { CaretDownIcon } from "@phosphor-icons/react/dist/csr/CaretDown";
 import { useQuery } from "@tanstack/react-query";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import styles from "./PublicStatusPage.module.css";
 
 type PublicIncident = ApiPublicStatusIncidentsResponse["incidents"]["active"][number];
@@ -27,6 +31,12 @@ const NetworkMap = lazy(() => import("@/shared/visualizations/NetworkMap").then(
 
 export function PublicStatusPage() {
 	const { slug = "" } = useParams();
+	const { session } = useSession();
+	const editorContextQuery = useQuery({
+		...publicStatusQueries.editorContext(slug),
+		enabled: Boolean(slug && session),
+		select: data => data as ApiPublicStatusEditorContextResponse
+	});
 	const summaryQuery = useQuery({
 		...publicStatusQueries.summary(slug),
 		enabled: Boolean(slug),
@@ -84,7 +94,7 @@ export function PublicStatusPage() {
 					)}
 					<div className={styles.heroBody}>
 						<div className={styles.brandRow}>
-							<img src={netstampLogo} alt="Netstamp" />
+							<img src={mapTheme === "dark" ? netstampLogoLight : netstampLogoDark} alt="Netstamp" />
 							<span>Public status</span>
 						</div>
 						<div className={styles.titleRow}>
@@ -92,10 +102,19 @@ export function PublicStatusPage() {
 								<h1>{summary.page.title}</h1>
 								{summary.page.description ? <p>{summary.page.description}</p> : null}
 							</div>
-							{summary.page.showGeneratedAt ? (
-								<div className={styles.generated}>
-									<span>Last checked</span>
-									<strong>{formatDateTime(summary.generatedAt)}</strong>
+							{summary.page.showGeneratedAt || editorContextQuery.data ? (
+								<div className={styles.heroActions}>
+									{summary.page.showGeneratedAt ? (
+										<div className={styles.generated}>
+											<span>Last checked</span>
+											<strong>{formatDateTime(summary.generatedAt)}</strong>
+										</div>
+									) : null}
+									{editorContextQuery.data ? (
+										<Button asChild variant="outline" size="sm">
+											<Link to={pathForStatusPageEditor(editorContextQuery.data.projectRef, editorContextQuery.data.pageId)}>Edit page</Link>
+										</Button>
+									) : null}
 								</div>
 							) : null}
 						</div>

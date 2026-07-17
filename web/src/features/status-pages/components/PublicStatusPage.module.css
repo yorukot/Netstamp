@@ -99,6 +99,13 @@
 	text-align: right;
 }
 
+.heroActions {
+	display: grid;
+	flex: 0 0 auto;
+	justify-items: end;
+	gap: 0.75rem;
+}
+
 .generated span {
 	color: var(--ns-text-subtle);
 	font-size: 0.7rem;
@@ -557,6 +564,10 @@
 	.generated {
 		min-width: 0;
 		text-align: left;
+	}
+
+	.heroActions {
+		justify-items: start;
 	}
 
 	.overallStatus {

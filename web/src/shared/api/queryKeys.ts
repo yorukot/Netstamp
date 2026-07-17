@@ -22,6 +22,7 @@ export const apiQueryKeys = {
 	publicStatus: {
 		all: ["public-status"] as const,
 		pageRoot: (slug: string) => [...apiQueryKeys.publicStatus.all, "page", slug] as const,
+		editorContext: (slug: string) => [...apiQueryKeys.publicStatus.pageRoot(slug), "editor-context"] as const,
 		summary: (slug: string) => [...apiQueryKeys.publicStatus.pageRoot(slug), "summary"] as const,
 		elements: (slug: string) => [...apiQueryKeys.publicStatus.pageRoot(slug), "elements"] as const,
 		incidents: (slug: string, filters: object = {}) => [...apiQueryKeys.publicStatus.pageRoot(slug), "incidents", filters] as const,

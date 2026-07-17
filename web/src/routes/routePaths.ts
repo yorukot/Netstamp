@@ -107,6 +107,16 @@ export function pathForAlertIncidentDetail(projectRef: string | null | undefined
 	return `${projectBasePath(projectRef)}/alerts/incident/${encodePathParam(incidentId)}`;
 }
 
+export function pathForStatusPageEditor(projectRef: string | null | undefined, pageId?: string) {
+	const suffix = pageId ? encodePathParam(pageId) : "new";
+
+	if (!projectRef) {
+		return `/status-pages/${suffix}/edit`;
+	}
+
+	return `${projectBasePath(projectRef)}/status-pages/${suffix}/edit`;
+}
+
 export function pathForProjectSwitch(pathname: string, projectRef: string) {
 	const match = /^\/projects\/[^/]+(?:\/([^/]+))?/.exec(pathname);
 

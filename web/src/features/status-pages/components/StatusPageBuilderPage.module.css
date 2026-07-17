@@ -1,0 +1,626 @@
+.pageStack {
+	min-width: 0;
+}
+
+.errorCopy {
+	margin: 0;
+	color: var(--ns-text-muted);
+}
+
+.headerActions,
+.canvasToolbar > div,
+.previewEmpty > div,
+.elementControls,
+.previewBlockActions {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.builder {
+	display: grid;
+	min-width: 0;
+	grid-template-columns: minmax(18rem, 22rem) minmax(0, 1fr);
+	align-items: start;
+	gap: 1rem;
+}
+
+.sidebar {
+	position: sticky;
+	top: 1rem;
+	display: grid;
+	max-height: calc(100svh - 2rem);
+	grid-template-rows: auto auto minmax(0, 1fr) auto;
+	border: 1px solid var(--ns-border);
+	background: var(--ns-surface);
+}
+
+.sidebarHeader {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	border-bottom: 1px solid var(--ns-border-faint);
+	padding: 1rem;
+}
+
+.sidebarHeader > div {
+	display: grid;
+	gap: 0.25rem;
+}
+
+.sidebarHeader span,
+.canvasToolbar span {
+	color: var(--ns-text-subtle);
+	font: 0.68rem/1 var(--ns-font-mono);
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+}
+
+.sidebarScroll {
+	min-height: 0;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+}
+
+.settingsSection {
+	display: grid;
+	gap: 1rem;
+	padding: 1rem;
+}
+
+.sectionIntro {
+	display: grid;
+	gap: 0.35rem;
+}
+
+.sectionIntro p,
+.inlineNotice {
+	margin: 0;
+	color: var(--ns-text-muted);
+	font-size: 0.78rem;
+	line-height: 1.5;
+}
+
+.previewEmpty p,
+.previewFooter p,
+.previewHeroBody p,
+.previewGroupHeader p {
+	margin: 0;
+	color: var(--status-preview-muted);
+	font-size: 0.78rem;
+	line-height: 1.5;
+}
+
+.switchRow {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	cursor: pointer;
+}
+
+.switchRow > span {
+	display: grid;
+	gap: 0.25rem;
+}
+
+.switchRow small,
+.libraryCard small {
+	color: var(--ns-text-subtle);
+	font-size: 0.7rem;
+	font-weight: 450;
+	line-height: 1.4;
+}
+
+.fieldGroup {
+	display: grid;
+	gap: 0.85rem;
+	border: 1px solid var(--ns-border-faint);
+	padding: 0.85rem;
+}
+
+.fieldGroupHeading {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+	border-bottom: 1px solid var(--ns-border-faint);
+	padding-bottom: 0.75rem;
+}
+
+.saveBar {
+	position: relative;
+	bottom: auto;
+	margin: 0;
+	border-right: 0;
+	border-bottom: 0;
+	border-left: 0;
+}
+
+.libraryCard {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 0.75rem;
+	width: 100%;
+	border: 1px solid var(--ns-border);
+	background: transparent;
+	color: var(--ns-text);
+	cursor: pointer;
+	padding: 0.8rem;
+	font: inherit;
+	text-align: left;
+}
+
+.libraryCard:hover:not(:disabled) {
+	border-color: var(--ns-primary-border);
+	background: var(--ns-primary-muted);
+}
+
+.libraryCard:focus-visible,
+.backButton:focus-visible {
+	outline: var(--ns-focus-outline);
+	outline-offset: var(--ns-focus-offset);
+}
+
+.libraryCard:disabled {
+	cursor: not-allowed;
+	opacity: 0.48;
+}
+
+.libraryCard > svg {
+	width: 1.15rem;
+	height: 1.15rem;
+	color: var(--ns-primary);
+}
+
+.libraryCard > span {
+	display: grid;
+	gap: 0.25rem;
+}
+
+.backButton {
+	display: inline-flex;
+	width: fit-content;
+	align-items: center;
+	gap: 0.35rem;
+	border: 0;
+	background: transparent;
+	color: var(--ns-text-muted);
+	cursor: pointer;
+	padding: 0;
+	font: 700 0.75rem/1 var(--ns-font-sans);
+}
+
+.backButton:hover {
+	color: var(--ns-text);
+}
+
+.canvas {
+	display: grid;
+	min-width: 0;
+	border: 1px solid var(--ns-border);
+	background: var(--ns-surface);
+}
+
+.canvasToolbar {
+	display: flex;
+	min-height: 3.5rem;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	border-bottom: 1px solid var(--ns-border);
+	padding: 0.75rem 1rem;
+}
+
+.canvasToolbar > div:first-child {
+	display: grid;
+	gap: 0.25rem;
+}
+
+.previewViewport {
+	--status-preview-bg: var(--ns-bg);
+	--status-preview-surface: var(--ns-surface);
+	--status-preview-raised: var(--ns-surface-raised);
+	--status-preview-deep: var(--ns-surface-deep);
+	--status-preview-text: var(--ns-text);
+	--status-preview-muted: var(--ns-text-subtle);
+	--status-preview-border: var(--ns-border);
+	--status-preview-border-faint: var(--ns-border-faint);
+
+	min-width: 0;
+	background-color: var(--status-preview-bg);
+	background-image:
+		linear-gradient(color-mix(in srgb, var(--status-preview-text) 3%, transparent) 0.0625rem, transparent 0.0625rem),
+		linear-gradient(90deg, color-mix(in srgb, var(--status-preview-text) 3%, transparent) 0.0625rem, transparent 0.0625rem);
+	background-size: 1.5rem 1.5rem;
+	color: var(--status-preview-text);
+	padding: clamp(1rem, 3vw, 2.5rem);
+}
+
+:root[data-theme="dark"] .previewViewport[data-preview-theme="light"],
+:root[data-theme="light"] .previewViewport[data-preview-theme="dark"] {
+	--status-preview-bg: var(--ns-text);
+	--status-preview-surface: color-mix(in srgb, var(--ns-text) 94%, var(--ns-bg));
+	--status-preview-raised: color-mix(in srgb, var(--ns-text) 97%, var(--ns-bg));
+	--status-preview-deep: color-mix(in srgb, var(--ns-text) 88%, var(--ns-bg));
+	--status-preview-text: var(--ns-bg);
+	--status-preview-muted: color-mix(in srgb, var(--ns-bg) 60%, var(--ns-text));
+	--status-preview-border: color-mix(in srgb, var(--ns-bg) 20%, transparent);
+	--status-preview-border-faint: color-mix(in srgb, var(--ns-bg) 10%, transparent);
+}
+
+.publicShell {
+	display: grid;
+	width: min(58rem, 100%);
+	margin: 0 auto;
+	gap: 1rem;
+}
+
+.previewHero,
+.previewOverall,
+.previewGroup,
+.previewEmpty {
+	border: 1px solid var(--status-preview-border);
+	background: var(--status-preview-surface);
+}
+
+.previewHero {
+	overflow: hidden;
+}
+
+.previewBanner {
+	display: block;
+	width: 100%;
+	aspect-ratio: 3 / 1;
+	border-bottom: 1px solid var(--status-preview-border);
+	background: var(--status-preview-deep);
+	object-fit: cover;
+}
+
+.previewHeroBody {
+	display: grid;
+	gap: 1.25rem;
+	padding: clamp(1rem, 2.5vw, 1.5rem);
+}
+
+.previewBrand {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	color: var(--status-preview-muted);
+	font: 0.62rem/1 var(--ns-font-mono);
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.previewBrand img {
+	width: auto;
+	height: 1rem;
+}
+
+.previewTitleRow,
+.previewOverall,
+.previewGroupHeader,
+.previewBlockTop,
+.previewFooter {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+}
+
+.previewTitleRow > div {
+	display: grid;
+	gap: 0.5rem;
+}
+
+.previewTitleRow h1 {
+	margin: 0;
+	font: 750 clamp(1.55rem, 4vw, 2.75rem) / 1 var(--ns-font-display);
+	letter-spacing: -0.04em;
+}
+
+.previewGenerated {
+	display: grid;
+	flex: 0 0 auto;
+	gap: 0.2rem;
+	color: var(--status-preview-muted);
+	font: 0.62rem/1.4 var(--ns-font-mono);
+	text-align: right;
+	text-transform: uppercase;
+}
+
+.previewGenerated strong {
+	color: inherit;
+}
+
+.previewOverall {
+	padding: 0.85rem 1rem;
+}
+
+.previewStatusMarker,
+.operationalDot {
+	display: block;
+	flex: 0 0 auto;
+	width: 0.55rem;
+	height: 0.55rem;
+	background: var(--ns-success);
+}
+
+.previewOverall > div {
+	display: grid;
+	flex: 1;
+	min-width: 0;
+	gap: 0.2rem;
+}
+
+.previewOverallBadge {
+	flex: 0 0 auto;
+	width: max-content;
+}
+
+.previewOverall small,
+.previewBlockIdentity small {
+	color: var(--status-preview-muted);
+	font: 0.68rem/1.4 var(--ns-font-mono);
+}
+
+.previewGroup {
+	transition: border-color var(--ns-transition);
+}
+
+.selectedElement {
+	border-color: var(--ns-primary);
+	box-shadow: 0 0 0 0.0625rem var(--ns-primary-muted);
+}
+
+.previewGroupHeader {
+	align-items: flex-start;
+	padding: 0.85rem 1rem;
+}
+
+.previewGroupHeader > div:first-child {
+	display: grid;
+	gap: 0.25rem;
+}
+
+.previewGroupHeader h2 {
+	margin: 0;
+	font-size: 0.9rem;
+}
+
+.previewGroupBody {
+	display: grid;
+	gap: 0.45rem;
+	border-top: 1px solid var(--status-preview-border-faint);
+	background: var(--status-preview-deep);
+	padding: 0.65rem;
+}
+
+.previewBlock {
+	display: grid;
+	gap: 0.55rem;
+	border: 1px solid transparent;
+	background: var(--status-preview-raised);
+	padding: 0.7rem 0.8rem;
+	transition: border-color var(--ns-transition);
+}
+
+.previewBlock:hover {
+	border-color: var(--ns-primary-border);
+}
+
+.previewBlockIdentity {
+	display: flex;
+	min-width: 0;
+	align-items: center;
+	gap: 0.55rem;
+}
+
+.previewBlockIdentity > div {
+	display: grid;
+	min-width: 0;
+	gap: 0.2rem;
+}
+
+.previewBlockIdentity strong,
+.previewBlockIdentity small {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.dragIcon {
+	flex: 0 0 auto;
+	color: var(--status-preview-muted);
+	cursor: grab;
+}
+
+.previewBlockActions > span {
+	color: var(--ns-success);
+	font: 700 0.68rem/1 var(--ns-font-mono);
+}
+
+.elementControls {
+	gap: 0.15rem;
+}
+
+.uptimeBars {
+	display: grid;
+	grid-template-columns: repeat(30, minmax(0, 1fr));
+	gap: 0.12rem;
+	padding-left: 2.3rem;
+}
+
+.uptimeBars span {
+	height: 0.8rem;
+	background: var(--ns-success);
+}
+
+.uptimeBars span[data-state="degraded"] {
+	background: var(--ns-warning);
+}
+
+.miniChart {
+	width: 100%;
+	height: 4.5rem;
+	border-top: 1px solid var(--status-preview-border-faint);
+	padding-top: 0.5rem;
+}
+
+.miniChart path {
+	fill: none;
+	stroke: var(--ns-primary);
+	stroke-width: 3;
+	vector-effect: non-scaling-stroke;
+}
+
+.miniMap {
+	position: relative;
+	min-height: 8rem;
+	overflow: hidden;
+	border-top: 1px solid var(--status-preview-border-faint);
+	background-image:
+		linear-gradient(color-mix(in srgb, var(--status-preview-text) 4%, transparent) 0.0625rem, transparent 0.0625rem),
+		linear-gradient(90deg, color-mix(in srgb, var(--status-preview-text) 4%, transparent) 0.0625rem, transparent 0.0625rem);
+	background-size: 1rem 1rem;
+}
+
+.miniMap > span {
+	position: absolute;
+	width: 0.7rem;
+	height: 0.7rem;
+	background: var(--ns-primary);
+	box-shadow: 0 0 0 0.25rem var(--ns-primary-muted);
+}
+
+.miniMap small {
+	position: absolute;
+	right: 0.5rem;
+	bottom: 0.5rem;
+	color: var(--status-preview-muted);
+	font: 0.62rem/1 var(--ns-font-mono);
+}
+
+.mapPrivacyNotice {
+	border-top: 1px solid var(--status-preview-border-faint);
+	color: var(--status-preview-muted);
+	font: 0.68rem/1.5 var(--ns-font-mono);
+	padding: 1rem;
+}
+
+.groupDropZone {
+	display: grid;
+	min-height: 4rem;
+	place-items: center;
+	border: 1px dashed var(--status-preview-border);
+	color: var(--status-preview-muted);
+	font: 0.7rem/1.4 var(--ns-font-mono);
+}
+
+.previewEmpty {
+	display: grid;
+	justify-items: center;
+	gap: 0.7rem;
+	padding: 2.5rem 1rem;
+	text-align: center;
+}
+
+.previewEmpty > svg {
+	width: 2rem;
+	height: 2rem;
+	color: var(--ns-primary);
+}
+
+.previewFooter {
+	align-items: flex-start;
+	border-top: 1px solid var(--status-preview-border);
+	padding: 0.85rem 0;
+}
+
+.previewFooter span {
+	flex: 0 0 auto;
+	color: var(--status-preview-muted);
+	font: 0.65rem/1.4 var(--ns-font-mono);
+}
+
+@media (max-width: 76rem) {
+	.builder {
+		grid-template-columns: 18rem minmax(0, 1fr);
+	}
+
+	.previewBlockTop,
+	.previewBlockActions {
+		align-items: flex-start;
+	}
+
+	.previewBlockTop {
+		display: grid;
+	}
+
+	.previewBlockActions {
+		justify-content: space-between;
+	}
+}
+
+@media (max-width: 56rem) {
+	.builder {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.sidebar {
+		position: relative;
+		top: auto;
+		max-height: none;
+	}
+
+	.sidebarScroll {
+		overflow: visible;
+	}
+}
+
+@media (max-width: 42rem) {
+	.headerActions,
+	.canvasToolbar,
+	.canvasToolbar > div,
+	.previewTitleRow,
+	.previewFooter {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+		align-items: stretch;
+	}
+
+	.headerActions,
+	.canvasToolbar > div {
+		width: 100%;
+	}
+
+	.previewViewport {
+		padding: 0.65rem;
+	}
+
+	.previewGenerated {
+		text-align: left;
+	}
+
+	.previewBlockActions > span {
+		display: none;
+	}
+
+	.elementControls {
+		justify-content: flex-end;
+	}
+
+	.uptimeBars {
+		padding-left: 0;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.previewGroup,
+	.previewBlock {
+		transition-duration: 1ms;
+	}
+}
