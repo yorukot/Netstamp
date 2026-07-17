@@ -187,6 +187,8 @@ model AuthOIDCMethod {
 model AuthExternalProviderMethod {
 	id: "google" | "github" | "oidc";
 	displayName: string;
+
+	@doc("Whether a linked identity from this provider can complete a recent-authentication flow for sensitive operations.")
 	sudoCapable: boolean;
 }
 
@@ -199,8 +201,13 @@ model AuthMethodsResponse {
 }
 
 model SudoStatusResponse {
+	@doc("Whether the current session is inside the configured recent-authentication window.")
 	active: boolean;
+
+	@doc("When the current session's most recent authentication expires. This timestamp may be in the past when active is false.")
 	expiresAt: utcDateTime;
+
+	@doc("Authentication methods currently linked to the user and available to refresh recent authentication.")
 	methods: ("password" | "google" | "github" | "oidc")[];
 }
 

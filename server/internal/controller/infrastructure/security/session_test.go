@@ -99,7 +99,7 @@ func TestSessionManagerElevateSessionPersistsAuthenticationMethod(t *testing.T) 
 	}
 }
 
-func TestSessionManagerNeverTreatsGitHubLoginAsSudoEligible(t *testing.T) {
+func TestSessionManagerSupportsGitHubRecentAuthentication(t *testing.T) {
 	now := time.Date(2026, time.July, 10, 9, 30, 0, 0, time.UTC)
 	repo := &sessionRepositoryRecorder{}
 	manager := NewSessionManager(repo, SessionConfig{HashKey: "test-session-hash-key", IdleTTL: time.Hour, AbsoluteTTL: time.Hour, SudoTTL: 5 * time.Minute})
@@ -112,8 +112,11 @@ func TestSessionManagerNeverTreatsGitHubLoginAsSudoEligible(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create GitHub session: %v", err)
 	}
-	if created.Session.SudoEligible {
-		t.Fatal("expected GitHub login to remain ineligible for sudo")
+	if !created.Session.SudoEligible {
+		t.Fatal("expected GitHub authentication to be eligible for recent authentication")
+	}
+	if err := manager.ElevateSession(context.Background(), created.Session.ID, identity.AuthenticationMethodGitHub, nil, now); err != nil {
+		t.Fatalf("elevate GitHub session: %v", err)
 	}
 }
 

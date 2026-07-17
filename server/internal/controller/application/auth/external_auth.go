@@ -146,7 +146,7 @@ func (s *Service) CompleteExternalAuth(ctx context.Context, input CompleteExtern
 	if !ok || !s.externalAuthAvailable() {
 		return CompleteExternalAuthResult{}, ErrExternalAuthUnavailable
 	}
-	if input.Code == "" || input.State == "" || input.BrowserToken == "" {
+	if input.State == "" || input.BrowserToken == "" {
 		return CompleteExternalAuthResult{}, ErrExternalAuthCallbackInvalid
 	}
 	now := s.now()
@@ -156,9 +156,13 @@ func (s *Service) CompleteExternalAuth(ctx context.Context, input CompleteExtern
 	if err != nil || flow.Provider != input.Provider {
 		return CompleteExternalAuthResult{}, ErrExternalAuthCallbackInvalid
 	}
+	result := CompleteExternalAuthResult{Intent: flow.Intent, ReturnTo: flow.ReturnTo}
+	if input.Code == "" {
+		return result, ErrExternalAuthCallbackInvalid
+	}
 	claims, err := provider.client.Exchange(ctx, input.Code, flow.PKCEVerifier, flow.Nonce)
 	if err != nil || claims.Issuer == "" || claims.Subject == "" {
-		return CompleteExternalAuthResult{}, ErrExternalAuthCallbackInvalid
+		return result, ErrExternalAuthCallbackInvalid
 	}
 	return s.completeExternalAuthIntent(ctx, provider, flow, claims, input.UserAgent, now)
 }
@@ -251,11 +255,21 @@ func (s *Service) externalReauthenticationSession(ctx context.Context, flow iden
 	if err != nil {
 		return identity.AuthSession{}, time.Time{}, err
 	}
+	if authTime.IsZero() {
+		if !validExternalAuthenticationFlowTime(flow.CreatedAt, session.CreatedAt, now, s.externalAuthConfig.AuthTimeSkew) {
+			return identity.AuthSession{}, time.Time{}, ErrExternalAuthCallbackInvalid
+		}
+		return session, now.UTC(), nil
+	}
 	authenticatedAt, ok := recentExternalAuthenticationTime(authTime, flow.CreatedAt, session.CreatedAt, now, s.externalAuthConfig.AuthTimeSkew)
 	if !ok {
 		return identity.AuthSession{}, time.Time{}, ErrExternalAuthCallbackInvalid
 	}
 	return session, authenticatedAt, nil
+}
+
+func validExternalAuthenticationFlowTime(flowCreatedAt, sessionCreatedAt, now time.Time, skew time.Duration) bool {
+	return !flowCreatedAt.IsZero() && !flowCreatedAt.After(now.Add(skew)) && (sessionCreatedAt.IsZero() || !flowCreatedAt.Before(sessionCreatedAt.Add(-skew)))
 }
 
 func (s *Service) externalAuthAvailable() bool {

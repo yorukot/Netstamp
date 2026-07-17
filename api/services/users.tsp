@@ -33,7 +33,7 @@ interface UserService {
 
 	@operationId("setCurrentUserPassword")
 	@summary("Set current user password")
-	@doc("Create or replace the current user's local password after recent authentication. A passwordless GitHub account may set its first password from the same GitHub-authenticated session during the external authorization flow window; this exception does not grant sudo for other operations.")
+	@doc("Create or replace the current user's local password after recent authentication with any available linked method.")
 	@put
 	@route("/me/password")
 	changeCurrentUserPassword(@body body: ChangeCurrentUserPasswordRequest): NoContent | BadRequestProblem | UnauthorizedProblem | ForbiddenProblem | UnprocessableEntityProblem | InternalServerProblem;

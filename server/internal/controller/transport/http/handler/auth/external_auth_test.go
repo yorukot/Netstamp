@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 
 	appauth "github.com/yorukot/netstamp/internal/controller/application/auth"
@@ -15,7 +16,7 @@ func TestAuthMethodsReturnsLowerCamelProviderMetadata(t *testing.T) {
 	service := appauth.NewService(nil, nil, nil, nil)
 	service.ConfigureExternalAuth(nil, nil, appauth.ExternalAuthConfig{},
 		appauth.ExternalProviderRegistration{
-			Config: appauth.ExternalProviderConfig{ID: identity.AuthenticationMethodGitHub, DisplayName: "GitHub", SudoCapable: false},
+			Config: appauth.ExternalProviderConfig{ID: identity.AuthenticationMethodGitHub, DisplayName: "GitHub", SudoCapable: true},
 			Client: &externalAuthClientStub{},
 		},
 		appauth.ExternalProviderRegistration{
@@ -36,8 +37,25 @@ func TestAuthMethodsReturnsLowerCamelProviderMetadata(t *testing.T) {
 	if err := json.Unmarshal(recorder.Body.Bytes(), &body); err != nil {
 		t.Fatalf("decode auth methods response: %v", err)
 	}
-	if len(body.Providers) != 2 || body.Providers[0].ID != identity.AuthenticationMethodGoogle || !body.Providers[0].SudoCapable {
+	if len(body.Providers) != 2 || body.Providers[0].ID != identity.AuthenticationMethodGoogle || !body.Providers[0].SudoCapable || !body.Providers[1].SudoCapable {
 		t.Fatalf("unexpected provider metadata: %#v", body.Providers)
+	}
+}
+
+func TestExternalAuthErrorRedirectPreservesSensitiveReturnPath(t *testing.T) {
+	handler := &Handler{publicWebBaseURL: "https://netstamp.example.com"}
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/auth/external/github/callback", http.NoBody)
+
+	handler.redirectExternalAuthError(recorder, request, identity.AuthenticationMethodGitHub, "callback_invalid", "/settings?reauth=set-password")
+
+	location, err := url.Parse(recorder.Header().Get("Location"))
+	if err != nil {
+		t.Fatalf("parse redirect location: %v", err)
+	}
+	query := location.Query()
+	if location.Path != "/settings" || query.Get("reauth") != "set-password" || query.Get("auth_error") != "callback_invalid" || query.Get("auth_provider") != identity.AuthenticationMethodGitHub {
+		t.Fatalf("unexpected sensitive auth error redirect: %s", location.String())
 	}
 }
 

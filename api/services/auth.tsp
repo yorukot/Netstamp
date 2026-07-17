@@ -117,6 +117,7 @@ interface AuthService {
 
 	@operationId("getSudoStatus")
 	@summary("Get recent authentication status")
+	@doc("Return whether the current session was recently verified and the linked methods that can refresh that verification. Password and external provider verification share the same configured recent-authentication window.")
 	@useAuth(SessionCookieAuth)
 	@get
 	@route("/sudo")

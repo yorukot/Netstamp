@@ -515,7 +515,10 @@ export interface paths {
 			path?: never;
 			cookie?: never;
 		};
-		/** Get recent authentication status */
+		/**
+		 * Get recent authentication status
+		 * @description Return whether the current session was recently verified and the linked methods that can refresh that verification. Password and external provider verification share the same configured recent-authentication window.
+		 */
 		get: operations["getSudoStatus"];
 		put?: never;
 		post?: never;
@@ -1596,7 +1599,7 @@ export interface paths {
 		get?: never;
 		/**
 		 * Set current user password
-		 * @description Create or replace the current user's local password after recent authentication. A passwordless GitHub account may set its first password from the same GitHub-authenticated session during the external authorization flow window; this exception does not grant sudo for other operations.
+		 * @description Create or replace the current user's local password after recent authentication with any available linked method.
 		 */
 		put: operations["setCurrentUserPassword"];
 		post?: never;
@@ -2137,6 +2140,7 @@ export interface components {
 			/** @enum {string} */
 			id: "google" | "github" | "oidc";
 			displayName: string;
+			/** @description Whether a linked identity from this provider can complete a recent-authentication flow for sensitive operations. */
 			sudoCapable: boolean;
 		};
 		AuthMethodsResponse: {
@@ -4477,9 +4481,14 @@ export interface components {
 			serverTime: string;
 		};
 		SudoStatusResponse: {
+			/** @description Whether the current session is inside the configured recent-authentication window. */
 			active: boolean;
-			/** Format: date-time */
+			/**
+			 * Format: date-time
+			 * @description When the current session's most recent authentication expires. This timestamp may be in the past when active is false.
+			 */
 			expiresAt: string;
+			/** @description Authentication methods currently linked to the user and available to refresh recent authentication. */
 			methods: ("password" | "google" | "github" | "oidc")[];
 		};
 		/**
