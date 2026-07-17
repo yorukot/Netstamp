@@ -78,6 +78,8 @@ export interface ParsedInsightUrlState {
 	refresh: InsightRefreshInterval;
 	hasValidRefresh: boolean;
 	assignmentKeys: string[];
+	probeIds: string[];
+	checkIds: string[];
 	probeId: string;
 	checkId: string;
 	runStartedAt: string;
