@@ -4,6 +4,9 @@ import {
 	AlertDialogContext,
 	type AlertDialogFn,
 	type AlertDialogOptions,
+	ChoiceDialogContext,
+	type ChoiceDialogFn,
+	type ChoiceDialogOptions,
 	ConfirmContext,
 	type ConfirmFn,
 	type ConfirmOptions,
@@ -37,12 +40,18 @@ interface AlertState extends BaseDialogState {
 	options: AlertDialogOptions;
 }
 
-type DialogState = AlertState | ConfirmState | PromptState;
+interface ChoiceState extends BaseDialogState {
+	kind: "choice";
+	options: ChoiceDialogOptions;
+}
+
+type DialogState = AlertState | ChoiceState | ConfirmState | PromptState;
 type DialogResult = boolean | string | null | undefined;
 
 export function ConfirmProvider({ children }: { children: ReactNode }) {
 	const [state, setState] = useState<DialogState | null>(null);
 	const resolverRef = useRef<((result: DialogResult) => void) | null>(null);
+	const resultRef = useRef<DialogResult>(undefined);
 	const closeTimeoutRef = useRef<number | null>(null);
 	const confirmationInputRef = useRef<HTMLInputElement | null>(null);
 	const titleId = useId();
@@ -60,13 +69,17 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
 
 	const completeClose = useCallback(() => {
 		clearCloseTimer();
+		const resolve = resolverRef.current;
+		const result = resultRef.current;
+		resolverRef.current = null;
+		resultRef.current = undefined;
 		setState(null);
+		resolve?.(result);
 	}, [clearCloseTimer]);
 
 	const close = useCallback(
 		(result: DialogResult) => {
-			resolverRef.current?.(result);
-			resolverRef.current = null;
+			resultRef.current = result;
 			setState(current => (current ? { ...current, closing: true } : current));
 			clearCloseTimer();
 			closeTimeoutRef.current = window.setTimeout(completeClose, closeDurationMs);
@@ -103,6 +116,18 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
 		});
 	}, []);
 
+	const choiceDialog = useCallback<ChoiceDialogFn>(options => {
+		if (resolverRef.current || options.choices.length === 0) {
+			return Promise.resolve(null);
+		}
+
+		setState({ kind: "choice", options, closing: false });
+
+		return new Promise(resolve => {
+			resolverRef.current = result => resolve(typeof result === "string" ? result : null);
+		});
+	}, []);
+
 	const alertDialog = useCallback<AlertDialogFn>(options => {
 		if (resolverRef.current) {
 			return Promise.resolve();
@@ -133,6 +158,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
 			clearCloseTimer();
 			resolverRef.current?.(false);
 			resolverRef.current = null;
+			resultRef.current = undefined;
 		};
 	}, [clearCloseTimer]);
 
@@ -141,7 +167,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
 			return;
 		}
 
-		if (state.kind === "prompt") {
+		if (state.kind === "prompt" || state.kind === "choice") {
 			close(null);
 			return;
 		}
@@ -161,6 +187,9 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
 		event.preventDefault();
 
 		if (!state) {
+			return;
+		}
+		if (state.kind === "choice") {
 			return;
 		}
 
@@ -192,7 +221,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
 	const message = state?.options.message;
 	const tone = state?.options.tone ?? "default";
 	const eyebrow = state ? dialogEyebrow(state) : "";
-	const confirmLabel = state?.options.confirmLabel ?? (state?.kind === "alert" ? "OK" : "Confirm");
+	const confirmLabel = state?.kind === "choice" ? undefined : (state?.options.confirmLabel ?? (state?.kind === "alert" ? "OK" : "Confirm"));
 	const confirmationText = state?.kind === "confirm" ? state.options.confirmationText : undefined;
 	const confirmationRequired = confirmationText !== undefined;
 	const confirmationMatches = !confirmationRequired || (state?.kind === "confirm" && state.inputValue === confirmationText);
@@ -274,15 +303,26 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
 										) : null}
 									</div>
 								) : null}
+								{state.kind === "choice" ? (
+									<div className={styles.choices}>
+										{state.options.choices.map(choice => (
+											<Button key={choice.value} type="button" variant="outline" onClick={() => close(choice.value)}>
+												{choice.label}
+											</Button>
+										))}
+									</div>
+								) : null}
 								<div className={styles.actions}>
 									{state.kind !== "alert" ? (
 										<Button type="button" variant="ghost" onClick={cancelDialog} autoFocus={state.kind === "confirm" && !confirmationRequired}>
 											{state.options.cancelLabel ?? "Cancel"}
 										</Button>
 									) : null}
-									<Button type="submit" variant={tone === "danger" ? "danger" : "primary"} disabled={!confirmationMatches} autoFocus={state.kind === "alert"}>
-										{confirmLabel}
-									</Button>
+									{state.kind !== "choice" ? (
+										<Button type="submit" variant={tone === "danger" ? "danger" : "primary"} disabled={!confirmationMatches} autoFocus={state.kind === "alert"}>
+											{confirmLabel}
+										</Button>
+									) : null}
 								</div>
 							</form>
 						</AlertDialogContent>
@@ -294,10 +334,12 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
 	return (
 		<ConfirmContext.Provider value={confirm}>
 			<PromptContext.Provider value={prompt}>
-				<AlertDialogContext.Provider value={alertDialog}>
-					{children}
-					{dialog}
-				</AlertDialogContext.Provider>
+				<ChoiceDialogContext.Provider value={choiceDialog}>
+					<AlertDialogContext.Provider value={alertDialog}>
+						{children}
+						{dialog}
+					</AlertDialogContext.Provider>
+				</ChoiceDialogContext.Provider>
 			</PromptContext.Provider>
 		</ConfirmContext.Provider>
 	);
@@ -310,6 +352,9 @@ function dialogEyebrow(state: DialogState) {
 
 	if (state.kind === "prompt") {
 		return state.options.tone === "danger" ? "Input required" : "Input required";
+	}
+	if (state.kind === "choice") {
+		return "Authentication required";
 	}
 
 	return state.options.tone === "danger" ? "Destructive action" : "Confirm action";
