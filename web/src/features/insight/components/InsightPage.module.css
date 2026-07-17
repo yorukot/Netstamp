@@ -1,43 +1,34 @@
-.scopeBar {
-	--ns-filter-grid-template: minmax(30rem, 1.45fr) minmax(15rem, 0.8fr) minmax(13rem, 0.7fr);
+.scopeControls {
+	display: grid;
+	gap: 1.25rem;
+}
+
+.scopeSelectionRow {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 2.75rem minmax(0, 1fr);
+	gap: 0.75rem;
+	align-items: end;
+}
+
+.scopeArrow {
+	display: grid;
+	place-items: center;
+	width: 2.75rem;
+	height: 2.75rem;
+	color: var(--ns-text-low);
 }
 
 .scopeTimeControl {
-	min-width: 0;
-}
-
-.scopeSelectorRow,
-.assignmentSelectorRow {
-	margin-top: 1rem;
-}
-
-.focusChips {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 0.625rem;
-	align-items: center;
-	margin-top: 1rem;
-	min-height: 2.25rem;
-}
-
-.scopeHint {
-	color: var(--ns-text-low);
-	font-size: 0.75rem;
-	line-height: 1.45;
-}
-
-@media (max-width: 72rem) {
-	.scopeBar {
-		--ns-filter-grid-template: repeat(2, minmax(0, 1fr));
-	}
-
-	.scopeTimeControl {
-		grid-column: 1 / -1;
-	}
+	width: min(100%, 42rem);
 }
 
 @media (max-width: 44rem) {
-	.scopeBar {
-		--ns-filter-grid-template: 1fr;
+	.scopeSelectionRow {
+		grid-template-columns: minmax(0, 1fr) 2rem minmax(0, 1fr);
+		gap: 0.5rem;
+	}
+
+	.scopeArrow {
+		width: 2rem;
 	}
 }
