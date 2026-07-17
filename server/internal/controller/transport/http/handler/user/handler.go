@@ -37,10 +37,10 @@ func (h *Handler) RegisterRoutes(api chi.Router) {
 		r.Patch("/users/me", h.handleUpdateCurrentUser)
 		r.Get("/users/me/authentication-methods", h.handleAuthenticationMethods)
 		if h.sudo != nil {
-			r.With(httpmiddleware.RequirePasswordChangeAuthorization(h.sudo)).Put("/users/me/password", h.handleChangeCurrentUserPassword)
 			r.Group(func(sensitive chi.Router) {
 				sensitive.Use(httpmiddleware.RequireSudo(h.sudo))
 				sensitive.Post("/users/me/email-change", h.handleChangeCurrentUserEmail)
+				sensitive.Put("/users/me/password", h.handleChangeCurrentUserPassword)
 				sensitive.Delete("/users/me/password", h.handleRemoveCurrentUserPassword)
 				sensitive.Delete("/users/me/identities/{identity_id}", h.handleRemoveCurrentUserIdentity)
 				sensitive.Post("/users/me/deactivation", h.handleDeactivateCurrentUser)

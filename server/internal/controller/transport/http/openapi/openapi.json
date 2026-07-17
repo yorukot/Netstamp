@@ -2128,6 +2128,7 @@
 			"get": {
 				"operationId": "getSudoStatus",
 				"summary": "Get recent authentication status",
+				"description": "Return whether the current session was recently verified and the linked methods that can refresh that verification. Password and external provider verification share the same configured recent-authentication window.",
 				"parameters": [],
 				"responses": {
 					"200": {
@@ -8969,7 +8970,7 @@
 			"put": {
 				"operationId": "setCurrentUserPassword",
 				"summary": "Set current user password",
-				"description": "Create or replace the current user's local password after recent authentication. A passwordless GitHub account may set its first password from the same GitHub-authenticated session during the external authorization flow window; this exception does not grant sudo for other operations.",
+				"description": "Create or replace the current user's local password after recent authentication with any available linked method.",
 				"parameters": [],
 				"responses": {
 					"204": {
@@ -10836,7 +10837,8 @@
 						"type": "string"
 					},
 					"sudoCapable": {
-						"type": "boolean"
+						"type": "boolean",
+						"description": "Whether a linked identity from this provider can complete a recent-authentication flow for sensitive operations."
 					}
 				},
 				"examples": [
@@ -15132,18 +15134,21 @@
 				"required": ["active", "expiresAt", "methods"],
 				"properties": {
 					"active": {
-						"type": "boolean"
+						"type": "boolean",
+						"description": "Whether the current session is inside the configured recent-authentication window."
 					},
 					"expiresAt": {
 						"type": "string",
-						"format": "date-time"
+						"format": "date-time",
+						"description": "When the current session's most recent authentication expires. This timestamp may be in the past when active is false."
 					},
 					"methods": {
 						"type": "array",
 						"items": {
 							"type": "string",
 							"enum": ["password", "google", "github", "oidc"]
-						}
+						},
+						"description": "Authentication methods currently linked to the user and available to refresh recent authentication."
 					}
 				}
 			},

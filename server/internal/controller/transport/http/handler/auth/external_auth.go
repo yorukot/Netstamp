@@ -106,7 +106,7 @@ func (h *Handler) handleOIDCCallback(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) handleExternalAuthCallbackForProvider(w http.ResponseWriter, r *http.Request, provider string) {
 	flowCookie, err := r.Cookie(h.externalAuthFlowCookieName())
 	if err != nil {
-		h.redirectExternalAuthError(w, r, provider, "callback_invalid")
+		h.redirectExternalAuthError(w, r, provider, "callback_invalid", "")
 		return
 	}
 	expiredFlowCookie := expiredExternalAuthFlowCookie(h.externalAuthFlowCookieName(), h.cookieSecure)
@@ -127,7 +127,11 @@ func (h *Handler) handleExternalAuthCallbackForProvider(w http.ResponseWriter, r
 		case errors.Is(err, appauth.ErrSudoRequired):
 			code = "sudo_expired"
 		}
-		h.redirectExternalAuthError(w, r, provider, code)
+		returnTo := ""
+		if result.Intent != appauth.ExternalAuthIntentLogin {
+			returnTo = result.ReturnTo
+		}
+		h.redirectExternalAuthError(w, r, provider, code, returnTo)
 		return
 	}
 	if result.Access != nil {
@@ -137,11 +141,28 @@ func (h *Handler) handleExternalAuthCallbackForProvider(w http.ResponseWriter, r
 	http.Redirect(w, r, h.webRedirect(result.ReturnTo), http.StatusFound)
 }
 
-func (h *Handler) redirectExternalAuthError(w http.ResponseWriter, r *http.Request, provider, code string) {
-	values := url.Values{}
+func (h *Handler) redirectExternalAuthError(w http.ResponseWriter, r *http.Request, provider, code, returnTo string) {
+	path := normalizeExternalAuthErrorReturnTo(returnTo)
+	parsed, err := url.Parse(path)
+	if err != nil {
+		parsed = &url.URL{Path: "/login"}
+	}
+	values := parsed.Query()
 	values.Set("auth_error", code)
 	values.Set("auth_provider", provider)
-	http.Redirect(w, r, h.webRedirect("/login?"+values.Encode()), http.StatusFound)
+	parsed.RawQuery = values.Encode()
+	http.Redirect(w, r, h.webRedirect(parsed.String()), http.StatusFound)
+}
+
+func normalizeExternalAuthErrorReturnTo(returnTo string) string {
+	if returnTo == "" {
+		return "/login"
+	}
+	parsed, err := url.Parse(returnTo)
+	if err != nil || parsed.IsAbs() || parsed.Host != "" || !strings.HasPrefix(parsed.Path, "/") || strings.HasPrefix(parsed.Path, "//") || strings.ContainsAny(parsed.Path, "\\\r\n") {
+		return "/login"
+	}
+	return parsed.String()
 }
 
 func (h *Handler) webRedirect(path string) string {

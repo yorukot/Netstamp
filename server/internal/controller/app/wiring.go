@@ -235,7 +235,7 @@ func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool
 		externalAuthProviders = append(externalAuthProviders, appauth.ExternalProviderRegistration{
 			Config: appauth.ExternalProviderConfig{
 				ID: identity.AuthenticationMethodGitHub, DisplayName: cfg.Auth.GitHubDisplayName,
-				JITEnabled: cfg.Auth.GitHubJITEnabled, SudoCapable: false,
+				JITEnabled: cfg.Auth.GitHubJITEnabled, SudoCapable: true,
 			},
 			Client: security.NewGitHubOAuthClient(security.GitHubOAuthClientConfig{
 				ClientID: cfg.Auth.GitHubClientID, ClientSecret: cfg.Auth.GitHubClientSecret,

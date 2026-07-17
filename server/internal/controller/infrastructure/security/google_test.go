@@ -31,6 +31,9 @@ func TestGoogleAuthorizationURLRequestsRecentAuthenticationForSudo(t *testing.T)
 	if query.Get("claims") != `{"id_token":{"auth_time":{"essential":true}}}` {
 		t.Fatalf("expected essential auth_time claim, got %q", query.Get("claims"))
 	}
+	if query.Get("max_age") != "0" {
+		t.Fatalf("expected Google sudo to request immediate reauthentication, got max_age=%q", query.Get("max_age"))
+	}
 	if query.Get("hd") != "example.com" || query.Get("nonce") != "nonce" {
 		t.Fatalf("unexpected Google authorization hints: %s", parsed.RawQuery)
 	}

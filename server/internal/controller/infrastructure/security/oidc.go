@@ -55,7 +55,7 @@ func (c *OIDCClient) AuthorizationURL(ctx context.Context, state, nonce, pkceVer
 			options = append(options, oauth2.SetAuthURLParam("prompt", "select_account"))
 		}
 		if intent == appauth.ExternalAuthIntentSudo {
-			options = append(options, oauth2.SetAuthURLParam("claims", `{"id_token":{"auth_time":{"essential":true}}}`))
+			options = append(options, oauth2.SetAuthURLParam("max_age", "0"), oauth2.SetAuthURLParam("claims", `{"id_token":{"auth_time":{"essential":true}}}`))
 		}
 	} else if intent != appauth.ExternalAuthIntentLogin {
 		options = append(options, oauth2.SetAuthURLParam("prompt", "login"), oauth2.SetAuthURLParam("max_age", "0"))
