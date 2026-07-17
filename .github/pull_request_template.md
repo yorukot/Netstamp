@@ -24,6 +24,7 @@
 
 ## Checklist
 
+- [ ] The branch name uses an allowed `<type>/<short-kebab-case-description>` format.
 - [ ] The PR title uses `area: concise patch summary`.
 - [ ] The changed area is described clearly.
 - [ ] Generated files, docs, or AGENTS.md were updated when needed.

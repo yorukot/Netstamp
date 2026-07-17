@@ -12,5 +12,13 @@ trap cleanup EXIT HUP INT TERM
 
 cat >"$refs_file"
 
+while read -r local_ref _local_sha _remote_ref _remote_sha; do
+	case "$local_ref" in
+	refs/heads/*)
+		"$hook_dir/../scripts/check-branch-name.sh" "${local_ref#refs/heads/}"
+		;;
+	esac
+done <"$refs_file"
+
 "$hook_dir/pre-push-backend.sh" "$refs_file"
 "$hook_dir/pre-push-frontend.sh" "$refs_file"
