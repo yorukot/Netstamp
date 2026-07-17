@@ -41,7 +41,7 @@ export const WithActions: Story = {
 	render: () => (
 		<div className="storybook-canvas">
 			<div className="storybook-demo">
-				<Panel title="Incident queue" actions={<Button size="sm">Acknowledge</Button>}>
+				<Panel title="Incident queue" summary="Review unresolved alerts before acknowledging the queue." actions={<Button size="sm">Acknowledge</Button>}>
 					<p>Keep primary actions visible while preserving the square dashboard panel treatment.</p>
 				</Panel>
 			</div>
