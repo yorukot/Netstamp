@@ -44,12 +44,15 @@ import {
 	type DataColumn
 } from "@netstamp/ui";
 import { EnvelopeSimpleIcon } from "@phosphor-icons/react/dist/csr/EnvelopeSimple";
+import { GithubLogoIcon } from "@phosphor-icons/react/dist/csr/GithubLogo";
+import { GoogleLogoIcon } from "@phosphor-icons/react/dist/csr/GoogleLogo";
+import { IdentificationCardIcon } from "@phosphor-icons/react/dist/csr/IdentificationCard";
 import { KeyIcon } from "@phosphor-icons/react/dist/csr/Key";
 import { SignOutIcon } from "@phosphor-icons/react/dist/csr/SignOut";
 import { UserMinusIcon } from "@phosphor-icons/react/dist/csr/UserMinus";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useId, useState, type AnimationEvent, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useId, useRef, useState, type AnimationEvent, type FormEvent } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { APITokensPanel } from "./APITokensPanel";
 import styles from "./SettingsPage.module.css";
 
@@ -96,6 +99,8 @@ const emptyPasswordForm: PasswordFormState = {
 	confirmPassword: ""
 };
 
+const passwordReauthReturnTo = "/settings?reauth=set-password";
+
 function formatDateTime(value: string) {
 	return new Date(value).toLocaleString();
 }
@@ -110,11 +115,35 @@ function roleLabel(role: string) {
 	return role.charAt(0).toUpperCase() + role.slice(1);
 }
 
+function externalAuthenticationErrorMessage(code: string) {
+	switch (code) {
+		case "identity_conflict":
+			return "The external identity does not belong to this Netstamp account.";
+		case "sudo_expired":
+			return "The verification attempt expired. Please try again.";
+		default:
+			return "External authentication could not be completed. Please try again.";
+	}
+}
+
+function AuthenticationProviderIcon({ provider }: { provider: string }) {
+	if (provider === "github") {
+		return <GithubLogoIcon size="1.5rem" weight="fill" aria-hidden="true" focusable="false" />;
+	}
+
+	if (provider === "google") {
+		return <GoogleLogoIcon size="1.5rem" weight="bold" aria-hidden="true" focusable="false" />;
+	}
+
+	return <IdentificationCardIcon size="1.5rem" weight="bold" aria-hidden="true" focusable="false" />;
+}
+
 export function SettingsPage() {
 	const { session } = useSession();
 	const queryClient = useQueryClient();
 	const { setSelectedProjectRef } = useCurrentProject();
 	const navigate = useNavigate();
+	const [searchParams, setSearchParams] = useSearchParams();
 	const confirm = useConfirm();
 	const requireSudo = useRequireSudo("/settings");
 	const updateUserMutation = useUpdateCurrentUserMutation();
@@ -132,11 +161,40 @@ export function SettingsPage() {
 	const authenticationMethodsQuery = useQuery({ ...authQueries.authenticationMethods(), enabled: Boolean(session) });
 	const authMethodsQuery = useQuery(authQueries.methods());
 	const credentialDialogDescriptionId = useId();
+	const resumeAction = searchParams.get("reauth");
+	const authCallbackError = searchParams.get("auth_error");
+	const handledAuthCallbackRef = useRef(false);
 	const [identityForm, setIdentityForm] = useState<IdentityFormState>(emptyIdentityForm);
 	const [emailForm, setEmailForm] = useState<EmailFormState>(emptyEmailForm);
 	const [passwordForm, setPasswordForm] = useState<PasswordFormState>(emptyPasswordForm);
-	const [credentialDialog, setCredentialDialog] = useState<CredentialDialog | null>(null);
+	const [credentialDialog, setCredentialDialog] = useState<CredentialDialog | null>(() => (resumeAction === "set-password" && !authCallbackError ? "password" : null));
 	const [isCredentialDialogDismissed, setIsCredentialDialogDismissed] = useState(false);
+
+	useEffect(() => {
+		if (handledAuthCallbackRef.current || (resumeAction !== "set-password" && !authCallbackError)) {
+			return;
+		}
+		handledAuthCallbackRef.current = true;
+
+		if (authCallbackError) {
+			pushToast({
+				title: "Authentication failed",
+				message: externalAuthenticationErrorMessage(authCallbackError),
+				tone: "critical"
+			});
+		}
+
+		setSearchParams(
+			current => {
+				const next = new URLSearchParams(current);
+				next.delete("reauth");
+				next.delete("auth_error");
+				next.delete("auth_provider");
+				return next;
+			},
+			{ replace: true }
+		);
+	}, [authCallbackError, resumeAction, setSearchParams]);
 
 	if (!session) {
 		return null;
@@ -479,7 +537,7 @@ export function SettingsPage() {
 								<EnvelopeSimpleIcon size="1rem" weight="bold" aria-hidden="true" focusable="false" />
 								Change Email
 							</Button>
-							<Button type="button" variant="outline" disabled={demoMode} onClick={() => (hasPassword ? void requireSudo(() => openCredentialDialog("password")) : openCredentialDialog("password"))}>
+							<Button type="button" variant="outline" disabled={demoMode} onClick={() => void requireSudo(() => openCredentialDialog("password"), { returnTo: passwordReauthReturnTo })}>
 								<KeyIcon size="1rem" weight="bold" aria-hidden="true" focusable="false" />
 								{passwordActionLabel}
 							</Button>
@@ -531,46 +589,100 @@ export function SettingsPage() {
 				/>
 			</Panel>
 
-			<Panel tone="glass" title="Login methods" summary="Manage the credentials and external identities that can access this account.">
-				<div className={styles.credentialActions}>
-					<Badge tone={authenticationMethodsQuery.data?.hasPassword ? "success" : "muted"}>Password {authenticationMethodsQuery.data?.hasPassword ? "configured" : "not configured"}</Badge>
-					{authenticationMethodsQuery.data?.identities.map(identity => (
-						<div key={identity.id} className={styles.profileIdentityCopy}>
-							<strong>
-								{configuredProviders.find(provider => provider.id === identity.provider)?.displayName || identity.provider}:{" "}
-								{identity.displayName || identity.username || identity.email || "External identity"}
-							</strong>
-							<span>{identity.username ? `@${identity.username}` : identity.email || identity.issuer}</span>
-							<Button type="button" size="sm" variant="danger" disabled={removeIdentityMutation.isPending} onClick={() => void requireSudo(() => removeIdentityMutation.mutate(identity.id))}>
-								Disconnect
-							</Button>
+			<Panel tone="glass" title="Login methods" summary="Manage the credentials and external identities that can access this account." padded={false} bodySurface="transparent">
+				<div className={styles.loginMethodList}>
+					<article className={styles.loginMethodRow}>
+						<div className={styles.loginMethodMain}>
+							<div className={styles.loginMethodIcon}>
+								<KeyIcon size="1.5rem" weight="bold" aria-hidden="true" focusable="false" />
+							</div>
+							<div className={styles.loginMethodCopy}>
+								<div className={styles.loginMethodHeading}>
+									<h3>Password</h3>
+									<Badge tone={hasPassword ? "success" : "muted"}>{hasPassword ? "Configured" : "Not configured"}</Badge>
+								</div>
+								<p>{hasPassword ? "Use your account email and password to sign in." : "Add a password as a fallback sign-in method."}</p>
+							</div>
 						</div>
+						<div className={styles.loginMethodControls}>
+							<Button type="button" size="sm" variant="outline" disabled={demoMode} onClick={() => void requireSudo(() => openCredentialDialog("password"), { returnTo: passwordReauthReturnTo })}>
+								{hasPassword ? "Change password" : "Set password"}
+							</Button>
+							{hasPassword && authenticationMethodsQuery.data?.identities.length ? (
+								<Button type="button" size="sm" variant="danger" disabled={demoMode || removePasswordMutation.isPending} onClick={() => void requireSudo(() => removePasswordMutation.mutate())}>
+									{removePasswordMutation.isPending ? "Removing" : "Remove password"}
+								</Button>
+							) : null}
+						</div>
+					</article>
+					{authenticationMethodsQuery.data?.identities.map(identity => (
+						<article key={identity.id} className={styles.loginMethodRow}>
+							<div className={styles.loginMethodMain}>
+								<div className={styles.loginMethodIcon}>
+									<AuthenticationProviderIcon provider={identity.provider} />
+								</div>
+								<div className={styles.loginMethodCopy}>
+									<div className={styles.loginMethodHeading}>
+										<h3>{configuredProviders.find(provider => provider.id === identity.provider)?.displayName || identity.provider}</h3>
+										<Badge tone="success">Connected</Badge>
+									</div>
+									<p className={styles.loginMethodIdentifier}>
+										{identity.displayName || "External identity"}
+										<span aria-hidden="true"> · </span>
+										{identity.username ? `@${identity.username}` : identity.email || identity.issuer}
+									</p>
+								</div>
+							</div>
+							<div className={styles.loginMethodControls}>
+								<Button
+									type="button"
+									size="sm"
+									variant="danger"
+									disabled={demoMode || removeIdentityMutation.isPending}
+									aria-label={`Disconnect ${configuredProviders.find(provider => provider.id === identity.provider)?.displayName || identity.provider}`}
+									onClick={() => void requireSudo(() => removeIdentityMutation.mutate(identity.id))}
+								>
+									{removeIdentityMutation.isPending && removeIdentityMutation.variables === identity.id ? "Disconnecting" : "Disconnect"}
+								</Button>
+							</div>
+						</article>
 					))}
 					{configuredProviders
 						.filter(provider => !connectedProviders.has(provider.id))
 						.map(provider => (
-							<Button
-								key={provider.id}
-								type="button"
-								size="sm"
-								variant="outline"
-								onClick={() =>
-									void requireSudo(() => {
-										const url = new URL(absoluteExternalAuthStartUrl(provider.id));
-										url.searchParams.set("intent", "link");
-										url.searchParams.set("returnTo", "/settings");
-										window.location.assign(url.toString());
-									})
-								}
-							>
-								Connect {provider.displayName}
-							</Button>
+							<article key={provider.id} className={styles.loginMethodRow}>
+								<div className={styles.loginMethodMain}>
+									<div className={styles.loginMethodIcon}>
+										<AuthenticationProviderIcon provider={provider.id} />
+									</div>
+									<div className={styles.loginMethodCopy}>
+										<div className={styles.loginMethodHeading}>
+											<h3>{provider.displayName}</h3>
+											<Badge tone="muted">Not connected</Badge>
+										</div>
+										<p>Connect this provider as another way to sign in.</p>
+									</div>
+								</div>
+								<div className={styles.loginMethodControls}>
+									<Button
+										type="button"
+										size="sm"
+										variant="outline"
+										disabled={demoMode}
+										onClick={() =>
+											void requireSudo(() => {
+												const url = new URL(absoluteExternalAuthStartUrl(provider.id));
+												url.searchParams.set("intent", "link");
+												url.searchParams.set("returnTo", "/settings");
+												window.location.assign(url.toString());
+											})
+										}
+									>
+										Connect {provider.displayName}
+									</Button>
+								</div>
+							</article>
 						))}
-					{authenticationMethodsQuery.data?.hasPassword && authenticationMethodsQuery.data.identities.length ? (
-						<Button type="button" size="sm" variant="danger" disabled={removePasswordMutation.isPending} onClick={() => void requireSudo(() => removePasswordMutation.mutate())}>
-							Remove password
-						</Button>
-					) : null}
 				</div>
 			</Panel>
 

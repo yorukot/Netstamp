@@ -101,6 +101,16 @@
 	line-height: 1.4;
 }
 
+.choices {
+	display: grid;
+	gap: 0.5rem;
+}
+
+.choices > button {
+	width: 100%;
+	justify-content: flex-start;
+}
+
 .actions {
 	display: flex;
 	flex-wrap: wrap;

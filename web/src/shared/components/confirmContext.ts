@@ -22,6 +22,21 @@ export interface PromptOptions extends ConfirmOptions {
 
 export type PromptFn = (options: PromptOptions) => Promise<string | null>;
 
+export interface ChoiceOption {
+	value: string;
+	label: ReactNode;
+}
+
+export interface ChoiceDialogOptions {
+	title: ReactNode;
+	message?: ReactNode;
+	choices: ChoiceOption[];
+	cancelLabel?: ReactNode;
+	tone?: "danger" | "default";
+}
+
+export type ChoiceDialogFn = (options: ChoiceDialogOptions) => Promise<string | null>;
+
 export interface AlertDialogOptions {
 	title: ReactNode;
 	message?: ReactNode;
@@ -33,6 +48,7 @@ export type AlertDialogFn = (options: AlertDialogOptions) => Promise<void>;
 
 export const ConfirmContext = createContext<ConfirmFn | null>(null);
 export const PromptContext = createContext<PromptFn | null>(null);
+export const ChoiceDialogContext = createContext<ChoiceDialogFn | null>(null);
 export const AlertDialogContext = createContext<AlertDialogFn | null>(null);
 
 export function useConfirm() {
@@ -53,6 +69,16 @@ export function usePromptDialog() {
 	}
 
 	return prompt;
+}
+
+export function useChoiceDialog() {
+	const choiceDialog = useContext(ChoiceDialogContext);
+
+	if (!choiceDialog) {
+		throw new Error("useChoiceDialog must be used within ConfirmProvider");
+	}
+
+	return choiceDialog;
 }
 
 export function useAlertDialog() {
