@@ -42,7 +42,9 @@ Follow `.editorconfig` and local tool formatters. JavaScript, TypeScript, JSX, C
 
 When code, commands, architecture, configuration, or project structure changes make an `AGENTS.md` inaccurate, update the affected guide in the same change.
 
-## Commit And PR Guidance
+## Branch, Commit, And PR Guidance
+
+Except for the permanent `main` branch, branch names must use `<type>/<short-kebab-case-description>`. Allowed prefixes are `feat/`, `fix/`, `ui/`, `refactor/`, `docs/`, `test/`, `chore/`, and `release/`. The description must contain lowercase ASCII letters, digits, and single hyphens only; do not add another slash. Run `pnpm check:branch-name` to validate the current branch. See `CONTRIBUTING.md` for prefix meanings, examples, and the full contribution workflow.
 
 Use Linux kernel/Git-style commit subjects with an area, subsystem, or component prefix:
 
