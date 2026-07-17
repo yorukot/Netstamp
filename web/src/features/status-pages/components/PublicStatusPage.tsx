@@ -10,7 +10,9 @@ import type {
 	ApiPublicStatusSummaryResponse
 } from "@/shared/api/types";
 import { ChartPanel } from "@/shared/visualizations/ChartPanel";
+import netstampLogo from "@netstamp/brand/assets/netstamp-logo-light.svg";
 import { Badge, Panel, Spinner, type BadgeTone } from "@netstamp/ui";
+import { CaretDownIcon } from "@phosphor-icons/react/dist/csr/CaretDown";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
@@ -62,33 +64,84 @@ export function PublicStatusPage() {
 	}
 
 	const summary = summaryQuery.data;
+	const activeIncidents = incidentsQuery.data?.incidents.active ?? [];
+	const resolvedIncidents = incidentsQuery.data?.incidents.recentResolved ?? [];
 
 	return (
-		<main className={styles.page}>
+		<main className={styles.page} data-status={summary.page.status}>
 			<div className={styles.shell}>
-				<header className={styles.header}>
-					<div className={styles.brand}>Netstamp Status</div>
-					<div className={styles.headerGrid}>
-						<div className={styles.headerCopy}>
-							<Badge tone={statusTone(summary.page.status)}>{statusLabel(summary.page.status)}</Badge>
-							<h1>{summary.page.title}</h1>
-							{summary.page.description ? <p>{summary.page.description}</p> : null}
+				<header className={styles.hero}>
+					<div className={styles.banner} role="img" aria-label="Network telemetry paths between global monitoring locations" />
+					<div className={styles.heroBody}>
+						<div className={styles.brandRow}>
+							<img src={netstampLogo} alt="Netstamp" />
+							<span>Public status</span>
 						</div>
-						<div className={styles.generated}>
-							<span>Generated</span>
-							<strong>{formatDateTime(summary.generatedAt)}</strong>
+						<div className={styles.titleRow}>
+							<div className={styles.headerCopy}>
+								<h1>{summary.page.title}</h1>
+								{summary.page.description ? <p>{summary.page.description}</p> : null}
+							</div>
+							<div className={styles.generated}>
+								<span>Last checked</span>
+								<strong>{formatDateTime(summary.generatedAt)}</strong>
+							</div>
 						</div>
 					</div>
 				</header>
 
-				<IncidentSection incidents={incidentsQuery.data?.incidents.active ?? []} isLoading={incidentsQuery.isPending} hasError={Boolean(incidentsQuery.error)} />
+				<section className={styles.overallStatus} aria-label="Current overall status">
+					<span className={styles.statusMarker} aria-hidden="true" />
+					<div>
+						<strong>{overallStatusTitle(summary.page.status)}</strong>
+						<span>{overallStatusSummary(summary.page.status, activeIncidents.length)}</span>
+					</div>
+					<Badge tone={statusTone(summary.page.status)}>{statusLabel(summary.page.status)}</Badge>
+				</section>
+
+				<IncidentSection activeIncidents={activeIncidents} resolvedIncidents={resolvedIncidents} isLoading={incidentsQuery.isPending} hasError={Boolean(incidentsQuery.error)} />
 				<ElementSection slug={slug} elements={elementsQuery.data?.elements ?? []} isLoading={elementsQuery.isPending} hasError={Boolean(elementsQuery.error)} />
+
+				<footer className={styles.footer}>
+					<p>Measurements are collected by configured Netstamp probes. Status reflects observed availability and is not an independent SLA certification.</p>
+					<span>Updated {formatDateTime(summary.generatedAt)}</span>
+				</footer>
 			</div>
 		</main>
 	);
 }
 
-function IncidentSection({ incidents, isLoading, hasError }: { incidents: PublicIncident[]; isLoading: boolean; hasError: boolean }) {
+function overallStatusTitle(status: ApiPublicStatusSummaryResponse["page"]["status"]) {
+	switch (status) {
+		case "operational":
+			return "All systems operational";
+		case "degraded":
+			return "Some systems are degraded";
+		case "down":
+			return "Service interruption detected";
+		default:
+			return "Status is being evaluated";
+	}
+}
+
+function overallStatusSummary(status: ApiPublicStatusSummaryResponse["page"]["status"], activeIncidentCount: number) {
+	if (activeIncidentCount > 0) {
+		return `${activeIncidentCount} active ${activeIncidentCount === 1 ? "incident" : "incidents"}`;
+	}
+	return status === "operational" ? "No active incidents reported" : "Live measurements are shown below";
+}
+
+function IncidentSection({
+	activeIncidents,
+	resolvedIncidents,
+	isLoading,
+	hasError
+}: {
+	activeIncidents: PublicIncident[];
+	resolvedIncidents: PublicIncident[];
+	isLoading: boolean;
+	hasError: boolean;
+}) {
 	if (isLoading) {
 		return (
 			<section className={styles.incidents} aria-label="Incidents">
@@ -109,19 +162,34 @@ function IncidentSection({ incidents, isLoading, hasError }: { incidents: Public
 		);
 	}
 
-	if (!incidents.length) {
+	if (!activeIncidents.length && !resolvedIncidents.length) {
 		return null;
 	}
 
 	return (
 		<section className={styles.incidents} aria-label="Incidents">
-			<Panel tone="deep" title="Open incidents">
-				<div className={styles.incidentList}>
-					{incidents.map(incident => (
-						<IncidentRow key={incident.id} incident={incident} />
-					))}
-				</div>
-			</Panel>
+			{activeIncidents.length ? (
+				<Panel tone="deep" title="Active incidents" summary="Current service interruptions and ongoing investigation updates.">
+					<div className={styles.incidentList}>
+						{activeIncidents.map(incident => (
+							<IncidentRow key={incident.id} incident={incident} />
+						))}
+					</div>
+				</Panel>
+			) : null}
+			{resolvedIncidents.length ? (
+				<details className={styles.resolvedIncidents}>
+					<summary>
+						<span>Resolved incident history</span>
+						<Badge tone="neutral">{resolvedIncidents.length}</Badge>
+					</summary>
+					<div className={styles.incidentList}>
+						{resolvedIncidents.map(incident => (
+							<IncidentRow key={incident.id} incident={incident} />
+						))}
+					</div>
+				</details>
+			) : null}
 		</section>
 	);
 }
@@ -179,10 +247,10 @@ function ElementSection({ slug, elements, isLoading, hasError }: { slug: string;
 function PublicElement({ slug, element }: { slug: string; element: ApiPublicStatusPublicElement }) {
 	if (element.kind === "folder") {
 		return (
-			<div className={styles.folder}>
+			<section className={styles.folder} aria-labelledby={`status-group-${element.id}`}>
 				<div className={styles.folderHeader}>
 					<div>
-						<h2>{element.title}</h2>
+						<h2 id={`status-group-${element.id}`}>{element.title}</h2>
 						{element.description ? <p>{element.description}</p> : null}
 					</div>
 					<Badge tone={statusTone(element.status)}>{statusLabel(element.status)}</Badge>
@@ -192,38 +260,62 @@ function PublicElement({ slug, element }: { slug: string; element: ApiPublicStat
 						<PublicElement key={child.id} slug={slug} element={child} />
 					))}
 				</div>
-			</div>
+			</section>
 		);
 	}
 
+	return <ExpandableStatusRow slug={slug} element={element} />;
+}
+
+function ExpandableStatusRow({ slug, element }: { slug: string; element: ApiPublicStatusPublicElement }) {
+	const [expanded, setExpanded] = useState(false);
+
 	return (
-		<article className={styles.check}>
-			<div className={styles.checkMain}>
-				<div className={styles.checkCopy}>
-					<div className={styles.checkTitle}>
-						<Badge tone={statusTone(element.status)}>{statusLabel(element.status)}</Badge>
+		<article className={styles.check} data-expanded={expanded}>
+			<button type="button" className={styles.checkToggle} aria-expanded={expanded} aria-controls={`status-details-${element.id}`} onClick={() => setExpanded(current => !current)}>
+				<div className={styles.checkIdentity}>
+					<span className={`${styles.serviceState} ${serviceStateClass(element.status)}`} aria-hidden="true" />
+					<div className={styles.checkCopy}>
 						<h3>{element.title}</h3>
+						<div className={styles.checkMeta}>
+							{element.type ? <span>{checkTypeLabel(element.type)}</span> : <span>{element.assignmentCount ?? element.assignments?.length ?? 0} viewpoints</span>}
+							{element.latestStartedAt ? <span>Checked {formatDateTime(element.latestStartedAt)}</span> : null}
+						</div>
 					</div>
-					<div className={styles.checkMeta}>
-						{element.type ? <span>{checkTypeLabel(element.type)}</span> : <span>{element.assignmentCount ?? element.assignments?.length ?? 0} assignments</span>}
-						{element.target ? <span>{element.target}</span> : null}
-						{element.latestStartedAt ? <span>Latest {formatDateTime(element.latestStartedAt)}</span> : null}
-					</div>
-					{element.description ? <p>{element.description}</p> : null}
 				</div>
+				<div className={styles.checkState}>
+					<strong>{statusLabel(element.status)}</strong>
+					<CaretDownIcon aria-hidden="true" focusable="false" />
+				</div>
+			</button>
+			<LazyPublicElementDailyStatus slug={slug} element={element} />
+			<div id={`status-details-${element.id}`} className={styles.checkDetails} hidden={!expanded}>
+				{element.description ? <p className={styles.checkDescription}>{element.description}</p> : null}
 				<div className={styles.assignmentStats}>
-					<span>{element.successfulAssignments ?? 0} ok</span>
+					<span>{element.successfulAssignments ?? 0} operational</span>
 					<span>{element.failingAssignments ?? 0} failing</span>
 					<span>{element.staleAssignments ?? 0} stale</span>
 				</div>
+				<Metrics element={element} />
+				<AssignmentRows assignments={element.assignments ?? []} />
+				{element.chart?.series.length ? <ChartPanel className={styles.chart} option={publicStatusChartOption(element)} height="12rem" /> : null}
+				{!element.chart?.series.length && element.chartMode === "compact" ? <LazyPublicElementChart slug={slug} element={element} /> : null}
 			</div>
-			<Metrics element={element} />
-			<LazyPublicElementDailyStatus slug={slug} element={element} />
-			<AssignmentRows assignments={element.assignments ?? []} />
-			{element.chart?.series.length ? <ChartPanel className={styles.chart} option={publicStatusChartOption(element)} height="12rem" /> : null}
-			{!element.chart?.series.length && element.chartMode === "compact" ? <LazyPublicElementChart slug={slug} element={element} /> : null}
 		</article>
 	);
+}
+
+function serviceStateClass(status: ApiPublicStatusPublicElement["status"]) {
+	switch (status) {
+		case "operational":
+			return styles.serviceStateOperational;
+		case "degraded":
+			return styles.serviceStateDegraded;
+		case "down":
+			return styles.serviceStateDown;
+		default:
+			return styles.serviceStateUnknown;
+	}
 }
 
 function LazyPublicElementDailyStatus({ slug, element }: { slug: string; element: ApiPublicStatusPublicElement }) {

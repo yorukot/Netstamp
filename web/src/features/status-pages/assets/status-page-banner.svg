@@ -1,0 +1,23 @@
+<svg width="1440" height="480" viewBox="0 0 1440 480" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1440" height="480" fill="#070707"/>
+  <path d="M0 108H1440M0 240H1440M0 372H1440" stroke="#1B1D21"/>
+  <path d="M168 0V480M432 0V480M720 0V480M1008 0V480M1272 0V480" stroke="#1B1D21"/>
+  <path d="M74 338C203 338 242 120 390 120C538 120 547 314 720 314C893 314 906 166 1073 166C1240 166 1266 280 1380 280" stroke="#FB923C" stroke-width="4"/>
+  <path d="M74 366C221 366 286 212 431 212C576 212 602 363 761 363C920 363 966 250 1089 250C1212 250 1274 326 1380 326" stroke="#38BDF8" stroke-width="2" stroke-dasharray="10 12"/>
+  <g fill="#070707" stroke="#FB923C" stroke-width="4">
+    <rect x="54" y="318" width="40" height="40"/>
+    <rect x="370" y="100" width="40" height="40"/>
+    <rect x="700" y="294" width="40" height="40"/>
+    <rect x="1053" y="146" width="40" height="40"/>
+    <rect x="1360" y="260" width="40" height="40"/>
+  </g>
+  <g fill="#38BDF8">
+    <rect x="68" y="360" width="12" height="12"/>
+    <rect x="425" y="206" width="12" height="12"/>
+    <rect x="755" y="357" width="12" height="12"/>
+    <rect x="1083" y="244" width="12" height="12"/>
+    <rect x="1374" y="320" width="12" height="12"/>
+  </g>
+  <text x="74" y="76" fill="#98A8B4" font-family="JetBrains Mono, monospace" font-size="18" letter-spacing="2">GLOBAL SERVICE TELEMETRY</text>
+  <text x="74" y="104" fill="#77736B" font-family="JetBrains Mono, monospace" font-size="14">MEASURED FROM INDEPENDENT PROBE VIEWPOINTS</text>
+</svg>
