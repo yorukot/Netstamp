@@ -207,10 +207,6 @@
 	font-family: var(--ns-font-code);
 }
 
-.sessionActions {
-	align-self: flex-end;
-}
-
 @media (max-width: 58rem) {
 	.loginMethodRow {
 		grid-template-columns: 1fr;

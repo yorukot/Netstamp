@@ -556,7 +556,6 @@ export function SettingsPage() {
 						{revokeAllSessionsMutation.isPending ? "Logging out" : "Log out all"}
 					</Button>
 				}
-				actionsClassName={styles.sessionActions}
 				padded={false}
 				bodySurface="transparent"
 			>
