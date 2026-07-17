@@ -1,80 +1,37 @@
-.layout {
-	display: grid;
-	grid-template-columns: minmax(20rem, 0.82fr) minmax(0, 1.18fr);
-	gap: 1rem;
-	align-items: start;
-}
-
-.pageCell {
-	display: grid;
-	gap: 0.25rem;
-	min-width: 0;
-}
-
-.pageCell strong {
+.titleCell {
+	display: block;
+	max-width: 20rem;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
-.pageCell span,
-.mono,
-.detailMeta {
-	font-family: var(--ns-font-code);
-}
-
-.pageCell span {
-	color: var(--ns-text-subtle);
-	font-size: 0.76rem;
-}
-
-.mono {
-	color: var(--ns-text-muted);
+.slugCell,
+.timeCell {
+	font-family: var(--ns-font-mono);
 	font-size: 0.78rem;
+	color: var(--ns-text-muted);
+}
+
+.slugCell {
+	display: block;
+	max-width: 18rem;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .rowActions {
 	display: flex;
 	justify-content: flex-end;
-	gap: 0.4rem;
-}
-
-.detailStack {
-	display: grid;
-	gap: 1rem;
-}
-
-.detailMeta {
-	display: flex;
-	flex-wrap: wrap;
 	align-items: center;
-	gap: 0.5rem 0.75rem;
-	color: var(--ns-text-subtle);
-	font-size: 0.78rem;
+	gap: 0.5rem;
+	white-space: nowrap;
 }
 
-.detailMeta > span {
-	padding: 0.35rem 0.5rem;
-	border: 1px solid var(--ns-border-faint);
-	background: var(--ns-surface);
-}
-
-.emptyDetail {
-	padding: 1rem;
-	border: 1px solid var(--ns-border-faint);
-	color: var(--ns-text-muted);
-	background: var(--ns-surface);
-}
-
-.layout svg {
+.rowActions svg {
 	width: 1rem;
 	height: 1rem;
-}
-
-@media (max-width: 70rem) {
-	.layout {
-		grid-template-columns: 1fr;
-	}
 }
 
 @media (max-width: 44rem) {
