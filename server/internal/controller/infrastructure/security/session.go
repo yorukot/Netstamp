@@ -138,7 +138,7 @@ func (m *SessionManager) SudoStatus(ctx context.Context, sessionID string) (iden
 }
 
 func authenticationMethodSupportsSudo(method string) bool {
-	return method == identity.AuthenticationMethodPassword || method == identity.AuthenticationMethodGoogle || method == identity.AuthenticationMethodOIDC
+	return method == identity.AuthenticationMethodPassword || method == identity.AuthenticationMethodGoogle || method == identity.AuthenticationMethodGitHub || method == identity.AuthenticationMethodOIDC
 }
 
 func (m *SessionManager) GetSession(ctx context.Context, sessionID string) (identity.AuthSession, error) {
@@ -149,7 +149,7 @@ func (m *SessionManager) ElevateSession(ctx context.Context, sessionID, method s
 	if sessionID == "" || m.sudoTTL <= 0 {
 		return appauth.ErrSessionInvalid
 	}
-	if method != identity.AuthenticationMethodPassword && method != identity.AuthenticationMethodGoogle && method != identity.AuthenticationMethodOIDC {
+	if !authenticationMethodSupportsSudo(method) {
 		return appauth.ErrSessionInvalid
 	}
 	if authenticatedAt.IsZero() {

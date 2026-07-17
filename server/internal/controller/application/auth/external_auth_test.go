@@ -36,46 +36,24 @@ func TestStartExternalAuthPersistsProviderBoundFlow(t *testing.T) {
 	}
 }
 
-func TestStartExternalAuthRejectsGitHubSudo(t *testing.T) {
+func TestStartExternalAuthAllowsGitHubSudo(t *testing.T) {
 	repo := &externalAuthRepositoryFake{}
-	service := newExternalAuthTestService(repo, &externalAuthClientFake{}, ExternalProviderConfig{ID: identity.AuthenticationMethodGitHub, SudoCapable: false})
+	client := &externalAuthClientFake{authorizationURL: "https://github.com/login/oauth/authorize"}
+	service := newExternalAuthTestService(repo, client, ExternalProviderConfig{ID: identity.AuthenticationMethodGitHub, SudoCapable: true})
 	service.recentAuth = &recentAuthenticationFake{}
 
-	_, err := service.StartExternalAuth(context.Background(), StartExternalAuthInput{
+	result, err := service.StartExternalAuth(context.Background(), StartExternalAuthInput{
 		Provider: identity.AuthenticationMethodGitHub, Intent: ExternalAuthIntentSudo, SessionID: "session-id",
 	})
-	if !errors.Is(err, ErrExternalAuthSudoUnsupported) {
-		t.Fatalf("expected GitHub sudo to be rejected, got %v", err)
+	if err != nil {
+		t.Fatalf("start GitHub sudo: %v", err)
+	}
+	if result.AuthorizationURL != client.authorizationURL || client.intent != ExternalAuthIntentSudo || repo.createdFlow.SessionID == nil || *repo.createdFlow.SessionID != "session-id" {
+		t.Fatalf("unexpected GitHub sudo flow: result=%#v flow=%#v intent=%q", result, repo.createdFlow, client.intent)
 	}
 }
 
-func TestAuthorizePasswordChangeAllowsOnlyRecentGitHubBootstrap(t *testing.T) {
-	now := time.Date(2026, time.July, 16, 10, 0, 0, 0, time.UTC)
-	userID := "11111111-1111-1111-1111-111111111111"
-	identityID := "33333333-3333-3333-3333-333333333333"
-	sessionID := "22222222-2222-2222-2222-222222222222"
-	users := &externalAuthUserRepositoryFake{userByID: identity.User{ID: userID, HasPassword: false}}
-	repo := &externalAuthRepositoryFake{linkedIdentity: identity.UserIdentity{ID: identityID, UserID: userID, Provider: identity.AuthenticationMethodGitHub}}
-	recent := &recentAuthenticationFake{session: identity.AuthSession{
-		ID: sessionID, UserID: userID, IdentityID: &identityID, AuthenticationMethod: identity.AuthenticationMethodGitHub, CreatedAt: now.Add(-time.Minute),
-	}}
-	service := NewService(users, passwordResetHasher{}, nil, nil)
-	service.now = func() time.Time { return now }
-	service.recentAuth = recent
-	service.ConfigureExternalAuth(repo, &externalAuthTokenManagerFake{}, ExternalAuthConfig{FlowTTL: 10 * time.Minute, AuthTimeSkew: time.Minute}, ExternalProviderRegistration{
-		Config: ExternalProviderConfig{ID: identity.AuthenticationMethodGitHub}, Client: &externalAuthClientFake{},
-	})
-
-	if err := service.AuthorizePasswordChange(context.Background(), userID, sessionID); err != nil {
-		t.Fatalf("authorize recent GitHub password bootstrap: %v", err)
-	}
-	recent.session.CreatedAt = now.Add(-11 * time.Minute)
-	if err := service.AuthorizePasswordChange(context.Background(), userID, sessionID); !errors.Is(err, ErrSudoRequired) {
-		t.Fatalf("expected an old GitHub session to require sudo, got %v", err)
-	}
-}
-
-func TestSudoStatusExcludesGitHubProvider(t *testing.T) {
+func TestSudoStatusIncludesGitHubProvider(t *testing.T) {
 	userID := "11111111-1111-1111-1111-111111111111"
 	users := &externalAuthUserRepositoryFake{userByID: identity.User{ID: userID}}
 	repo := &externalAuthRepositoryFake{identities: []identity.UserIdentity{
@@ -85,7 +63,7 @@ func TestSudoStatusExcludesGitHubProvider(t *testing.T) {
 	service := NewService(users, passwordResetHasher{}, nil, nil)
 	service.recentAuth = &recentAuthenticationFake{}
 	service.ConfigureExternalAuth(repo, &externalAuthTokenManagerFake{}, ExternalAuthConfig{},
-		ExternalProviderRegistration{Config: ExternalProviderConfig{ID: identity.AuthenticationMethodGitHub, SudoCapable: false}, Client: &externalAuthClientFake{}},
+		ExternalProviderRegistration{Config: ExternalProviderConfig{ID: identity.AuthenticationMethodGitHub, SudoCapable: true}, Client: &externalAuthClientFake{}},
 		ExternalProviderRegistration{Config: ExternalProviderConfig{ID: identity.AuthenticationMethodGoogle, SudoCapable: true}, Client: &externalAuthClientFake{}},
 	)
 
@@ -93,8 +71,8 @@ func TestSudoStatusExcludesGitHubProvider(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get sudo status: %v", err)
 	}
-	if len(status.Methods) != 1 || status.Methods[0] != identity.AuthenticationMethodGoogle {
-		t.Fatalf("expected only Google to be sudo-capable, got %#v", status.Methods)
+	if len(status.Methods) != 2 || status.Methods[0] != identity.AuthenticationMethodGitHub || status.Methods[1] != identity.AuthenticationMethodGoogle {
+		t.Fatalf("expected linked GitHub and Google sudo methods, got %#v", status.Methods)
 	}
 }
 
@@ -155,6 +133,65 @@ func TestCompleteExternalAuthSudoRejectsIdentityLinkedToAnotherUser(t *testing.T
 	}
 }
 
+func TestCompleteGitHubSudoUsesVerifiedFlowCompletionTime(t *testing.T) {
+	now := time.Date(2026, time.July, 16, 10, 0, 0, 0, time.UTC)
+	sessionID := "22222222-2222-2222-2222-222222222222"
+	userID := "11111111-1111-1111-1111-111111111111"
+	identityID := "33333333-3333-3333-3333-333333333333"
+	recent := &recentAuthenticationFake{session: identity.AuthSession{
+		ID: sessionID, UserID: userID, CreatedAt: now.Add(-time.Hour),
+	}}
+	repo := &externalAuthRepositoryFake{
+		flow: identity.ExternalAuthFlow{
+			Provider: identity.AuthenticationMethodGitHub, Intent: ExternalAuthIntentSudo, SessionID: &sessionID,
+			ReturnTo: "/settings?reauth=set-password", CreatedAt: now.Add(-time.Minute), ExpiresAt: now.Add(time.Minute),
+		},
+		linkedIdentity: identity.UserIdentity{ID: identityID, UserID: userID, Provider: identity.AuthenticationMethodGitHub},
+	}
+	client := &externalAuthClientFake{claims: ExternalIdentityClaims{
+		Issuer: "https://github.com", Subject: "1234567",
+	}}
+	service := newExternalAuthTestService(repo, client, ExternalProviderConfig{ID: identity.AuthenticationMethodGitHub, SudoCapable: true})
+	service.now = func() time.Time { return now }
+	service.recentAuth = recent
+
+	result, err := service.CompleteExternalAuth(context.Background(), CompleteExternalAuthInput{
+		Provider: identity.AuthenticationMethodGitHub, Code: "code", State: "state", BrowserToken: "browser",
+	})
+	if err != nil {
+		t.Fatalf("complete GitHub sudo: %v", err)
+	}
+	if result.ReturnTo != "/settings?reauth=set-password" {
+		t.Fatalf("expected password flow return path, got %q", result.ReturnTo)
+	}
+	if !recent.elevated || recent.elevatedMethod != identity.AuthenticationMethodGitHub || !recent.elevatedAt.Equal(now) {
+		t.Fatalf("unexpected GitHub sudo elevation: elevated=%t method=%q at=%s", recent.elevated, recent.elevatedMethod, recent.elevatedAt)
+	}
+}
+
+func TestCompleteExternalAuthSudoErrorPreservesReturnPath(t *testing.T) {
+	now := time.Date(2026, time.July, 16, 10, 0, 0, 0, time.UTC)
+	sessionID := "22222222-2222-2222-2222-222222222222"
+	repo := &externalAuthRepositoryFake{flow: identity.ExternalAuthFlow{
+		Provider: identity.AuthenticationMethodGoogle, Intent: ExternalAuthIntentSudo, SessionID: &sessionID,
+		ReturnTo: "/settings?reauth=set-password", CreatedAt: now.Add(-time.Minute), ExpiresAt: now.Add(time.Minute),
+	}}
+	service := newExternalAuthTestService(repo, &externalAuthClientFake{}, ExternalProviderConfig{
+		ID: identity.AuthenticationMethodGoogle, SudoCapable: true,
+	})
+	service.now = func() time.Time { return now }
+
+	result, err := service.CompleteExternalAuth(context.Background(), CompleteExternalAuthInput{
+		Provider: identity.AuthenticationMethodGoogle, State: "state", BrowserToken: "browser",
+	})
+	if !errors.Is(err, ErrExternalAuthCallbackInvalid) {
+		t.Fatalf("expected invalid callback after provider cancellation, got %v", err)
+	}
+	if result.Intent != ExternalAuthIntentSudo || result.ReturnTo != "/settings?reauth=set-password" {
+		t.Fatalf("expected sudo return path to survive callback failure, got %#v", result)
+	}
+}
+
 func TestRecentExternalAuthenticationTimeUsesProviderTime(t *testing.T) {
 	now := time.Date(2026, time.July, 16, 10, 5, 0, 0, time.UTC)
 	flowCreatedAt := now.Add(-time.Minute)
@@ -167,6 +204,16 @@ func TestRecentExternalAuthenticationTimeUsesProviderTime(t *testing.T) {
 	}
 	if _, ok := recentExternalAuthenticationTime(flowCreatedAt.Add(-2*time.Minute), flowCreatedAt, sessionCreatedAt, now, time.Minute); ok {
 		t.Fatal("expected stale provider authentication to be rejected")
+	}
+}
+
+func TestExternalAuthenticationFlowTimeRejectsFlowPredatingSession(t *testing.T) {
+	now := time.Date(2026, time.July, 16, 10, 5, 0, 0, time.UTC)
+	if validExternalAuthenticationFlowTime(now.Add(-2*time.Minute), now, now, time.Minute) {
+		t.Fatal("expected an OAuth flow predating the current session to be rejected")
+	}
+	if !validExternalAuthenticationFlowTime(now.Add(-time.Second), now, now, time.Minute) {
+		t.Fatal("expected a new session-bound OAuth flow to be accepted within clock skew")
 	}
 }
 
@@ -304,16 +351,20 @@ func (m *externalAuthTokenManagerFake) Generate(context.Context) (string, error)
 func (*externalAuthTokenManagerFake) Hash(value string) string { return "hash:" + value }
 
 type recentAuthenticationFake struct {
-	session  identity.AuthSession
-	elevated bool
+	session        identity.AuthSession
+	elevated       bool
+	elevatedAt     time.Time
+	elevatedMethod string
 }
 
 func (*recentAuthenticationFake) SudoStatus(context.Context, string) (identity.SudoStatus, error) {
 	return identity.SudoStatus{Active: true}, nil
 }
 
-func (r *recentAuthenticationFake) ElevateSession(context.Context, string, string, *string, time.Time) error {
+func (r *recentAuthenticationFake) ElevateSession(_ context.Context, _, method string, _ *string, authenticatedAt time.Time) error {
 	r.elevated = true
+	r.elevatedMethod = method
+	r.elevatedAt = authenticatedAt
 	return nil
 }
 
