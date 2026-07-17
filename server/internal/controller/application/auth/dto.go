@@ -2,6 +2,8 @@ package auth
 
 import "time"
 
+const DefaultEmailVerificationTokenTTL = 15 * time.Minute
+
 type RegisterInput struct {
 	Email                    string
 	DisplayName              string

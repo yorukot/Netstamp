@@ -73,7 +73,7 @@ func NewService(users UserRepository, hasher PasswordHasher, sessions SessionMan
 		sessions:                sessions,
 		events:                  events,
 		resetConfig:             PasswordResetConfig{TokenTTL: 30 * time.Minute},
-		emailVerificationConfig: EmailVerificationConfig{TokenTTL: 24 * time.Hour},
+		emailVerificationConfig: EmailVerificationConfig{TokenTTL: DefaultEmailVerificationTokenTTL},
 		externalProviders:       make(map[string]configuredExternalProvider),
 		tx:                      tx,
 		now:                     func() time.Time { return time.Now().UTC() },
@@ -105,7 +105,7 @@ func (s *Service) ConfigureEmailVerification(verifications EmailVerificationRepo
 	s.emailVerificationTokens = tokens
 	s.emailVerificationMailer = mailer
 	if cfg.TokenTTL <= 0 {
-		cfg.TokenTTL = 24 * time.Hour
+		cfg.TokenTTL = DefaultEmailVerificationTokenTTL
 	}
 	s.emailVerificationConfig = cfg
 }
