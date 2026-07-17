@@ -39,6 +39,10 @@ func TestRegisterWithEmailVerificationCreatesTokenAndRequiresVerification(t *tes
 	if verifications.created[0].UserID != "11111111-1111-1111-1111-111111111111" || verifications.created[0].TokenHash != "hash:raw-email-token" {
 		t.Fatalf("unexpected verification token: %#v", verifications.created[0])
 	}
+	wantExpiresAt := time.Date(2026, 7, 7, 12, 15, 0, 0, time.UTC)
+	if !verifications.created[0].ExpiresAt.Equal(wantExpiresAt) {
+		t.Fatalf("expected verification token to expire at %s, got %s", wantExpiresAt, verifications.created[0].ExpiresAt)
+	}
 	if len(mailer.sent) != 1 {
 		t.Fatalf("expected one verification email, got %d", len(mailer.sent))
 	}
@@ -191,7 +195,7 @@ func TestConfirmEmailVerificationRejectsInvalidToken(t *testing.T) {
 func newEmailVerificationTestService(users *emailVerificationUserRepo, verifications *emailVerificationRepo, mailer *emailVerificationMailer) *Service {
 	service := NewService(users, emailVerificationHasher{}, emailVerificationSessionManager{}, nil)
 	service.now = func() time.Time { return time.Date(2026, 7, 7, 12, 0, 0, 0, time.UTC) }
-	service.ConfigureEmailVerification(verifications, emailVerificationTokenManager{}, mailer, EmailVerificationConfig{TokenTTL: 24 * time.Hour})
+	service.ConfigureEmailVerification(verifications, emailVerificationTokenManager{}, mailer, EmailVerificationConfig{TokenTTL: DefaultEmailVerificationTokenTTL})
 	return service
 }
 

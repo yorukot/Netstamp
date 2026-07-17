@@ -203,7 +203,7 @@ func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool
 		TokenTTL: cfg.Auth.PasswordResetTokenTTL,
 	})
 	authSvc.ConfigureEmailVerification(userRepo, security.NewPasswordResetTokenManager(), notify.NewDynamicPasswordResetMailer(smtpProvider), appauth.EmailVerificationConfig{
-		TokenTTL: 24 * time.Hour,
+		TokenTTL: appauth.DefaultEmailVerificationTokenTTL,
 	})
 	externalAuthProviders := make([]appauth.ExternalProviderRegistration, 0, 3)
 	if cfg.Auth.OIDCEnabled {
