@@ -105,13 +105,13 @@ export function PublicStatusPage() {
 	const defaultFooter = "Measurements are collected by configured Netstamp probes. Status reflects observed availability and is not an independent SLA certification.";
 
 	return (
-		<main className={styles.page} data-status={summary.page.status}>
+		<main className={`${styles.page} ns-status-page`} data-status={summary.page.status}>
 			{summary.page.customCss ? <style>{summary.page.customCss}</style> : null}
-			<header className={styles.hero}>
+			<header className={`${styles.hero} ns-status-hero`}>
 				{summary.page.bannerImageUrl ? (
-					<img className={`${styles.banner} ${styles.bannerImage}`} src={summary.page.bannerImageUrl} alt="" />
+					<img className={`${styles.banner} ${styles.bannerImage} ns-status-banner`} src={summary.page.bannerImageUrl} alt="" />
 				) : (
-					<div className={styles.banner} role="img" aria-label="Network telemetry paths between global monitoring locations" />
+					<div className={`${styles.banner} ns-status-banner`} role="img" aria-label="Network telemetry paths between global monitoring locations" />
 				)}
 				<div className={styles.heroBody}>
 					<div className={styles.brandRow}>
@@ -154,7 +154,7 @@ export function PublicStatusPage() {
 			</header>
 
 			<div className={styles.shell}>
-				<section className={styles.overallStatus} aria-label="Current overall status">
+				<section className={`${styles.overallStatus} ns-status-overall`} aria-label="Current overall status">
 					<span className={styles.statusMarker} aria-hidden="true" />
 					<div>
 						<strong>{overallStatusTitle(summary.page.status)}</strong>
@@ -166,7 +166,7 @@ export function PublicStatusPage() {
 				<IncidentSection activeIncidents={activeIncidents} resolvedIncidents={resolvedIncidents} isLoading={incidentsQuery.isPending} hasError={Boolean(incidentsQuery.error)} />
 				<ElementSection slug={slug} elements={elementsQuery.data?.elements ?? []} isLoading={elementsQuery.isPending} hasError={Boolean(elementsQuery.error)} mapTheme={mapTheme} />
 
-				<footer className={styles.footer}>
+				<footer className={`${styles.footer} ns-status-footer`}>
 					<p>{summary.page.footerText || defaultFooter}</p>
 					{summary.page.showGeneratedAt ? <span>Updated {formatDateTime(summary.generatedAt)}</span> : null}
 				</footer>
@@ -334,7 +334,7 @@ function ElementSection({
 function PublicElement({ slug, element, mapTheme }: { slug: string; element: ApiPublicStatusPublicElement; mapTheme: "light" | "dark" }) {
 	if (element.kind === "folder") {
 		return (
-			<section className={styles.folder} aria-labelledby={`status-group-${element.id}`}>
+			<section className={`${styles.folder} ns-status-group`} aria-labelledby={`status-group-${element.id}`}>
 				<div className={styles.folderHeader}>
 					<div>
 						<h2 id={`status-group-${element.id}`}>{element.title}</h2>
@@ -359,7 +359,7 @@ function ExpandableStatusRow({ slug, element, mapTheme }: { slug: string; elemen
 	const showChart = element.displayMode === "latency" || element.chartMode === "compact";
 
 	return (
-		<article className={styles.check} data-expanded={expanded}>
+		<article className={`${styles.check} ns-status-block`} data-expanded={expanded}>
 			<button type="button" className={styles.checkToggle} aria-expanded={expanded} aria-controls={`status-details-${element.id}`} onClick={() => setExpanded(current => !current)}>
 				<div className={styles.checkSummary}>
 					<div className={styles.checkIdentity}>

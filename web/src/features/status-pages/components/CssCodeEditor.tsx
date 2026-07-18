@@ -67,7 +67,9 @@ export function CssCodeEditor({ value, onChange }: CssCodeEditorProps) {
 					onScroll={syncScroll}
 				/>
 			</div>
-			<p id="status-page-custom-css-help">Applied after the built-in public page styles.</p>
+			<p id="status-page-custom-css-help">
+				Applied after built-in styles. Use semantic elements or stable hooks such as <code>.ns-status-page</code> and <code>.ns-status-block</code>.
+			</p>
 		</div>
 	);
 }

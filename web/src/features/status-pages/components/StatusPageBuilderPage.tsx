@@ -1,6 +1,5 @@
-import { publicStatusPath } from "@/features/status-pages/api/statusPageAdapters";
 import statusPageBanner from "@/features/status-pages/assets/status-page-banner.svg";
-import { pathForRoute, pathForStatusPageEditor } from "@/routes/routePaths";
+import { pathForStatusPageEditor } from "@/routes/routePaths";
 import {
 	useCreatePublicStatusElementMutation,
 	useCreatePublicStatusPageMutation,
@@ -18,23 +17,23 @@ import { pushErrorToast, pushToast } from "@/shared/toast/toastStore";
 import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
 import netstampLogoDark from "@netstamp/brand/assets/netstamp-logo-dark.svg";
 import netstampLogoLight from "@netstamp/brand/assets/netstamp-logo-light.svg";
-import { Badge, Button, Checkbox, IconButton, Panel, SelectField, Spinner, Tabs, TextAreaField, TextField } from "@netstamp/ui";
+import { Badge, Button, Checkbox, IconButton, Panel, SelectField, Spinner, TextAreaField, TextField } from "@netstamp/ui";
 import { ArrowDownIcon } from "@phosphor-icons/react/dist/csr/ArrowDown";
 import { ArrowLeftIcon } from "@phosphor-icons/react/dist/csr/ArrowLeft";
+import { ArrowRightIcon } from "@phosphor-icons/react/dist/csr/ArrowRight";
 import { ArrowUpIcon } from "@phosphor-icons/react/dist/csr/ArrowUp";
 import { ChartLineIcon } from "@phosphor-icons/react/dist/csr/ChartLine";
 import { ClockCounterClockwiseIcon } from "@phosphor-icons/react/dist/csr/ClockCounterClockwise";
 import { DotsSixVerticalIcon } from "@phosphor-icons/react/dist/csr/DotsSixVertical";
 import { FolderIcon } from "@phosphor-icons/react/dist/csr/Folder";
 import { GearSixIcon } from "@phosphor-icons/react/dist/csr/GearSix";
-import { GlobeIcon } from "@phosphor-icons/react/dist/csr/Globe";
 import { MapTrifoldIcon } from "@phosphor-icons/react/dist/csr/MapTrifold";
 import { PlusIcon } from "@phosphor-icons/react/dist/csr/Plus";
 import { PulseIcon } from "@phosphor-icons/react/dist/csr/Pulse";
 import { TrashIcon } from "@phosphor-icons/react/dist/csr/Trash";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState, type DragEvent, type ReactNode } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { CssCodeEditor } from "./CssCodeEditor";
 import styles from "./StatusPageBuilderPage.module.css";
 
@@ -101,22 +100,23 @@ function createDefaultPage(): PageDraft {
 }
 
 function pageDraft(page: ApiPublicStatusPage): PageDraft {
+	const defaults = createDefaultPage();
 	return {
 		slug: page.slug,
 		title: page.title,
 		description: page.description,
 		enabled: page.enabled,
-		footerText: page.footerText,
+		footerText: page.footerText ?? defaults.footerText,
 		bannerImageUrl: page.bannerImageUrl,
-		theme: page.theme,
-		showTargets: page.showTargets,
-		showProbeNames: page.showProbeNames,
-		showProbeLocations: page.showProbeLocations,
-		showIncidentHistory: page.showIncidentHistory,
-		showGeneratedAt: page.showGeneratedAt,
+		theme: page.theme ?? defaults.theme,
+		showTargets: page.showTargets ?? defaults.showTargets,
+		showProbeNames: page.showProbeNames ?? defaults.showProbeNames,
+		showProbeLocations: page.showProbeLocations ?? defaults.showProbeLocations,
+		showIncidentHistory: page.showIncidentHistory ?? defaults.showIncidentHistory,
+		showGeneratedAt: page.showGeneratedAt ?? defaults.showGeneratedAt,
 		customCss: page.customCss,
-		defaultChartMode: page.defaultChartMode,
-		defaultChartRange: page.defaultChartRange
+		defaultChartMode: page.defaultChartMode ?? defaults.defaultChartMode,
+		defaultChartRange: page.defaultChartRange ?? defaults.defaultChartRange
 	};
 }
 
@@ -132,8 +132,8 @@ function elementDraft(element: ApiPublicStatusElement): ElementDraft {
 		title: element.title,
 		description: element.description,
 		sortOrder: element.sortOrder,
-		displayMode: element.displayMode,
-		chartMode: element.chartMode,
+		displayMode: element.displayMode ?? "status",
+		chartMode: element.chartMode ?? "inherit",
 		chartRange: element.chartRange
 	};
 }
@@ -235,8 +235,8 @@ function StatusPageBuilderWorkspace({
 	const [elements, setElements] = useState<ElementDraft[]>(initialElements);
 	const [baselinePage, setBaselinePage] = useState<PageDraft>(initialPage);
 	const [baselineElements, setBaselineElements] = useState<ElementDraft[]>(initialElements);
-	const [activeTab, setActiveTab] = useState("page");
 	const [selectedId, setSelectedId] = useState<string>();
+	const [addingBlock, setAddingBlock] = useState(false);
 	const draggedId = useRef<string | undefined>(undefined);
 	const options = useMemo(() => checkOptions(assignments), [assignments]);
 	const selectedElement = elements.find(element => element.localId === selectedId);
@@ -279,25 +279,24 @@ function StatusPageBuilderWorkspace({
 			}
 		]);
 		setSelectedId(localId);
-		setActiveTab("blocks");
+		setAddingBlock(false);
 	}
 
-	function addBlock(mode: DisplayMode) {
-		const firstCheck = options[0];
-		if (!firstCheck) return;
-		const firstGroup = sorted(elements.filter(element => element.kind === "folder"))[0];
-		const siblings = elements.filter(element => element.kind === "assignment_group" && element.parentLocalId === firstGroup?.localId);
+	function addBlock(mode: DisplayMode, checkId: string, parentLocalId?: string) {
+		const check = options.find(option => option.id === checkId);
+		if (!check) return;
+		const siblings = elements.filter(element => element.kind === "assignment_group" && element.parentLocalId === parentLocalId);
 		const localId = localID();
 		setElements(current => [
 			...current,
 			{
 				localId,
-				parentLocalId: firstGroup?.localId,
+				parentLocalId,
 				kind: "assignment_group",
-				checkId: firstCheck.id,
+				checkId: check.id,
 				assignmentSelectionMode: "all_check",
 				assignmentIds: [],
-				title: firstCheck.name,
+				title: check.name,
 				sortOrder: siblings.length,
 				displayMode: mode,
 				chartMode: mode === "latency" ? "compact" : "inherit",
@@ -305,7 +304,12 @@ function StatusPageBuilderWorkspace({
 			}
 		]);
 		setSelectedId(localId);
-		setActiveTab("blocks");
+		setAddingBlock(false);
+	}
+
+	function startAddingBlock() {
+		setSelectedId(undefined);
+		setAddingBlock(true);
 	}
 
 	function removeElement(localId: string) {
@@ -319,18 +323,20 @@ function StatusPageBuilderWorkspace({
 			if (!source) return current;
 			const siblings = sorted(current.filter(element => element.kind === source.kind && element.parentLocalId === source.parentLocalId));
 			const index = siblings.findIndex(element => element.localId === localId);
-			const other = siblings[index + direction];
-			if (!other) return current;
-			return current.map(element => {
-				if (element.localId === source.localId) return { ...element, sortOrder: other.sortOrder };
-				if (element.localId === other.localId) return { ...element, sortOrder: source.sortOrder };
-				return element;
-			});
+			const nextIndex = index + direction;
+			if (index < 0 || nextIndex < 0 || nextIndex >= siblings.length) return current;
+			const reordered = [...siblings];
+			const [moved] = reordered.splice(index, 1);
+			if (!moved) return current;
+			reordered.splice(nextIndex, 0, moved);
+			const order = new Map(reordered.map((element, orderIndex) => [element.localId, orderIndex]));
+			return current.map(element => (order.has(element.localId) ? { ...element, sortOrder: order.get(element.localId) ?? element.sortOrder } : element));
 		});
 	}
 
 	function handleDrop(event: DragEvent<HTMLElement>, targetId: string, parentId?: string) {
 		event.preventDefault();
+		event.stopPropagation();
 		const sourceId = draggedId.current;
 		if (!sourceId || sourceId === targetId) return;
 		setElements(current => {
@@ -338,47 +344,82 @@ function StatusPageBuilderWorkspace({
 			const target = current.find(element => element.localId === targetId);
 			if (!source || !target || source.kind !== target.kind) return current;
 			const destinationParent = source.kind === "folder" ? undefined : parentId;
-			const siblings = sorted(current.filter(element => element.kind === source.kind && element.parentLocalId === destinationParent && element.localId !== sourceId));
+			const destinationSiblings = sorted(current.filter(element => element.kind === source.kind && element.parentLocalId === destinationParent && element.localId !== sourceId));
 			const targetIndex = Math.max(
 				0,
-				siblings.findIndex(element => element.localId === targetId)
+				destinationSiblings.findIndex(element => element.localId === targetId)
 			);
-			siblings.splice(targetIndex, 0, { ...source, parentLocalId: destinationParent });
-			const order = new Map(siblings.map((element, index) => [element.localId, index]));
-			return current.map(element =>
-				order.has(element.localId) ? { ...element, parentLocalId: element.localId === sourceId ? destinationParent : element.parentLocalId, sortOrder: order.get(element.localId) ?? 0 } : element
+			destinationSiblings.splice(targetIndex, 0, { ...source, parentLocalId: destinationParent });
+			const destinationOrder = new Map(destinationSiblings.map((element, index) => [element.localId, index]));
+			const sourceOrder = new Map(
+				sorted(current.filter(element => element.kind === source.kind && element.parentLocalId === source.parentLocalId && element.localId !== sourceId)).map((element, index) => [
+					element.localId,
+					index
+				])
 			);
+			return current.map(element => {
+				if (element.localId === sourceId) {
+					return { ...element, parentLocalId: destinationParent, sortOrder: destinationOrder.get(element.localId) ?? 0 };
+				}
+				if (destinationOrder.has(element.localId)) return { ...element, sortOrder: destinationOrder.get(element.localId) ?? element.sortOrder };
+				if (source.parentLocalId !== destinationParent && sourceOrder.has(element.localId)) return { ...element, sortOrder: sourceOrder.get(element.localId) ?? element.sortOrder };
+				return element;
+			});
 		});
+		draggedId.current = undefined;
 	}
 
 	function dropIntoGroup(event: DragEvent<HTMLElement>, groupId: string) {
 		event.preventDefault();
 		const sourceId = draggedId.current;
-		if (!sourceId) return;
+		const draggedElement = elements.find(element => element.localId === sourceId);
+		if (!sourceId || draggedElement?.kind !== "assignment_group") return;
+		event.stopPropagation();
 		setElements(current => {
 			const source = current.find(element => element.localId === sourceId);
 			if (!source || source.kind !== "assignment_group") return current;
-			const sortOrder = current.filter(element => element.kind === "assignment_group" && element.parentLocalId === groupId && element.localId !== sourceId).length;
-			return current.map(element => (element.localId === sourceId ? { ...element, parentLocalId: groupId, sortOrder } : element));
+			const destination = sorted(current.filter(element => element.kind === "assignment_group" && element.parentLocalId === groupId && element.localId !== sourceId));
+			destination.push({ ...source, parentLocalId: groupId });
+			const destinationOrder = new Map(destination.map((element, index) => [element.localId, index]));
+			const sourceOrder = new Map(
+				sorted(current.filter(element => element.kind === "assignment_group" && element.parentLocalId === source.parentLocalId && element.localId !== sourceId)).map((element, index) => [
+					element.localId,
+					index
+				])
+			);
+			return current.map(element => {
+				if (element.localId === sourceId) return { ...element, parentLocalId: groupId, sortOrder: destinationOrder.get(element.localId) ?? 0 };
+				if (destinationOrder.has(element.localId)) return { ...element, sortOrder: destinationOrder.get(element.localId) ?? element.sortOrder };
+				if (source.parentLocalId !== groupId && sourceOrder.has(element.localId)) return { ...element, sortOrder: sourceOrder.get(element.localId) ?? element.sortOrder };
+				return element;
+			});
 		});
+		draggedId.current = undefined;
+	}
+
+	function startDragging(event: DragEvent<HTMLElement>, localId: string) {
+		draggedId.current = localId;
+		event.dataTransfer.effectAllowed = "move";
+		event.dataTransfer.setData("text/plain", localId);
 	}
 
 	function reset() {
 		setPage(baselinePage);
 		setElements(baselineElements);
 		setSelectedId(undefined);
+		setAddingBlock(false);
 	}
 
 	async function save() {
 		const body = normalizedPage(page);
 		if (!body.title || !body.slug || !/^[a-z0-9-]+$/.test(body.slug)) {
 			pushErrorToast("Add a title and a lowercase slug using letters, numbers, or hyphens.");
-			setActiveTab("page");
+			setSelectedId(undefined);
+			setAddingBlock(false);
 			return;
 		}
 		if (elements.some(element => element.kind === "assignment_group" && !element.checkId)) {
 			pushErrorToast("Every status block needs a check.");
-			setActiveTab("blocks");
 			return;
 		}
 
@@ -440,89 +481,51 @@ function StatusPageBuilderWorkspace({
 		return next;
 	}
 
+	const editorTitle = addingBlock ? "Add Block" : selectedElement ? (selectedElement.kind === "folder" ? "Editing Group" : "Editing Block") : "Editing Page";
+
 	return (
-		<PageStack className={styles.pageStack}>
-			<ScreenHeader
-				title={pageId ? `Edit ${page.title}` : "New Status Page"}
-				actions={
-					<div className={styles.headerActions}>
-						<Button asChild variant="ghost">
-							<Link to={pathForRoute("statusPages", { projectRef })}>
-								<ArrowLeftIcon aria-hidden="true" />
-								Pages
-							</Link>
-						</Button>
-						{pageId ? (
-							<Button asChild variant="secondary">
-								<Link to={publicStatusPath(page.slug)} target="_blank" rel="noreferrer">
-									<GlobeIcon aria-hidden="true" />
-									Open
-								</Link>
-							</Button>
-						) : null}
+		<div className={styles.builder}>
+			<aside className={styles.sidebar} aria-label="Status page settings">
+				<div className={styles.sidebarHeader}>
+					<div>
+						<span>Status page builder</span>
+						<strong>{editorTitle}</strong>
 					</div>
-				}
+					<Badge tone={page.enabled ? "success" : "neutral"}>{page.enabled ? "Live" : "Private"}</Badge>
+				</div>
+				<div className={styles.sidebarScroll}>
+					{addingBlock ? (
+						<BlockComposer checks={options} elements={elements} loading={assignmentsLoading} onAdd={addBlock} onCancel={() => setAddingBlock(false)} />
+					) : selectedElement ? (
+						<ElementSettings element={selectedElement} elements={elements} checks={options} update={patch => updateElement(selectedElement.localId, patch)} onBack={() => setSelectedId(undefined)} />
+					) : (
+						<PageSettings page={page} update={updatePage} />
+					)}
+				</div>
+				<UnsavedChangesBar className={styles.saveBar} show={hasChanges} saving={saving} onReset={reset} onSave={() => void save()} />
+			</aside>
+
+			<StatusPageCanvas
+				page={page}
+				elements={elements}
+				checks={options}
+				selectedId={selectedId}
+				onSelect={id => {
+					setSelectedId(id);
+					setAddingBlock(false);
+				}}
+				onAddGroup={addGroup}
+				onAddBlock={startAddingBlock}
+				onMove={moveElement}
+				onRemove={removeElement}
+				onDragStart={startDragging}
+				onDragEnd={() => {
+					draggedId.current = undefined;
+				}}
+				onDrop={handleDrop}
+				onDropGroup={dropIntoGroup}
 			/>
-
-			<div className={styles.builder}>
-				<aside className={styles.sidebar} aria-label="Status page settings">
-					<div className={styles.sidebarHeader}>
-						<div>
-							<span>Builder</span>
-							<strong>{page.enabled ? "Public page" : "Private draft"}</strong>
-						</div>
-						<Badge tone={page.enabled ? "success" : "neutral"}>{page.enabled ? "Live" : "Private"}</Badge>
-					</div>
-					<Tabs
-						tabs={[
-							{ value: "page", label: "Page" },
-							{ value: "blocks", label: "Blocks", badge: elements.length || undefined }
-						]}
-						value={activeTab}
-						ariaLabel="Builder sections"
-						size="sm"
-						onValueChange={setActiveTab}
-					/>
-					<div className={styles.sidebarScroll}>
-						{activeTab === "page" ? <PageSettings page={page} update={updatePage} /> : null}
-						{activeTab === "blocks" ? (
-							selectedElement ? (
-								<ElementSettings
-									element={selectedElement}
-									elements={elements}
-									checks={options}
-									update={patch => updateElement(selectedElement.localId, patch)}
-									onBack={() => setSelectedId(undefined)}
-								/>
-							) : (
-								<BlockLibrary hasChecks={Boolean(options.length)} loading={assignmentsLoading} onAddGroup={addGroup} onAddBlock={addBlock} />
-							)
-						) : null}
-					</div>
-					<UnsavedChangesBar className={styles.saveBar} show={hasChanges} saving={saving} onReset={reset} onSave={() => void save()} />
-				</aside>
-
-				<StatusPageCanvas
-					page={page}
-					elements={elements}
-					checks={options}
-					selectedId={selectedId}
-					onSelect={id => {
-						setSelectedId(id);
-						setActiveTab("blocks");
-					}}
-					onAddGroup={addGroup}
-					onAddBlock={() => addBlock("status")}
-					onMove={moveElement}
-					onRemove={removeElement}
-					onDragStart={id => {
-						draggedId.current = id;
-					}}
-					onDrop={handleDrop}
-					onDropGroup={dropIntoGroup}
-				/>
-			</div>
-		</PageStack>
+		</div>
 	);
 }
 
@@ -545,6 +548,87 @@ function elementRequest(element: ElementDraft, allElements: ElementDraft[] = [],
 
 function sorted<T extends { sortOrder: number }>(values: T[]) {
 	return [...values].sort((left, right) => left.sortOrder - right.sortOrder);
+}
+
+function scopedPreviewCSS(css: string | undefined) {
+	if (!css?.trim()) return "";
+	const scope = `.${styles.previewViewport}`;
+
+	function findClosingBrace(source: string, openingBrace: number) {
+		let depth = 0;
+		let quote = "";
+		let comment = false;
+		for (let index = openingBrace; index < source.length; index += 1) {
+			const character = source[index] || "";
+			const next = source[index + 1] || "";
+			if (comment) {
+				if (character === "*" && next === "/") {
+					comment = false;
+					index += 1;
+				}
+				continue;
+			}
+			if (!quote && character === "/" && next === "*") {
+				comment = true;
+				index += 1;
+				continue;
+			}
+			if (quote) {
+				if (character === quote && source[index - 1] !== "\\") quote = "";
+				continue;
+			}
+			if (character === '"' || character === "'") {
+				quote = character;
+				continue;
+			}
+			if (character === "{") depth += 1;
+			if (character === "}") {
+				depth -= 1;
+				if (depth === 0) return index;
+			}
+		}
+		return source.length - 1;
+	}
+
+	function prefixSelector(selector: string) {
+		const trimmed = selector.trim();
+		if (!trimmed) return "";
+		if (trimmed.startsWith(scope)) return trimmed;
+		if (trimmed.startsWith(".ns-status-page")) return trimmed.replace(/^\.ns-status-page/, scope);
+		if (/^(?::root|html|body)(?:$|\s|\.|#|:|\[)/.test(trimmed)) {
+			return trimmed.replace(/^(?::root|html|body)/, scope);
+		}
+		return `${scope} ${trimmed}`;
+	}
+
+	function scopeRules(source: string): string {
+		let output = "";
+		let cursor = 0;
+		while (cursor < source.length) {
+			const openingBrace = source.indexOf("{", cursor);
+			if (openingBrace < 0) return output + source.slice(cursor);
+			const headerStart = cursor;
+			const header = source.slice(headerStart, openingBrace).trim();
+			const leadingComments = header.match(/^(?:\/\*[\s\S]*?\*\/\s*)+/)?.[0] ?? "";
+			const ruleHeader = header.slice(leadingComments.length).trim();
+			const closingBrace = findClosingBrace(source, openingBrace);
+			const body = source.slice(openingBrace + 1, closingBrace);
+			if (!ruleHeader) {
+				output += source.slice(cursor, closingBrace + 1);
+			} else if (/^@(media|supports|container|layer)\b/i.test(ruleHeader)) {
+				output += `${leadingComments}${ruleHeader} {${scopeRules(body)}}`;
+			} else if (ruleHeader.startsWith("@")) {
+				output += `${leadingComments}${ruleHeader} {${body}}`;
+			} else {
+				const selectors = ruleHeader.split(",").map(prefixSelector).filter(Boolean).join(", ");
+				output += `${leadingComments}${selectors} {${body}}`;
+			}
+			cursor = closingBrace + 1;
+		}
+		return output;
+	}
+
+	return scopeRules(css);
 }
 
 function PageSettings({ page, update }: { page: PageDraft; update: <K extends keyof PageDraft>(key: K, value: PageDraft[K]) => void }) {
@@ -620,35 +704,143 @@ function PrivacyToggle({ label, detail, checked, onChange }: { label: string; de
 	);
 }
 
-function BlockLibrary({ hasChecks, loading, onAddGroup, onAddBlock }: { hasChecks: boolean; loading: boolean; onAddGroup: () => void; onAddBlock: (mode: DisplayMode) => void }) {
+function BlockComposer({
+	checks,
+	elements,
+	loading,
+	onAdd,
+	onCancel
+}: {
+	checks: CheckOption[];
+	elements: ElementDraft[];
+	loading: boolean;
+	onAdd: (mode: DisplayMode, checkId: string, parentLocalId?: string) => void;
+	onCancel: () => void;
+}) {
+	const groups = sorted(elements.filter(element => element.kind === "folder"));
+	const [mode, setMode] = useState<DisplayMode>();
+	const [category, setCategory] = useState("all");
+	const [search, setSearch] = useState("");
+	const [checkId, setCheckId] = useState("");
+	const [parentLocalId, setParentLocalId] = useState(groups[0]?.localId ?? "");
+	const categories = ["all", ...Array.from(new Set(checks.map(check => check.type))).sort((left, right) => left.localeCompare(right))];
+	const normalizedSearch = search.trim().toLowerCase();
+	const visibleChecks = checks.filter(
+		check => (category === "all" || check.type === category) && (!normalizedSearch || `${check.name} ${check.target} ${check.type}`.toLowerCase().includes(normalizedSearch))
+	);
+	const selectedMode = blockLibrary.find(block => block.mode === mode);
+
+	if (!mode) {
+		return (
+			<div className={styles.settingsSection}>
+				<button type="button" className={styles.backButton} onClick={onCancel}>
+					<ArrowLeftIcon aria-hidden="true" />
+					Page settings
+				</button>
+				<div className={styles.sectionIntro}>
+					<strong>Choose a display</strong>
+					<p>Start with the information shape visitors should see.</p>
+				</div>
+				{blockLibrary.map(block => (
+					<button key={block.mode} type="button" className={styles.libraryCard} onClick={() => setMode(block.mode)}>
+						{block.icon}
+						<span>
+							<strong>{block.title}</strong>
+							<small>{block.description}</small>
+						</span>
+						<ArrowRightIcon aria-hidden="true" />
+					</button>
+				))}
+			</div>
+		);
+	}
+
 	return (
 		<div className={styles.settingsSection}>
-			<div className={styles.sectionIntro}>
-				<strong>Add content</strong>
-				<p>Choose a presentation, then select its check and group.</p>
-			</div>
-			<button type="button" className={styles.libraryCard} onClick={onAddGroup}>
-				<FolderIcon aria-hidden="true" />
-				<span>
-					<strong>Group</strong>
-					<small>Organize related services under a public heading.</small>
-				</span>
-				<PlusIcon aria-hidden="true" />
+			<button type="button" className={styles.backButton} onClick={() => setMode(undefined)}>
+				<ArrowLeftIcon aria-hidden="true" />
+				Display types
 			</button>
-			{blockLibrary.map(block => (
-				<button key={block.mode} type="button" className={styles.libraryCard} disabled={!hasChecks || loading} onClick={() => onAddBlock(block.mode)}>
-					{block.icon}
-					<span>
-						<strong>{block.title}</strong>
-						<small>{block.description}</small>
-					</span>
-					<PlusIcon aria-hidden="true" />
-				</button>
-			))}
+			<div className={styles.composerSelection}>
+				<span>{selectedMode?.icon}</span>
+				<div>
+					<strong>{selectedMode?.title}</strong>
+					<small>{selectedMode?.description}</small>
+				</div>
+			</div>
+			<div className={styles.sectionIntro}>
+				<strong>Select a check</strong>
+				<p>Browse by monitor type, then choose the public service source.</p>
+			</div>
 			{loading ? <Spinner label="Loading checks" layout="compact" size="sm" /> : null}
-			{!loading && !hasChecks ? <p className={styles.inlineNotice}>Create a check and assign a probe before adding a status block.</p> : null}
+			{!loading && checks.length ? (
+				<div className={styles.checkPicker}>
+					<div className={styles.checkCategories} role="list" aria-label="Check categories">
+						{categories.map(value => {
+							const count = value === "all" ? checks.length : checks.filter(check => check.type === value).length;
+							return (
+								<button key={value} type="button" className={styles.checkCategory} data-selected={category === value} onClick={() => setCategory(value)}>
+									<span>{checkCategoryLabel(value)}</span>
+									<Badge tone={category === value ? "accent" : "neutral"}>{count}</Badge>
+								</button>
+							);
+						})}
+					</div>
+					<div className={styles.checkChoices}>
+						<TextField label="Search checks" placeholder="name or target" value={search} onChange={event => setSearch(event.currentTarget.value)} />
+						<div className={styles.checkChoiceList} role="listbox" aria-label="Checks">
+							{visibleChecks.map(check => (
+								<button
+									key={check.id}
+									type="button"
+									className={styles.checkChoice}
+									role="option"
+									aria-selected={checkId === check.id}
+									data-selected={checkId === check.id}
+									onClick={() => setCheckId(check.id)}
+								>
+									<strong>{check.name}</strong>
+									<span>{check.target}</span>
+								</button>
+							))}
+							{!visibleChecks.length ? <p className={styles.inlineNotice}>No checks match this category and search.</p> : null}
+						</div>
+					</div>
+				</div>
+			) : null}
+			{!loading && !checks.length ? <p className={styles.inlineNotice}>Create a check and assign a probe before adding a status block.</p> : null}
+			<SelectField
+				label="Group"
+				value={parentLocalId}
+				options={[{ value: "", label: "No group" }, ...groups.map(group => ({ value: group.localId, label: group.title || "Untitled group" }))]}
+				onChange={event => setParentLocalId(event.currentTarget.value)}
+			/>
+			<div className={styles.composerActions}>
+				<Button type="button" variant="ghost" onClick={onCancel}>
+					Cancel
+				</Button>
+				<Button type="button" disabled={!checkId} onClick={() => onAdd(mode, checkId, parentLocalId || undefined)}>
+					<PlusIcon aria-hidden="true" />
+					Add block
+				</Button>
+			</div>
 		</div>
 	);
+}
+
+function checkCategoryLabel(value: string) {
+	switch (value.toLowerCase()) {
+		case "all":
+			return "All";
+		case "http":
+			return "HTTP";
+		case "tcp":
+			return "TCP";
+		case "traceroute":
+			return "Trace";
+		default:
+			return value;
+	}
 }
 
 function ElementSettings({
@@ -669,11 +861,11 @@ function ElementSettings({
 		<div className={styles.settingsSection}>
 			<button type="button" className={styles.backButton} onClick={onBack}>
 				<ArrowLeftIcon aria-hidden="true" />
-				All blocks
+				Page settings
 			</button>
 			<div className={styles.sectionIntro}>
 				<strong>{element.kind === "folder" ? "Group settings" : "Block settings"}</strong>
-				<p>Changes are reflected immediately in the preview.</p>
+				<p>{element.kind === "folder" ? "Set the public heading and description for this service group." : "Choose the service source, presentation, and public label."}</p>
 			</div>
 			<TextField label="Title" value={element.title ?? ""} maxLength={1024} onChange={event => update({ title: event.currentTarget.value })} />
 			<TextAreaField label="Description" value={element.description ?? ""} maxLength={1024} rows={3} onChange={event => update({ description: event.currentTarget.value })} />
@@ -725,6 +917,7 @@ function StatusPageCanvas({
 	onMove,
 	onRemove,
 	onDragStart,
+	onDragEnd,
 	onDrop,
 	onDropGroup
 }: {
@@ -737,37 +930,23 @@ function StatusPageCanvas({
 	onAddBlock: () => void;
 	onMove: (id: string, direction: -1 | 1) => void;
 	onRemove: (id: string) => void;
-	onDragStart: (id: string) => void;
+	onDragStart: (event: DragEvent<HTMLElement>, id: string) => void;
+	onDragEnd: () => void;
 	onDrop: (event: DragEvent<HTMLElement>, targetId: string, parentId?: string) => void;
 	onDropGroup: (event: DragEvent<HTMLElement>, groupId: string) => void;
 }) {
 	const groups = sorted(elements.filter(element => element.kind === "folder"));
 	const ungrouped = sorted(elements.filter(element => element.kind === "assignment_group" && !element.parentLocalId));
 	const previewTheme = page.theme === "auto" ? "dark" : page.theme;
+	const previewCSS = useMemo(() => scopedPreviewCSS(page.customCss), [page.customCss]);
 
 	return (
-		<section className={styles.canvas} aria-label="Live status page preview">
-			<div className={styles.canvasToolbar}>
-				<div>
-					<strong>Live preview</strong>
-					<span>{page.theme === "auto" ? "Auto / previewing dark" : page.theme}</span>
-				</div>
-				<div>
-					<Button type="button" variant="outline" size="sm" onClick={onAddGroup}>
-						<FolderIcon aria-hidden="true" />
-						Add Group
-					</Button>
-					<Button type="button" size="sm" disabled={!checks.length} onClick={onAddBlock}>
-						<PlusIcon aria-hidden="true" />
-						Add Block
-					</Button>
-				</div>
-			</div>
-
-			<div className={styles.previewViewport} data-preview-theme={previewTheme}>
+		<section className={styles.canvas} aria-label="Status page preview">
+			<div className={`${styles.previewViewport} ns-status-page`} data-preview-theme={previewTheme} data-status-preview>
+				{previewCSS ? <style>{previewCSS}</style> : null}
 				<div className={styles.publicShell}>
-					<header className={styles.previewHero}>
-						<img className={styles.previewBanner} src={page.bannerImageUrl || statusPageBanner} alt="" />
+					<header className={`${styles.previewHero} ns-status-hero`}>
+						<img className={`${styles.previewBanner} ns-status-banner`} src={page.bannerImageUrl || statusPageBanner} alt="" />
 						<div className={styles.previewHeroBody}>
 							<div className={styles.previewBrand}>
 								<img src={previewTheme === "dark" ? netstampLogoLight : netstampLogoDark} alt="Netstamp" />
@@ -787,7 +966,7 @@ function StatusPageCanvas({
 						</div>
 					</header>
 
-					<div className={styles.previewOverall}>
+					<div className={`${styles.previewOverall} ns-status-overall`}>
 						<span className={styles.previewStatusMarker} aria-hidden="true" />
 						<div>
 							<strong>All systems operational</strong>
@@ -796,6 +975,16 @@ function StatusPageCanvas({
 						<Badge className={styles.previewOverallBadge} tone="success">
 							Operational
 						</Badge>
+					</div>
+					<div className={styles.previewAddActions}>
+						<Button type="button" variant="outline" size="sm" onClick={onAddGroup}>
+							<FolderIcon aria-hidden="true" />
+							Add Group
+						</Button>
+						<Button type="button" size="sm" disabled={!checks.length} onClick={onAddBlock}>
+							<PlusIcon aria-hidden="true" />
+							Add Block
+						</Button>
 					</div>
 
 					{groups.map(group => (
@@ -812,6 +1001,7 @@ function StatusPageCanvas({
 							onMove={onMove}
 							onRemove={onRemove}
 							onDragStart={onDragStart}
+							onDragEnd={onDragEnd}
 							onDrop={onDrop}
 							onDropGroup={onDropGroup}
 						/>
@@ -839,6 +1029,7 @@ function StatusPageCanvas({
 										onMove={onMove}
 										onRemove={onRemove}
 										onDragStart={onDragStart}
+										onDragEnd={onDragEnd}
 										onDrop={event => onDrop(event, element.localId)}
 									/>
 								))}
@@ -851,18 +1042,10 @@ function StatusPageCanvas({
 							<PulseIcon aria-hidden="true" />
 							<strong>Build your service view</strong>
 							<p>Add a group, then add status, history, latency, or map blocks.</p>
-							<div>
-								<Button type="button" variant="outline" size="sm" onClick={onAddGroup}>
-									Add Group
-								</Button>
-								<Button type="button" size="sm" disabled={!checks.length} onClick={onAddBlock}>
-									Add Block
-								</Button>
-							</div>
 						</div>
 					) : null}
 
-					<footer className={styles.previewFooter}>
+					<footer className={`${styles.previewFooter} ns-status-footer`}>
 						<p>{page.footerText || "Measurements are collected by configured Netstamp probes."}</p>
 						{page.showGeneratedAt ? <span>Updated just now</span> : null}
 					</footer>
@@ -884,6 +1067,7 @@ function PreviewGroup({
 	onMove,
 	onRemove,
 	onDragStart,
+	onDragEnd,
 	onDrop,
 	onDropGroup
 }: {
@@ -897,22 +1081,24 @@ function PreviewGroup({
 	onSelect: (id: string) => void;
 	onMove: (id: string, direction: -1 | 1) => void;
 	onRemove: (id: string) => void;
-	onDragStart: (id: string) => void;
+	onDragStart: (event: DragEvent<HTMLElement>, id: string) => void;
+	onDragEnd: () => void;
 	onDrop: (event: DragEvent<HTMLElement>, targetId: string, parentId?: string) => void;
 	onDropGroup: (event: DragEvent<HTMLElement>, groupId: string) => void;
 }) {
 	return (
 		<section
-			className={`${styles.previewGroup} ${group.localId === selectedId ? styles.selectedElement : ""}`}
-			draggable
-			onDragStart={() => onDragStart(group.localId)}
+			className={`${styles.previewGroup} ns-status-group ${group.localId === selectedId ? styles.selectedElement : ""}`}
 			onDragOver={event => event.preventDefault()}
 			onDrop={event => onDrop(event, group.localId)}
 		>
 			<div className={styles.previewGroupHeader} onDragOver={event => event.preventDefault()} onDrop={event => onDropGroup(event, group.localId)}>
-				<div>
-					<h2>{group.title || "Untitled group"}</h2>
-					{group.description ? <p>{group.description}</p> : null}
+				<div className={styles.previewGroupIdentity}>
+					<DragHandle label={`Drag ${group.title || "group"}`} onDragStart={event => onDragStart(event, group.localId)} onDragEnd={onDragEnd} />
+					<div>
+						<h2>{group.title || "Untitled group"}</h2>
+						{group.description ? <p>{group.description}</p> : null}
+					</div>
 				</div>
 				<ElementControls element={group} first={first} last={last} onSelect={onSelect} onMove={onMove} onRemove={onRemove} />
 			</div>
@@ -931,6 +1117,7 @@ function PreviewGroup({
 							onMove={onMove}
 							onRemove={onRemove}
 							onDragStart={onDragStart}
+							onDragEnd={onDragEnd}
 							onDrop={event => onDrop(event, element.localId, group.localId)}
 						/>
 					))
@@ -955,6 +1142,7 @@ function PreviewBlock({
 	onMove,
 	onRemove,
 	onDragStart,
+	onDragEnd,
 	onDrop
 }: {
 	element: ElementDraft;
@@ -966,7 +1154,8 @@ function PreviewBlock({
 	onSelect: (id: string) => void;
 	onMove: (id: string, direction: -1 | 1) => void;
 	onRemove: (id: string) => void;
-	onDragStart: (id: string) => void;
+	onDragStart: (event: DragEvent<HTMLElement>, id: string) => void;
+	onDragEnd: () => void;
 	onDrop: (event: DragEvent<HTMLElement>) => void;
 }) {
 	const metadata = [check?.type, page.showTargets ? check?.target : undefined, page.showProbeNames ? "Probe names" : undefined, page.showProbeLocations ? "Public locations" : undefined].filter(
@@ -974,16 +1163,10 @@ function PreviewBlock({
 	);
 
 	return (
-		<article
-			className={`${styles.previewBlock} ${selected ? styles.selectedElement : ""}`}
-			draggable
-			onDragStart={() => onDragStart(element.localId)}
-			onDragOver={event => event.preventDefault()}
-			onDrop={onDrop}
-		>
+		<article className={`${styles.previewBlock} ns-status-block ${selected ? styles.selectedElement : ""}`} onDragOver={event => event.preventDefault()} onDrop={onDrop}>
 			<div className={styles.previewBlockTop}>
 				<div className={styles.previewBlockIdentity}>
-					<DotsSixVerticalIcon className={styles.dragIcon} aria-hidden="true" />
+					<DragHandle label={`Drag ${element.title || check?.name || "block"}`} onDragStart={event => onDragStart(event, element.localId)} onDragEnd={onDragEnd} />
 					<span className={styles.operationalDot} aria-hidden="true" />
 					<div>
 						<strong>{element.title || check?.name || "Untitled service"}</strong>
@@ -992,18 +1175,46 @@ function PreviewBlock({
 				</div>
 				<div className={styles.previewBlockActions}>
 					<span>Operational</span>
-					<ElementControls element={element} first={first} last={last} onSelect={onSelect} onMove={onMove} onRemove={onRemove} />
+					<ElementControls element={element} label={element.title || check?.name} first={first} last={last} onSelect={onSelect} onMove={onMove} onRemove={onRemove} />
 				</div>
+			</div>
+			<div className={styles.uptimeHeading}>
+				<span>30-day uptime</span>
+				<strong>{element.displayMode === "history" ? "99.94%" : "99.98%"}</strong>
 			</div>
 			<div className={styles.uptimeBars} aria-label="Example 30-day uptime">
 				{Array.from({ length: 30 }, (_, index) => (
 					<span key={index} data-state={index === 11 && element.displayMode === "history" ? "degraded" : "operational"} />
 				))}
 			</div>
+			{element.displayMode === "status" ? (
+				<div className={styles.previewMetrics}>
+					<PreviewMetric label="Availability" value="99.98%" />
+					<PreviewMetric label="Median latency" value="28 ms" />
+					<PreviewMetric label="Viewpoints" value="6 active" />
+				</div>
+			) : null}
+			{element.displayMode === "history" ? (
+				<div className={styles.historySummary}>
+					<span className={styles.operationalDot} aria-hidden="true" />
+					<div>
+						<strong>Last incident resolved</strong>
+						<small>Intermittent latency recovered after 18 minutes.</small>
+					</div>
+					<Badge tone="success">Resolved</Badge>
+				</div>
+			) : null}
 			{element.displayMode === "latency" ? (
-				<svg className={styles.miniChart} viewBox="0 0 640 72" preserveAspectRatio="none" role="img" aria-label="Example latency trend">
-					<path d="M0 52 C70 48 92 58 148 42 S242 35 300 44 S390 20 452 30 S552 42 640 16" />
-				</svg>
+				<>
+					<div className={styles.previewMetrics}>
+						<PreviewMetric label="Current" value="31 ms" />
+						<PreviewMetric label="P95" value="46 ms" />
+						<PreviewMetric label="Packet loss" value="0.02%" />
+					</div>
+					<svg className={styles.miniChart} viewBox="0 0 640 72" preserveAspectRatio="none" role="img" aria-label="Example latency trend">
+						<path d="M0 52 C70 48 92 58 148 42 S242 35 300 44 S390 20 452 30 S552 42 640 16" />
+					</svg>
+				</>
 			) : null}
 			{element.displayMode === "map" && page.showProbeLocations ? (
 				<div className={styles.miniMap} aria-label="Example public probe map">
@@ -1018,8 +1229,26 @@ function PreviewBlock({
 	);
 }
 
+function PreviewMetric({ label, value }: { label: string; value: string }) {
+	return (
+		<div>
+			<span>{label}</span>
+			<strong>{value}</strong>
+		</div>
+	);
+}
+
+function DragHandle({ label, onDragStart, onDragEnd }: { label: string; onDragStart: (event: DragEvent<HTMLButtonElement>) => void; onDragEnd: () => void }) {
+	return (
+		<button type="button" className={styles.dragHandle} draggable aria-label={label} onDragStart={onDragStart} onDragEnd={onDragEnd}>
+			<DotsSixVerticalIcon aria-hidden="true" />
+		</button>
+	);
+}
+
 function ElementControls({
 	element,
+	label,
 	first,
 	last,
 	onSelect,
@@ -1027,24 +1256,26 @@ function ElementControls({
 	onRemove
 }: {
 	element: ElementDraft;
+	label?: string;
 	first: boolean;
 	last: boolean;
 	onSelect: (id: string) => void;
 	onMove: (id: string, direction: -1 | 1) => void;
 	onRemove: (id: string) => void;
 }) {
+	const accessibleLabel = label || element.title || "element";
 	return (
 		<div className={styles.elementControls}>
-			<IconButton aria-label={`Move ${element.title || "element"} up`} disabled={first} onClick={() => onMove(element.localId, -1)}>
+			<IconButton aria-label={`Move ${accessibleLabel} up`} disabled={first} onClick={() => onMove(element.localId, -1)}>
 				<ArrowUpIcon aria-hidden="true" />
 			</IconButton>
-			<IconButton aria-label={`Move ${element.title || "element"} down`} disabled={last} onClick={() => onMove(element.localId, 1)}>
+			<IconButton aria-label={`Move ${accessibleLabel} down`} disabled={last} onClick={() => onMove(element.localId, 1)}>
 				<ArrowDownIcon aria-hidden="true" />
 			</IconButton>
-			<IconButton aria-label={`Configure ${element.title || "element"}`} onClick={() => onSelect(element.localId)}>
+			<IconButton aria-label={`Configure ${accessibleLabel}`} onClick={() => onSelect(element.localId)}>
 				<GearSixIcon aria-hidden="true" />
 			</IconButton>
-			<IconButton aria-label={`Remove ${element.title || "element"}`} danger onClick={() => onRemove(element.localId)}>
+			<IconButton aria-label={`Remove ${accessibleLabel}`} danger onClick={() => onRemove(element.localId)}>
 				<TrashIcon aria-hidden="true" />
 			</IconButton>
 		</div>

@@ -1,15 +1,10 @@
-.pageStack {
-	min-width: 0;
-}
-
 .errorCopy {
 	margin: 0;
 	color: var(--ns-text-muted);
 }
 
-.headerActions,
-.canvasToolbar > div,
-.previewEmpty > div,
+.previewAddActions,
+.composerActions,
 .elementControls,
 .previewBlockActions {
 	display: flex;
@@ -20,19 +15,19 @@
 .builder {
 	display: grid;
 	min-width: 0;
-	grid-template-columns: minmax(18rem, 22rem) minmax(0, 1fr);
+	min-height: calc(100svh - 2rem);
+	grid-template-columns: minmax(20rem, 22rem) minmax(0, 1fr);
 	align-items: start;
-	gap: 1rem;
+	gap: 0;
 }
 
 .sidebar {
 	position: sticky;
 	top: 1rem;
 	display: grid;
-	max-height: calc(100svh - 2rem);
-	grid-template-rows: auto auto minmax(0, 1fr) auto;
-	border: 1px solid var(--ns-border);
-	background: var(--ns-surface);
+	height: calc(100svh - 2rem);
+	grid-template-rows: auto minmax(0, 1fr) auto;
+	background: var(--ns-bg-subtle);
 }
 
 .sidebarHeader {
@@ -40,8 +35,7 @@
 	align-items: center;
 	justify-content: space-between;
 	gap: 1rem;
-	border-bottom: 1px solid var(--ns-border-faint);
-	padding: 1rem;
+	padding: 1.25rem 1rem 1rem;
 }
 
 .sidebarHeader > div {
@@ -49,8 +43,7 @@
 	gap: 0.25rem;
 }
 
-.sidebarHeader span,
-.canvasToolbar span {
+.sidebarHeader span {
 	color: var(--ns-text-subtle);
 	font: 0.68rem/1 var(--ns-font-mono);
 	letter-spacing: 0.06em;
@@ -66,7 +59,7 @@
 .settingsSection {
 	display: grid;
 	gap: 1rem;
-	padding: 1rem;
+	padding: 1.25rem 1rem;
 }
 
 .sectionIntro {
@@ -116,7 +109,7 @@
 .fieldGroup {
 	display: grid;
 	gap: 0.85rem;
-	border: 1px solid var(--ns-border-faint);
+	background: var(--ns-container-bg-raised);
 	padding: 0.85rem;
 }
 
@@ -144,8 +137,8 @@
 	align-items: center;
 	gap: 0.75rem;
 	width: 100%;
-	border: 1px solid var(--ns-border);
-	background: transparent;
+	border: 0;
+	background: var(--ns-container-bg-raised);
 	color: var(--ns-text);
 	cursor: pointer;
 	padding: 0.8rem;
@@ -154,7 +147,6 @@
 }
 
 .libraryCard:hover:not(:disabled) {
-	border-color: var(--ns-primary-border);
 	background: var(--ns-primary-muted);
 }
 
@@ -197,26 +189,146 @@
 	color: var(--ns-text);
 }
 
+.composerSelection {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr);
+	align-items: center;
+	gap: 0.75rem;
+	background: var(--ns-primary-muted);
+	padding: 0.85rem;
+}
+
+.composerSelection > span {
+	display: grid;
+	width: 2rem;
+	height: 2rem;
+	place-items: center;
+	background: var(--ns-primary-subtle);
+	color: var(--ns-primary);
+}
+
+.composerSelection svg {
+	width: 1.1rem;
+	height: 1.1rem;
+}
+
+.composerSelection > div {
+	display: grid;
+	gap: 0.25rem;
+}
+
+.composerSelection small {
+	color: var(--ns-text-muted);
+	font-size: 0.7rem;
+	line-height: 1.4;
+}
+
+.checkPicker {
+	display: grid;
+	min-height: 18rem;
+	grid-template-columns: minmax(6.5rem, 0.8fr) minmax(0, 1.4fr);
+	background: var(--ns-container-bg-raised);
+}
+
+.checkCategories {
+	display: grid;
+	align-content: start;
+	border-right: 1px solid var(--ns-border-faint);
+	padding: 0.5rem;
+}
+
+.checkCategory {
+	display: flex;
+	min-width: 0;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.35rem;
+	border: 0;
+	background: transparent;
+	color: var(--ns-text-muted);
+	cursor: pointer;
+	padding: 0.55rem;
+	font: 650 0.7rem/1.3 var(--ns-font-sans);
+	text-align: left;
+	text-transform: capitalize;
+}
+
+.checkCategory > span:first-child {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.checkCategory:hover,
+.checkCategory[data-selected="true"] {
+	background: var(--ns-primary-muted);
+	color: var(--ns-text);
+}
+
+.checkCategory:focus-visible,
+.checkChoice:focus-visible {
+	outline: var(--ns-focus-outline);
+	outline-offset: -2px;
+}
+
+.checkChoices {
+	display: grid;
+	min-width: 0;
+	grid-template-rows: auto minmax(0, 1fr);
+	gap: 0.65rem;
+	padding: 0.65rem;
+}
+
+.checkChoiceList {
+	display: grid;
+	max-height: 20rem;
+	align-content: start;
+	gap: 0.35rem;
+	overflow-y: auto;
+}
+
+.checkChoice {
+	display: grid;
+	min-width: 0;
+	gap: 0.2rem;
+	border: 0;
+	background: var(--ns-control-bg);
+	color: var(--ns-text);
+	cursor: pointer;
+	padding: 0.65rem;
+	font: inherit;
+	text-align: left;
+}
+
+.checkChoice:hover,
+.checkChoice[data-selected="true"] {
+	background: var(--ns-primary-muted);
+}
+
+.checkChoice strong,
+.checkChoice span {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.checkChoice strong {
+	font-size: 0.75rem;
+}
+
+.checkChoice span {
+	color: var(--ns-text-subtle);
+	font: 0.65rem/1.4 var(--ns-font-mono);
+}
+
+.composerActions {
+	justify-content: flex-end;
+}
+
 .canvas {
 	display: grid;
 	min-width: 0;
-	border: 1px solid var(--ns-border);
-	background: var(--ns-surface);
-}
-
-.canvasToolbar {
-	display: flex;
-	min-height: 3.5rem;
-	align-items: center;
-	justify-content: space-between;
-	gap: 1rem;
-	border-bottom: 1px solid var(--ns-border);
-	padding: 0.75rem 1rem;
-}
-
-.canvasToolbar > div:first-child {
-	display: grid;
-	gap: 0.25rem;
+	background: var(--ns-bg);
 }
 
 .previewViewport {
@@ -231,12 +343,8 @@
 
 	min-width: 0;
 	background-color: var(--status-preview-bg);
-	background-image:
-		linear-gradient(color-mix(in srgb, var(--status-preview-text) 3%, transparent) 0.0625rem, transparent 0.0625rem),
-		linear-gradient(90deg, color-mix(in srgb, var(--status-preview-text) 3%, transparent) 0.0625rem, transparent 0.0625rem);
-	background-size: 1.5rem 1.5rem;
 	color: var(--status-preview-text);
-	padding: clamp(1rem, 3vw, 2.5rem);
+	padding: 0 0 2.5rem;
 }
 
 :root[data-theme="dark"] .previewViewport[data-preview-theme="light"],
@@ -253,16 +361,15 @@
 
 .publicShell {
 	display: grid;
-	width: min(58rem, 100%);
+	width: 100%;
 	margin: 0 auto;
-	gap: 1rem;
+	gap: 1.25rem;
 }
 
 .previewHero,
 .previewOverall,
 .previewGroup,
 .previewEmpty {
-	border: 1px solid var(--status-preview-border);
 	background: var(--status-preview-surface);
 }
 
@@ -273,14 +380,15 @@
 .previewBanner {
 	display: block;
 	width: 100%;
-	aspect-ratio: 3 / 1;
-	border-bottom: 1px solid var(--status-preview-border);
+	height: clamp(12rem, 25vw, 18.75rem);
 	background: var(--status-preview-deep);
 	object-fit: cover;
 }
 
 .previewHeroBody {
 	display: grid;
+	width: min(58rem, 100%);
+	margin: 0 auto;
 	gap: 1.25rem;
 	padding: clamp(1rem, 2.5vw, 1.5rem);
 }
@@ -337,7 +445,15 @@
 }
 
 .previewOverall {
+	width: min(58rem, calc(100% - 2rem));
+	margin: 0 auto;
 	padding: 0.85rem 1rem;
+}
+
+.previewAddActions {
+	width: min(58rem, calc(100% - 2rem));
+	margin: -0.5rem auto 0;
+	justify-content: flex-end;
 }
 
 .previewStatusMarker,
@@ -368,12 +484,16 @@
 }
 
 .previewGroup {
-	transition: border-color var(--ns-transition);
+	width: min(58rem, calc(100% - 2rem));
+	margin: 0 auto;
+	background: var(--status-preview-surface);
+	transition: background var(--ns-transition);
 }
 
 .selectedElement {
-	border-color: var(--ns-primary);
-	box-shadow: 0 0 0 0.0625rem var(--ns-primary-muted);
+	background: var(--ns-primary-muted);
+	outline: 1px solid var(--ns-primary);
+	outline-offset: -1px;
 }
 
 .previewGroupHeader {
@@ -381,9 +501,16 @@
 	padding: 0.85rem 1rem;
 }
 
-.previewGroupHeader > div:first-child {
+.previewGroupIdentity,
+.previewGroupIdentity > div {
 	display: grid;
 	gap: 0.25rem;
+}
+
+.previewGroupIdentity {
+	min-width: 0;
+	grid-template-columns: auto minmax(0, 1fr);
+	align-items: start;
 }
 
 .previewGroupHeader h2 {
@@ -402,14 +529,13 @@
 .previewBlock {
 	display: grid;
 	gap: 0.55rem;
-	border: 1px solid transparent;
 	background: var(--status-preview-raised);
 	padding: 0.7rem 0.8rem;
-	transition: border-color var(--ns-transition);
+	transition: background var(--ns-transition);
 }
 
 .previewBlock:hover {
-	border-color: var(--ns-primary-border);
+	background: color-mix(in srgb, var(--status-preview-raised) 88%, var(--ns-primary));
 }
 
 .previewBlockIdentity {
@@ -432,10 +558,36 @@
 	white-space: nowrap;
 }
 
-.dragIcon {
+.dragHandle {
+	display: grid;
 	flex: 0 0 auto;
+	width: 1.75rem;
+	height: 1.75rem;
+	place-items: center;
+	border: 0;
+	background: transparent;
 	color: var(--status-preview-muted);
 	cursor: grab;
+	padding: 0;
+}
+
+.dragHandle:hover {
+	background: var(--ns-primary-muted);
+	color: var(--status-preview-text);
+}
+
+.dragHandle:active {
+	cursor: grabbing;
+}
+
+.dragHandle:focus-visible {
+	outline: var(--ns-focus-outline);
+	outline-offset: var(--ns-focus-offset);
+}
+
+.dragHandle svg {
+	width: 1rem;
+	height: 1rem;
 }
 
 .previewBlockActions > span {
@@ -454,6 +606,20 @@
 	padding-left: 2.3rem;
 }
 
+.uptimeHeading {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	padding-left: 2.3rem;
+	color: var(--status-preview-muted);
+	font: 0.65rem/1.4 var(--ns-font-mono);
+}
+
+.uptimeHeading strong {
+	color: var(--status-preview-text);
+}
+
 .uptimeBars span {
 	height: 0.8rem;
 	background: var(--ns-success);
@@ -463,11 +629,60 @@
 	background: var(--ns-warning);
 }
 
+.previewMetrics {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 0.5rem;
+	padding-left: 2.3rem;
+}
+
+.previewMetrics > div {
+	display: grid;
+	gap: 0.2rem;
+	background: var(--status-preview-deep);
+	padding: 0.6rem;
+}
+
+.previewMetrics span,
+.previewMetrics strong {
+	font-family: var(--ns-font-mono);
+}
+
+.previewMetrics span {
+	color: var(--status-preview-muted);
+	font-size: 0.6rem;
+	text-transform: uppercase;
+}
+
+.previewMetrics strong {
+	font-size: 0.75rem;
+}
+
+.historySummary {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 0.65rem;
+	margin-left: 2.3rem;
+	background: var(--status-preview-deep);
+	padding: 0.65rem;
+}
+
+.historySummary > div {
+	display: grid;
+	gap: 0.2rem;
+}
+
+.historySummary small {
+	color: var(--status-preview-muted);
+	font: 0.65rem/1.4 var(--ns-font-mono);
+}
+
 .miniChart {
 	width: 100%;
 	height: 4.5rem;
 	border-top: 1px solid var(--status-preview-border-faint);
-	padding-top: 0.5rem;
+	padding: 0.5rem 0 0 2.3rem;
 }
 
 .miniChart path {
@@ -522,6 +737,8 @@
 
 .previewEmpty {
 	display: grid;
+	width: min(58rem, calc(100% - 2rem));
+	margin: 0 auto;
 	justify-items: center;
 	gap: 0.7rem;
 	padding: 2.5rem 1rem;
@@ -535,6 +752,8 @@
 }
 
 .previewFooter {
+	width: min(58rem, calc(100% - 2rem));
+	margin: 0 auto;
 	align-items: flex-start;
 	border-top: 1px solid var(--status-preview-border);
 	padding: 0.85rem 0;
@@ -573,7 +792,7 @@
 	.sidebar {
 		position: relative;
 		top: auto;
-		max-height: none;
+		height: auto;
 	}
 
 	.sidebarScroll {
@@ -582,9 +801,6 @@
 }
 
 @media (max-width: 42rem) {
-	.headerActions,
-	.canvasToolbar,
-	.canvasToolbar > div,
 	.previewTitleRow,
 	.previewFooter {
 		display: grid;
@@ -592,13 +808,8 @@
 		align-items: stretch;
 	}
 
-	.headerActions,
-	.canvasToolbar > div {
-		width: 100%;
-	}
-
 	.previewViewport {
-		padding: 0.65rem;
+		padding: 0 0 2rem;
 	}
 
 	.previewGenerated {
@@ -615,6 +826,21 @@
 
 	.uptimeBars {
 		padding-left: 0;
+	}
+
+	.uptimeHeading,
+	.previewMetrics,
+	.miniChart {
+		padding-left: 0;
+	}
+
+	.historySummary {
+		margin-left: 0;
+	}
+
+	.previewAddActions,
+	.composerActions {
+		flex-wrap: wrap;
 	}
 }
 
