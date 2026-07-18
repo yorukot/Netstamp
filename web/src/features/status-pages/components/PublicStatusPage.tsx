@@ -102,7 +102,7 @@ export function PublicStatusPage() {
 	const summary = summaryQuery.data;
 	const activeIncidents = incidentsQuery.data?.incidents.active ?? [];
 	const resolvedIncidents = summary.page.showIncidentHistory ? (incidentsQuery.data?.incidents.recentResolved ?? []) : [];
-	const defaultFooter = "Measurements are collected by configured Netstamp probes. Status reflects observed availability and is not an independent SLA certification.";
+	const defaultFooter = "Measurements are collected by configured Netstamp probes.";
 
 	return (
 		<main className={`${styles.page} ns-status-page`} data-status={summary.page.status}>
@@ -137,8 +137,8 @@ export function PublicStatusPage() {
 											<Link to={pathForRoute("dashboard", { projectRef: editorContext?.projectRef })}>Go to dashboard</Link>
 										</Button>
 										{editorContext ? (
-											<Button asChild variant="outline" size="sm">
-												<Link to={pathForStatusPageEditor(editorContext.projectRef, editorContext.pageId)}>Edit status page</Link>
+											<Button asChild size="sm">
+												<Link to={pathForStatusPageEditor(editorContext.projectRef, editorContext.pageId)}>Edit Page</Link>
 											</Button>
 										) : editorContextQuery.isPending || (useLegacyEditorLookup && (legacyProjectsQuery.isPending || legacyStatusPageQueries.some(query => query.isPending))) ? (
 											<Button type="button" variant="outline" size="sm" disabled>
