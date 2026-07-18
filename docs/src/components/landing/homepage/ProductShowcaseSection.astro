@@ -1,13 +1,13 @@
 ---
-import httpUptime from "../../../assets/homepage-highlights/http-uptime.webp?url";
-import incidents from "../../../assets/homepage-highlights/incidents.webp?url";
-import macbookFrame from "../../../assets/homepage-highlights/macbook-frame.webp?url";
-import pingLatency from "../../../assets/homepage-highlights/ping-latency.webp?url";
-import probeMap from "../../../assets/homepage-highlights/probe-map.webp?url";
-import publicDashboard from "../../../assets/homepage-highlights/public-dashboard.webp?url";
-import tcpReachability from "../../../assets/homepage-highlights/tcp-reachability.webp?url";
-import tlsCertificates from "../../../assets/homepage-highlights/tls-certificates.webp?url";
-import traceroutePaths from "../../../assets/homepage-highlights/traceroute-paths.webp?url";
+import httpUptime from "@/assets/homepage-highlights/http-uptime.webp?url";
+import incidents from "@/assets/homepage-highlights/incidents.webp?url";
+import macbookFrame from "@/assets/homepage-highlights/macbook-frame.webp?url";
+import pingLatency from "@/assets/homepage-highlights/ping-latency.webp?url";
+import probeMap from "@/assets/homepage-highlights/probe-map.webp?url";
+import publicDashboard from "@/assets/homepage-highlights/public-dashboard.webp?url";
+import tcpReachability from "@/assets/homepage-highlights/tcp-reachability.webp?url";
+import tlsCertificates from "@/assets/homepage-highlights/tls-certificates.webp?url";
+import traceroutePaths from "@/assets/homepage-highlights/traceroute-paths.webp?url";
 
 const items = [
 	{
@@ -83,6 +83,7 @@ const items = [
 							type="button"
 							class:list={["feature-card", { "is-active": index === 0 }]}
 							aria-controls="product-showcase-visual"
+							aria-label={`${item.title}. ${item.description}`}
 							aria-pressed={index === 0 ? "true" : "false"}
 							data-showcase-trigger
 							data-showcase-index={index}
@@ -135,6 +136,7 @@ const items = [
 	.showcase {
 		position: relative;
 		isolation: isolate;
+		overflow: hidden;
 		overflow: clip;
 		padding: 7.5rem clamp(1rem, 4vw, 4rem) 8.5rem;
 		background: var(--ns-chrome-text);

@@ -35,7 +35,7 @@ function initHomepage() {
 	};
 }
 
-function initProductShowcase(root, cleanupTasks) {
+const initProductShowcase = (root, cleanupTasks) => {
 	const showcase = root.querySelector("[data-product-showcase]");
 	if (!(showcase instanceof HTMLElement)) return;
 
@@ -53,7 +53,7 @@ function initProductShowcase(root, cleanupTasks) {
 	let focusPaused = false;
 	let visible = true;
 
-	function setActiveIndex(nextIndex) {
+	const setActiveIndex = nextIndex => {
 		activeIndex = (nextIndex + triggers.length) % triggers.length;
 
 		triggers.forEach((trigger, index) => {
@@ -64,21 +64,21 @@ function initProductShowcase(root, cleanupTasks) {
 
 		images.forEach((image, index) => image.classList.toggle("is-active", index === activeIndex));
 		caption.textContent = triggers[activeIndex].dataset.showcaseDescription || triggers[activeIndex].textContent?.trim() || "Netstamp product highlight";
-	}
+	};
 
-	function stopSlideshow() {
+	const stopSlideshow = () => {
 		if (interval !== null) {
 			window.clearInterval(interval);
 			interval = null;
 		}
-	}
+	};
 
-	function startSlideshow() {
+	const startSlideshow = () => {
 		stopSlideshow();
 		if (reduceMotion || pointerPaused || focusPaused || !visible || document.hidden) return;
 
 		interval = window.setInterval(() => setActiveIndex(activeIndex + 1), 4800);
-	}
+	};
 
 	triggers.forEach((trigger, index) => {
 		trigger.addEventListener(
@@ -152,7 +152,7 @@ function initProductShowcase(root, cleanupTasks) {
 		observer.disconnect();
 		stopSlideshow();
 	});
-}
+};
 
 function initRouteField(root, cleanupTasks) {
 	const canvas = root.querySelector("#ns-canvas");
