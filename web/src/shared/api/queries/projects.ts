@@ -7,6 +7,8 @@ import type {
 	HttpInsightFilters,
 	HttpSeriesFilters,
 	HttpSeriesResponse,
+	LatestHttpResultsFilters,
+	LatestHttpResultsResponse,
 	LatestResultsFilters,
 	PingInsightFilters,
 	PingSeriesFilters,
@@ -122,6 +124,12 @@ export const projectQueries = {
 		queryOptions({
 			queryKey: apiQueryKeys.projects.latestResults(ref, filters),
 			queryFn: ({ signal }) => readApiData(apiClient.GET("/projects/{ref}/results/latest", { params: { path: { ref }, query: filters }, signal })),
+			staleTime: 15 * 1000
+		}),
+	latestHttpResults: (ref: string, filters: LatestHttpResultsFilters = {}) =>
+		queryOptions({
+			queryKey: apiQueryKeys.projects.latestHttpResults(ref, filters),
+			queryFn: ({ signal }) => readApiData(apiClient.GET("/projects/{ref}/results/http/latest", { params: { path: { ref }, query: filters }, signal })) as Promise<LatestHttpResultsResponse>,
 			staleTime: 15 * 1000
 		}),
 	pingSeries: (ref: string, probeId: string, checkId: string, filters: PingSeriesFilters = {}) =>
