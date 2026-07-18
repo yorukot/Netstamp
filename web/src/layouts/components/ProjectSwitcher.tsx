@@ -73,7 +73,7 @@ export function ProjectSwitcher({ collapsed = false, variant = "sidebar" }: Proj
 							aria-label="Select project"
 							variant="compact"
 							frameClassName={styles.projectFrame}
-							menuClassName={styles.projectMenu}
+							menuClassName={classNames("ns-theme-dark", styles.projectMenu)}
 							className={styles.projectControl}
 							value={projectRef || ""}
 							onChange={event => selectProject(event.currentTarget.value)}

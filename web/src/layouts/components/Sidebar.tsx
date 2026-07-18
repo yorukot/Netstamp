@@ -34,7 +34,7 @@ export function Sidebar({ collapsed, user, onToggleCollapsed, onLogout }: Sideba
 	}
 
 	return (
-		<aside className={classNames(styles.sidebar, collapsed && styles.collapsed)}>
+		<aside className={classNames("ns-theme-dark", styles.sidebar, collapsed && styles.collapsed)}>
 			<div className={classNames("ns-scrollbar", styles.sidebarScroll)}>
 				<div className={styles.brandRow}>
 					<button
@@ -89,7 +89,7 @@ export function Sidebar({ collapsed, user, onToggleCollapsed, onLogout }: Sideba
 				title="Menu"
 				ariaLabel="Primary navigation menu"
 				side="left"
-				className={styles.mobileNavDrawer}
+				className={classNames("ns-theme-dark", styles.mobileNavDrawer)}
 				contentClassName={styles.mobileNavDrawerContent}
 				onClose={closeMobileMenu}
 			>
