@@ -13,7 +13,7 @@ import type {
 } from "../types";
 import { requireWritableAccess } from "./shared";
 
-function clearAuthenticatedClientState(queryClient: QueryClient) {
+export function clearAuthenticatedClientState(queryClient: QueryClient) {
 	clearCSRFToken();
 	queryClient.setQueryData(apiQueryKeys.auth.me(), null);
 	queryClient.removeQueries({ queryKey: apiQueryKeys.auth.sessions() });
