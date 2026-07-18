@@ -28,7 +28,8 @@ func NewRepository(pool *pgxpool.Pool) *Repository {
 }
 
 const (
-	dataExportFormat         = "netstamp.admin.data.v3"
+	dataExportFormat         = "netstamp.admin.data.v4"
+	legacyDataExportFormatV3 = "netstamp.admin.data.v3"
 	legacyDataExportFormatV2 = "netstamp.admin.data.v2"
 	legacyDataExportFormatV1 = "netstamp.admin.data.v1"
 )
@@ -48,6 +49,7 @@ var dataExportTables = []string{
 	"ping_check_configs",
 	"tcp_check_configs",
 	"traceroute_check_configs",
+	"http_check_configs",
 	"labels",
 	"check_labels",
 	"probe_labels",
@@ -57,6 +59,7 @@ var dataExportTables = []string{
 	"traceroute_results",
 	"traceroute_result_hops",
 	"traceroute_sampled_runs_1m",
+	"http_results",
 	"notifications",
 	"alert_rules",
 	"alert_notifications",
@@ -262,35 +265,67 @@ func (r *Repository) ImportData(ctx context.Context, export domainsystem.DataExp
 }
 
 func normalizeDataImport(export domainsystem.DataExport) (domainsystem.DataExport, error) {
-	if export.Format != dataExportFormat && export.Format != legacyDataExportFormatV2 && export.Format != legacyDataExportFormatV1 {
+	if !supportedDataImportFormat(export.Format) {
 		return domainsystem.DataExport{}, domainsystem.ErrDataImportInvalid
 	}
+	if err := upgradeLegacyDataImport(&export); err != nil {
+		return domainsystem.DataExport{}, domainsystem.ErrDataImportInvalid
+	}
+	if err := validateDataImportTables(export.Tables); err != nil {
+		return domainsystem.DataExport{}, err
+	}
+	return export, nil
+}
+
+func supportedDataImportFormat(format string) bool {
+	switch format {
+	case dataExportFormat, legacyDataExportFormatV3, legacyDataExportFormatV2, legacyDataExportFormatV1:
+		return true
+	default:
+		return false
+	}
+}
+
+func upgradeLegacyDataImport(export *domainsystem.DataExport) error {
+	if export.Format == dataExportFormat {
+		return nil
+	}
+	if export.Tables == nil {
+		return domainsystem.ErrDataImportInvalid
+	}
 	if export.Format == legacyDataExportFormatV1 {
-		if export.Tables == nil {
-			return domainsystem.DataExport{}, domainsystem.ErrDataImportInvalid
-		}
 		if _, exists := export.Tables["api_tokens"]; !exists {
 			export.Tables["api_tokens"] = []domainsystem.RawDataRow{}
 		}
 	}
 	if export.Format == legacyDataExportFormatV1 || export.Format == legacyDataExportFormatV2 {
-		if err := upgradeLegacyUserCredentials(&export); err != nil {
-			return domainsystem.DataExport{}, domainsystem.ErrDataImportInvalid
+		if err := upgradeLegacyUserCredentials(export); err != nil {
+			return err
 		}
 	}
+	for _, table := range []string{"http_check_configs", "http_results"} {
+		if _, exists := export.Tables[table]; !exists {
+			export.Tables[table] = []domainsystem.RawDataRow{}
+		}
+	}
+	export.Format = dataExportFormat
+	return nil
+}
+
+func validateDataImportTables(tables map[string][]domainsystem.RawDataRow) error {
 	allowed := make(map[string]struct{}, len(dataExportTables))
 	for _, table := range dataExportTables {
 		allowed[table] = struct{}{}
-		if _, ok := export.Tables[table]; !ok {
-			return domainsystem.DataExport{}, domainsystem.ErrDataImportInvalid
+		if _, ok := tables[table]; !ok {
+			return domainsystem.ErrDataImportInvalid
 		}
 	}
-	for table := range export.Tables {
+	for table := range tables {
 		if _, ok := allowed[table]; !ok {
-			return domainsystem.DataExport{}, domainsystem.ErrDataImportInvalid
+			return domainsystem.ErrDataImportInvalid
 		}
 	}
-	return export, nil
+	return nil
 }
 
 func upgradeLegacyUserCredentials(export *domainsystem.DataExport) error {

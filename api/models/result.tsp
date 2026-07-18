@@ -166,6 +166,36 @@ model HttpResult {
 }
 
 @example(#{
+	probeId: "33333333-3333-3333-3333-333333333333",
+	checkId: "44444444-4444-4444-4444-444444444444",
+	result: #{
+		startedAt: utcDateTime.fromISO("2026-05-13T10:00:00Z"),
+		finishedAt: utcDateTime.fromISO("2026-05-13T10:00:00.125Z"),
+		durationMs: 125,
+		status: "successful",
+		tlsDurationMs: 35,
+		statusCode: 200,
+		finalUrl: "https://example.com/health",
+		redirectCount: 0,
+		responseTruncated: false,
+		tlsVersion: "TLS 1.3",
+		tlsCipherSuite: "TLS_AES_128_GCM_SHA256",
+		certificateNotBefore: utcDateTime.fromISO("2026-04-13T00:00:00Z"),
+		certificateNotAfter: utcDateTime.fromISO("2026-07-12T23:59:59Z"),
+	},
+})
+model LatestHttpResult {
+	probeId: uuid;
+	checkId: uuid;
+	result: HttpResult;
+}
+
+@example(#{ results: #[] })
+model LatestHttpResultsResponse {
+	results: LatestHttpResult[];
+}
+
+@example(#{
 	hopIndex: 1,
 	address: "192.0.2.1",
 	hostname: "gateway.local",

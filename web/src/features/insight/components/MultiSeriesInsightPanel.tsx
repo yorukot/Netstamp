@@ -1,7 +1,8 @@
+import { HttpCertificateInventory } from "@/features/insight/components/HttpCertificateInventory";
 import { hasTcpSeriesChartData, tcpSeriesChartData } from "@/features/insight/data/tcpInsightData";
 import type { InsightPair, TimeWindow } from "@/features/insight/insightTypes";
 import { projectQueries } from "@/shared/api/queries";
-import type { HttpSeriesResponse, PingSeriesResponse, TcpSeriesResponse } from "@/shared/api/types";
+import type { HttpSeriesResponse, LatestHttpResult, PingSeriesResponse, TcpSeriesResponse } from "@/shared/api/types";
 import { formatCount } from "@/shared/utils/insightFormatters";
 import { hasPingSeriesChartData, pingSeriesChartData } from "@/shared/utils/pingInsightData";
 import { ChartPanel } from "@/shared/visualizations/ChartPanel";
@@ -14,6 +15,10 @@ interface MultiSeriesInsightPanelProps {
 	projectRef: string | null | undefined;
 	pairs: InsightPair[];
 	filters: TimeWindow;
+	latestHTTPResults: LatestHttpResult[] | undefined;
+	nowMs: number;
+	isLatestHTTPLoading: boolean;
+	isLatestHTTPFetching: boolean;
 	onSelectTimeWindow: (timeWindow: TimeWindow) => void;
 }
 
@@ -99,7 +104,7 @@ function SeriesPanel({
 	);
 }
 
-export function MultiSeriesInsightPanel({ projectRef, pairs, filters, onSelectTimeWindow }: MultiSeriesInsightPanelProps) {
+export function MultiSeriesInsightPanel({ projectRef, pairs, filters, latestHTTPResults, nowMs, isLatestHTTPLoading, isLatestHTTPFetching, onSelectTimeWindow }: MultiSeriesInsightPanelProps) {
 	const pingPairs = pairs.filter(pair => pair.check.type === "Ping");
 	const tcpPairs = pairs.filter(pair => pair.check.type === "TCP");
 	const httpPairs = pairs.filter(pair => pair.check.type === "HTTP");
@@ -170,6 +175,7 @@ export function MultiSeriesInsightPanel({ projectRef, pairs, filters, onSelectTi
 
 	return (
 		<div className={styles.stack}>
+			{httpPairs.length ? <HttpCertificateInventory pairs={httpPairs} latestResults={latestHTTPResults} nowMs={nowMs} isLoading={isLatestHTTPLoading} isFetching={isLatestHTTPFetching} /> : null}
 			{pingPairs.length ? (
 				<SeriesPanel
 					title={`Ping series (${formatCount(pingPairs.length)} assignments)`}

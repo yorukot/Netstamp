@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.opentelemetry.io/otel"
@@ -23,6 +24,36 @@ var tracer = otel.Tracer("github.com/yorukot/netstamp/internal/controller/infras
 type Repository struct {
 	queries *sqlc.Queries
 	tx      *postgres.Transactor
+}
+
+func (r *Repository) ListLatestHTTPResults(ctx context.Context, input domainhttp.LatestResultQuery) (domainhttp.LatestResultList, error) {
+	ctx, span := postgres.StartDBSpan(ctx, tracer, "http_results", "postgres.http_results.latest", "SELECT", "SELECT latest HTTP results")
+	defer span.End()
+
+	projectID, err := postgres.ParseUUID(input.ProjectID, domainproject.ErrProjectNotFound)
+	if err != nil {
+		return domainhttp.LatestResultList{}, err
+	}
+	probeID, err := optionalUUID(input.ProbeID, domainprobe.ErrInvalidInput)
+	if err != nil {
+		return domainhttp.LatestResultList{}, err
+	}
+	checkID, err := optionalUUID(input.CheckID, domaincheck.ErrInvalidInput)
+	if err != nil {
+		return domainhttp.LatestResultList{}, err
+	}
+
+	rows, err := r.queries.ListLatestHTTPResults(ctx, sqlc.ListLatestHTTPResultsParams{
+		ProjectID: projectID,
+		ProbeID:   probeID,
+		CheckID:   checkID,
+	})
+	if err != nil {
+		postgres.RecordDBSpanError(span, err)
+		return domainhttp.LatestResultList{}, err
+	}
+
+	return mapLatestHTTPResults(rows), nil
 }
 
 func (r *Repository) CountHTTPSeriesPoints(ctx context.Context, input domainhttp.SeriesPointCountQuery) (int64, error) {
@@ -209,5 +240,59 @@ func sqlcIPFamily(value *domainnetwork.IPFamily) *sqlc.IpFamily {
 		return nil
 	}
 	family := sqlc.IpFamily(*value)
+	return &family
+}
+
+func optionalUUID(value string, invalidErr error) (*uuid.UUID, error) {
+	if value == "" {
+		return nil, nil //nolint:nilnil // Nil means no optional UUID filter.
+	}
+	id, err := postgres.ParseUUID(value, invalidErr)
+	if err != nil {
+		return nil, err
+	}
+	return &id, nil
+}
+
+func mapLatestHTTPResults(rows []sqlc.ListLatestHTTPResultsRow) domainhttp.LatestResultList {
+	results := make([]domainhttp.LatestResult, 0, len(rows))
+	for _, row := range rows {
+		results = append(results, domainhttp.LatestResult{
+			ProbeID: row.ProbeID.String(),
+			CheckID: row.CheckID.String(),
+			Result: domainhttp.Result{
+				StartedAt:            row.StartedAt,
+				FinishedAt:           row.FinishedAt,
+				DurationMs:           row.DurationMs,
+				Status:               domainhttp.Status(row.Status),
+				DNSDurationMs:        row.DnsDurationMs,
+				ConnectDurationMs:    row.ConnectDurationMs,
+				TLSDurationMs:        row.TlsDurationMs,
+				TTFBDurationMs:       row.TtfbDurationMs,
+				ResolvedIP:           row.ResolvedIp,
+				IPFamily:             domainIPFamily(row.IpFamily),
+				StatusCode:           row.StatusCode,
+				FinalURL:             row.FinalUrl,
+				RedirectCount:        row.RedirectCount,
+				ResponseBytes:        row.ResponseBytes,
+				ResponseTruncated:    row.ResponseTruncated,
+				BodyMatched:          row.BodyMatched,
+				TLSVersion:           row.TlsVersion,
+				TLSCipherSuite:       row.TlsCipherSuite,
+				CertificateNotBefore: row.CertificateNotBefore,
+				CertificateNotAfter:  row.CertificateNotAfter,
+				ErrorCode:            row.ErrorCode,
+				ErrorMessage:         row.ErrorMessage,
+			},
+		})
+	}
+	return domainhttp.LatestResultList{Results: results}
+}
+
+func domainIPFamily(value *sqlc.IpFamily) *domainnetwork.IPFamily {
+	if value == nil {
+		return nil
+	}
+	family := domainnetwork.IPFamily(*value)
 	return &family
 }

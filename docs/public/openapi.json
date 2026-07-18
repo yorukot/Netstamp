@@ -6117,6 +6117,95 @@
 				]
 			}
 		},
+		"/projects/{ref}/results/http/latest": {
+			"get": {
+				"operationId": "queryProjectLatestHttpResults",
+				"summary": "Query latest project HTTP results",
+				"description": "List the latest detailed HTTP result for each active HTTP assignment, optionally filtered by probe or check.",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/ProjectRefParam"
+					},
+					{
+						"$ref": "#/components/parameters/LatestHttpResultsQuery.probeId"
+					},
+					{
+						"$ref": "#/components/parameters/LatestHttpResultsQuery.checkId"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LatestHttpResultsResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "The server cannot find the requested resource.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Results"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					},
+					{
+						"PersonalAccessTokenAuth": []
+					}
+				]
+			}
+		},
 		"/projects/{ref}/results/http/series": {
 			"get": {
 				"operationId": "queryProjectHttpResultSeries",
@@ -9449,6 +9538,24 @@
 					"$ref": "#/components/schemas/uuid"
 				}
 			},
+			"LatestHttpResultsQuery.checkId": {
+				"name": "checkId",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"$ref": "#/components/schemas/uuid"
+				},
+				"explode": false
+			},
+			"LatestHttpResultsQuery.probeId": {
+				"name": "probeId",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"$ref": "#/components/schemas/uuid"
+				},
+				"explode": false
+			},
 			"LatestResultsQuery.checkId": {
 				"name": "checkId",
 				"in": "query",
@@ -10137,7 +10244,7 @@
 				},
 				"examples": [
 					{
-						"format": "netstamp.admin.data.v3",
+						"format": "netstamp.admin.data.v4",
 						"exportedAt": "2026-07-08T12:00:00Z",
 						"tables": {}
 					}
@@ -10154,8 +10261,8 @@
 				"examples": [
 					{
 						"result": {
-							"format": "netstamp.admin.data.v3",
-							"importedTables": 37,
+							"format": "netstamp.admin.data.v4",
+							"importedTables": 39,
 							"importedRows": 128
 						}
 					}
@@ -12582,6 +12689,59 @@
 							"createdAt": "2026-05-13T10:00:00Z",
 							"updatedAt": "2026-05-13T10:00:00Z"
 						}
+					}
+				]
+			},
+			"LatestHttpResult": {
+				"type": "object",
+				"required": ["probeId", "checkId", "result"],
+				"properties": {
+					"probeId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"checkId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"result": {
+						"$ref": "#/components/schemas/HttpResult"
+					}
+				},
+				"examples": [
+					{
+						"probeId": "33333333-3333-3333-3333-333333333333",
+						"checkId": "44444444-4444-4444-4444-444444444444",
+						"result": {
+							"startedAt": "2026-05-13T10:00:00Z",
+							"finishedAt": "2026-05-13T10:00:00.125Z",
+							"durationMs": 125,
+							"status": "successful",
+							"tlsDurationMs": 35,
+							"statusCode": 200,
+							"finalUrl": "https://example.com/health",
+							"redirectCount": 0,
+							"responseTruncated": false,
+							"tlsVersion": "TLS 1.3",
+							"tlsCipherSuite": "TLS_AES_128_GCM_SHA256",
+							"certificateNotBefore": "2026-04-13T00:00:00Z",
+							"certificateNotAfter": "2026-07-12T23:59:59Z"
+						}
+					}
+				]
+			},
+			"LatestHttpResultsResponse": {
+				"type": "object",
+				"required": ["results"],
+				"properties": {
+					"results": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/LatestHttpResult"
+						}
+					}
+				},
+				"examples": [
+					{
+						"results": []
 					}
 				]
 			},

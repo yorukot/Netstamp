@@ -1077,6 +1077,26 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	"/projects/{ref}/results/http/latest": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Query latest project HTTP results
+		 * @description List the latest detailed HTTP result for each active HTTP assignment, optionally filtered by probe or check.
+		 */
+		get: operations["queryProjectLatestHttpResults"];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	"/projects/{ref}/results/http/series": {
 		parameters: {
 			query?: never;
@@ -1675,7 +1695,7 @@ export interface components {
 		};
 		/**
 		 * @example {
-		 *       "format": "netstamp.admin.data.v3",
+		 *       "format": "netstamp.admin.data.v4",
 		 *       "exportedAt": "2026-07-08T12:00:00Z",
 		 *       "tables": {}
 		 *     }
@@ -1689,8 +1709,8 @@ export interface components {
 		/**
 		 * @example {
 		 *       "result": {
-		 *         "format": "netstamp.admin.data.v3",
-		 *         "importedTables": 37,
+		 *         "format": "netstamp.admin.data.v4",
+		 *         "importedTables": 39,
 		 *         "importedRows": 128
 		 *       }
 		 *     }
@@ -3041,6 +3061,40 @@ export interface components {
 		 */
 		LabelResponse: {
 			label: components["schemas"]["Label"];
+		};
+		/**
+		 * @example {
+		 *       "probeId": "33333333-3333-3333-3333-333333333333",
+		 *       "checkId": "44444444-4444-4444-4444-444444444444",
+		 *       "result": {
+		 *         "startedAt": "2026-05-13T10:00:00Z",
+		 *         "finishedAt": "2026-05-13T10:00:00.125Z",
+		 *         "durationMs": 125,
+		 *         "status": "successful",
+		 *         "tlsDurationMs": 35,
+		 *         "statusCode": 200,
+		 *         "finalUrl": "https://example.com/health",
+		 *         "redirectCount": 0,
+		 *         "responseTruncated": false,
+		 *         "tlsVersion": "TLS 1.3",
+		 *         "tlsCipherSuite": "TLS_AES_128_GCM_SHA256",
+		 *         "certificateNotBefore": "2026-04-13T00:00:00Z",
+		 *         "certificateNotAfter": "2026-07-12T23:59:59Z"
+		 *       }
+		 *     }
+		 */
+		LatestHttpResult: {
+			probeId: components["schemas"]["uuid"];
+			checkId: components["schemas"]["uuid"];
+			result: components["schemas"]["HttpResult"];
+		};
+		/**
+		 * @example {
+		 *       "results": []
+		 *     }
+		 */
+		LatestHttpResultsResponse: {
+			results: components["schemas"]["LatestHttpResult"][];
 		};
 		/**
 		 * @example {
@@ -5475,6 +5529,8 @@ export interface components {
 		"HttpSeriesQuery.to": number;
 		IdentityIdPathParam: components["schemas"]["uuid"];
 		LabelIdPathParam: components["schemas"]["uuid"];
+		"LatestHttpResultsQuery.checkId": components["schemas"]["uuid"];
+		"LatestHttpResultsQuery.probeId": components["schemas"]["uuid"];
 		"LatestResultsQuery.checkId": components["schemas"]["uuid"];
 		"LatestResultsQuery.probeId": components["schemas"]["uuid"];
 		"LatestResultsQuery.type": "ping" | "tcp" | "traceroute" | "http";
@@ -10479,6 +10535,76 @@ export interface operations {
 				};
 				content: {
 					"application/json": components["schemas"]["HttpInsightResponse"];
+				};
+			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	queryProjectLatestHttpResults: {
+		parameters: {
+			query?: {
+				probeId?: components["parameters"]["LatestHttpResultsQuery.probeId"];
+				checkId?: components["parameters"]["LatestHttpResultsQuery.checkId"];
+			};
+			header?: never;
+			path: {
+				ref: components["parameters"]["ProjectRefParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["LatestHttpResultsResponse"];
 				};
 			};
 			/** @description The server could not understand the request due to invalid syntax. */
