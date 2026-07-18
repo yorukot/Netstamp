@@ -1,7 +1,7 @@
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { Spinner } from "@netstamp/ui";
 import { Navigate as RouterNavigate, useParams } from "react-router-dom";
-import { pathForCheckDetail, pathForLabelDetail, pathForProbeDetail, pathForRoute } from "./routePaths";
+import { pathForCheckDetail, pathForLabelDetail, pathForProbeDetail, pathForRoute, pathForStatusPageEditor } from "./routePaths";
 import type { ProjectAppRoute } from "./routeTypes";
 
 function redirectSpinner() {
@@ -65,4 +65,19 @@ export function LegacyCheckDetailRedirect() {
 	}
 
 	return <RouterNavigate to={checkId ? pathForCheckDetail(projectRef, checkId) : pathForRoute("checks", { projectRef })} replace />;
+}
+
+export function LegacyStatusPageEditorRedirect() {
+	const { pageId = "" } = useParams();
+	const { projectRef, projectsQuery } = useCurrentProject();
+
+	if (projectsQuery.isPending) {
+		return redirectSpinner();
+	}
+
+	if (!projectRef) {
+		return <RouterNavigate to={pathForRoute("onboarding")} replace />;
+	}
+
+	return <RouterNavigate to={pageId ? pathForStatusPageEditor(projectRef, pageId) : pathForRoute("statusPages", { projectRef })} replace />;
 }

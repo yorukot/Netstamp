@@ -1,8 +1,22 @@
 import { createBrowserRouter, Navigate as RouterNavigate } from "react-router-dom";
 import { AuthRoute, DashboardRoute, EmailVerificationRoute, OnboardingRoute, PasswordResetRoute, ProjectRouteBoundary, ProtectedAppShell } from "./guards";
-import { AdminPage, AlertsPage, ChecksPage, InsightPage, LabelsPage, MembersPage, NewProbeDrawer, ProbesPage, ProjectPage, PublicStatusPage, SettingsPage, StatusPagesPage } from "./lazyRoutes";
+import {
+	AdminPage,
+	AlertsPage,
+	ChecksPage,
+	InsightPage,
+	LabelsPage,
+	MembersPage,
+	NewProbeDrawer,
+	ProbesPage,
+	ProjectPage,
+	PublicStatusPage,
+	SettingsPage,
+	StatusPageBuilderPage,
+	StatusPagesPage
+} from "./lazyRoutes";
 import { pageTitleHandle } from "./pageTitles";
-import { DefaultProjectRedirect, LegacyCheckDetailRedirect, LegacyLabelDetailRedirect, LegacyProbeDetailRedirect } from "./redirects";
+import { DefaultProjectRedirect, LegacyCheckDetailRedirect, LegacyLabelDetailRedirect, LegacyProbeDetailRedirect, LegacyStatusPageEditorRedirect } from "./redirects";
 import { RouteFrame } from "./RouteFrame";
 import { pathForRoute, projectRoutePath } from "./routePaths";
 import { lazyRoute } from "./routeSuspense";
@@ -51,6 +65,7 @@ export const router = createBrowserRouter([
 					{ path: "insight", handle: pageTitleHandle("Insight"), element: <DefaultProjectRedirect route="insight" /> },
 					{ path: "alerts", handle: pageTitleHandle("Alerts"), element: <DefaultProjectRedirect route="alerts" /> },
 					{ path: "status-pages", handle: pageTitleHandle("Status Pages"), element: <DefaultProjectRedirect route="statusPages" /> },
+					{ path: "status-pages/:pageId/edit", handle: pageTitleHandle("Status Page Editor"), element: <LegacyStatusPageEditorRedirect /> },
 					{ path: "members", handle: pageTitleHandle("Members"), element: <DefaultProjectRedirect route="members" /> },
 					{ path: "project", handle: pageTitleHandle("Project Settings"), element: <DefaultProjectRedirect route="projectSettings" /> },
 					{ path: "projects", handle: pageTitleHandle("Overview"), element: <DefaultProjectRedirect route="dashboard" /> },
@@ -77,6 +92,7 @@ export const router = createBrowserRouter([
 							{ path: projectRoutePath("alerts"), handle: pageTitleHandle("Alerts"), element: lazyRoute(<AlertsPage />) },
 							{ path: `${projectRoutePath("alerts")}/incident/:incidentId`, handle: pageTitleHandle("Incident Detail"), element: lazyRoute(<AlertsPage />) },
 							{ path: projectRoutePath("statusPages"), handle: pageTitleHandle("Status Pages"), element: lazyRoute(<StatusPagesPage />) },
+							{ path: `${projectRoutePath("statusPages")}/:pageId/edit`, handle: pageTitleHandle("Status Page Editor"), element: lazyRoute(<StatusPageBuilderPage />) },
 							{ path: projectRoutePath("members"), handle: pageTitleHandle("Members"), element: lazyRoute(<MembersPage />) },
 							{ path: projectRoutePath("projectSettings"), handle: pageTitleHandle("Project Settings"), element: lazyRoute(<ProjectPage />) }
 						]

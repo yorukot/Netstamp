@@ -1,11 +1,7 @@
-import type { ApiPublicStatusElement, ApiPublicStatusPublicElement, ApiSeries, PublicStatusState } from "@/shared/api/types";
+import type { ApiPublicStatusPublicElement, ApiSeries, PublicStatusState } from "@/shared/api/types";
 import type { ChartOption } from "@/shared/visualizations/chartOptions";
 import { chartAxisLabel, chartTheme, chartTooltipTextStyle } from "@/shared/visualizations/chartTheme";
 import type { BadgeTone } from "@netstamp/ui";
-
-export interface ElementTreeNode extends ApiPublicStatusElement {
-	children: ElementTreeNode[];
-}
 
 export function statusLabel(status: PublicStatusState | string | undefined) {
 	switch (status) {
@@ -61,28 +57,6 @@ export function checkTypeLabel(type: string | undefined) {
 	}
 }
 
-export function chartModeLabel(value: string | undefined) {
-	switch (value) {
-		case "compact":
-			return "Compact";
-		case "inherit":
-			return "Inherit";
-		default:
-			return "Off";
-	}
-}
-
-export function chartRangeLabel(value: string | undefined) {
-	switch (value) {
-		case "30d":
-			return "30 days";
-		case "7d":
-			return "7 days";
-		default:
-			return "24 hours";
-	}
-}
-
 export function formatDateTime(value?: string | null) {
 	if (!value) {
 		return "-";
@@ -111,50 +85,6 @@ export function formatMetric(value: number | undefined, unit: string) {
 
 export function publicStatusPath(slug: string) {
 	return `/status/${encodeURIComponent(slug)}`;
-}
-
-export function buildElementTree(elements: ApiPublicStatusElement[]): ElementTreeNode[] {
-	const byID = new Map<string, ElementTreeNode>();
-	const roots: ElementTreeNode[] = [];
-
-	for (const element of elements) {
-		byID.set(element.id, { ...element, children: [] });
-	}
-
-	for (const node of byID.values()) {
-		if (!node.parentElementId) {
-			roots.push(node);
-			continue;
-		}
-
-		const parent = byID.get(node.parentElementId);
-		if (parent) {
-			parent.children.push(node);
-		} else {
-			roots.push(node);
-		}
-	}
-
-	sortElementTree(roots);
-	return roots;
-}
-
-export function rootFolderOptions(elements: ApiPublicStatusElement[]) {
-	return elements
-		.filter(element => element.kind === "folder" && !element.parentElementId)
-		.sort(compareElements)
-		.map(element => ({ value: element.id, label: element.title || "Untitled folder" }));
-}
-
-function sortElementTree(nodes: ElementTreeNode[]) {
-	nodes.sort(compareElements);
-	for (const node of nodes) {
-		sortElementTree(node.children);
-	}
-}
-
-function compareElements(a: Pick<ApiPublicStatusElement, "sortOrder" | "createdAt" | "id">, b: Pick<ApiPublicStatusElement, "sortOrder" | "createdAt" | "id">) {
-	return a.sortOrder - b.sortOrder || Date.parse(a.createdAt) - Date.parse(b.createdAt) || a.id.localeCompare(b.id);
 }
 
 function seriesDisplayName(series: ApiSeries) {

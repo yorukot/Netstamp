@@ -10,7 +10,16 @@ SELECT id,
        created_by_user_id,
        created_at,
        updated_at,
-       deleted_at
+       deleted_at,
+       footer_text,
+       banner_image_url,
+       theme,
+       show_targets,
+       show_probe_names,
+       show_probe_locations,
+       show_incident_history,
+       show_generated_at,
+       custom_css
 FROM public_status_pages
 WHERE project_id = sqlc.arg(project_id)
   AND deleted_at IS NULL
@@ -28,7 +37,16 @@ SELECT id,
        created_by_user_id,
        created_at,
        updated_at,
-       deleted_at
+       deleted_at,
+       footer_text,
+       banner_image_url,
+       theme,
+       show_targets,
+       show_probe_names,
+       show_probe_locations,
+       show_incident_history,
+       show_generated_at,
+       custom_css
 FROM public_status_pages
 WHERE project_id = sqlc.arg(project_id)
   AND id = sqlc.arg(id)
@@ -46,7 +64,16 @@ SELECT id,
        created_by_user_id,
        created_at,
        updated_at,
-       deleted_at
+       deleted_at,
+       footer_text,
+       banner_image_url,
+       theme,
+       show_targets,
+       show_probe_names,
+       show_probe_locations,
+       show_incident_history,
+       show_generated_at,
+       custom_css
 FROM public_status_pages
 WHERE slug = sqlc.arg(slug)
   AND enabled = true
@@ -59,6 +86,15 @@ INSERT INTO public_status_pages (
     title,
     description,
     enabled,
+    footer_text,
+    banner_image_url,
+    theme,
+    show_targets,
+    show_probe_names,
+    show_probe_locations,
+    show_incident_history,
+    show_generated_at,
+    custom_css,
     default_chart_mode,
     default_chart_range,
     created_by_user_id
@@ -69,11 +105,20 @@ VALUES (
     sqlc.arg(title),
     sqlc.narg(description),
     sqlc.arg(enabled),
+    sqlc.narg(footer_text),
+    sqlc.narg(banner_image_url),
+    sqlc.arg(theme),
+    sqlc.arg(show_targets),
+    sqlc.arg(show_probe_names),
+    sqlc.arg(show_probe_locations),
+    sqlc.arg(show_incident_history),
+    sqlc.arg(show_generated_at),
+    sqlc.narg(custom_css),
     sqlc.arg(default_chart_mode),
     sqlc.arg(default_chart_range),
     sqlc.arg(created_by_user_id)
 )
-RETURNING id, project_id, slug, title, description, enabled, default_chart_mode, default_chart_range, created_by_user_id, created_at, updated_at, deleted_at;
+RETURNING id, project_id, slug, title, description, enabled, default_chart_mode, default_chart_range, created_by_user_id, created_at, updated_at, deleted_at, footer_text, banner_image_url, theme, show_targets, show_probe_names, show_probe_locations, show_incident_history, show_generated_at, custom_css;
 
 -- name: UpdatePublicStatusPage :one
 UPDATE public_status_pages
@@ -81,12 +126,21 @@ SET slug = sqlc.arg(slug),
     title = sqlc.arg(title),
     description = sqlc.narg(description),
     enabled = sqlc.arg(enabled),
+    footer_text = sqlc.narg(footer_text),
+    banner_image_url = sqlc.narg(banner_image_url),
+    theme = sqlc.arg(theme),
+    show_targets = sqlc.arg(show_targets),
+    show_probe_names = sqlc.arg(show_probe_names),
+    show_probe_locations = sqlc.arg(show_probe_locations),
+    show_incident_history = sqlc.arg(show_incident_history),
+    show_generated_at = sqlc.arg(show_generated_at),
+    custom_css = sqlc.narg(custom_css),
     default_chart_mode = sqlc.arg(default_chart_mode),
     default_chart_range = sqlc.arg(default_chart_range)
 WHERE project_id = sqlc.arg(project_id)
   AND id = sqlc.arg(id)
   AND deleted_at IS NULL
-RETURNING id, project_id, slug, title, description, enabled, default_chart_mode, default_chart_range, created_by_user_id, created_at, updated_at, deleted_at;
+RETURNING id, project_id, slug, title, description, enabled, default_chart_mode, default_chart_range, created_by_user_id, created_at, updated_at, deleted_at, footer_text, banner_image_url, theme, show_targets, show_probe_names, show_probe_locations, show_incident_history, show_generated_at, custom_css;
 
 -- name: SoftDeletePublicStatusPage :execrows
 UPDATE public_status_pages
@@ -107,6 +161,7 @@ SELECT public_status_page_elements.id,
        public_status_page_elements.title,
        public_status_page_elements.description,
        public_status_page_elements.sort_order,
+       public_status_page_elements.display_mode,
        public_status_page_elements.chart_mode,
        public_status_page_elements.chart_range,
        public_status_page_elements.created_at,
@@ -143,6 +198,7 @@ SELECT id,
        title,
        description,
        sort_order,
+       display_mode,
        chart_mode,
        chart_range,
        created_at,
@@ -163,6 +219,7 @@ INSERT INTO public_status_page_elements (
     title,
     description,
     sort_order,
+    display_mode,
     chart_mode,
     chart_range
 )
@@ -176,10 +233,11 @@ VALUES (
     sqlc.narg(title),
     sqlc.narg(description),
     sqlc.arg(sort_order),
+    sqlc.arg(display_mode),
     sqlc.arg(chart_mode),
     sqlc.narg(chart_range)
 )
-RETURNING id, public_page_id, project_id, parent_element_id, kind, check_id, assignment_selection_mode, title, description, sort_order, chart_mode, chart_range, created_at, updated_at;
+RETURNING id, public_page_id, project_id, parent_element_id, kind, check_id, assignment_selection_mode, title, description, sort_order, display_mode, chart_mode, chart_range, created_at, updated_at;
 
 -- name: UpdatePublicStatusPageElement :one
 UPDATE public_status_page_elements
@@ -190,12 +248,13 @@ SET parent_element_id = sqlc.narg(parent_element_id),
     title = sqlc.narg(title),
     description = sqlc.narg(description),
     sort_order = sqlc.arg(sort_order),
+    display_mode = sqlc.arg(display_mode),
     chart_mode = sqlc.arg(chart_mode),
     chart_range = sqlc.narg(chart_range)
 WHERE public_page_id = sqlc.arg(public_page_id)
   AND project_id = sqlc.arg(project_id)
   AND id = sqlc.arg(id)
-RETURNING id, public_page_id, project_id, parent_element_id, kind, check_id, assignment_selection_mode, title, description, sort_order, chart_mode, chart_range, created_at, updated_at;
+RETURNING id, public_page_id, project_id, parent_element_id, kind, check_id, assignment_selection_mode, title, description, sort_order, display_mode, chart_mode, chart_range, created_at, updated_at;
 
 -- name: ListPublicStatusPageElementAssignmentIDs :many
 SELECT element_id,
@@ -273,6 +332,8 @@ SELECT public_status_page_assignment_scope.element_id,
        probes.id AS probe_id,
        probes.name AS probe_name,
        probes.location_name AS probe_location_name,
+       CASE WHEN probes.location IS NULL THEN NULL ELSE (probes.location)[1] END AS probe_latitude,
+       CASE WHEN probes.location IS NULL THEN NULL ELSE (probes.location)[0] END AS probe_longitude,
        COALESCE(latest.started_at, 'epoch'::timestamptz) AS latest_started_at,
        COALESCE(latest.status, '') AS latest_status,
        latest.latency_avg_ms,
@@ -351,6 +412,8 @@ SELECT public_status_page_assignment_scope.element_id,
        probes.id AS probe_id,
        probes.name AS probe_name,
        probes.location_name AS probe_location_name,
+       CASE WHEN probes.location IS NULL THEN NULL ELSE (probes.location)[1] END AS probe_latitude,
+       CASE WHEN probes.location IS NULL THEN NULL ELSE (probes.location)[0] END AS probe_longitude,
        COALESCE(latest.started_at, 'epoch'::timestamptz) AS latest_started_at,
        COALESCE(latest.status, '') AS latest_status,
        latest.latency_avg_ms,

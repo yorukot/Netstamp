@@ -9,8 +9,10 @@ alias PublicStatusPageChartMode = "off" | "compact";
 alias PublicStatusChartRange = "24h" | "7d" | "30d";
 alias PublicStatusDailyStatusRange = "30d";
 alias PublicStatusElementKind = "folder" | "assignment_group";
+alias PublicStatusElementDisplayMode = "status" | "history" | "latency" | "map";
 alias PublicStatusAssignmentSelectionMode = "all_check" | "selected_assignments";
 alias PublicStatusState = "operational" | "degraded" | "down" | "unknown";
+alias PublicStatusTheme = "light" | "dark" | "auto";
 alias PublicIncidentStatus = "open" | "acknowledged" | "resolved";
 
 model PublicStatusPageIdPathParam {
@@ -49,6 +51,26 @@ model PublicStatusPage {
 	description?: string;
 
 	enabled: boolean;
+
+	@minLength(1)
+	@maxLength(2048)
+	footerText?: string;
+
+	@minLength(1)
+	@maxLength(2048)
+	bannerImageUrl?: string;
+
+	theme: PublicStatusTheme;
+	showTargets: boolean;
+	showProbeNames: boolean;
+	showProbeLocations: boolean;
+	showIncidentHistory: boolean;
+	showGeneratedAt: boolean;
+
+	@minLength(1)
+	@maxLength(65536)
+	customCss?: string;
+
 	defaultChartMode: PublicStatusPageChartMode;
 	defaultChartRange: PublicStatusChartRange;
 	createdAt: utcDateTime;
@@ -72,6 +94,23 @@ model PublicStatusPageSummary {
 	description?: string;
 
 	status: PublicStatusState;
+
+	@minLength(1)
+	@maxLength(2048)
+	footerText?: string;
+
+	@minLength(1)
+	@maxLength(2048)
+	bannerImageUrl?: string;
+
+	theme: PublicStatusTheme;
+	showIncidentHistory: boolean;
+	showGeneratedAt: boolean;
+
+	@minLength(1)
+	@maxLength(65536)
+	customCss?: string;
+
 	defaultChartMode: PublicStatusPageChartMode;
 	defaultChartRange: PublicStatusChartRange;
 	updatedAt: utcDateTime;
@@ -97,6 +136,7 @@ model PublicStatusElement {
 	@minValue(0)
 	sortOrder: int32;
 
+	displayMode: PublicStatusElementDisplayMode;
 	chartMode: PublicStatusChartMode;
 	chartRange?: PublicStatusChartRange;
 	checkName?: string;
@@ -124,14 +164,13 @@ model PublicStatusMetrics {
 }
 
 model PublicStatusPublicAssignment {
-	assignmentId: uuid;
-	checkId: uuid;
 	checkTitle: string;
 	type: CheckType;
-	target: CheckTarget;
-	probeId: uuid;
-	probeName: string;
+	target?: CheckTarget;
+	probeName?: string;
 	probeLocationName?: string;
+	latitude?: float64;
+	longitude?: float64;
 	latestStartedAt?: utcDateTime;
 	latestStatus?: LatestResultStatus;
 	metrics?: PublicStatusMetrics;
@@ -145,7 +184,6 @@ model PublicStatusChart {
 model PublicStatusPublicElement {
 	id: uuid;
 	kind: PublicStatusElementKind;
-	checkId?: uuid;
 
 	@minLength(1)
 	title: string;
@@ -159,6 +197,7 @@ model PublicStatusPublicElement {
 	status: PublicStatusState;
 	latestStartedAt?: utcDateTime;
 	latestStatus?: LatestResultStatus;
+	displayMode: PublicStatusElementDisplayMode;
 	chartMode?: PublicStatusPageChartMode;
 	chartRange?: PublicStatusChartRange;
 
@@ -189,7 +228,6 @@ model PublicStatusIncidentSummary {
 
 model PublicStatusIncident {
 	id: uuid;
-	checkId: uuid;
 	checkTitle: string;
 	status: PublicIncidentStatus;
 	severity: AlertSeverity;
@@ -215,6 +253,11 @@ model PublicStatusPageListResponse {
 model PublicStatusPageDetailResponse {
 	page: PublicStatusPage;
 	elements: PublicStatusElement[];
+}
+
+model PublicStatusEditorContextResponse {
+	projectRef: string;
+	pageId: uuid;
 }
 
 model PublicStatusElementResponse {
@@ -274,6 +317,26 @@ model CreatePublicStatusPageRequest {
 	description?: string;
 
 	enabled?: boolean = true;
+
+	@minLength(1)
+	@maxLength(2048)
+	footerText?: string;
+
+	@minLength(1)
+	@maxLength(2048)
+	bannerImageUrl?: string;
+
+	theme?: PublicStatusTheme = "auto";
+	showTargets?: boolean = false;
+	showProbeNames?: boolean = false;
+	showProbeLocations?: boolean = false;
+	showIncidentHistory?: boolean = true;
+	showGeneratedAt?: boolean = true;
+
+	@minLength(1)
+	@maxLength(65536)
+	customCss?: string;
+
 	defaultChartMode?: PublicStatusPageChartMode = "off";
 	defaultChartRange?: PublicStatusChartRange = "24h";
 }
@@ -299,6 +362,7 @@ model CreatePublicStatusElementRequest {
 	@minValue(0)
 	sortOrder: int32;
 
+	displayMode?: PublicStatusElementDisplayMode = "status";
 	chartMode?: PublicStatusChartMode = "inherit";
 	chartRange?: PublicStatusChartRange;
 }

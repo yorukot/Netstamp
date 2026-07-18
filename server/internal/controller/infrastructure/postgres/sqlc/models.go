@@ -800,6 +800,50 @@ func (ns NullPublicStatusChartRange) Value() (driver.Value, error) {
 	return string(ns.PublicStatusChartRange), nil
 }
 
+type PublicStatusElementDisplayMode string
+
+const (
+	PublicStatusElementDisplayModeStatus  PublicStatusElementDisplayMode = "status"
+	PublicStatusElementDisplayModeHistory PublicStatusElementDisplayMode = "history"
+	PublicStatusElementDisplayModeLatency PublicStatusElementDisplayMode = "latency"
+	PublicStatusElementDisplayModeMap     PublicStatusElementDisplayMode = "map"
+)
+
+func (e *PublicStatusElementDisplayMode) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = PublicStatusElementDisplayMode(s)
+	case string:
+		*e = PublicStatusElementDisplayMode(s)
+	default:
+		return fmt.Errorf("unsupported scan type for PublicStatusElementDisplayMode: %T", src)
+	}
+	return nil
+}
+
+type NullPublicStatusElementDisplayMode struct {
+	PublicStatusElementDisplayMode PublicStatusElementDisplayMode `json:"public_status_element_display_mode"`
+	Valid                          bool                           `json:"valid"` // Valid is true if PublicStatusElementDisplayMode is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullPublicStatusElementDisplayMode) Scan(value interface{}) error {
+	if value == nil {
+		ns.PublicStatusElementDisplayMode, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.PublicStatusElementDisplayMode.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullPublicStatusElementDisplayMode) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.PublicStatusElementDisplayMode), nil
+}
+
 type PublicStatusElementKind string
 
 const (
@@ -841,6 +885,49 @@ func (ns NullPublicStatusElementKind) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.PublicStatusElementKind), nil
+}
+
+type PublicStatusTheme string
+
+const (
+	PublicStatusThemeLight PublicStatusTheme = "light"
+	PublicStatusThemeDark  PublicStatusTheme = "dark"
+	PublicStatusThemeAuto  PublicStatusTheme = "auto"
+)
+
+func (e *PublicStatusTheme) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = PublicStatusTheme(s)
+	case string:
+		*e = PublicStatusTheme(s)
+	default:
+		return fmt.Errorf("unsupported scan type for PublicStatusTheme: %T", src)
+	}
+	return nil
+}
+
+type NullPublicStatusTheme struct {
+	PublicStatusTheme PublicStatusTheme `json:"public_status_theme"`
+	Valid             bool              `json:"valid"` // Valid is true if PublicStatusTheme is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullPublicStatusTheme) Scan(value interface{}) error {
+	if value == nil {
+		ns.PublicStatusTheme, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.PublicStatusTheme.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullPublicStatusTheme) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.PublicStatusTheme), nil
 }
 
 type SystemRole string
@@ -1435,18 +1522,27 @@ type ProjectMember struct {
 }
 
 type PublicStatusPage struct {
-	ID                uuid.UUID              `json:"id"`
-	ProjectID         uuid.UUID              `json:"project_id"`
-	Slug              string                 `json:"slug"`
-	Title             string                 `json:"title"`
-	Description       *string                `json:"description"`
-	Enabled           bool                   `json:"enabled"`
-	DefaultChartMode  PublicStatusChartMode  `json:"default_chart_mode"`
-	DefaultChartRange PublicStatusChartRange `json:"default_chart_range"`
-	CreatedByUserID   uuid.UUID              `json:"created_by_user_id"`
-	CreatedAt         time.Time              `json:"created_at"`
-	UpdatedAt         time.Time              `json:"updated_at"`
-	DeletedAt         *time.Time             `json:"deleted_at"`
+	ID                  uuid.UUID              `json:"id"`
+	ProjectID           uuid.UUID              `json:"project_id"`
+	Slug                string                 `json:"slug"`
+	Title               string                 `json:"title"`
+	Description         *string                `json:"description"`
+	Enabled             bool                   `json:"enabled"`
+	DefaultChartMode    PublicStatusChartMode  `json:"default_chart_mode"`
+	DefaultChartRange   PublicStatusChartRange `json:"default_chart_range"`
+	CreatedByUserID     uuid.UUID              `json:"created_by_user_id"`
+	CreatedAt           time.Time              `json:"created_at"`
+	UpdatedAt           time.Time              `json:"updated_at"`
+	DeletedAt           *time.Time             `json:"deleted_at"`
+	FooterText          *string                `json:"footer_text"`
+	BannerImageUrl      *string                `json:"banner_image_url"`
+	Theme               PublicStatusTheme      `json:"theme"`
+	ShowTargets         bool                   `json:"show_targets"`
+	ShowProbeNames      bool                   `json:"show_probe_names"`
+	ShowProbeLocations  bool                   `json:"show_probe_locations"`
+	ShowIncidentHistory bool                   `json:"show_incident_history"`
+	ShowGeneratedAt     bool                   `json:"show_generated_at"`
+	CustomCss           *string                `json:"custom_css"`
 }
 
 type PublicStatusPageAssignmentScope struct {
@@ -1459,20 +1555,21 @@ type PublicStatusPageAssignmentScope struct {
 }
 
 type PublicStatusPageElement struct {
-	ID                      uuid.UUID               `json:"id"`
-	PublicPageID            uuid.UUID               `json:"public_page_id"`
-	ProjectID               uuid.UUID               `json:"project_id"`
-	ParentElementID         *uuid.UUID              `json:"parent_element_id"`
-	Kind                    PublicStatusElementKind `json:"kind"`
-	CheckID                 *uuid.UUID              `json:"check_id"`
-	Title                   *string                 `json:"title"`
-	Description             *string                 `json:"description"`
-	SortOrder               int32                   `json:"sort_order"`
-	ChartMode               PublicStatusChartMode   `json:"chart_mode"`
-	ChartRange              *PublicStatusChartRange `json:"chart_range"`
-	CreatedAt               time.Time               `json:"created_at"`
-	UpdatedAt               time.Time               `json:"updated_at"`
-	AssignmentSelectionMode interface{}             `json:"assignment_selection_mode"`
+	ID                      uuid.UUID                      `json:"id"`
+	PublicPageID            uuid.UUID                      `json:"public_page_id"`
+	ProjectID               uuid.UUID                      `json:"project_id"`
+	ParentElementID         *uuid.UUID                     `json:"parent_element_id"`
+	Kind                    PublicStatusElementKind        `json:"kind"`
+	CheckID                 *uuid.UUID                     `json:"check_id"`
+	Title                   *string                        `json:"title"`
+	Description             *string                        `json:"description"`
+	SortOrder               int32                          `json:"sort_order"`
+	ChartMode               PublicStatusChartMode          `json:"chart_mode"`
+	ChartRange              *PublicStatusChartRange        `json:"chart_range"`
+	CreatedAt               time.Time                      `json:"created_at"`
+	UpdatedAt               time.Time                      `json:"updated_at"`
+	AssignmentSelectionMode interface{}                    `json:"assignment_selection_mode"`
+	DisplayMode             PublicStatusElementDisplayMode `json:"display_mode"`
 }
 
 type PublicStatusPageElementAssignment struct {

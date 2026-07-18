@@ -16,7 +16,7 @@ func normalizeCreatePageInput(projectID string, input CreatePageInput) (domainpu
 		CreatedByUserID: input.CurrentUserID,
 		Enabled:         input.Enabled,
 	}
-	return normalizePage(page, input.Slug, input.Title, input.Description, input.DefaultChartMode, input.DefaultChartRange)
+	return normalizePage(page, input.Slug, input.Title, input.Description, input.FooterText, input.BannerImageURL, input.Theme, input.ShowTargets, input.ShowProbeNames, input.ShowProbeLocations, input.ShowIncidentHistory, input.ShowGeneratedAt, input.CustomCSS, input.DefaultChartMode, input.DefaultChartRange)
 }
 
 func normalizeUpdatePageInput(projectID string, input UpdatePageInput) (domainpublic.Page, error) {
@@ -30,10 +30,19 @@ func normalizeUpdatePageInput(projectID string, input UpdatePageInput) (domainpu
 		CreatedByUserID: input.CurrentUserID,
 		Enabled:         input.Enabled,
 	}
-	return normalizePage(page, input.Slug, input.Title, input.Description, input.DefaultChartMode, input.DefaultChartRange)
+	return normalizePage(page, input.Slug, input.Title, input.Description, input.FooterText, input.BannerImageURL, input.Theme, input.ShowTargets, input.ShowProbeNames, input.ShowProbeLocations, input.ShowIncidentHistory, input.ShowGeneratedAt, input.CustomCSS, input.DefaultChartMode, input.DefaultChartRange)
 }
 
-func normalizePage(page domainpublic.Page, slug, title string, description *string, chartMode domainpublic.ChartMode, chartRange domainpublic.ChartRange) (domainpublic.Page, error) {
+func normalizePage(
+	page domainpublic.Page,
+	slug, title string,
+	description, footerText, bannerImageURL *string,
+	theme domainpublic.Theme,
+	showTargets, showProbeNames, showProbeLocations, showIncidentHistory, showGeneratedAt bool,
+	customCSS *string,
+	chartMode domainpublic.ChartMode,
+	chartRange domainpublic.ChartRange,
+) (domainpublic.Page, error) {
 	var collector appvalidation.Collector
 	var err error
 
@@ -43,6 +52,22 @@ func normalizePage(page domainpublic.Page, slug, title string, description *stri
 	collector.AddError("title", err, title)
 	page.Description, err = domainpublic.VNDescription(description)
 	collector.AddError("description", err, description)
+	page.FooterText, err = domainpublic.VNFooterText(footerText)
+	collector.AddError("footerText", err, footerText)
+	page.BannerImageURL, err = domainpublic.VNBannerImageURL(bannerImageURL)
+	collector.AddError("bannerImageUrl", err, bannerImageURL)
+	if theme == "" {
+		theme = domainpublic.ThemeAuto
+	}
+	page.Theme, err = domainpublic.VNTheme(theme)
+	collector.AddError("theme", err, theme)
+	page.ShowTargets = showTargets
+	page.ShowProbeNames = showProbeNames
+	page.ShowProbeLocations = showProbeLocations
+	page.ShowIncidentHistory = showIncidentHistory
+	page.ShowGeneratedAt = showGeneratedAt
+	page.CustomCSS, err = domainpublic.VNCustomCSS(customCSS)
+	collector.AddError("customCss", err, customCSS)
 	page.DefaultChartMode, err = domainpublic.VNChartMode(chartMode, false)
 	collector.AddError("defaultChartMode", err, chartMode)
 	page.DefaultChartRange, err = domainpublic.VNChartRange(chartRange)
@@ -63,7 +88,7 @@ func normalizeCreateElementInput(projectID, pageID string, input CreateElementIn
 		ProjectID:    projectID,
 		PublicPageID: pageID,
 	}
-	return normalizeElement(element, input.ParentElementID, input.Kind, input.CheckID, input.AssignmentSelectionMode, input.AssignmentIDs, input.Title, input.Description, input.SortOrder, input.ChartMode, input.ChartRange)
+	return normalizeElement(element, input.ParentElementID, input.Kind, input.CheckID, input.AssignmentSelectionMode, input.AssignmentIDs, input.Title, input.Description, input.SortOrder, input.DisplayMode, input.ChartMode, input.ChartRange)
 }
 
 func normalizeUpdateElementInput(projectID, pageID string, input UpdateElementInput) (domainpublic.Element, error) {
@@ -80,7 +105,7 @@ func normalizeUpdateElementInput(projectID, pageID string, input UpdateElementIn
 		ProjectID:    projectID,
 		PublicPageID: pageID,
 	}
-	return normalizeElement(element, input.ParentElementID, input.Kind, input.CheckID, input.AssignmentSelectionMode, input.AssignmentIDs, input.Title, input.Description, input.SortOrder, input.ChartMode, input.ChartRange)
+	return normalizeElement(element, input.ParentElementID, input.Kind, input.CheckID, input.AssignmentSelectionMode, input.AssignmentIDs, input.Title, input.Description, input.SortOrder, input.DisplayMode, input.ChartMode, input.ChartRange)
 }
 
 func normalizeElement(
@@ -93,6 +118,7 @@ func normalizeElement(
 	title *string,
 	description *string,
 	sortOrder int32,
+	displayMode domainpublic.ElementDisplayMode,
 	chartMode domainpublic.ChartMode,
 	chartRange *domainpublic.ChartRange,
 ) (domainpublic.Element, error) {
@@ -115,6 +141,11 @@ func normalizeElement(
 	collector.AddError("description", err, description)
 	element.SortOrder, err = domainpublic.VNSortOrder(sortOrder)
 	collector.AddError("sortOrder", err, sortOrder)
+	if displayMode == "" {
+		displayMode = domainpublic.ElementDisplayModeStatus
+	}
+	element.DisplayMode, err = domainpublic.VNElementDisplayMode(displayMode)
+	collector.AddError("displayMode", err, displayMode)
 	element.ChartMode, err = domainpublic.VNChartMode(chartMode, true)
 	collector.AddError("chartMode", err, chartMode)
 	if chartRange != nil {

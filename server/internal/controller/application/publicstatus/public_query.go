@@ -7,6 +7,7 @@ import (
 
 	"go.opentelemetry.io/otel/trace"
 
+	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 	domainpublic "github.com/yorukot/netstamp/internal/domain/publicstatus"
 )
 
@@ -14,6 +15,29 @@ const (
 	defaultIncidentLimit           = 50
 	publicIncidentCacheLimit int32 = 200
 )
+
+func (s *Service) GetEditorContext(ctx context.Context, input EditorContextInput) (EditorContext, error) {
+	page, err := s.loadPublicPage(ctx, input.Slug)
+	if err != nil {
+		return EditorContext{}, err
+	}
+	project, err := s.loadProject(ctx, page.ProjectID, input.CurrentUserID)
+	if err != nil {
+		return EditorContext{}, err
+	}
+	role, err := s.projectAccess.GetMemberRole(ctx, project.ID, input.CurrentUserID)
+	if err != nil {
+		return EditorContext{}, err
+	}
+	if !domainproject.Can(role, domainproject.ActionUpdateProject) {
+		return EditorContext{}, ErrForbidden
+	}
+	projectRef := project.Slug
+	if projectRef == "" {
+		projectRef = project.ID
+	}
+	return EditorContext{ProjectRef: projectRef, PageID: page.ID}, nil
+}
 
 func (s *Service) GetPublicSummary(ctx context.Context, input PublicSummaryInput) (PublicSummary, error) {
 	ctx, span := startPublicQuery(ctx, "public_status.public.summary.query", "public.summary", input.Slug)
@@ -38,7 +62,7 @@ func (s *Service) GetPublicElements(ctx context.Context, input PublicElementsInp
 		return PublicElements{}, recordPublicQueryFailure(span, PublicStatusReasonElementListFailed, err)
 	}
 	markPublicQuerySuccess(span)
-	return PublicElements{Elements: snapshot.elements, GeneratedAt: snapshot.generatedAt}, nil
+	return PublicElements{Page: snapshot.page, Elements: snapshot.elements, GeneratedAt: snapshot.generatedAt}, nil
 }
 
 func (s *Service) GetPublicIncidents(ctx context.Context, input PublicIncidentsInput) (PublicIncidents, error) {

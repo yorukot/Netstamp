@@ -30,6 +30,7 @@ func (h *Handler) handleCreateElement(w http.ResponseWriter, r *http.Request) {
 		Title:                   body.Title,
 		Description:             body.Description,
 		SortOrder:               body.SortOrder,
+		DisplayMode:             defaultElementDisplayMode(body.DisplayMode),
 		ChartMode:               defaultElementChartMode(body.ChartMode),
 		ChartRange:              body.ChartRange,
 	})
@@ -64,6 +65,7 @@ func (h *Handler) handleUpdateElement(w http.ResponseWriter, r *http.Request) {
 		Title:                   body.Title,
 		Description:             body.Description,
 		SortOrder:               body.SortOrder,
+		DisplayMode:             defaultElementDisplayMode(body.DisplayMode),
 		ChartMode:               defaultElementChartMode(body.ChartMode),
 		ChartRange:              body.ChartRange,
 	})

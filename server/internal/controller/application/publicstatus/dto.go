@@ -18,26 +18,44 @@ type GetPageInput struct {
 }
 
 type CreatePageInput struct {
-	CurrentUserID     string
-	ProjectRef        string
-	Slug              string
-	Title             string
-	Description       *string
-	Enabled           bool
-	DefaultChartMode  domainpublic.ChartMode
-	DefaultChartRange domainpublic.ChartRange
+	CurrentUserID       string
+	ProjectRef          string
+	Slug                string
+	Title               string
+	Description         *string
+	Enabled             bool
+	FooterText          *string
+	BannerImageURL      *string
+	Theme               domainpublic.Theme
+	ShowTargets         bool
+	ShowProbeNames      bool
+	ShowProbeLocations  bool
+	ShowIncidentHistory bool
+	ShowGeneratedAt     bool
+	CustomCSS           *string
+	DefaultChartMode    domainpublic.ChartMode
+	DefaultChartRange   domainpublic.ChartRange
 }
 
 type UpdatePageInput struct {
-	CurrentUserID     string
-	ProjectRef        string
-	PageID            string
-	Slug              string
-	Title             string
-	Description       *string
-	Enabled           bool
-	DefaultChartMode  domainpublic.ChartMode
-	DefaultChartRange domainpublic.ChartRange
+	CurrentUserID       string
+	ProjectRef          string
+	PageID              string
+	Slug                string
+	Title               string
+	Description         *string
+	Enabled             bool
+	FooterText          *string
+	BannerImageURL      *string
+	Theme               domainpublic.Theme
+	ShowTargets         bool
+	ShowProbeNames      bool
+	ShowProbeLocations  bool
+	ShowIncidentHistory bool
+	ShowGeneratedAt     bool
+	CustomCSS           *string
+	DefaultChartMode    domainpublic.ChartMode
+	DefaultChartRange   domainpublic.ChartRange
 }
 
 type DeletePageInput struct {
@@ -58,6 +76,7 @@ type CreateElementInput struct {
 	Title                   *string
 	Description             *string
 	SortOrder               int32
+	DisplayMode             domainpublic.ElementDisplayMode
 	ChartMode               domainpublic.ChartMode
 	ChartRange              *domainpublic.ChartRange
 }
@@ -75,6 +94,7 @@ type UpdateElementInput struct {
 	Title                   *string
 	Description             *string
 	SortOrder               int32
+	DisplayMode             domainpublic.ElementDisplayMode
 	ChartMode               domainpublic.ChartMode
 	ChartRange              *domainpublic.ChartRange
 }
@@ -89,6 +109,16 @@ type DeleteElementInput struct {
 type PublicSummaryInput struct {
 	Slug string
 	Now  time.Time
+}
+
+type EditorContextInput struct {
+	CurrentUserID string
+	Slug          string
+}
+
+type EditorContext struct {
+	ProjectRef string
+	PageID     string
 }
 
 type PublicElementsInput struct {
@@ -123,6 +153,7 @@ type PublicSummary struct {
 }
 
 type PublicElements struct {
+	Page        domainpublic.Page
 	Elements    []domainpublic.RenderedElement
 	GeneratedAt time.Time
 }

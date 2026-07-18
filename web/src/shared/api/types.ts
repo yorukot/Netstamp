@@ -28,6 +28,7 @@ export type ApiProjectAssignment = components["schemas"]["ProjectAssignment"];
 export type ApiProjectInvite = components["schemas"]["ProjectInvite"];
 export type ApiPublicStatusElement = components["schemas"]["PublicStatusElement"];
 export type ApiPublicStatusPage = components["schemas"]["PublicStatusPage"];
+export type ApiPublicStatusEditorContextResponse = components["schemas"]["PublicStatusEditorContextResponse"];
 export type ApiPublicStatusPublicElement = Omit<components["schemas"]["PublicStatusPublicElement"], "chart" | "children"> & {
 	chart?: Omit<components["schemas"]["PublicStatusChart"], "series"> & {
 		series: ApiSeries[];

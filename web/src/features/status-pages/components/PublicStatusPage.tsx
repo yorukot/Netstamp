@@ -1,7 +1,10 @@
+import { useSession } from "@/features/auth/session/SessionContext";
 import { checkTypeLabel, formatDateTime, formatMetric, publicStatusChartOption, severityTone, statusLabel, statusTone } from "@/features/status-pages/api/statusPageAdapters";
+import { pathForRoute, pathForStatusPageEditor } from "@/routes/routePaths";
 import { hasApiProblemCode } from "@/shared/api/client";
 import { publicStatusQueries } from "@/shared/api/queries";
 import type {
+	ApiPublicStatusEditorContextResponse,
 	ApiPublicStatusElementChartResponse,
 	ApiPublicStatusElementDailyStatusResponse,
 	ApiPublicStatusElementsResponse,
@@ -10,18 +13,31 @@ import type {
 	ApiPublicStatusSummaryResponse
 } from "@/shared/api/types";
 import { ChartPanel } from "@/shared/visualizations/ChartPanel";
-import { Badge, Panel, Spinner, type BadgeTone } from "@netstamp/ui";
+import netstampLogoDark from "@netstamp/brand/assets/netstamp-logo-dark.svg";
+import netstampLogoLight from "@netstamp/brand/assets/netstamp-logo-light.svg";
+import { Badge, Button, Spinner, type BadgeTone } from "@netstamp/ui";
+import { CaretDownIcon } from "@phosphor-icons/react/dist/csr/CaretDown";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Link, useParams } from "react-router-dom";
 import styles from "./PublicStatusPage.module.css";
 
 type PublicIncident = ApiPublicStatusIncidentsResponse["incidents"]["active"][number];
 type PublicAssignment = NonNullable<ApiPublicStatusPublicElement["assignments"]>[number];
 type DailyStatusDay = ApiPublicStatusElementDailyStatusResponse["days"][number];
+type PublicPageTheme = ApiPublicStatusSummaryResponse["page"]["theme"];
+
+const NetworkMap = lazy(() => import("@/shared/visualizations/NetworkMap").then(module => ({ default: module.NetworkMap })));
 
 export function PublicStatusPage() {
 	const { slug = "" } = useParams();
+	const { session } = useSession();
+	const editorContextQuery = useQuery({
+		...publicStatusQueries.editorContext(slug),
+		enabled: Boolean(slug && session),
+		select: data => data as ApiPublicStatusEditorContextResponse
+	});
+	const editorContext = editorContextQuery.data;
 	const summaryQuery = useQuery({
 		...publicStatusQueries.summary(slug),
 		enabled: Boolean(slug),
@@ -37,6 +53,7 @@ export function PublicStatusPage() {
 		enabled: Boolean(slug),
 		select: data => data as ApiPublicStatusIncidentsResponse
 	});
+	const mapTheme = usePublicStatusTheme(summaryQuery.data?.page.theme);
 
 	if (summaryQuery.isPending) {
 		return (
@@ -53,48 +70,129 @@ export function PublicStatusPage() {
 		return (
 			<main className={styles.page}>
 				<div className={styles.shell}>
-					<Panel tone="deep" title={notFound ? "Status page not found" : "Status page unavailable"}>
+					<section className={styles.messageSurface}>
+						<h1>{notFound ? "Status page not found" : "Status page unavailable"}</h1>
 						<p className={styles.muted}>{notFound ? "This public status page is disabled or does not exist." : "The controller could not return this status page right now."}</p>
-					</Panel>
+					</section>
 				</div>
 			</main>
 		);
 	}
 
 	const summary = summaryQuery.data;
+	const activeIncidents = incidentsQuery.data?.incidents.active ?? [];
+	const resolvedIncidents = summary.page.showIncidentHistory ? (incidentsQuery.data?.incidents.recentResolved ?? []) : [];
+	const defaultFooter = "Measurements are collected by configured Netstamp probes.";
 
 	return (
-		<main className={styles.page}>
-			<div className={styles.shell}>
-				<header className={styles.header}>
-					<div className={styles.brand}>Netstamp Status</div>
-					<div className={styles.headerGrid}>
+		<main className={`${styles.page} ns-status-page`} data-status={summary.page.status}>
+			{summary.page.customCss ? <style>{summary.page.customCss}</style> : null}
+			<header className={`${styles.hero} ns-status-hero`}>
+				{summary.page.bannerImageUrl ? (
+					<img className={`${styles.banner} ${styles.bannerImage} ns-status-banner`} src={summary.page.bannerImageUrl} alt="" />
+				) : (
+					<div className={`${styles.banner} ns-status-banner`} aria-hidden="true" />
+				)}
+				<div className={styles.heroBody}>
+					<div className={styles.brandRow}>
+						<img src={mapTheme === "dark" ? netstampLogoLight : netstampLogoDark} alt="Netstamp" />
+						<span>Public status</span>
+					</div>
+					<div className={styles.titleRow}>
 						<div className={styles.headerCopy}>
-							<Badge tone={statusTone(summary.page.status)}>{statusLabel(summary.page.status)}</Badge>
 							<h1>{summary.page.title}</h1>
 							{summary.page.description ? <p>{summary.page.description}</p> : null}
 						</div>
-						<div className={styles.generated}>
-							<span>Generated</span>
-							<strong>{formatDateTime(summary.generatedAt)}</strong>
-						</div>
+						{summary.page.showGeneratedAt || session ? (
+							<div className={styles.heroActions}>
+								{summary.page.showGeneratedAt ? (
+									<div className={styles.generated}>
+										<span>Last checked</span>
+										<strong>{formatDateTime(summary.generatedAt)}</strong>
+									</div>
+								) : null}
+								{session ? (
+									<div className={styles.sessionActions}>
+										<Button asChild variant="ghost" size="sm">
+											<Link to={pathForRoute("dashboard", { projectRef: editorContext?.projectRef })}>Go to dashboard</Link>
+										</Button>
+										{editorContext ? (
+											<Button asChild size="sm">
+												<Link to={pathForStatusPageEditor(editorContext.projectRef, editorContext.pageId)}>Edit Page</Link>
+											</Button>
+										) : editorContextQuery.isPending ? (
+											<Button type="button" variant="outline" size="sm" disabled>
+												Checking edit access
+											</Button>
+										) : null}
+									</div>
+								) : null}
+							</div>
+						) : null}
 					</div>
-				</header>
+				</div>
+			</header>
 
-				<IncidentSection incidents={incidentsQuery.data?.incidents.active ?? []} isLoading={incidentsQuery.isPending} hasError={Boolean(incidentsQuery.error)} />
-				<ElementSection slug={slug} elements={elementsQuery.data?.elements ?? []} isLoading={elementsQuery.isPending} hasError={Boolean(elementsQuery.error)} />
+			<div className={styles.shell}>
+				<section className={`${styles.overallStatus} ns-status-overall`} aria-label="Current overall status">
+					<span className={styles.statusMarker} aria-hidden="true" />
+					<div>
+						<strong>{overallStatusTitle(summary.page.status)}</strong>
+						<span>{overallStatusSummary(summary.page.status, activeIncidents.length)}</span>
+					</div>
+					<Badge tone={statusTone(summary.page.status)}>{statusLabel(summary.page.status)}</Badge>
+				</section>
+
+				<IncidentSection activeIncidents={activeIncidents} resolvedIncidents={resolvedIncidents} isLoading={incidentsQuery.isPending} hasError={Boolean(incidentsQuery.error)} />
+				<ElementSection slug={slug} elements={elementsQuery.data?.elements ?? []} isLoading={elementsQuery.isPending} hasError={Boolean(elementsQuery.error)} mapTheme={mapTheme} />
+
+				<footer className={`${styles.footer} ns-status-footer`}>
+					<p>{summary.page.footerText || defaultFooter}</p>
+					{summary.page.showGeneratedAt ? <span>Updated {formatDateTime(summary.generatedAt)}</span> : null}
+				</footer>
 			</div>
 		</main>
 	);
 }
 
-function IncidentSection({ incidents, isLoading, hasError }: { incidents: PublicIncident[]; isLoading: boolean; hasError: boolean }) {
+function overallStatusTitle(status: ApiPublicStatusSummaryResponse["page"]["status"]) {
+	switch (status) {
+		case "operational":
+			return "All systems operational";
+		case "degraded":
+			return "Some systems are degraded";
+		case "down":
+			return "Service interruption detected";
+		default:
+			return "Status is being evaluated";
+	}
+}
+
+function overallStatusSummary(status: ApiPublicStatusSummaryResponse["page"]["status"], activeIncidentCount: number) {
+	if (activeIncidentCount > 0) {
+		return `${activeIncidentCount} active ${activeIncidentCount === 1 ? "incident" : "incidents"}`;
+	}
+	return status === "operational" ? "No active incidents reported" : "Live measurements are shown below";
+}
+
+function IncidentSection({
+	activeIncidents,
+	resolvedIncidents,
+	isLoading,
+	hasError
+}: {
+	activeIncidents: PublicIncident[];
+	resolvedIncidents: PublicIncident[];
+	isLoading: boolean;
+	hasError: boolean;
+}) {
 	if (isLoading) {
 		return (
 			<section className={styles.incidents} aria-label="Incidents">
-				<Panel tone="deep" title="Open incidents">
+				<div className={styles.incidentPanel}>
+					<h2>Open incidents</h2>
 					<Spinner label="Loading incidents" layout="compact" size="lg" />
-				</Panel>
+				</div>
 			</section>
 		);
 	}
@@ -102,26 +200,46 @@ function IncidentSection({ incidents, isLoading, hasError }: { incidents: Public
 	if (hasError) {
 		return (
 			<section className={styles.incidents} aria-label="Incidents">
-				<Panel tone="deep" title="Open incidents">
+				<div className={styles.incidentPanel}>
+					<h2>Open incidents</h2>
 					<p className={styles.muted}>Incidents are unavailable right now.</p>
-				</Panel>
+				</div>
 			</section>
 		);
 	}
 
-	if (!incidents.length) {
+	if (!activeIncidents.length && !resolvedIncidents.length) {
 		return null;
 	}
 
 	return (
 		<section className={styles.incidents} aria-label="Incidents">
-			<Panel tone="deep" title="Open incidents">
-				<div className={styles.incidentList}>
-					{incidents.map(incident => (
-						<IncidentRow key={incident.id} incident={incident} />
-					))}
+			{activeIncidents.length ? (
+				<div className={styles.incidentPanel}>
+					<div className={styles.incidentHeading}>
+						<h2>Active incidents</h2>
+						<p>Current service interruptions and ongoing investigation updates.</p>
+					</div>
+					<div className={styles.incidentList}>
+						{activeIncidents.map(incident => (
+							<IncidentRow key={incident.id} incident={incident} />
+						))}
+					</div>
 				</div>
-			</Panel>
+			) : null}
+			{resolvedIncidents.length ? (
+				<details className={styles.resolvedIncidents}>
+					<summary>
+						<span>Resolved incident history</span>
+						<Badge tone="neutral">{resolvedIncidents.length}</Badge>
+					</summary>
+					<div className={styles.incidentList}>
+						{resolvedIncidents.map(incident => (
+							<IncidentRow key={incident.id} incident={incident} />
+						))}
+					</div>
+				</details>
+			) : null}
 		</section>
 	);
 }
@@ -150,7 +268,19 @@ function IncidentRow({ incident }: { incident: PublicIncident }) {
 	);
 }
 
-function ElementSection({ slug, elements, isLoading, hasError }: { slug: string; elements: ApiPublicStatusPublicElement[]; isLoading: boolean; hasError: boolean }) {
+function ElementSection({
+	slug,
+	elements,
+	isLoading,
+	hasError,
+	mapTheme
+}: {
+	slug: string;
+	elements: ApiPublicStatusPublicElement[];
+	isLoading: boolean;
+	hasError: boolean;
+	mapTheme: "light" | "dark";
+}) {
 	if (isLoading) {
 		return (
 			<section className={styles.elements} aria-label="Status checks">
@@ -162,68 +292,106 @@ function ElementSection({ slug, elements, isLoading, hasError }: { slug: string;
 	if (hasError) {
 		return (
 			<section className={styles.elements} aria-label="Status checks">
-				<Panel tone="deep" title="Status checks unavailable">
+				<div className={styles.messageSurface}>
+					<h2>Status checks unavailable</h2>
 					<p className={styles.muted}>The current status checks could not be loaded.</p>
-				</Panel>
+				</div>
 			</section>
 		);
 	}
 
 	return (
 		<section className={styles.elements} aria-label="Status checks">
-			{elements.length ? elements.map(element => <PublicElement key={element.id} slug={slug} element={element} />) : <div className={styles.empty}>No public status elements are configured.</div>}
+			{elements.length ? (
+				elements.map(element => <PublicElement key={element.id} slug={slug} element={element} mapTheme={mapTheme} />)
+			) : (
+				<div className={styles.empty}>No public status elements are configured.</div>
+			)}
 		</section>
 	);
 }
 
-function PublicElement({ slug, element }: { slug: string; element: ApiPublicStatusPublicElement }) {
+function PublicElement({ slug, element, mapTheme }: { slug: string; element: ApiPublicStatusPublicElement; mapTheme: "light" | "dark" }) {
 	if (element.kind === "folder") {
 		return (
-			<div className={styles.folder}>
+			<section className={`${styles.folder} ns-status-group`} aria-labelledby={`status-group-${element.id}`}>
 				<div className={styles.folderHeader}>
 					<div>
-						<h2>{element.title}</h2>
+						<h2 id={`status-group-${element.id}`}>{element.title}</h2>
 						{element.description ? <p>{element.description}</p> : null}
 					</div>
 					<Badge tone={statusTone(element.status)}>{statusLabel(element.status)}</Badge>
 				</div>
 				<div className={styles.folderChildren}>
 					{element.children?.map(child => (
-						<PublicElement key={child.id} slug={slug} element={child} />
+						<PublicElement key={child.id} slug={slug} element={child} mapTheme={mapTheme} />
 					))}
 				</div>
-			</div>
+			</section>
 		);
 	}
 
+	return <ExpandableStatusRow slug={slug} element={element} mapTheme={mapTheme} />;
+}
+
+function ExpandableStatusRow({ slug, element, mapTheme }: { slug: string; element: ApiPublicStatusPublicElement; mapTheme: "light" | "dark" }) {
+	const [expanded, setExpanded] = useState(false);
+	const showChart = element.displayMode === "latency" || element.chartMode === "compact";
+
 	return (
-		<article className={styles.check}>
-			<div className={styles.checkMain}>
-				<div className={styles.checkCopy}>
-					<div className={styles.checkTitle}>
-						<Badge tone={statusTone(element.status)}>{statusLabel(element.status)}</Badge>
-						<h3>{element.title}</h3>
+		<article className={`${styles.check} ns-status-block`} data-expanded={expanded}>
+			<button type="button" className={styles.checkToggle} aria-expanded={expanded} aria-controls={`status-details-${element.id}`} onClick={() => setExpanded(current => !current)}>
+				<div className={styles.checkSummary}>
+					<div className={styles.checkIdentity}>
+						<span className={`${styles.serviceState} ${serviceStateClass(element.status)}`} aria-hidden="true" />
+						<div className={styles.checkCopy}>
+							<h3>{element.title}</h3>
+							<div className={styles.checkMeta}>
+								{element.type ? <span>{checkTypeLabel(element.type)}</span> : <span>{element.assignmentCount ?? element.assignments?.length ?? 0} viewpoints</span>}
+								<span>{displayModeLabel(element.displayMode)}</span>
+								{element.latestStartedAt ? <span>Checked {formatDateTime(element.latestStartedAt)}</span> : null}
+							</div>
+						</div>
 					</div>
-					<div className={styles.checkMeta}>
-						{element.type ? <span>{checkTypeLabel(element.type)}</span> : <span>{element.assignmentCount ?? element.assignments?.length ?? 0} assignments</span>}
-						{element.target ? <span>{element.target}</span> : null}
-						{element.latestStartedAt ? <span>Latest {formatDateTime(element.latestStartedAt)}</span> : null}
+					<div className={styles.checkState}>
+						<strong>{statusLabel(element.status)}</strong>
+						<CaretDownIcon aria-hidden="true" focusable="false" />
 					</div>
-					{element.description ? <p>{element.description}</p> : null}
 				</div>
-				<div className={styles.assignmentStats}>
-					<span>{element.successfulAssignments ?? 0} ok</span>
-					<span>{element.failingAssignments ?? 0} failing</span>
-					<span>{element.staleAssignments ?? 0} stale</span>
+				<LazyPublicElementDailyStatus slug={slug} element={element} />
+			</button>
+			<div id={`status-details-${element.id}`} className={styles.checkDetailsRegion} aria-hidden={!expanded}>
+				<div className={styles.checkDetailsClip}>
+					<div className={styles.checkDetails}>
+						{element.description ? <p className={styles.checkDescription}>{element.description}</p> : null}
+						<div className={styles.assignmentStats}>
+							<span>{element.successfulAssignments ?? 0} operational</span>
+							<span>{element.failingAssignments ?? 0} failing</span>
+							<span>{element.staleAssignments ?? 0} stale</span>
+						</div>
+						<Metrics element={element} />
+						<AssignmentRows assignments={element.assignments ?? []} />
+						{expanded && element.displayMode === "map" ? <AssignmentMap assignments={element.assignments ?? []} theme={mapTheme} /> : null}
+						{showChart && element.chart?.series.length ? <ChartPanel className={styles.chart} option={publicStatusChartOption(element)} height="12rem" /> : null}
+						{showChart && !element.chart?.series.length ? <LazyPublicElementChart slug={slug} element={element} /> : null}
+					</div>
 				</div>
 			</div>
-			<Metrics element={element} />
-			<LazyPublicElementDailyStatus slug={slug} element={element} />
-			<AssignmentRows assignments={element.assignments ?? []} />
-			{element.chart?.series.length ? <ChartPanel className={styles.chart} option={publicStatusChartOption(element)} height="12rem" /> : null}
-			{!element.chart?.series.length && element.chartMode === "compact" ? <LazyPublicElementChart slug={slug} element={element} /> : null}
 		</article>
 	);
+}
+
+function serviceStateClass(status: ApiPublicStatusPublicElement["status"]) {
+	switch (status) {
+		case "operational":
+			return styles.serviceStateOperational;
+		case "degraded":
+			return styles.serviceStateDegraded;
+		case "down":
+			return styles.serviceStateDown;
+		default:
+			return styles.serviceStateUnknown;
+	}
 }
 
 function LazyPublicElementDailyStatus({ slug, element }: { slug: string; element: ApiPublicStatusPublicElement }) {
@@ -345,23 +513,103 @@ function AssignmentRows({ assignments }: { assignments: PublicAssignment[] }) {
 
 	return (
 		<div className={styles.publicAssignmentRows}>
-			{assignments.map(assignment => (
-				<div key={assignment.assignmentId} className={styles.publicAssignmentRow}>
-					<div className={styles.publicAssignmentCopy}>
-						<strong>{assignment.checkTitle}</strong>
-						<span>
-							{checkTypeLabel(assignment.type)} / {assignment.target} / {assignment.probeName}
-						</span>
-						{assignment.latestStartedAt ? <span>Latest {formatDateTime(assignment.latestStartedAt)}</span> : null}
+			{assignments.map((assignment, index) => {
+				const context = [checkTypeLabel(assignment.type), assignment.target, assignment.probeName, assignment.probeLocationName].filter(Boolean);
+				return (
+					<div key={`${assignment.checkTitle}-${assignment.probeName ?? assignment.probeLocationName ?? index}`} className={styles.publicAssignmentRow}>
+						<div className={styles.publicAssignmentCopy}>
+							<strong>{assignment.checkTitle}</strong>
+							{context.length ? <span>{context.join(" / ")}</span> : null}
+							{assignment.latestStartedAt ? <span>Latest {formatDateTime(assignment.latestStartedAt)}</span> : null}
+						</div>
+						<div className={styles.publicAssignmentStatus}>
+							<Badge tone={latestStatusTone(assignment.latestStatus)}>{latestStatusLabel(assignment.latestStatus)}</Badge>
+							<AssignmentMetrics assignment={assignment} />
+						</div>
 					</div>
-					<div className={styles.publicAssignmentStatus}>
-						<Badge tone={latestStatusTone(assignment.latestStatus)}>{latestStatusLabel(assignment.latestStatus)}</Badge>
-						<AssignmentMetrics assignment={assignment} />
-					</div>
-				</div>
-			))}
+				);
+			})}
 		</div>
 	);
+}
+
+function AssignmentMap({ assignments, theme }: { assignments: PublicAssignment[]; theme: "light" | "dark" }) {
+	const markers = useMemo(
+		() =>
+			assignments.flatMap((assignment, index) => {
+				if (typeof assignment.latitude !== "number" || typeof assignment.longitude !== "number") {
+					return [];
+				}
+				return [
+					{
+						id: `public-probe-${index}`,
+						name: assignment.probeName ?? assignment.probeLocationName ?? `Viewpoint ${index + 1}`,
+						coordinates: [assignment.longitude, assignment.latitude] as [number, number],
+						status: assignment.latestStatus === "error" || assignment.latestStatus === "timeout" ? "offline" : "online"
+					}
+				];
+			}),
+		[assignments]
+	);
+
+	if (!markers.length) {
+		return <div className={styles.mapUnavailable}>No public probe locations are available for this block.</div>;
+	}
+
+	return (
+		<Suspense fallback={<Spinner label="Loading probe map" layout="panel" size="lg" />}>
+			<NetworkMap className={styles.probeMap} probes={markers} selectedId="" mode="fleet" theme={theme} />
+		</Suspense>
+	);
+}
+
+function displayModeLabel(mode: ApiPublicStatusPublicElement["displayMode"]) {
+	switch (mode) {
+		case "history":
+			return "30-day history";
+		case "latency":
+			return "Latency";
+		case "map":
+			return "Probe map";
+		default:
+			return "Live status";
+	}
+}
+
+function usePublicStatusTheme(theme: PublicPageTheme | undefined) {
+	const preferredTheme = () => (typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+	const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">(() => (theme === "light" || theme === "dark" ? theme : preferredTheme()));
+
+	useEffect(() => {
+		if (!theme) {
+			return;
+		}
+
+		const root = document.documentElement;
+		const previousTheme = root.dataset.theme;
+		const preference = window.matchMedia("(prefers-color-scheme: light)");
+		const applyTheme = () => {
+			const nextTheme = theme === "auto" ? (preference.matches ? "light" : "dark") : theme;
+			root.dataset.theme = nextTheme;
+			setResolvedTheme(nextTheme);
+		};
+
+		applyTheme();
+		if (theme === "auto") {
+			preference.addEventListener("change", applyTheme);
+		}
+
+		return () => {
+			preference.removeEventListener("change", applyTheme);
+			if (previousTheme) {
+				root.dataset.theme = previousTheme;
+			} else {
+				delete root.dataset.theme;
+			}
+		};
+	}, [theme]);
+
+	return resolvedTheme;
 }
 
 function latestStatusTone(status: string | undefined): BadgeTone {

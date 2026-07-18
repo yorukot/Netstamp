@@ -3,12 +3,12 @@ import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
 import { MutationCache, QueryCache, QueryClient } from "@tanstack/react-query";
 import { isSessionUnavailableError } from "./client";
 
-interface MutationErrorMeta {
+interface ErrorMeta {
 	suppressGlobalErrorToast?: boolean;
 }
 
 function suppressesGlobalErrorToast(meta: unknown) {
-	return Boolean(meta && typeof meta === "object" && (meta as MutationErrorMeta).suppressGlobalErrorToast === true);
+	return Boolean(meta && typeof meta === "object" && (meta as ErrorMeta).suppressGlobalErrorToast === true);
 }
 
 export const queryClient = new QueryClient({
@@ -22,8 +22,8 @@ export const queryClient = new QueryClient({
 		}
 	}),
 	queryCache: new QueryCache({
-		onError: error => {
-			if (isSessionUnavailableError(error)) {
+		onError: (error, query) => {
+			if (isSessionUnavailableError(error) || suppressesGlobalErrorToast(query.meta)) {
 				return;
 			}
 

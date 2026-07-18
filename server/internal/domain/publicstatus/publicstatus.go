@@ -2,6 +2,7 @@ package publicstatus
 
 import (
 	"errors"
+	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -41,6 +42,23 @@ const (
 	ElementKindAssignmentGroup ElementKind = "assignment_group"
 )
 
+type ElementDisplayMode string
+
+const (
+	ElementDisplayModeStatus  ElementDisplayMode = "status"
+	ElementDisplayModeHistory ElementDisplayMode = "history"
+	ElementDisplayModeLatency ElementDisplayMode = "latency"
+	ElementDisplayModeMap     ElementDisplayMode = "map"
+)
+
+type Theme string
+
+const (
+	ThemeLight Theme = "light"
+	ThemeDark  Theme = "dark"
+	ThemeAuto  Theme = "auto"
+)
+
 type AssignmentSelectionMode string
 
 const (
@@ -58,18 +76,27 @@ const (
 )
 
 type Page struct {
-	ID                string
-	ProjectID         string
-	Slug              string
-	Title             string
-	Description       *string
-	Enabled           bool
-	DefaultChartMode  ChartMode
-	DefaultChartRange ChartRange
-	CreatedByUserID   string
-	CreatedAt         time.Time
-	UpdatedAt         time.Time
-	DeletedAt         *time.Time
+	ID                  string
+	ProjectID           string
+	Slug                string
+	Title               string
+	Description         *string
+	Enabled             bool
+	FooterText          *string
+	BannerImageURL      *string
+	Theme               Theme
+	ShowTargets         bool
+	ShowProbeNames      bool
+	ShowProbeLocations  bool
+	ShowIncidentHistory bool
+	ShowGeneratedAt     bool
+	CustomCSS           *string
+	DefaultChartMode    ChartMode
+	DefaultChartRange   ChartRange
+	CreatedByUserID     string
+	CreatedAt           time.Time
+	UpdatedAt           time.Time
+	DeletedAt           *time.Time
 }
 
 type Element struct {
@@ -84,6 +111,7 @@ type Element struct {
 	Title                   *string
 	Description             *string
 	SortOrder               int32
+	DisplayMode             ElementDisplayMode
 	ChartMode               ChartMode
 	ChartRange              *ChartRange
 	CreatedAt               time.Time
@@ -106,6 +134,8 @@ type Assignment struct {
 	ProbeID           string
 	ProbeName         string
 	ProbeLocationName *string
+	ProbeLatitude     *float64
+	ProbeLongitude    *float64
 	LatestStartedAt   time.Time
 	LatestStatus      string
 	LatencyAvgMs      *float64
@@ -214,17 +244,47 @@ func VNTitle(title string) (string, error) {
 }
 
 func VNDescription(description *string) (*string, error) {
-	if description == nil {
-		return nil, nil //nolint:nilnil // Nil is the canonical value for omitted optional text.
+	return vnOptionalText(description, 1024)
+}
+
+func VNFooterText(value *string) (*string, error) {
+	return vnOptionalText(value, 2048)
+}
+
+func VNCustomCSS(value *string) (*string, error) {
+	return vnOptionalText(value, 65536)
+}
+
+func VNBannerImageURL(value *string) (*string, error) {
+	normalized, err := vnOptionalText(value, 2048)
+	if err != nil || normalized == nil {
+		return normalized, err
 	}
-	trimmed := strings.TrimSpace(*description)
-	if err := spvalidator.Required(trimmed); err != nil {
-		return nil, err
+	parsed, err := url.Parse(*normalized)
+	if err != nil || parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") {
+		return nil, errors.New("must be an absolute http or https URL")
 	}
-	if err := spvalidator.Max(trimmed, 1024); err != nil {
-		return nil, err
+	return normalized, nil
+}
+
+func VNTheme(theme Theme) (Theme, error) {
+	theme = Theme(strings.TrimSpace(string(theme)))
+	switch theme {
+	case ThemeLight, ThemeDark, ThemeAuto:
+		return theme, nil
+	default:
+		return "", errors.New("invalid status page theme")
 	}
-	return &trimmed, nil
+}
+
+func VNElementDisplayMode(mode ElementDisplayMode) (ElementDisplayMode, error) {
+	mode = ElementDisplayMode(strings.TrimSpace(string(mode)))
+	switch mode {
+	case ElementDisplayModeStatus, ElementDisplayModeHistory, ElementDisplayModeLatency, ElementDisplayModeMap:
+		return mode, nil
+	default:
+		return "", errors.New("invalid element display mode")
+	}
 }
 
 func VNChartMode(mode ChartMode, allowInherit bool) (ChartMode, error) {
@@ -286,4 +346,18 @@ func vnUUID(value string) (string, error) {
 		return "", err
 	}
 	return value, nil
+}
+
+func vnOptionalText(value *string, maximum int) (*string, error) {
+	if value == nil {
+		return nil, nil //nolint:nilnil // Nil is the canonical value for omitted optional text.
+	}
+	trimmed := strings.TrimSpace(*value)
+	if err := spvalidator.Required(trimmed); err != nil {
+		return nil, err
+	}
+	if err := spvalidator.Max(trimmed, maximum); err != nil {
+		return nil, err
+	}
+	return &trimmed, nil
 }

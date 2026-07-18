@@ -1,0 +1,114 @@
+.field {
+	display: grid;
+	gap: 0.45rem;
+}
+
+.labelRow {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	font-size: 0.8rem;
+	font-weight: 750;
+}
+
+.labelRow span {
+	border: 1px solid var(--ns-border);
+	color: var(--ns-text-subtle);
+	font: 0.62rem/1 var(--ns-font-mono);
+	padding: 0.25rem 0.35rem;
+}
+
+.editor {
+	position: relative;
+	min-height: 12rem;
+	border: 1px solid var(--ns-border);
+	background: var(--ns-surface-deep);
+}
+
+.editor:has(textarea:focus-visible) {
+	outline: var(--ns-focus-outline);
+	outline-offset: var(--ns-focus-offset);
+}
+
+.highlight,
+.editor textarea {
+	position: absolute;
+	inset: 0;
+	box-sizing: border-box;
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	overflow: auto;
+	border: 0;
+	padding: 0.8rem;
+	font: 0.75rem/1.6 var(--ns-font-mono);
+	tab-size: 2;
+	white-space: pre;
+}
+
+.highlight {
+	z-index: 0;
+	overflow: hidden;
+	pointer-events: none;
+	color: var(--ns-text);
+}
+
+.highlight code {
+	display: block;
+	width: max-content;
+	min-width: 100%;
+}
+
+.editor textarea {
+	z-index: 1;
+	resize: none;
+	outline: transparent solid 0.0625rem;
+	background: transparent;
+	color: transparent;
+	caret-color: var(--ns-text);
+	-webkit-text-fill-color: transparent;
+}
+
+.editor textarea::selection {
+	background: color-mix(in srgb, var(--ns-primary) 42%, transparent);
+}
+
+.comment {
+	color: var(--ns-text-subtle);
+	font-style: italic;
+}
+
+.string {
+	color: var(--ns-success);
+}
+
+.color,
+.number {
+	color: var(--ns-warning);
+}
+
+.variable {
+	color: var(--ns-primary);
+}
+
+.punctuation {
+	color: var(--ns-text-muted);
+}
+
+.selector {
+	color: var(--ns-secondary);
+}
+
+.property {
+	color: var(--ns-text);
+}
+
+.atRule,
+.function {
+	color: var(--ns-primary-hover);
+}
+
+.keyword {
+	color: var(--ns-metal);
+}

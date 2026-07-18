@@ -1345,6 +1345,23 @@ export interface paths {
 		patch: operations["updateProjectPublicStatusElement"];
 		trace?: never;
 	};
+	"/public/status-pages/{slug}/editor-context": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Get editor context for an editable public status page */
+		get: operations["getPublicStatusEditorContext"];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	"/public/status-pages/{slug}/elements": {
 		parameters: {
 			query?: never;
@@ -2657,6 +2674,11 @@ export interface components {
 			/** Format: int32 */
 			sortOrder: number;
 			/**
+			 * @default status
+			 * @enum {string}
+			 */
+			displayMode: "status" | "history" | "latency" | "map";
+			/**
 			 * @default inherit
 			 * @enum {string}
 			 */
@@ -2670,6 +2692,24 @@ export interface components {
 			description?: string;
 			/** @default true */
 			enabled: boolean;
+			footerText?: string;
+			bannerImageUrl?: string;
+			/**
+			 * @default auto
+			 * @enum {string}
+			 */
+			theme: "light" | "dark" | "auto";
+			/** @default false */
+			showTargets: boolean;
+			/** @default false */
+			showProbeNames: boolean;
+			/** @default false */
+			showProbeLocations: boolean;
+			/** @default true */
+			showIncidentHistory: boolean;
+			/** @default true */
+			showGeneratedAt: boolean;
+			customCss?: string;
 			/**
 			 * @default off
 			 * @enum {string}
@@ -4038,6 +4078,10 @@ export interface components {
 			/** @enum {string} */
 			severity?: "info" | "warning" | "critical";
 		};
+		PublicStatusEditorContextResponse: {
+			projectRef: string;
+			pageId: components["schemas"]["uuid"];
+		};
 		PublicStatusElement: {
 			id: components["schemas"]["uuid"];
 			publicPageId: components["schemas"]["uuid"];
@@ -4052,6 +4096,8 @@ export interface components {
 			description?: string;
 			/** Format: int32 */
 			sortOrder: number;
+			/** @enum {string} */
+			displayMode: "status" | "history" | "latency" | "map";
 			/** @enum {string} */
 			chartMode: "inherit" | "off" | "compact";
 			/** @enum {string} */
@@ -4089,7 +4135,6 @@ export interface components {
 		};
 		PublicStatusIncident: {
 			id: components["schemas"]["uuid"];
-			checkId: components["schemas"]["uuid"];
 			checkTitle: string;
 			/** @enum {string} */
 			status: "open" | "acknowledged" | "resolved";
@@ -4138,6 +4183,16 @@ export interface components {
 			title: string;
 			description?: string;
 			enabled: boolean;
+			footerText?: string;
+			bannerImageUrl?: string;
+			/** @enum {string} */
+			theme: "light" | "dark" | "auto";
+			showTargets: boolean;
+			showProbeNames: boolean;
+			showProbeLocations: boolean;
+			showIncidentHistory: boolean;
+			showGeneratedAt: boolean;
+			customCss?: string;
 			/** @enum {string} */
 			defaultChartMode: "off" | "compact";
 			/** @enum {string} */
@@ -4164,6 +4219,13 @@ export interface components {
 			description?: string;
 			/** @enum {string} */
 			status: "operational" | "degraded" | "down" | "unknown";
+			footerText?: string;
+			bannerImageUrl?: string;
+			/** @enum {string} */
+			theme: "light" | "dark" | "auto";
+			showIncidentHistory: boolean;
+			showGeneratedAt: boolean;
+			customCss?: string;
 			/** @enum {string} */
 			defaultChartMode: "off" | "compact";
 			/** @enum {string} */
@@ -4172,15 +4234,16 @@ export interface components {
 			updatedAt: string;
 		};
 		PublicStatusPublicAssignment: {
-			assignmentId: components["schemas"]["uuid"];
-			checkId: components["schemas"]["uuid"];
 			checkTitle: string;
 			/** @enum {string} */
 			type: "ping" | "tcp" | "traceroute" | "http";
-			target: components["schemas"]["CheckTarget"];
-			probeId: components["schemas"]["uuid"];
-			probeName: string;
+			target?: components["schemas"]["CheckTarget"];
+			probeName?: string;
 			probeLocationName?: string;
+			/** Format: double */
+			latitude?: number;
+			/** Format: double */
+			longitude?: number;
 			/** Format: date-time */
 			latestStartedAt?: string;
 			/** @enum {string} */
@@ -4191,7 +4254,6 @@ export interface components {
 			id: components["schemas"]["uuid"];
 			/** @enum {string} */
 			kind: "folder" | "assignment_group";
-			checkId?: components["schemas"]["uuid"];
 			title: string;
 			description?: string;
 			/** @enum {string} */
@@ -4203,6 +4265,8 @@ export interface components {
 			latestStartedAt?: string;
 			/** @enum {string} */
 			latestStatus?: "successful" | "timeout" | "error" | "partial";
+			/** @enum {string} */
+			displayMode: "status" | "history" | "latency" | "map";
 			/** @enum {string} */
 			chartMode?: "off" | "compact";
 			/** @enum {string} */
@@ -5345,6 +5409,11 @@ export interface components {
 			/** Format: int32 */
 			sortOrder: number;
 			/**
+			 * @default status
+			 * @enum {string}
+			 */
+			displayMode: "status" | "history" | "latency" | "map";
+			/**
 			 * @default inherit
 			 * @enum {string}
 			 */
@@ -5359,6 +5428,24 @@ export interface components {
 			description?: string;
 			/** @default true */
 			enabled: boolean;
+			footerText?: string;
+			bannerImageUrl?: string;
+			/**
+			 * @default auto
+			 * @enum {string}
+			 */
+			theme: "light" | "dark" | "auto";
+			/** @default false */
+			showTargets: boolean;
+			/** @default false */
+			showProbeNames: boolean;
+			/** @default false */
+			showProbeLocations: boolean;
+			/** @default true */
+			showIncidentHistory: boolean;
+			/** @default true */
+			showGeneratedAt: boolean;
+			customCss?: string;
 			/**
 			 * @default off
 			 * @enum {string}
@@ -11840,6 +11927,73 @@ export interface operations {
 				};
 				content: {
 					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description The server cannot find the requested resource. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	getPublicStatusEditorContext: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				slug: components["parameters"]["PublicStatusSlugPathParam"];
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["PublicStatusEditorContextResponse"];
 				};
 			};
 			/** @description Access is unauthorized. */

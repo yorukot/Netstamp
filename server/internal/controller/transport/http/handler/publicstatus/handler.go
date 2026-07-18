@@ -34,6 +34,7 @@ func (h *Handler) RegisterRoutes(api chi.Router) {
 	api.Group(func(r chi.Router) {
 		r.Use(httpmiddleware.RequireUserAuth(h.verifier, h.tokenVerifier, h.cookieName))
 
+		r.With(httpmiddleware.RequireScope(identity.ScopeStatusPagesWrite)).Get("/public/status-pages/{slug}/editor-context", h.handleGetPublicStatusEditorContext)
 		r.With(httpmiddleware.RequireScope(identity.ScopeStatusPagesRead)).Get("/projects/{ref}/status-pages", h.handleListPages)
 		r.With(httpmiddleware.RequireScope(identity.ScopeStatusPagesWrite)).Post("/projects/{ref}/status-pages", h.handleCreatePage)
 		r.With(httpmiddleware.RequireScope(identity.ScopeStatusPagesRead)).Get("/projects/{ref}/status-pages/{page_id}", h.handleGetPage)

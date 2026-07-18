@@ -1,0 +1,936 @@
+.errorCopy {
+	margin: 0;
+	color: var(--ns-text-muted);
+}
+
+.previewAddActions,
+.composerActions,
+.elementControls,
+.previewBlockActions {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.builder {
+	display: grid;
+	min-width: 0;
+	min-height: 0;
+	height: calc(100svh - var(--app-footer-min-height, 3.25rem));
+	margin: calc(-1 * var(--app-content-padding-top, 4rem)) calc(-1 * var(--app-content-padding-inline-end, 2rem)) calc(-1 * var(--app-content-padding-bottom, 2rem))
+		calc(-1 * var(--app-content-padding-inline-start, 2rem));
+	overflow: hidden;
+	grid-template-columns: minmax(20rem, 22rem) minmax(0, 1fr);
+	align-items: stretch;
+	gap: 0;
+}
+
+.sidebar {
+	position: relative;
+	display: grid;
+	min-height: 0;
+	height: 100%;
+	grid-template-rows: auto minmax(0, 1fr);
+	background: var(--ns-bg-subtle);
+}
+
+.main {
+	display: grid;
+	min-width: 0;
+	min-height: 0;
+	height: 100%;
+	overflow: hidden;
+	grid-template-rows: minmax(0, 1fr) auto;
+}
+
+.sidebarHeader {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	padding: 1.25rem 1rem 1rem;
+}
+
+.sidebarHeader > div {
+	display: grid;
+	gap: 0.25rem;
+}
+
+.sidebarHeader span {
+	color: var(--ns-text-subtle);
+	font: 0.68rem/1 var(--ns-font-mono);
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+}
+
+.sidebarScroll {
+	min-height: 0;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+}
+
+.settingsSection {
+	display: grid;
+	gap: 1rem;
+	padding: 1.25rem 1rem;
+}
+
+.sectionIntro {
+	display: grid;
+	gap: 0.35rem;
+}
+
+.sectionIntro p,
+.inlineNotice {
+	margin: 0;
+	color: var(--ns-text-muted);
+	font-size: 0.78rem;
+	line-height: 1.5;
+}
+
+.previewEmpty p,
+.previewFooter p,
+.previewHeroBody p,
+.previewGroupHeader p {
+	margin: 0;
+	color: var(--status-preview-muted);
+	font-size: 0.78rem;
+	line-height: 1.5;
+}
+
+.switchRow {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	cursor: pointer;
+}
+
+.switchRow > span {
+	display: grid;
+	gap: 0.25rem;
+}
+
+.switchRow small,
+.libraryCard small {
+	color: var(--ns-text-subtle);
+	font-size: 0.7rem;
+	font-weight: 450;
+	line-height: 1.4;
+}
+
+.fieldGroup {
+	display: grid;
+	gap: 0.85rem;
+	background: var(--ns-container-bg-raised);
+	padding: 0.85rem;
+}
+
+.fieldGroupHeading {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+	border-bottom: 1px solid var(--ns-border-faint);
+	padding-bottom: 0.75rem;
+}
+
+.saveBar {
+	position: relative;
+	bottom: auto;
+	margin: 0;
+	border-right: 0;
+	border-bottom: 0;
+	border-left: 0;
+}
+
+.libraryCard {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 0.75rem;
+	width: 100%;
+	border: 0;
+	background: var(--ns-container-bg-raised);
+	color: var(--ns-text);
+	cursor: pointer;
+	padding: 0.8rem;
+	font: inherit;
+	text-align: left;
+}
+
+.libraryCard:hover:not(:disabled) {
+	background: var(--ns-primary-muted);
+}
+
+.libraryCard:focus-visible,
+.backButton:focus-visible {
+	outline: var(--ns-focus-outline);
+	outline-offset: var(--ns-focus-offset);
+}
+
+.libraryCard:disabled {
+	cursor: not-allowed;
+	opacity: 0.48;
+}
+
+.libraryCard > svg {
+	width: 1.15rem;
+	height: 1.15rem;
+	color: var(--ns-primary);
+}
+
+.libraryCard > span {
+	display: grid;
+	gap: 0.25rem;
+}
+
+.backButton {
+	display: inline-flex;
+	width: fit-content;
+	align-items: center;
+	gap: 0.35rem;
+	border: 0;
+	background: transparent;
+	color: var(--ns-text-muted);
+	cursor: pointer;
+	padding: 0;
+	font: 700 0.75rem/1 var(--ns-font-sans);
+}
+
+.backButton:hover {
+	color: var(--ns-text);
+}
+
+.composerSelection {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr);
+	align-items: center;
+	gap: 0.75rem;
+	background: var(--ns-primary-muted);
+	padding: 0.85rem;
+}
+
+.composerSelection > span {
+	display: grid;
+	width: 2rem;
+	height: 2rem;
+	place-items: center;
+	background: var(--ns-primary-subtle);
+	color: var(--ns-primary);
+}
+
+.composerSelection svg {
+	width: 1.1rem;
+	height: 1.1rem;
+}
+
+.composerSelection > div {
+	display: grid;
+	gap: 0.25rem;
+}
+
+.composerSelection small {
+	color: var(--ns-text-muted);
+	font-size: 0.7rem;
+	line-height: 1.4;
+}
+
+.checkPicker {
+	display: grid;
+	min-height: 18rem;
+	grid-template-columns: minmax(6.5rem, 0.8fr) minmax(0, 1.4fr);
+	background: var(--ns-container-bg-raised);
+}
+
+.checkCategories {
+	display: grid;
+	align-content: start;
+	border-right: 1px solid var(--ns-border-faint);
+	padding: 0.5rem;
+}
+
+.checkCategory {
+	display: flex;
+	min-width: 0;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.35rem;
+	border: 0;
+	background: transparent;
+	color: var(--ns-text-muted);
+	cursor: pointer;
+	padding: 0.55rem;
+	font: 650 0.7rem/1.3 var(--ns-font-sans);
+	text-align: left;
+	text-transform: capitalize;
+}
+
+.checkCategory > span:first-child {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.checkCategory:hover,
+.checkCategory[data-selected="true"] {
+	background: var(--ns-primary-muted);
+	color: var(--ns-text);
+}
+
+.checkCategory:focus-visible,
+.checkChoice:focus-visible {
+	outline: var(--ns-focus-outline);
+	outline-offset: -2px;
+}
+
+.checkChoices {
+	display: grid;
+	min-width: 0;
+	grid-template-rows: auto minmax(0, 1fr);
+	gap: 0.65rem;
+	padding: 0.65rem;
+}
+
+.checkChoiceList {
+	display: grid;
+	max-height: 20rem;
+	align-content: start;
+	gap: 0.35rem;
+	overflow-y: auto;
+}
+
+.checkChoice {
+	display: grid;
+	min-width: 0;
+	gap: 0.2rem;
+	border: 0;
+	background: var(--ns-control-bg);
+	color: var(--ns-text);
+	cursor: pointer;
+	padding: 0.65rem;
+	font: inherit;
+	text-align: left;
+}
+
+.checkChoice:hover,
+.checkChoice[data-selected="true"] {
+	background: var(--ns-primary-muted);
+}
+
+.checkChoice strong,
+.checkChoice span {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.checkChoice strong {
+	font-size: 0.75rem;
+}
+
+.checkChoice span {
+	color: var(--ns-text-subtle);
+	font: 0.65rem/1.4 var(--ns-font-mono);
+}
+
+.composerActions {
+	justify-content: flex-end;
+}
+
+.canvas {
+	display: grid;
+	min-width: 0;
+	min-height: 0;
+	height: 100%;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	background: var(--ns-bg);
+}
+
+.previewViewport {
+	--status-preview-bg: var(--ns-bg);
+	--status-preview-surface: var(--ns-surface);
+	--status-preview-raised: var(--ns-surface-raised);
+	--status-preview-deep: var(--ns-surface-deep);
+	--status-preview-text: var(--ns-text);
+	--status-preview-muted: var(--ns-text-subtle);
+	--status-preview-border: var(--ns-border);
+	--status-preview-border-faint: var(--ns-border-faint);
+
+	min-width: 0;
+	background-color: var(--status-preview-bg);
+	color: var(--status-preview-text);
+	padding: 0 0 2.5rem;
+}
+
+:root[data-theme="dark"] .previewViewport[data-preview-theme="light"],
+:root[data-theme="light"] .previewViewport[data-preview-theme="dark"] {
+	--status-preview-bg: var(--ns-text);
+	--status-preview-surface: color-mix(in srgb, var(--ns-text) 94%, var(--ns-bg));
+	--status-preview-raised: color-mix(in srgb, var(--ns-text) 97%, var(--ns-bg));
+	--status-preview-deep: color-mix(in srgb, var(--ns-text) 88%, var(--ns-bg));
+	--status-preview-text: var(--ns-bg);
+	--status-preview-muted: color-mix(in srgb, var(--ns-bg) 60%, var(--ns-text));
+	--status-preview-border: color-mix(in srgb, var(--ns-bg) 20%, transparent);
+	--status-preview-border-faint: color-mix(in srgb, var(--ns-bg) 10%, transparent);
+}
+
+.publicShell {
+	display: grid;
+	width: 100%;
+	margin: 0 auto;
+	gap: 1.25rem;
+}
+
+.previewHero,
+.previewOverall,
+.previewGroup,
+.previewEmpty {
+	background: var(--status-preview-surface);
+}
+
+.previewHero {
+	overflow: hidden;
+}
+
+.previewBanner {
+	display: block;
+	width: 100%;
+	height: clamp(12rem, 25vw, 18.75rem);
+	background: var(--status-preview-deep);
+	object-fit: cover;
+}
+
+.previewHeroBody {
+	display: grid;
+	width: min(58rem, 100%);
+	margin: 0 auto;
+	gap: 1.25rem;
+	padding: clamp(1rem, 2.5vw, 1.5rem);
+}
+
+.previewBrand {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	color: var(--status-preview-muted);
+	font: 0.62rem/1 var(--ns-font-mono);
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.previewBrand img {
+	width: auto;
+	height: 1rem;
+}
+
+.previewTitleRow,
+.previewOverall,
+.previewGroupHeader,
+.previewBlockTop,
+.previewFooter {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+}
+
+.previewTitleRow > div {
+	display: grid;
+	gap: 0.5rem;
+}
+
+.previewTitleRow h1 {
+	margin: 0;
+	font: 750 clamp(1.55rem, 4vw, 2.75rem) / 1 var(--ns-font-display);
+	letter-spacing: -0.04em;
+}
+
+.previewGenerated {
+	display: grid;
+	flex: 0 0 auto;
+	gap: 0.2rem;
+	color: var(--status-preview-muted);
+	font: 0.62rem/1.4 var(--ns-font-mono);
+	text-align: right;
+	text-transform: uppercase;
+}
+
+.previewGenerated strong {
+	color: inherit;
+}
+
+.previewOverall {
+	width: min(58rem, calc(100% - 2rem));
+	margin: 0 auto;
+	padding: 0.85rem 1rem;
+}
+
+.previewAddActions {
+	width: min(58rem, calc(100% - 2rem));
+	margin: -0.5rem auto 0;
+	justify-content: flex-end;
+}
+
+.previewStatusMarker,
+.operationalDot {
+	display: block;
+	flex: 0 0 auto;
+	width: 0.55rem;
+	height: 0.55rem;
+	background: var(--ns-success);
+}
+
+.previewOverall > div {
+	display: grid;
+	flex: 1;
+	min-width: 0;
+	gap: 0.2rem;
+}
+
+.previewOverallBadge {
+	flex: 0 0 auto;
+	width: max-content;
+}
+
+.previewOverall small,
+.previewBlockIdentity small {
+	color: var(--status-preview-muted);
+	font: 0.68rem/1.4 var(--ns-font-mono);
+}
+
+.previewGroup {
+	position: relative;
+	width: min(58rem, calc(100% - 2rem));
+	margin: 0 auto;
+	background: var(--status-preview-surface);
+	transition: background var(--ns-transition);
+}
+
+.selectedElement {
+	background: var(--ns-primary-muted);
+	outline: 1px solid var(--ns-primary);
+	outline-offset: -1px;
+}
+
+.previewGroupHeader {
+	align-items: flex-start;
+	padding: 0.85rem 1rem;
+}
+
+.previewGroupIdentity,
+.previewGroupIdentity > div {
+	display: grid;
+	gap: 0.25rem;
+}
+
+.previewGroupIdentity {
+	min-width: 0;
+	grid-template-columns: auto minmax(0, 1fr);
+	align-items: start;
+}
+
+.previewGroupHeader h2 {
+	margin: 0;
+	font-size: 0.9rem;
+}
+
+.previewGroupBody {
+	display: grid;
+	gap: 0.45rem;
+	border-top: 1px solid var(--status-preview-border-faint);
+	background: var(--status-preview-deep);
+	padding: 0.65rem;
+}
+
+.previewBlock {
+	position: relative;
+	display: grid;
+	gap: 0.55rem;
+	background: var(--status-preview-raised);
+	padding: 0.7rem 0.8rem;
+	transition: background var(--ns-transition);
+}
+
+.previewBlock:hover {
+	background: color-mix(in srgb, var(--status-preview-raised) 88%, var(--ns-primary));
+}
+
+.previewBlockIdentity {
+	display: flex;
+	min-width: 0;
+	align-items: center;
+	gap: 0.55rem;
+}
+
+.previewBlockIdentity > div {
+	display: grid;
+	min-width: 0;
+	gap: 0.2rem;
+}
+
+.previewBlockIdentity strong,
+.previewBlockIdentity small {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.dragHandle {
+	display: grid;
+	flex: 0 0 auto;
+	width: 1.75rem;
+	height: 1.75rem;
+	place-items: center;
+	border: 0;
+	background: transparent;
+	color: var(--status-preview-muted);
+	cursor: grab;
+	padding: 0;
+	touch-action: none;
+	user-select: none;
+	-webkit-user-select: none;
+}
+
+.dragHandle:hover {
+	background: var(--ns-primary-muted);
+	color: var(--status-preview-text);
+}
+
+.dragHandle:active {
+	cursor: grabbing;
+}
+
+.dragHandle:focus-visible {
+	outline: var(--ns-focus-outline);
+	outline-offset: var(--ns-focus-offset);
+}
+
+.dragHandle svg {
+	width: 1rem;
+	height: 1rem;
+	pointer-events: none;
+}
+
+.draggingElement {
+	opacity: 0.52;
+	outline: 1px dashed var(--ns-primary);
+	outline-offset: -1px;
+}
+
+.previewGroup[data-builder-drag-over="before"]::before,
+.previewBlock[data-builder-drag-over="before"]::before,
+.previewGroup[data-builder-drag-over="after"]::after,
+.previewBlock[data-builder-drag-over="after"]::after {
+	position: absolute;
+	z-index: 2;
+	right: 0;
+	left: 0;
+	height: 0.1875rem;
+	background: var(--ns-primary);
+	content: "";
+	pointer-events: none;
+}
+
+.previewGroup[data-builder-drag-over="before"]::before,
+.previewBlock[data-builder-drag-over="before"]::before {
+	top: -0.3125rem;
+}
+
+.previewGroup[data-builder-drag-over="after"]::after,
+.previewBlock[data-builder-drag-over="after"]::after {
+	bottom: -0.3125rem;
+}
+
+.previewGroupHeader[data-builder-drag-over="inside"],
+.groupDropZone[data-builder-drag-over="inside"] {
+	box-shadow: inset 0 0 0 0.125rem var(--ns-primary);
+}
+
+.previewBlockActions > span {
+	color: var(--ns-success);
+	font: 700 0.68rem/1 var(--ns-font-mono);
+}
+
+.elementControls {
+	gap: 0.15rem;
+}
+
+.uptimeBars {
+	display: grid;
+	grid-template-columns: repeat(30, minmax(0, 1fr));
+	gap: 0.12rem;
+	padding-left: 2.3rem;
+}
+
+.uptimeHeading {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	padding-left: 2.3rem;
+	color: var(--status-preview-muted);
+	font: 0.65rem/1.4 var(--ns-font-mono);
+}
+
+.uptimeHeading strong {
+	color: var(--status-preview-text);
+}
+
+.uptimeBars span {
+	height: 0.8rem;
+	background: var(--ns-success);
+}
+
+.uptimeBars span[data-state="degraded"] {
+	background: var(--ns-warning);
+}
+
+.previewMetrics {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 0.5rem;
+	padding-left: 2.3rem;
+}
+
+.previewMetrics > div {
+	display: grid;
+	gap: 0.2rem;
+	background: var(--status-preview-deep);
+	padding: 0.6rem;
+}
+
+.previewMetrics span,
+.previewMetrics strong {
+	font-family: var(--ns-font-mono);
+}
+
+.previewMetrics span {
+	color: var(--status-preview-muted);
+	font-size: 0.6rem;
+	text-transform: uppercase;
+}
+
+.previewMetrics strong {
+	font-size: 0.75rem;
+}
+
+.historySummary {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 0.65rem;
+	margin-left: 2.3rem;
+	background: var(--status-preview-deep);
+	padding: 0.65rem;
+}
+
+.historySummary > div {
+	display: grid;
+	gap: 0.2rem;
+}
+
+.historySummary small {
+	color: var(--status-preview-muted);
+	font: 0.65rem/1.4 var(--ns-font-mono);
+}
+
+.miniChart {
+	width: 100%;
+	height: 4.5rem;
+	border-top: 1px solid var(--status-preview-border-faint);
+	padding: 0.5rem 0 0 2.3rem;
+}
+
+.miniChart path {
+	fill: none;
+	stroke: var(--ns-primary);
+	stroke-width: 3;
+	vector-effect: non-scaling-stroke;
+}
+
+.miniMap {
+	position: relative;
+	min-height: 8rem;
+	overflow: hidden;
+	border-top: 1px solid var(--status-preview-border-faint);
+	background: var(--status-preview-deep);
+}
+
+.miniMap > svg {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+}
+
+.miniMap > svg path {
+	fill: none;
+	stroke: var(--status-preview-border-faint);
+	stroke-width: 0.5;
+	vector-effect: non-scaling-stroke;
+}
+
+.miniMap > span {
+	position: absolute;
+	width: 0.7rem;
+	height: 0.7rem;
+	transform: translate(-50%, -50%);
+	border: 0.2rem solid var(--ns-primary-muted);
+	background: var(--ns-primary);
+}
+
+.miniMap small {
+	position: absolute;
+	right: 0.5rem;
+	bottom: 0.5rem;
+	color: var(--status-preview-muted);
+	font: 0.62rem/1 var(--ns-font-mono);
+}
+
+.mapPrivacyNotice {
+	border-top: 1px solid var(--status-preview-border-faint);
+	color: var(--status-preview-muted);
+	font: 0.68rem/1.5 var(--ns-font-mono);
+	padding: 1rem;
+}
+
+.groupDropZone {
+	display: grid;
+	min-height: 4rem;
+	place-items: center;
+	border: 1px dashed var(--status-preview-border);
+	color: var(--status-preview-muted);
+	font: 0.7rem/1.4 var(--ns-font-mono);
+}
+
+.previewEmpty {
+	display: grid;
+	width: min(58rem, calc(100% - 2rem));
+	margin: 0 auto;
+	justify-items: center;
+	gap: 0.7rem;
+	padding: 2.5rem 1rem;
+	text-align: center;
+}
+
+.previewEmpty > svg {
+	width: 2rem;
+	height: 2rem;
+	color: var(--ns-primary);
+}
+
+.previewFooter {
+	width: min(58rem, calc(100% - 2rem));
+	margin: 0 auto;
+	align-items: flex-start;
+	border-top: 1px solid var(--status-preview-border);
+	padding: 0.85rem 0;
+}
+
+.previewFooter span {
+	flex: 0 0 auto;
+	color: var(--status-preview-muted);
+	font: 0.65rem/1.4 var(--ns-font-mono);
+}
+
+@media (max-width: 76rem) {
+	.builder {
+		grid-template-columns: 18rem minmax(0, 1fr);
+	}
+
+	.previewBlockTop,
+	.previewBlockActions {
+		align-items: flex-start;
+	}
+
+	.previewBlockTop {
+		display: grid;
+	}
+
+	.previewBlockActions {
+		justify-content: space-between;
+	}
+}
+
+@media (max-width: 56rem) {
+	.builder {
+		height: auto;
+		min-height: calc(100svh - var(--app-footer-min-height, 3.25rem));
+		overflow: visible;
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.sidebar {
+		position: relative;
+		top: auto;
+		height: auto;
+	}
+
+	.main {
+		height: auto;
+		overflow: visible;
+		grid-template-rows: auto auto;
+	}
+
+	.canvas {
+		height: auto;
+		overflow: visible;
+	}
+
+	.sidebarScroll {
+		overflow: visible;
+	}
+}
+
+@media (max-width: 42rem) {
+	.previewTitleRow,
+	.previewFooter {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+		align-items: stretch;
+	}
+
+	.previewViewport {
+		padding: 0 0 2rem;
+	}
+
+	.previewGenerated {
+		text-align: left;
+	}
+
+	.previewBlockActions > span {
+		display: none;
+	}
+
+	.elementControls {
+		justify-content: flex-end;
+	}
+
+	.uptimeBars {
+		padding-left: 0;
+	}
+
+	.uptimeHeading,
+	.previewMetrics,
+	.miniChart {
+		padding-left: 0;
+	}
+
+	.historySummary {
+		margin-left: 0;
+	}
+
+	.previewAddActions,
+	.composerActions {
+		flex-wrap: wrap;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.previewGroup,
+	.previewBlock {
+		transition-duration: 1ms;
+	}
+}

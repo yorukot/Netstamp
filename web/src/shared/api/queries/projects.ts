@@ -246,6 +246,14 @@ export const projectQueries = {
 };
 
 export const publicStatusQueries = {
+	editorContext: (slug: string) =>
+		queryOptions({
+			queryKey: apiQueryKeys.publicStatus.editorContext(slug),
+			queryFn: ({ signal }) => readApiData(apiClient.GET("/public/status-pages/{slug}/editor-context", { params: { path: { slug } }, signal })),
+			meta: { suppressGlobalErrorToast: true },
+			retry: false,
+			staleTime: 5 * 60 * 1000
+		}),
 	summary: (slug: string) =>
 		queryOptions({
 			queryKey: apiQueryKeys.publicStatus.summary(slug),
