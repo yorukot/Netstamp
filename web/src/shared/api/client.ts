@@ -1,6 +1,7 @@
 import type { Middleware } from "openapi-fetch";
 import createClient from "openapi-fetch";
 import type { components, paths } from "./openapi";
+import { isSessionUnavailableCode, reportSessionUnavailable } from "./sessionUnavailable";
 
 export type ApiProblem = components["schemas"]["ProblemDetails"];
 export type ApiErrorCode = NonNullable<ApiProblem["code"]>;
@@ -75,7 +76,9 @@ async function getCSRFToken() {
 		}
 	});
 	if (!response.ok) {
-		throw new ApiError(response.statusText || "CSRF token request failed", response.status);
+		const error = await apiErrorFromResponse(response);
+		reportSessionUnavailableError(error);
+		throw error;
 	}
 	const data = (await response.json()) as components["schemas"]["CSRFTokenResponse"];
 	csrfToken = data.csrfToken;
@@ -101,6 +104,10 @@ export function apiProblemCode(error: unknown): ApiErrorCode | undefined {
 export function hasApiProblemCode(error: unknown, ...codes: ApiErrorCode[]) {
 	const code = apiProblemCode(error);
 	return code !== undefined && codes.includes(code);
+}
+
+export function isSessionUnavailableError(error: unknown) {
+	return isSessionUnavailableCode(apiProblemCode(error));
 }
 
 interface ApiResult<TData> {
@@ -135,8 +142,33 @@ function apiErrorMessage(error: unknown, response: Response) {
 	return response.statusText || "API request failed";
 }
 
+function createApiError(error: unknown, response: Response) {
+	return new ApiError(apiErrorMessage(error, response), response.status, apiProblemFromError(error));
+}
+
+async function apiErrorFromResponse(response: Response) {
+	let error: unknown;
+
+	try {
+		error = await response.json();
+	} catch {
+		error = undefined;
+	}
+
+	return createApiError(error, response);
+}
+
+function reportSessionUnavailableError(error: ApiError) {
+	const code = apiProblemCode(error);
+	if (isSessionUnavailableCode(code)) {
+		reportSessionUnavailable(code);
+	}
+}
+
 function throwApiError(error: unknown, response: Response): never {
-	throw new ApiError(apiErrorMessage(error, response), response.status, apiProblemFromError(error));
+	const apiError = createApiError(error, response);
+	reportSessionUnavailableError(apiError);
+	throw apiError;
 }
 
 export async function readApiData<TData>(request: Promise<ApiResult<TData>>): Promise<TData> {

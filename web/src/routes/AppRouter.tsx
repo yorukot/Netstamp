@@ -1,3 +1,4 @@
+import { SessionExpiryPrompt } from "@/features/auth/session/SessionExpiryPrompt";
 import { SessionProvider } from "@/features/auth/session/SessionProvider";
 import { queryClient } from "@/shared/api/queryClient";
 import { CurrentProjectProvider } from "@/shared/api/useCurrentProject";
@@ -13,6 +14,7 @@ export function AppRouter() {
 			<SessionProvider>
 				<CurrentProjectProvider>
 					<ConfirmProvider>
+						<SessionExpiryPrompt />
 						<RouterProvider router={router} />
 						<ToastProvider />
 					</ConfirmProvider>
