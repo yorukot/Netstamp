@@ -40,6 +40,8 @@ Only proceed from root guidance when the task is clearly limited to workspace me
 
 Follow `.editorconfig` and local tool formatters. JavaScript, TypeScript, JSX, CSS, JSON, and Astro files use tabs with width 2 and Prettier. Go files use `gofmt`; backend linting is configured in `golangci.yaml`. Keep generated, migration, and API changes scoped to the relevant subproject.
 
+For new or modified JavaScript, TypeScript, JSX, TSX, and Astro code, use arrow functions by default for components, callbacks, and local helpers. Use a `function` declaration only when hoisting, generator syntax, dynamic `this`/`arguments`, or a framework contract requires it. Within `web/src` and `docs/src`, use the application-local `@/` alias for imports that cross directories. Keep `./` imports for modules in the same directory, use package names for workspace dependencies, and do not introduce parent-relative `../` import chains.
+
 When code, commands, architecture, configuration, or project structure changes make an `AGENTS.md` inaccurate, update the affected guide in the same change.
 
 ## Branch, Commit, And PR Guidance
@@ -65,4 +67,4 @@ server/auth: validate session cookie
 githooks.txt: improve the intro section
 ```
 
-PRs should describe the changed area, list validation commands run, link related issues, and include screenshots for visible web UI changes.
+PRs should describe the changed area, list validation commands run, link related issues, and include screenshots for visible web UI changes. Upload review-only screenshots directly to the PR description or comments; do not commit temporary PR preview images under `.github` or application source directories.
