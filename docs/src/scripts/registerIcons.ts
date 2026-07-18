@@ -24,6 +24,7 @@ import "@phosphor-icons/webcomponents/PhLightning";
 import "@phosphor-icons/webcomponents/PhListBullets";
 import "@phosphor-icons/webcomponents/PhMagnifyingGlass";
 import "@phosphor-icons/webcomponents/PhMapTrifold";
+import "@phosphor-icons/webcomponents/PhMonitor";
 import "@phosphor-icons/webcomponents/PhMoonStars";
 import "@phosphor-icons/webcomponents/PhNetwork";
 import "@phosphor-icons/webcomponents/PhNote";
