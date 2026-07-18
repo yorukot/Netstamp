@@ -134,14 +134,14 @@ model SetManagedUserPasswordRequest {
 	password: string;
 }
 
-@example(#{ format: "netstamp.admin.data.v3", exportedAt: utcDateTime.fromISO("2026-07-08T12:00:00Z"), tables: #{} })
+@example(#{ format: "netstamp.admin.data.v4", exportedAt: utcDateTime.fromISO("2026-07-08T12:00:00Z"), tables: #{} })
 model AdminDataExport {
 	format: string;
 	exportedAt: utcDateTime;
 	tables: Record<unknown>;
 }
 
-@example(#{ result: #{ format: "netstamp.admin.data.v3", importedTables: 37, importedRows: 128 } })
+@example(#{ result: #{ format: "netstamp.admin.data.v4", importedTables: 39, importedRows: 128 } })
 model AdminDataImportResponse {
 	result: AdminDataImportResult;
 }

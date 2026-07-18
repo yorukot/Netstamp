@@ -6,6 +6,82 @@ JOIN checks ON checks.project_id = probes.project_id
 WHERE probes.project_id = sqlc.arg(project_id)
   AND probes.id = sqlc.arg(probe_id) AND probes.deleted_at IS NULL;
 
+-- name: ListLatestHTTPResults :many
+SELECT probes.id AS probe_id,
+       checks.id AS check_id,
+       latest.started_at,
+       latest.finished_at,
+       latest.duration_ms,
+       latest.status,
+       latest.dns_duration_ms,
+       latest.connect_duration_ms,
+       latest.tls_duration_ms,
+       latest.ttfb_duration_ms,
+       latest.resolved_ip,
+       latest.ip_family,
+       latest.status_code,
+       latest.final_url,
+       latest.redirect_count,
+       latest.response_bytes,
+       latest.response_truncated,
+       latest.body_matched,
+       latest.tls_version,
+       latest.tls_cipher_suite,
+       latest.certificate_not_before,
+       latest.certificate_not_after,
+       latest.error_code,
+       latest.error_message
+FROM probe_check_assignments
+JOIN probes
+    ON probes.project_id = probe_check_assignments.project_id
+    AND probes.id = probe_check_assignments.probe_id
+JOIN checks
+    ON checks.project_id = probe_check_assignments.project_id
+    AND checks.id = probe_check_assignments.check_id
+    AND checks.check_type = 'http'
+JOIN LATERAL (
+    SELECT http_results.started_at,
+           http_results.finished_at,
+           http_results.duration_ms,
+           http_results.status,
+           http_results.dns_duration_ms,
+           http_results.connect_duration_ms,
+           http_results.tls_duration_ms,
+           http_results.ttfb_duration_ms,
+           http_results.resolved_ip,
+           http_results.ip_family,
+           http_results.status_code,
+           http_results.final_url,
+           http_results.redirect_count,
+           http_results.response_bytes,
+           http_results.response_truncated,
+           http_results.body_matched,
+           http_results.tls_version,
+           http_results.tls_cipher_suite,
+           http_results.certificate_not_before,
+           http_results.certificate_not_after,
+           http_results.error_code,
+           http_results.error_message
+    FROM http_results
+    WHERE http_results.probe_id = probes.internal_id
+      AND http_results.check_id = checks.internal_id
+    ORDER BY http_results.started_at DESC
+    LIMIT 1
+) latest ON TRUE
+WHERE probe_check_assignments.project_id = sqlc.arg(project_id)
+  AND probe_check_assignments.deleted_at IS NULL
+  AND probes.deleted_at IS NULL
+  AND checks.deleted_at IS NULL
+  AND (
+      sqlc.narg(probe_id)::uuid IS NULL
+      OR probes.id = sqlc.narg(probe_id)::uuid
+  )
+  AND (
+      sqlc.narg(check_id)::uuid IS NULL
+      OR checks.id = sqlc.narg(check_id)::uuid
+  )
+ORDER BY latest.started_at DESC, probes.id ASC, checks.id ASC;
+
 -- name: CountHTTPResultSeriesPoints :one
 SELECT count(*)::bigint FROM http_results
 WHERE probe_id = sqlc.arg(probe_storage_id) AND check_id = sqlc.arg(check_storage_id)

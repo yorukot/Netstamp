@@ -6,12 +6,21 @@ import { MultiSeriesInsightPanel } from "@/features/insight/components/MultiSeri
 import { PingInsightPanel } from "@/features/insight/components/PingInsightPanel";
 import { TcpInsightPanel } from "@/features/insight/components/TcpInsightPanel";
 import { TracerouteInsightPanel } from "@/features/insight/components/TracerouteInsightPanel";
+import { latestHTTPResultForPair, latestHttpResultMap } from "@/features/insight/data/httpResultData";
 import { buildInsightPairs, parseInsightUrlState, refreshDurations } from "@/features/insight/insightPageState";
 import { type InsightPair, type InsightRefreshInterval, type InsightRelativeRange, type TimeWindow } from "@/features/insight/insightTypes";
 import { mapApiProbes } from "@/features/probes/api/probeAdapters";
 import { projectQueries } from "@/shared/api/queries";
 import { apiQueryKeys } from "@/shared/api/queryKeys";
-import { type HttpInsightResponse, type HttpSeriesResponse, type PingInsightResponse, type PingSeriesResponse, type TcpInsightResponse, type TcpSeriesResponse } from "@/shared/api/types";
+import {
+	type HttpInsightResponse,
+	type HttpSeriesResponse,
+	type LatestHttpResult,
+	type PingInsightResponse,
+	type PingSeriesResponse,
+	type TcpInsightResponse,
+	type TcpSeriesResponse
+} from "@/shared/api/types";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
@@ -31,6 +40,8 @@ function InsightPairDetail({
 	tcpSeriesData,
 	httpInsightData,
 	httpSeriesData,
+	httpLatestResult,
+	nowMs,
 	isPingInsightLoading,
 	isPingSeriesLoading,
 	isPingFetching,
@@ -38,6 +49,7 @@ function InsightPairDetail({
 	isTCPSeriesLoading,
 	isTCPFetching,
 	isHTTPLoading,
+	isHTTPLatestLoading,
 	isHTTPFetching,
 	onSelectTimeWindow
 }: {
@@ -48,6 +60,8 @@ function InsightPairDetail({
 	tcpSeriesData: TcpSeriesResponse | undefined;
 	httpInsightData: HttpInsightResponse | undefined;
 	httpSeriesData: HttpSeriesResponse | undefined;
+	httpLatestResult: LatestHttpResult | undefined;
+	nowMs: number;
 	isPingInsightLoading: boolean;
 	isPingSeriesLoading: boolean;
 	isPingFetching: boolean;
@@ -55,6 +69,7 @@ function InsightPairDetail({
 	isTCPSeriesLoading: boolean;
 	isTCPFetching: boolean;
 	isHTTPLoading: boolean;
+	isHTTPLatestLoading: boolean;
 	isHTTPFetching: boolean;
 	onSelectTimeWindow: (timeWindow: TimeWindow) => void;
 }) {
@@ -87,7 +102,10 @@ function InsightPairDetail({
 				selectedTarget={pair.check}
 				insightData={httpInsightData}
 				seriesData={httpSeriesData}
+				latestResult={httpLatestResult}
+				nowMs={nowMs}
 				isLoading={isHTTPLoading}
+				isLatestLoading={isHTTPLatestLoading}
 				isFetching={isHTTPFetching}
 				onSelectTimeWindow={onSelectTimeWindow}
 			/>
@@ -190,6 +208,7 @@ export function InsightPage() {
 		[activeCheckIdSet, activeCheckIds.length, activeProbeIdSet, activeProbeIds.length, hasInvalidFocus, hasResultScope, legacySelectedPairs, pairs, usesLegacyAssignmentScope]
 	);
 	const exactPair = selectedPairs.length === 1 ? selectedPairs[0] : null;
+	const hasSelectedHTTPPairs = selectedPairs.some(pair => pair.check.type === "HTTP");
 	const selectedProbe = activeProbeIds.length === 1 ? (selectableProbes.find(probe => probe.id === activeProbeIds[0]) ?? null) : null;
 	const selectedCheck = activeCheckIds.length === 1 ? (selectableChecks.find(check => check.id === activeCheckIds[0]) ?? null) : null;
 	const canQueryPairDetail = Boolean(projectRef && exactPair);
@@ -233,6 +252,12 @@ export function InsightPage() {
 		...projectQueries.httpSeries(projectRef || "", exactPair?.probeId || "", exactPair?.checkId || "", resultWindowFilters),
 		enabled: Boolean(canQueryPairDetail && exactPair?.check.type === "HTTP")
 	});
+	const latestHTTPResultsQuery = useQuery({
+		...projectQueries.latestHttpResults(projectRef || ""),
+		enabled: Boolean(projectRef && hasSelectedHTTPPairs)
+	});
+	const latestHTTPResultsByPair = useMemo(() => latestHttpResultMap(latestHTTPResultsQuery.data?.results), [latestHTTPResultsQuery.data?.results]);
+	const exactLatestHTTPResult = latestHTTPResultForPair(latestHTTPResultsByPair, exactPair);
 	const tracerouteInsightQuery = useQuery({
 		...projectQueries.tracerouteInsight(projectRef || "", exactPair?.probeId || "", exactPair?.checkId || "", resultWindowFilters),
 		enabled: canQueryTracerouteDetail
@@ -462,6 +487,8 @@ export function InsightPage() {
 			tcpSeriesData={tcpSeriesQuery.data}
 			httpInsightData={httpInsightQuery.data}
 			httpSeriesData={httpSeriesQuery.data}
+			httpLatestResult={exactLatestHTTPResult}
+			nowMs={nowMs}
 			isPingInsightLoading={pingInsightQuery.isLoading}
 			isPingSeriesLoading={pingSeriesQuery.isLoading}
 			isPingFetching={pingInsightQuery.isFetching || pingSeriesQuery.isFetching}
@@ -469,7 +496,8 @@ export function InsightPage() {
 			isTCPSeriesLoading={tcpSeriesQuery.isLoading}
 			isTCPFetching={tcpInsightQuery.isFetching || tcpSeriesQuery.isFetching}
 			isHTTPLoading={httpInsightQuery.isLoading || httpSeriesQuery.isLoading}
-			isHTTPFetching={httpInsightQuery.isFetching || httpSeriesQuery.isFetching}
+			isHTTPLatestLoading={latestHTTPResultsQuery.isLoading}
+			isHTTPFetching={httpInsightQuery.isFetching || httpSeriesQuery.isFetching || latestHTTPResultsQuery.isFetching}
 			onSelectTimeWindow={applyAbsoluteWindow}
 		/>
 	);
@@ -497,7 +525,16 @@ export function InsightPage() {
 		) : null;
 	const detailPanels =
 		selectedPairs.length > 1 ? (
-			<MultiSeriesInsightPanel projectRef={projectRef} pairs={selectedPairs} filters={resultWindowFilters} onSelectTimeWindow={applyAbsoluteWindow} />
+			<MultiSeriesInsightPanel
+				projectRef={projectRef}
+				pairs={selectedPairs}
+				filters={resultWindowFilters}
+				latestHTTPResults={latestHTTPResultsQuery.data?.results}
+				nowMs={nowMs}
+				isLatestHTTPLoading={latestHTTPResultsQuery.isLoading}
+				isLatestHTTPFetching={latestHTTPResultsQuery.isFetching}
+				onSelectTimeWindow={applyAbsoluteWindow}
+			/>
 		) : exactPair?.check.type === "Traceroute" ? (
 			tracerouteDetail
 		) : (

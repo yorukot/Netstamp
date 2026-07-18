@@ -1,0 +1,26 @@
+.identity,
+.certificateState {
+	display: grid;
+	gap: 0.25rem;
+	min-width: 0;
+}
+
+.identity strong,
+.identity small,
+.certificateState small {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.identity strong {
+	color: var(--ns-text);
+	font-size: 0.8125rem;
+}
+
+.identity small,
+.certificateState small {
+	color: var(--ns-text-low);
+	font-size: 0.6875rem;
+}

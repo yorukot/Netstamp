@@ -7,6 +7,7 @@ package sqlc
 
 import (
 	"context"
+	"net/netip"
 	"time"
 
 	"github.com/google/uuid"
@@ -348,6 +349,161 @@ func (q *Queries) ListHTTPMetricRollupSeries(ctx context.Context, arg ListHTTPMe
 	for rows.Next() {
 		var i ListHTTPMetricRollupSeriesRow
 		if err := rows.Scan(&i.BucketMs, &i.Value); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listLatestHTTPResults = `-- name: ListLatestHTTPResults :many
+SELECT probes.id AS probe_id,
+       checks.id AS check_id,
+       latest.started_at,
+       latest.finished_at,
+       latest.duration_ms,
+       latest.status,
+       latest.dns_duration_ms,
+       latest.connect_duration_ms,
+       latest.tls_duration_ms,
+       latest.ttfb_duration_ms,
+       latest.resolved_ip,
+       latest.ip_family,
+       latest.status_code,
+       latest.final_url,
+       latest.redirect_count,
+       latest.response_bytes,
+       latest.response_truncated,
+       latest.body_matched,
+       latest.tls_version,
+       latest.tls_cipher_suite,
+       latest.certificate_not_before,
+       latest.certificate_not_after,
+       latest.error_code,
+       latest.error_message
+FROM probe_check_assignments
+JOIN probes
+    ON probes.project_id = probe_check_assignments.project_id
+    AND probes.id = probe_check_assignments.probe_id
+JOIN checks
+    ON checks.project_id = probe_check_assignments.project_id
+    AND checks.id = probe_check_assignments.check_id
+    AND checks.check_type = 'http'
+JOIN LATERAL (
+    SELECT http_results.started_at,
+           http_results.finished_at,
+           http_results.duration_ms,
+           http_results.status,
+           http_results.dns_duration_ms,
+           http_results.connect_duration_ms,
+           http_results.tls_duration_ms,
+           http_results.ttfb_duration_ms,
+           http_results.resolved_ip,
+           http_results.ip_family,
+           http_results.status_code,
+           http_results.final_url,
+           http_results.redirect_count,
+           http_results.response_bytes,
+           http_results.response_truncated,
+           http_results.body_matched,
+           http_results.tls_version,
+           http_results.tls_cipher_suite,
+           http_results.certificate_not_before,
+           http_results.certificate_not_after,
+           http_results.error_code,
+           http_results.error_message
+    FROM http_results
+    WHERE http_results.probe_id = probes.internal_id
+      AND http_results.check_id = checks.internal_id
+    ORDER BY http_results.started_at DESC
+    LIMIT 1
+) latest ON TRUE
+WHERE probe_check_assignments.project_id = $1
+  AND probe_check_assignments.deleted_at IS NULL
+  AND probes.deleted_at IS NULL
+  AND checks.deleted_at IS NULL
+  AND (
+      $2::uuid IS NULL
+      OR probes.id = $2::uuid
+  )
+  AND (
+      $3::uuid IS NULL
+      OR checks.id = $3::uuid
+  )
+ORDER BY latest.started_at DESC, probes.id ASC, checks.id ASC
+`
+
+type ListLatestHTTPResultsParams struct {
+	ProjectID uuid.UUID  `json:"project_id"`
+	ProbeID   *uuid.UUID `json:"probe_id"`
+	CheckID   *uuid.UUID `json:"check_id"`
+}
+
+type ListLatestHTTPResultsRow struct {
+	ProbeID              uuid.UUID   `json:"probe_id"`
+	CheckID              uuid.UUID   `json:"check_id"`
+	StartedAt            time.Time   `json:"started_at"`
+	FinishedAt           time.Time   `json:"finished_at"`
+	DurationMs           int32       `json:"duration_ms"`
+	Status               HttpStatus  `json:"status"`
+	DnsDurationMs        *float64    `json:"dns_duration_ms"`
+	ConnectDurationMs    *float64    `json:"connect_duration_ms"`
+	TlsDurationMs        *float64    `json:"tls_duration_ms"`
+	TtfbDurationMs       *float64    `json:"ttfb_duration_ms"`
+	ResolvedIp           *netip.Addr `json:"resolved_ip"`
+	IpFamily             *IpFamily   `json:"ip_family"`
+	StatusCode           *int32      `json:"status_code"`
+	FinalUrl             *string     `json:"final_url"`
+	RedirectCount        int32       `json:"redirect_count"`
+	ResponseBytes        *int64      `json:"response_bytes"`
+	ResponseTruncated    bool        `json:"response_truncated"`
+	BodyMatched          *bool       `json:"body_matched"`
+	TlsVersion           *string     `json:"tls_version"`
+	TlsCipherSuite       *string     `json:"tls_cipher_suite"`
+	CertificateNotBefore *time.Time  `json:"certificate_not_before"`
+	CertificateNotAfter  *time.Time  `json:"certificate_not_after"`
+	ErrorCode            *string     `json:"error_code"`
+	ErrorMessage         *string     `json:"error_message"`
+}
+
+func (q *Queries) ListLatestHTTPResults(ctx context.Context, arg ListLatestHTTPResultsParams) ([]ListLatestHTTPResultsRow, error) {
+	rows, err := q.db.Query(ctx, listLatestHTTPResults, arg.ProjectID, arg.ProbeID, arg.CheckID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListLatestHTTPResultsRow
+	for rows.Next() {
+		var i ListLatestHTTPResultsRow
+		if err := rows.Scan(
+			&i.ProbeID,
+			&i.CheckID,
+			&i.StartedAt,
+			&i.FinishedAt,
+			&i.DurationMs,
+			&i.Status,
+			&i.DnsDurationMs,
+			&i.ConnectDurationMs,
+			&i.TlsDurationMs,
+			&i.TtfbDurationMs,
+			&i.ResolvedIp,
+			&i.IpFamily,
+			&i.StatusCode,
+			&i.FinalUrl,
+			&i.RedirectCount,
+			&i.ResponseBytes,
+			&i.ResponseTruncated,
+			&i.BodyMatched,
+			&i.TlsVersion,
+			&i.TlsCipherSuite,
+			&i.CertificateNotBefore,
+			&i.CertificateNotAfter,
+			&i.ErrorCode,
+			&i.ErrorMessage,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
