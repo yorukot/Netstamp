@@ -1,4 +1,3 @@
-import defaultStatusPageCover from "@/features/status-pages/assets/default-status-page-cover.svg";
 import { pathForStatusPageEditor } from "@/routes/routePaths";
 import {
 	useCreatePublicStatusElementMutation,
@@ -52,7 +51,18 @@ interface CheckOption {
 	name: string;
 	type: string;
 	target: string;
+	assignmentIds: string[];
+	viewpoints: Array<{
+		id: string;
+		name: string;
+		locationName?: string;
+		latitude?: number;
+		longitude?: number;
+	}>;
 }
+
+const supportedStatusCheckTypes = new Set(["http", "ping", "tcp"]);
+const emptyAssignments: ApiProjectAssignment[] = [];
 
 const themeOptions = [
 	{ value: "auto", label: "Auto" },
@@ -80,18 +90,23 @@ const blockLibrary: Array<{ mode: DisplayMode; title: string; description: strin
 	{ mode: "map", title: "Probe map", description: "Show public monitoring locations on a map.", icon: <MapTrifoldIcon aria-hidden="true" /> }
 ];
 
-function createDefaultPage(): PageDraft {
+function newCoverURL() {
+	const seed = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+	return `https://picsum.photos/2000/500?random=${seed}`;
+}
+
+function createDefaultPage(withCover = true): PageDraft {
 	return {
 		slug: "new-status-page",
 		title: "Service Status",
 		description: "Live availability and incident updates for our services.",
 		enabled: false,
 		footerText: "Measurements are collected by Netstamp monitoring probes.",
-		bannerImageUrl: undefined,
+		bannerImageUrl: withCover ? newCoverURL() : undefined,
 		theme: "auto",
 		showTargets: false,
-		showProbeNames: false,
-		showProbeLocations: false,
+		showProbeNames: true,
+		showProbeLocations: true,
 		showIncidentHistory: true,
 		showGeneratedAt: true,
 		customCss: undefined,
@@ -101,7 +116,7 @@ function createDefaultPage(): PageDraft {
 }
 
 function pageDraft(page: ApiPublicStatusPage): PageDraft {
-	const defaults = createDefaultPage();
+	const defaults = createDefaultPage(false);
 	return {
 		slug: page.slug,
 		title: page.title,
@@ -121,13 +136,16 @@ function pageDraft(page: ApiPublicStatusPage): PageDraft {
 	};
 }
 
-function elementDraft(element: ApiPublicStatusElement): ElementDraft {
+function elementDraft(element: ApiPublicStatusElement, checks: CheckOption[]): ElementDraft {
+	const resolvedCheckId =
+		element.checkId ??
+		(element.assignmentSelectionMode === "selected_assignments" ? undefined : (checks.find(check => check.name === element.checkName || check.name === element.title)?.id ?? checks[0]?.id));
 	return {
 		localId: element.id,
 		persistedId: element.id,
 		parentLocalId: element.parentElementId,
 		kind: element.kind,
-		checkId: element.checkId,
+		checkId: resolvedCheckId,
 		assignmentSelectionMode: element.assignmentSelectionMode,
 		assignmentIds: element.assignmentIds,
 		title: element.title,
@@ -163,15 +181,84 @@ function normalizedPage(page: PageDraft): PageDraft {
 function checkOptions(assignments: ApiProjectAssignment[]) {
 	const options = new Map<string, CheckOption>();
 	for (const assignment of assignments) {
-		if (!assignment.check || options.has(assignment.checkId)) continue;
-		options.set(assignment.checkId, {
+		if (!assignment.check || !supportedStatusCheckTypes.has(assignment.check.type)) continue;
+		const option = options.get(assignment.checkId) ?? {
 			id: assignment.checkId,
 			name: assignment.check.name,
 			type: assignment.check.type,
-			target: assignment.check.target
-		});
+			target: assignment.check.target,
+			assignmentIds: [],
+			viewpoints: []
+		};
+		option.assignmentIds.push(assignment.id);
+		if (assignment.probe && !option.viewpoints.some(viewpoint => viewpoint.id === assignment.probeId)) {
+			option.viewpoints.push({
+				id: assignment.probeId,
+				name: assignment.probe.name,
+				locationName: assignment.probe.locationName,
+				latitude: assignment.probe.latitude,
+				longitude: assignment.probe.longitude
+			});
+		}
+		options.set(assignment.checkId, option);
 	}
 	return [...options.values()].sort((left, right) => left.name.localeCompare(right.name));
+}
+
+function defaultDashboardElements(checks: CheckOption[]): ElementDraft[] {
+	if (!checks.length) return [];
+	const serviceGroupId = localID();
+	const networkGroupId = localID();
+	const modes: Array<{ mode: DisplayMode; groupId: string; title: string; description: string }> = [
+		{ mode: "status", groupId: serviceGroupId, title: "Current availability", description: "Live assignment health, uptime, and active viewpoints." },
+		{ mode: "history", groupId: serviceGroupId, title: "Incident history", description: "Recent degradation and recovery context." },
+		{ mode: "latency", groupId: networkGroupId, title: "Latency performance", description: "Current, median, and percentile response trends." },
+		{ mode: "map", groupId: networkGroupId, title: "Monitoring locations", description: "Public probe coverage using configured coordinates." }
+	];
+
+	return [
+		{
+			localId: serviceGroupId,
+			kind: "folder",
+			assignmentIds: [],
+			title: "Service health",
+			description: "Availability and incident context for customer-facing services.",
+			sortOrder: 0,
+			displayMode: "status",
+			chartMode: "inherit"
+		},
+		{
+			localId: networkGroupId,
+			kind: "folder",
+			assignmentIds: [],
+			title: "Performance and coverage",
+			description: "Latency trends and the probes observing this network.",
+			sortOrder: 1,
+			displayMode: "status",
+			chartMode: "inherit"
+		},
+		...modes.map((feature, index) => {
+			const check = checks[index % checks.length] as CheckOption;
+			return {
+				localId: localID(),
+				parentLocalId: feature.groupId,
+				kind: "assignment_group" as const,
+				checkId: check.id,
+				assignmentSelectionMode: "all_check" as const,
+				assignmentIds: [],
+				title: `${check.name} · ${feature.title}`,
+				description: feature.description,
+				sortOrder: index % 2,
+				displayMode: feature.mode,
+				chartMode: feature.mode === "latency" ? ("compact" as const) : ("inherit" as const),
+				chartRange: feature.mode === "latency" ? ("24h" as const) : undefined
+			};
+		})
+	];
+}
+
+function checkForElement(element: ElementDraft, checks: CheckOption[]) {
+	return checks.find(check => check.id === element.checkId) ?? checks.find(check => element.assignmentIds?.some(assignmentId => check.assignmentIds.includes(assignmentId)));
 }
 
 export function StatusPageBuilderPage() {
@@ -186,8 +273,12 @@ export function StatusPageBuilderPage() {
 		...projectQueries.assignments(projectRef || ""),
 		enabled: Boolean(projectRef)
 	});
+	const assignments = assignmentsQuery.data?.assignments ?? emptyAssignments;
+	const checks = useMemo(() => checkOptions(assignments), [assignments]);
+	const [defaultPage] = useState(createDefaultPage);
+	const defaultElements = useMemo(() => defaultDashboardElements(checks), [checks]);
 
-	if (!projectRef || (!creating && detailQuery.isPending)) {
+	if (!projectRef || assignmentsQuery.isPending || (!creating && detailQuery.isPending)) {
 		return <Spinner label="Loading status page builder" layout="page" size="lg" />;
 	}
 
@@ -208,9 +299,9 @@ export function StatusPageBuilderPage() {
 			key={page?.id ?? "new"}
 			projectRef={projectRef}
 			pageId={page?.id}
-			initialPage={page ? pageDraft(page) : createDefaultPage()}
-			initialElements={(detailQuery.data?.elements ?? []).map(elementDraft)}
-			assignments={assignmentsQuery.data?.assignments ?? []}
+			initialPage={page ? pageDraft(page) : defaultPage}
+			initialElements={page ? (detailQuery.data?.elements ?? []).map(element => elementDraft(element, checks)) : defaultElements}
+			assignments={assignments}
 			assignmentsLoading={assignmentsQuery.isPending}
 		/>
 	);
@@ -518,8 +609,15 @@ function StatusPageBuilderWorkspace({
 			setAddingBlock(false);
 			return;
 		}
-		if (elements.some(element => element.kind === "assignment_group" && !element.checkId)) {
-			pushErrorToast("Every status block needs a check.");
+		const invalidElement = elements.find(
+			element =>
+				element.kind === "assignment_group" &&
+				((element.assignmentSelectionMode === "selected_assignments" && !element.assignmentIds?.length) || (element.assignmentSelectionMode !== "selected_assignments" && !element.checkId))
+		);
+		if (invalidElement) {
+			setSelectedId(invalidElement.localId);
+			setAddingBlock(false);
+			pushErrorToast(invalidElement.assignmentSelectionMode === "selected_assignments" ? "Select at least one assignment for this block." : "Select a check for this block.");
 			return;
 		}
 
@@ -753,7 +851,7 @@ function PageSettings({ page, update }: { page: PageDraft; update: <K extends ke
 			<TextAreaField label="Footer text" value={page.footerText ?? ""} maxLength={2048} rows={3} onChange={event => update("footerText", event.currentTarget.value)} />
 			<TextField
 				label="Banner image URL"
-				helper="Use an absolute HTTPS image URL. Leave empty for the Netstamp banner."
+				helper="New pages start with a fixed Picsum image URL. Replace it with any absolute HTTPS image URL."
 				type="url"
 				value={page.bannerImageUrl ?? ""}
 				onChange={event => update("bannerImageUrl", event.currentTarget.value)}
@@ -763,7 +861,7 @@ function PageSettings({ page, update }: { page: PageDraft; update: <K extends ke
 			<div className={styles.fieldGroup}>
 				<div className={styles.fieldGroupHeading}>
 					<strong>Public data</strong>
-					<Badge tone="accent">Private by default</Badge>
+					<Badge tone="accent">Review exposure</Badge>
 				</div>
 				<PrivacyToggle label="Show check targets" detail="May reveal IP addresses, hostnames, or internal URLs." checked={page.showTargets} onChange={value => update("showTargets", value)} />
 				<PrivacyToggle label="Show probe names" detail="Publishes the configured probe display name." checked={page.showProbeNames} onChange={value => update("showProbeNames", value)} />
@@ -1038,7 +1136,11 @@ function StatusPageCanvas({
 				{previewCSS ? <style>{previewCSS}</style> : null}
 				<div className={styles.publicShell}>
 					<header className={`${styles.previewHero} ns-status-hero`}>
-						<img className={`${styles.previewBanner} ns-status-banner`} src={page.bannerImageUrl || defaultStatusPageCover} alt="" />
+						{page.bannerImageUrl ? (
+							<img className={`${styles.previewBanner} ns-status-banner`} src={page.bannerImageUrl} alt="" />
+						) : (
+							<div className={`${styles.previewBanner} ns-status-banner`} aria-hidden="true" />
+						)}
 						<div className={styles.previewHeroBody}>
 							<div className={styles.previewBrand}>
 								<img src={previewTheme === "dark" ? netstampLogoLight : netstampLogoDark} alt="Netstamp" />
@@ -1110,7 +1212,7 @@ function StatusPageCanvas({
 									<PreviewBlock
 										key={element.localId}
 										element={element}
-										check={checks.find(check => check.id === element.checkId)}
+										check={checkForElement(element, checks)}
 										page={page}
 										selected={element.localId === selectedId}
 										dragging={element.localId === draggingId}
@@ -1193,7 +1295,7 @@ function PreviewGroup({
 						<PreviewBlock
 							key={element.localId}
 							element={element}
-							check={checks.find(check => check.id === element.checkId)}
+							check={checkForElement(element, checks)}
 							page={page}
 							selected={element.localId === selectedId}
 							dragging={element.localId === draggingId}
@@ -1240,9 +1342,19 @@ function PreviewBlock({
 	onRemove: (id: string) => void;
 	onReorderStart: (event: PointerEvent<HTMLElement>, id: string) => void;
 }) {
-	const metadata = [check?.type, page.showTargets ? check?.target : undefined, page.showProbeNames ? "Probe names" : undefined, page.showProbeLocations ? "Public locations" : undefined].filter(
-		Boolean
-	);
+	const probeNames = summarizeValues(check?.viewpoints.map(viewpoint => viewpoint.name) ?? []);
+	const probeLocations = summarizeValues(check?.viewpoints.flatMap(viewpoint => (viewpoint.locationName ? [viewpoint.locationName] : [])) ?? []);
+	const metadata = [check?.type, page.showTargets ? check?.target : undefined, page.showProbeNames ? probeNames : undefined, page.showProbeLocations ? probeLocations : undefined].filter(Boolean);
+	const mapPoints = (check?.viewpoints ?? []).flatMap(viewpoint => {
+		if (typeof viewpoint.latitude !== "number" || typeof viewpoint.longitude !== "number") return [];
+		return [
+			{
+				...viewpoint,
+				left: Math.min(94, Math.max(6, ((viewpoint.longitude + 180) / 360) * 100)),
+				top: Math.min(88, Math.max(12, ((90 - viewpoint.latitude) / 180) * 100))
+			}
+		];
+	});
 
 	return (
 		<article
@@ -1277,7 +1389,7 @@ function PreviewBlock({
 				<div className={styles.previewMetrics}>
 					<PreviewMetric label="Availability" value="99.98%" />
 					<PreviewMetric label="Median latency" value="28 ms" />
-					<PreviewMetric label="Viewpoints" value="6 active" />
+					<PreviewMetric label="Viewpoints" value={`${check?.viewpoints.length ?? 0} active`} />
 				</div>
 			) : null}
 			{element.displayMode === "history" ? (
@@ -1303,16 +1415,31 @@ function PreviewBlock({
 				</>
 			) : null}
 			{element.displayMode === "map" && page.showProbeLocations ? (
-				<div className={styles.miniMap} aria-label="Example public probe map">
-					<span style={{ left: "22%", top: "58%" }} />
-					<span style={{ left: "48%", top: "38%" }} />
-					<span style={{ left: "78%", top: "62%" }} />
-					<small>3 public monitoring locations</small>
+				<div className={styles.miniMap} aria-label="Configured public probe locations">
+					<svg viewBox="0 0 100 48" preserveAspectRatio="none" aria-hidden="true">
+						<path d="M0 12H100M0 24H100M0 36H100M20 0V48M40 0V48M60 0V48M80 0V48" />
+					</svg>
+					{mapPoints.map(point => (
+						<span
+							key={point.id}
+							style={{ left: `${point.left}%`, top: `${point.top}%` }}
+							title={[point.name, point.locationName].filter(Boolean).join(" / ")}
+							role="img"
+							aria-label={[point.name, point.locationName].filter(Boolean).join(" / ")}
+						/>
+					))}
+					<small>{mapPoints.length ? `${mapPoints.length} configured monitoring ${mapPoints.length === 1 ? "location" : "locations"}` : "No probe coordinates configured"}</small>
 				</div>
 			) : null}
 			{element.displayMode === "map" && !page.showProbeLocations ? <div className={styles.mapPrivacyNotice}>Enable public probe locations to render this map.</div> : null}
 		</article>
 	);
+}
+
+function summarizeValues(values: string[]) {
+	const unique = [...new Set(values.filter(Boolean))];
+	if (unique.length <= 2) return unique.join(", ");
+	return `${unique.slice(0, 2).join(", ")} +${unique.length - 2}`;
 }
 
 function PreviewMetric({ label, value }: { label: string; value: string }) {

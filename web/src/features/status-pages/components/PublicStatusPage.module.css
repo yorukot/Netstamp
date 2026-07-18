@@ -23,7 +23,6 @@
 	width: 100%;
 	height: clamp(14rem, 30vw, 18.75rem);
 	background-color: var(--ns-surface-deep);
-	background-image: url("../assets/default-status-page-cover.svg");
 	background-position: center;
 	background-size: cover;
 }

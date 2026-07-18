@@ -111,7 +111,7 @@ export function PublicStatusPage() {
 				{summary.page.bannerImageUrl ? (
 					<img className={`${styles.banner} ${styles.bannerImage} ns-status-banner`} src={summary.page.bannerImageUrl} alt="" />
 				) : (
-					<div className={`${styles.banner} ns-status-banner`} role="img" aria-label="Network telemetry paths between global monitoring locations" />
+					<div className={`${styles.banner} ns-status-banner`} aria-hidden="true" />
 				)}
 				<div className={styles.heroBody}>
 					<div className={styles.brandRow}>
