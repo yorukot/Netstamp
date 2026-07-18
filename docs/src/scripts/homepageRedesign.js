@@ -24,6 +24,7 @@ function initHomepage() {
 	const cleanupTasks = [];
 	initRouteField(root, cleanupTasks);
 	initCable(root, cleanupTasks);
+	initProductShowcase(root, cleanupTasks);
 	initHomepageScrollEffects(root, cleanupTasks);
 
 	window[cleanupKey] = () => {
@@ -33,6 +34,125 @@ function initHomepage() {
 		}
 	};
 }
+
+const initProductShowcase = (root, cleanupTasks) => {
+	const showcase = root.querySelector("[data-product-showcase]");
+	if (!(showcase instanceof HTMLElement)) return;
+
+	const controls = showcase.querySelector("[data-showcase-controls]");
+	const caption = showcase.querySelector("[data-showcase-caption]");
+	const triggers = Array.from(showcase.querySelectorAll("[data-showcase-trigger]")).filter(element => element instanceof HTMLButtonElement);
+	const images = Array.from(showcase.querySelectorAll("[data-showcase-image]")).filter(element => element instanceof HTMLImageElement);
+	if (!(controls instanceof HTMLElement) || !(caption instanceof HTMLElement) || !triggers.length || triggers.length !== images.length) return;
+
+	const controller = new AbortController();
+	const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+	let activeIndex = 0;
+	let interval = null;
+	let pointerPaused = false;
+	let focusPaused = false;
+	let visible = true;
+
+	const setActiveIndex = nextIndex => {
+		activeIndex = (nextIndex + triggers.length) % triggers.length;
+
+		triggers.forEach((trigger, index) => {
+			const active = index === activeIndex;
+			trigger.classList.toggle("is-active", active);
+			trigger.setAttribute("aria-pressed", String(active));
+		});
+
+		images.forEach((image, index) => image.classList.toggle("is-active", index === activeIndex));
+		caption.textContent = triggers[activeIndex].dataset.showcaseDescription || triggers[activeIndex].textContent?.trim() || "Netstamp product highlight";
+	};
+
+	const stopSlideshow = () => {
+		if (interval !== null) {
+			window.clearInterval(interval);
+			interval = null;
+		}
+	};
+
+	const startSlideshow = () => {
+		stopSlideshow();
+		if (reduceMotion || pointerPaused || focusPaused || !visible || document.hidden) return;
+
+		interval = window.setInterval(() => setActiveIndex(activeIndex + 1), 4800);
+	};
+
+	triggers.forEach((trigger, index) => {
+		trigger.addEventListener(
+			"pointerenter",
+			() => {
+				pointerPaused = true;
+				stopSlideshow();
+				setActiveIndex(index);
+			},
+			{ signal: controller.signal }
+		);
+		trigger.addEventListener("click", () => setActiveIndex(index), { signal: controller.signal });
+		trigger.addEventListener(
+			"focus",
+			() => {
+				focusPaused = true;
+				stopSlideshow();
+				setActiveIndex(index);
+			},
+			{ signal: controller.signal }
+		);
+		trigger.addEventListener(
+			"keydown",
+			event => {
+				let nextIndex = null;
+				if (event.key === "ArrowRight" || event.key === "ArrowDown") nextIndex = index + 1;
+				if (event.key === "ArrowLeft" || event.key === "ArrowUp") nextIndex = index - 1;
+				if (event.key === "Home") nextIndex = 0;
+				if (event.key === "End") nextIndex = triggers.length - 1;
+				if (nextIndex === null) return;
+
+				event.preventDefault();
+				triggers[(nextIndex + triggers.length) % triggers.length].focus();
+			},
+			{ signal: controller.signal }
+		);
+	});
+
+	controls.addEventListener(
+		"pointerleave",
+		() => {
+			pointerPaused = false;
+			startSlideshow();
+		},
+		{ signal: controller.signal }
+	);
+	controls.addEventListener(
+		"focusout",
+		event => {
+			if (event.relatedTarget instanceof Node && controls.contains(event.relatedTarget)) return;
+			focusPaused = false;
+			startSlideshow();
+		},
+		{ signal: controller.signal }
+	);
+	document.addEventListener("visibilitychange", startSlideshow, { signal: controller.signal });
+
+	const observer = new IntersectionObserver(
+		entries => {
+			visible = entries.some(entry => entry.isIntersecting);
+			startSlideshow();
+		},
+		{ threshold: 0.15 }
+	);
+	observer.observe(showcase);
+	setActiveIndex(0);
+	startSlideshow();
+
+	cleanupTasks.push(() => {
+		controller.abort();
+		observer.disconnect();
+		stopSlideshow();
+	});
+};
 
 function initRouteField(root, cleanupTasks) {
 	const canvas = root.querySelector("#ns-canvas");

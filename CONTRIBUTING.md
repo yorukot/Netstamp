@@ -123,6 +123,25 @@ server/auth: validate session cookie
 
 Keep the first word after the colon lowercase unless it is a proper noun. Use an imperative, specific summary and do not end the subject with a period. Keep commits focused so reviewers can understand and validate one logical change at a time.
 
+## Frontend Code
+
+For new or modified JavaScript, TypeScript, JSX, TSX, and Astro code:
+
+- Use arrow functions by default for components, callbacks, and local helpers.
+- Use a `function` declaration only when hoisting, generator syntax, dynamic `this`/`arguments`, or a framework contract requires it.
+- Within `web/src` and `docs/src`, use the application-local `@/` alias for imports that cross directories.
+- Keep `./` imports for modules in the same directory and use package names such as `@netstamp/ui` for workspace dependencies.
+- Do not introduce parent-relative `../` import chains. Existing parent-relative imports may be migrated when their files are otherwise being changed; avoid unrelated repository-wide rewrites in a focused pull request.
+
+Example:
+
+```tsx
+import type { ApiProject } from "@/shared/api/types";
+import { ProjectCard } from "./ProjectCard";
+
+const ProjectSummary = ({ project }: { project: ApiProject }) => <ProjectCard project={project} />;
+```
+
 ## Generated API Artifacts
 
 TypeSpec is the API contract source of truth. After changing API models or operations, run:
@@ -170,7 +189,7 @@ Before opening a pull request:
 4. Describe the changed area and concrete behavior.
 5. List the validation commands and manual checks performed.
 6. Link related issues with `Closes`, `Fixes`, or `Refs` when applicable.
-7. Include desktop and mobile screenshots for visible UI changes.
+7. Include desktop and mobile screenshots for visible UI changes. Upload review-only screenshots directly to the pull request description or comments; do not commit temporary preview images under `.github` or application source directories.
 8. Update generated files, documentation, and area `AGENTS.md` files when the source-of-truth behavior changes.
 
 Pull requests target `main`. The repository requires review, resolved review threads, and passing status checks before squash merge. Delete the working branch after the pull request is merged.

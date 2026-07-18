@@ -1,74 +1,146 @@
 ---
-import dashboardLight from "../../../assets/homepage-dashboard-light.png?url";
+import httpUptime from "@/assets/homepage-highlights/http-uptime.webp?url";
+import incidents from "@/assets/homepage-highlights/incidents.webp?url";
+import macbookFrame from "@/assets/homepage-highlights/macbook-frame.webp?url";
+import pingLatency from "@/assets/homepage-highlights/ping-latency.webp?url";
+import probeMap from "@/assets/homepage-highlights/probe-map.webp?url";
+import publicDashboard from "@/assets/homepage-highlights/public-dashboard.webp?url";
+import tcpReachability from "@/assets/homepage-highlights/tcp-reachability.webp?url";
+import tlsCertificates from "@/assets/homepage-highlights/tls-certificates.webp?url";
+import traceroutePaths from "@/assets/homepage-highlights/traceroute-paths.webp?url";
 
 const items = [
 	{
+		id: "probe-map",
+		title: "Probe Map",
+		description: "See every reporting location, its health, and the network view it contributes.",
+		image: probeMap,
+		icon: "map"
+	},
+	{
+		id: "ping-latency",
 		title: "Ping latency",
-		description: "See round-trip time and packet loss from each probe."
+		description: "Inspect round-trip time, packet loss, success rate, and long-running trends.",
+		image: pingLatency,
+		icon: "pulse"
 	},
 	{
+		id: "http-uptime",
 		title: "HTTP uptime",
-		description: "Measure whether your services respond correctly from real networks."
+		description: "Break requests into DNS, connect, TLS, TTFB, and total response timing.",
+		image: httpUptime,
+		icon: "globe"
 	},
 	{
+		id: "tcp-reachability",
 		title: "TCP reachability",
-		description: "Verify whether ports are reachable before users report timeouts."
+		description: "Verify whether critical ports are reachable from every assigned probe.",
+		image: tcpReachability,
+		icon: "plugs"
 	},
 	{
+		id: "traceroute-paths",
 		title: "Traceroute paths",
-		description: "Understand how traffic moves, where routes change, and where paths degrade."
+		description: "Compare route graphs, hop latency, path loss, and changes over time.",
+		image: traceroutePaths,
+		icon: "route"
 	},
 	{
+		id: "tls-certificates",
 		title: "TLS certificates",
-		description: "Track certificate validity before expired certificates become incidents."
+		description: "Alert before certificate expiry becomes an avoidable production incident.",
+		image: tlsCertificates,
+		icon: "shield"
 	},
 	{
-		title: "Probe health",
-		description: "Know which viewpoints are reporting, degraded, offline, or misconfigured."
-	},
-	{
+		id: "incidents",
 		title: "Incidents",
-		description: "Group abnormal behavior into actionable network events."
+		description: "Turn threshold breaches into focused incidents with rules and notifications.",
+		image: incidents,
+		icon: "warning"
 	},
 	{
-		title: "Historical trends",
-		description: "Keep long-term measurements in PostgreSQL and TimescaleDB for debugging, reporting, and postmortems."
+		id: "public-dashboard",
+		title: "Public Dashboard",
+		description: "Publish live component health and recent history without exposing the console.",
+		image: publicDashboard,
+		icon: "monitor"
 	}
 ];
 ---
 
-<section id="green-dot" class="showcase" aria-labelledby="green-dot-title">
-	<header>
-		<h2 id="green-dot-title">A green dot is not enough.</h2>
-		<p>Netstamp lets you see the real status and find the real problem.</p>
-	</header>
+<section id="green-dot" class="showcase" aria-labelledby="green-dot-title" data-product-showcase>
 	<div class="showcase-grid">
-		<div class="feature-gallery" aria-label="Netstamp evidence gallery">
-			{
-				items.map(item => (
-					<article>
-						<h3>{item.title}</h3>
-						<p>{item.description}</p>
-					</article>
-				))
-			}
+		<div class="showcase-copy">
+			<header>
+				<h2 id="green-dot-title">A green dot is not enough.</h2>
+				<p>Netstamp connects the current state to the evidence behind it.</p>
+			</header>
+			<div class="feature-gallery" aria-label="Netstamp product highlights" data-showcase-controls>
+				{
+					items.map((item, index) => (
+						<button
+							type="button"
+							class:list={["feature-card", { "is-active": index === 0 }]}
+							aria-controls="product-showcase-visual"
+							aria-label={`${item.title}. ${item.description}`}
+							aria-pressed={index === 0 ? "true" : "false"}
+							data-showcase-trigger
+							data-showcase-index={index}
+							data-showcase-description={item.description}
+						>
+							<span class="feature-icon" aria-hidden="true">
+								{item.icon === "map" ? <ph-map-trifold weight="regular" focusable="false" /> : null}
+								{item.icon === "pulse" ? <ph-pulse weight="regular" focusable="false" /> : null}
+								{item.icon === "globe" ? <ph-globe-hemisphere-west weight="regular" focusable="false" /> : null}
+								{item.icon === "plugs" ? <ph-plugs weight="regular" focusable="false" /> : null}
+								{item.icon === "route" ? <ph-git-branch weight="regular" focusable="false" /> : null}
+								{item.icon === "shield" ? <ph-shield-check weight="regular" focusable="false" /> : null}
+								{item.icon === "warning" ? <ph-warning weight="regular" focusable="false" /> : null}
+								{item.icon === "monitor" ? <ph-monitor weight="regular" focusable="false" /> : null}
+							</span>
+							<span class="feature-title">{item.title}</span>
+						</button>
+					))
+				}
+			</div>
+			<p id="product-showcase-caption" class="feature-caption" data-showcase-caption>{items[0].description}</p>
 		</div>
-		<figure class="dashboard-shot">
-			<img src={dashboardLight} alt="Netstamp dashboard showing probe count, active checks, and map-based network viewpoints" loading="eager" decoding="async" />
+
+		<figure id="product-showcase-visual" class="showcase-visual" aria-describedby="product-showcase-caption">
+			<div class="macbook">
+				<div class="screen-stack" aria-hidden="true">
+					{
+						items.map((item, index) => (
+							<img
+								class:list={["showcase-image", { "is-active": index === 0 }]}
+								src={item.image}
+								alt=""
+								width="1200"
+								height="780"
+								loading="eager"
+								decoding="async"
+								data-showcase-image
+								data-showcase-index={index}
+							/>
+						))
+					}
+				</div>
+				<img class="macbook-frame" src={macbookFrame} alt="" width="1200" height="727" loading="eager" decoding="async" aria-hidden="true" />
+			</div>
 		</figure>
 	</div>
 </section>
 
 <style>
 	.showcase {
+		position: relative;
+		isolation: isolate;
+		overflow: hidden;
+		overflow: clip;
 		padding: 7.5rem clamp(1rem, 4vw, 4rem) 8.5rem;
 		background: var(--ns-chrome-text);
 		color: var(--ns-bg);
-	}
-
-	header {
-		max-width: 88rem;
-		margin: 0 auto 3rem;
 	}
 
 	h2 {
@@ -89,86 +161,147 @@ const items = [
 
 	.showcase-grid {
 		display: grid;
-		grid-template-columns: minmax(20rem, 0.88fr) minmax(0, 1.45fr);
-		gap: 1.25rem;
-		align-items: stretch;
+		grid-template-columns: minmax(26rem, 0.84fr) minmax(0, 1.25fr);
+		gap: 4rem;
+		align-items: start;
 		max-width: 88rem;
 		margin: 0 auto;
+	}
+
+	.showcase-copy {
+		min-width: 0;
+	}
+
+	header {
+		margin-bottom: 3rem;
 	}
 
 	.feature-gallery {
 		display: grid;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 		gap: 0.75rem;
+		align-items: start;
 	}
 
-	article {
+	.feature-card {
 		display: grid;
-		align-content: start;
-		gap: 0.65rem;
-		min-height: 8.75rem;
-		padding: 1rem;
-		background: color-mix(in srgb, var(--ns-chrome-text) 92%, var(--ns-bg-subtle));
-	}
-
-	h3 {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.6rem;
-		margin: 0;
-		font-size: 0.88rem;
-		font-weight: 800;
-		letter-spacing: 0;
-		text-transform: uppercase;
-	}
-
-	h3::before {
-		content: "";
-		flex: 0 0 auto;
-		width: 0.7rem;
-		height: 0.7rem;
-		background: var(--ns-primary-active);
-	}
-
-	article p {
-		margin: 0;
-		color: color-mix(in srgb, var(--ns-bg) 68%, var(--ns-chrome-text));
-		font-size: 0.9rem;
-		line-height: 1.45;
-	}
-
-	.dashboard-shot {
-		position: relative;
-		display: grid;
+		grid-template-columns: auto minmax(0, 1fr);
+		column-gap: 0.75rem;
+		align-content: center;
 		min-width: 0;
+		min-height: 4.5rem;
+		padding: 1rem;
+		border: 1px solid color-mix(in srgb, var(--ns-bg) 12%, transparent);
+		border-radius: 0;
+		color: var(--ns-bg);
+		background: color-mix(in srgb, var(--ns-chrome-text) 94%, var(--ns-bg-subtle));
+		font: inherit;
+		letter-spacing: 0;
+		text-align: left;
+		cursor: pointer;
+		transition:
+			border-color var(--ns-transition),
+			background var(--ns-transition);
+	}
+
+	.feature-card:hover,
+	.feature-card.is-active {
+		border-color: color-mix(in srgb, var(--ns-primary-active) 72%, transparent);
+		background: color-mix(in srgb, var(--ns-chrome-text) 88%, var(--ns-primary-active));
+	}
+
+	.feature-card:focus-visible {
+		outline: 2px solid var(--ns-bg);
+		outline-offset: 3px;
+	}
+
+	.feature-icon {
+		display: grid;
+		place-items: center;
+		width: 1.5rem;
+		height: 1.5rem;
+		color: var(--ns-primary-active);
+	}
+
+	.feature-icon :global(ph-map-trifold),
+	.feature-icon :global(ph-pulse),
+	.feature-icon :global(ph-globe-hemisphere-west),
+	.feature-icon :global(ph-plugs),
+	.feature-icon :global(ph-git-branch),
+	.feature-icon :global(ph-shield-check),
+	.feature-icon :global(ph-warning),
+	.feature-icon :global(ph-monitor) {
+		width: 1.5rem;
+		height: 1.5rem;
+	}
+
+	.feature-title {
+		align-self: center;
+		min-width: 0;
+		font-size: 0.95rem;
+		font-weight: 800;
+		line-height: 1.25;
+	}
+
+	.feature-caption {
+		min-height: 5.5rem;
+		margin: 1.25rem 0 0;
+		padding-top: 1rem;
+		border-top: 1px solid color-mix(in srgb, var(--ns-bg) 18%, transparent);
+		color: color-mix(in srgb, var(--ns-bg) 70%, var(--ns-chrome-text));
+		font-size: 0.95rem;
+		line-height: 1.55;
+	}
+
+	.showcase-visual {
+		position: relative;
+		min-width: 0;
+		min-height: 46rem;
 		margin: 0;
-		border: 1px solid var(--ns-bg);
-		background:
-			linear-gradient(90deg, color-mix(in srgb, var(--ns-primary-active) 18%, transparent) 0 0.0625rem, transparent 0.0625rem 100%),
-			linear-gradient(180deg, color-mix(in srgb, var(--ns-primary-active) 18%, transparent) 0 0.0625rem, transparent 0.0625rem 100%), color-mix(in srgb, var(--ns-chrome-text) 94%, var(--ns-bg-subtle));
-		background-size: 4rem 4rem;
 	}
 
-	.dashboard-shot::before {
-		content: "";
+	.macbook {
 		position: absolute;
-		top: 1rem;
-		right: 1rem;
-		width: 1.25rem;
-		height: 1.25rem;
-		background: var(--ns-primary-active);
-		box-shadow:
-			-1.75rem 0 0 var(--ns-bg),
-			-3.5rem 0 0 var(--ns-chrome-text);
+		top: 50%;
+		left: 0;
+		width: 75rem;
+		aspect-ratio: 1200 / 727;
+		transform: translateY(-50%);
 	}
 
-	img {
+	.screen-stack {
+		position: absolute;
+		top: 3.0261%;
+		left: 10%;
+		z-index: 1;
+		width: 80%;
+		height: 85.9697%;
+		overflow: hidden;
+		background: var(--ns-bg);
+	}
+
+	.showcase-image {
+		position: absolute;
+		inset: 0;
+		display: block;
 		width: 100%;
 		height: 100%;
-		min-height: 32rem;
 		object-fit: cover;
-		object-position: left top;
-		padding: 3rem 1.5rem 1.5rem;
+		opacity: 0;
+		transition: opacity 360ms cubic-bezier(0.2, 0.8, 0.2, 1);
+	}
+
+	.showcase-image.is-active {
+		opacity: 1;
+	}
+
+	.macbook-frame {
+		position: relative;
+		z-index: 2;
+		display: block;
+		width: 100%;
+		height: 100%;
+		pointer-events: none;
 	}
 
 	@media (min-width: 86rem) {
@@ -180,10 +313,27 @@ const items = [
 	@media (max-width: 72rem) {
 		.showcase-grid {
 			grid-template-columns: 1fr;
+			gap: 2.5rem;
 		}
 
-		img {
-			min-height: 26rem;
+		.feature-gallery {
+			grid-template-columns: repeat(4, minmax(0, 1fr));
+		}
+
+		.showcase-visual {
+			min-height: 39rem;
+		}
+
+		.macbook {
+			left: 50%;
+			width: min(75rem, 112vw);
+			transform: translate(-50%, -50%);
+		}
+	}
+
+	@media (max-width: 56rem) {
+		.feature-gallery {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
 		}
 	}
 
@@ -200,17 +350,12 @@ const items = [
 			font-size: 1rem;
 		}
 
-		.feature-gallery {
-			grid-template-columns: 1fr;
+		.showcase-visual {
+			min-height: 29rem;
 		}
 
-		article {
-			min-height: auto;
-		}
-
-		img {
-			min-height: 18rem;
-			padding: 2.5rem 0.75rem 0.75rem;
+		.macbook {
+			width: 48rem;
 		}
 	}
 </style>

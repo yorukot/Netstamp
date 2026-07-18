@@ -12,6 +12,8 @@ Read the root `AGENTS.md`, `web/AGENTS.md`, and `design.md` before changing docs
 - Keep docs-only Astro components under `src/components/docs`.
 - Keep public homepage components under `src/components/landing`.
 - Prefer small docs-local components over growing `DocLayout.astro`; navigation, pager, page actions, callouts, cards, and TOC behavior should not all live in one layout file.
+- Use `@/` for imports that cross directories under `src`; reserve `./` for same-directory modules and do not introduce parent-relative `../` import chains.
+- Use arrow functions by default for new or modified JavaScript, TypeScript, and Astro helpers and callbacks. Use `function` only when its hoisting, generator, or dynamic `this`/`arguments` semantics are required.
 - Use `@netstamp/ui` for reusable primitives before creating docs-local controls. If Astro-only rendering prevents direct React usage, create a tokenized docs-local primitive with the same visual and accessibility contract.
 
 ## Styling And Theme

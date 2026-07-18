@@ -8,7 +8,8 @@
 - Put reusable chart, map, timeline, and other domain-neutral visualization primitives in `web/src/shared/visualizations`.
 - Put shared utilities, mock data, and data helpers in `web/src/shared/utils`.
 - Use `@netstamp/ui` for reusable primitives before adding app-local controls.
-- Use `@` aliases for imports to avoid relative paths and improve readability.
+- Use `@/` for imports that cross directories under `src`; reserve `./` for same-directory modules and do not introduce parent-relative `../` import chains.
+- Use arrow functions by default for new or modified components, callbacks, and local helpers. Use `function` only when its hoisting, generator, or dynamic `this`/`arguments` semantics are required.
 - Keep `web/src/shared/components` scoped to authenticated app layout, workflow, and provider helpers. Move cross-surface controls, form primitives, tables, panels, drawers, tabs, segmented controls, and action buttons to `@netstamp/ui`.
 - Project membership screens stay under `features/project` unless membership becomes an independently routed, cross-project domain with its own API and navigation boundary.
 - The Insight assignment picker remains feature-local until another route needs the same probe/check multi-select behavior; promote it to `@netstamp/ui` only when the generic contract is clear.
