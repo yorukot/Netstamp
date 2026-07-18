@@ -15,17 +15,21 @@
 .builder {
 	display: grid;
 	min-width: 0;
-	min-height: calc(100svh - 2rem);
+	min-height: 0;
+	height: calc(100svh - var(--app-footer-min-height, 3.25rem));
+	margin: calc(-1 * var(--app-content-padding-top, 4rem)) calc(-1 * var(--app-content-padding-inline-end, 2rem)) calc(-1 * var(--app-content-padding-bottom, 2rem))
+		calc(-1 * var(--app-content-padding-inline-start, 2rem));
+	overflow: hidden;
 	grid-template-columns: minmax(20rem, 22rem) minmax(0, 1fr);
-	align-items: start;
+	align-items: stretch;
 	gap: 0;
 }
 
 .sidebar {
-	position: sticky;
-	top: 1rem;
+	position: relative;
 	display: grid;
-	height: calc(100svh - 2rem);
+	min-height: 0;
+	height: 100%;
 	grid-template-rows: auto minmax(0, 1fr) auto;
 	background: var(--ns-bg-subtle);
 }
@@ -328,6 +332,10 @@
 .canvas {
 	display: grid;
 	min-width: 0;
+	min-height: 0;
+	height: 100%;
+	overflow-y: auto;
+	overscroll-behavior: contain;
 	background: var(--ns-bg);
 }
 
@@ -569,6 +577,9 @@
 	color: var(--status-preview-muted);
 	cursor: grab;
 	padding: 0;
+	touch-action: none;
+	user-select: none;
+	-webkit-user-select: none;
 }
 
 .dragHandle:hover {
@@ -588,6 +599,13 @@
 .dragHandle svg {
 	width: 1rem;
 	height: 1rem;
+	pointer-events: none;
+}
+
+.draggingElement {
+	opacity: 0.52;
+	outline: 1px dashed var(--ns-primary);
+	outline-offset: -1px;
 }
 
 .previewBlockActions > span {
@@ -786,6 +804,9 @@
 
 @media (max-width: 56rem) {
 	.builder {
+		height: auto;
+		min-height: calc(100svh - var(--app-footer-min-height, 3.25rem));
+		overflow: visible;
 		grid-template-columns: minmax(0, 1fr);
 	}
 
@@ -793,6 +814,11 @@
 		position: relative;
 		top: auto;
 		height: auto;
+	}
+
+	.canvas {
+		height: auto;
+		overflow: visible;
 	}
 
 	.sidebarScroll {

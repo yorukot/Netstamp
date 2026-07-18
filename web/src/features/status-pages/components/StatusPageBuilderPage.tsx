@@ -32,7 +32,8 @@ import { PlusIcon } from "@phosphor-icons/react/dist/csr/Plus";
 import { PulseIcon } from "@phosphor-icons/react/dist/csr/Pulse";
 import { TrashIcon } from "@phosphor-icons/react/dist/csr/Trash";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState, type DragEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type PointerEvent, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import { useNavigate, useParams } from "react-router-dom";
 import { CssCodeEditor } from "./CssCodeEditor";
 import styles from "./StatusPageBuilderPage.module.css";
@@ -237,7 +238,12 @@ function StatusPageBuilderWorkspace({
 	const [baselineElements, setBaselineElements] = useState<ElementDraft[]>(initialElements);
 	const [selectedId, setSelectedId] = useState<string>();
 	const [addingBlock, setAddingBlock] = useState(false);
+	const [draggingId, setDraggingId] = useState<string>();
+	const builderRef = useRef<HTMLDivElement | null>(null);
 	const draggedId = useRef<string | undefined>(undefined);
+	const lastPointerTarget = useRef<string | undefined>(undefined);
+	const dragCleanup = useRef<(() => void) | undefined>(undefined);
+	const elementsRef = useRef(elements);
 	const options = useMemo(() => checkOptions(assignments), [assignments]);
 	const selectedElement = elements.find(element => element.localId === selectedId);
 	const hasChanges = !sameValue(page, baselinePage) || !sameValue(elements, baselineElements);
@@ -247,6 +253,17 @@ function StatusPageBuilderWorkspace({
 	const updateElementMutation = useUpdatePublicStatusElementMutation(projectRef, { suppressGlobalErrorToast: true });
 	const deleteElementMutation = useDeletePublicStatusElementMutation(projectRef, { suppressGlobalErrorToast: true });
 	const saving = createPageMutation.isPending || updatePageMutation.isPending || createElementMutation.isPending || updateElementMutation.isPending || deleteElementMutation.isPending;
+
+	useEffect(() => {
+		elementsRef.current = elements;
+	}, [elements]);
+
+	useEffect(
+		() => () => {
+			dragCleanup.current?.();
+		},
+		[]
+	);
 
 	useEffect(() => {
 		if (!hasChanges) return;
@@ -317,8 +334,48 @@ function StatusPageBuilderWorkspace({
 		if (selectedId === localId) setSelectedId(undefined);
 	}
 
+	function sortRects() {
+		const rects = new Map<string, DOMRect>();
+		for (const element of builderRef.current?.querySelectorAll<HTMLElement>("[data-builder-sort-id]") ?? []) {
+			const id = element.dataset.builderSortId;
+			if (id) rects.set(id, element.getBoundingClientRect());
+		}
+		return rects;
+	}
+
+	function updateOrder(updater: (current: ElementDraft[]) => ElementDraft[]) {
+		const before = sortRects();
+		let changed = false;
+		flushSync(() => {
+			setElements(current => {
+				const next = updater(current);
+				changed = next !== current;
+				return next;
+			});
+		});
+		if (!changed || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+		const after = sortRects();
+		for (const [id, previousRect] of before) {
+			const nextRect = after.get(id);
+			const element = builderRef.current?.querySelector<HTMLElement>(`[data-builder-sort-id="${id}"]`);
+			if (!nextRect || !element) continue;
+			const deltaX = previousRect.left - nextRect.left;
+			const deltaY = previousRect.top - nextRect.top;
+			if (Math.abs(deltaX) < 1 && Math.abs(deltaY) < 1) continue;
+			for (const animation of element.getAnimations()) {
+				if (animation.id === "status-page-reorder") animation.cancel();
+			}
+			element.animate([{ transform: `translate(${deltaX}px, ${deltaY}px)` }, { transform: "translate(0, 0)" }], {
+				id: "status-page-reorder",
+				duration: 260,
+				easing: "cubic-bezier(0.2, 0.8, 0.2, 1)"
+			});
+		}
+	}
+
 	function moveElement(localId: string, direction: -1 | 1) {
-		setElements(current => {
+		updateOrder(current => {
 			const source = current.find(element => element.localId === localId);
 			if (!source) return current;
 			const siblings = sorted(current.filter(element => element.kind === source.kind && element.parentLocalId === source.parentLocalId));
@@ -334,22 +391,17 @@ function StatusPageBuilderWorkspace({
 		});
 	}
 
-	function handleDrop(event: DragEvent<HTMLElement>, targetId: string, parentId?: string) {
-		event.preventDefault();
-		event.stopPropagation();
-		const sourceId = draggedId.current;
-		if (!sourceId || sourceId === targetId) return;
-		setElements(current => {
+	function moveElementToTarget(sourceId: string, targetId: string, parentId: string | undefined, placement: "before" | "after") {
+		if (sourceId === targetId) return;
+		updateOrder(current => {
 			const source = current.find(element => element.localId === sourceId);
 			const target = current.find(element => element.localId === targetId);
 			if (!source || !target || source.kind !== target.kind) return current;
 			const destinationParent = source.kind === "folder" ? undefined : parentId;
 			const destinationSiblings = sorted(current.filter(element => element.kind === source.kind && element.parentLocalId === destinationParent && element.localId !== sourceId));
-			const targetIndex = Math.max(
-				0,
-				destinationSiblings.findIndex(element => element.localId === targetId)
-			);
-			destinationSiblings.splice(targetIndex, 0, { ...source, parentLocalId: destinationParent });
+			const targetIndex = destinationSiblings.findIndex(element => element.localId === targetId);
+			if (targetIndex < 0) return current;
+			destinationSiblings.splice(targetIndex + (placement === "after" ? 1 : 0), 0, { ...source, parentLocalId: destinationParent });
 			const destinationOrder = new Map(destinationSiblings.map((element, index) => [element.localId, index]));
 			const sourceOrder = new Map(
 				sorted(current.filter(element => element.kind === source.kind && element.parentLocalId === source.parentLocalId && element.localId !== sourceId)).map((element, index) => [
@@ -357,7 +409,7 @@ function StatusPageBuilderWorkspace({
 					index
 				])
 			);
-			return current.map(element => {
+			const next = current.map(element => {
 				if (element.localId === sourceId) {
 					return { ...element, parentLocalId: destinationParent, sortOrder: destinationOrder.get(element.localId) ?? 0 };
 				}
@@ -365,17 +417,12 @@ function StatusPageBuilderWorkspace({
 				if (source.parentLocalId !== destinationParent && sourceOrder.has(element.localId)) return { ...element, sortOrder: sourceOrder.get(element.localId) ?? element.sortOrder };
 				return element;
 			});
+			return next.every((element, index) => element.parentLocalId === current[index]?.parentLocalId && element.sortOrder === current[index]?.sortOrder) ? current : next;
 		});
-		draggedId.current = undefined;
 	}
 
-	function dropIntoGroup(event: DragEvent<HTMLElement>, groupId: string) {
-		event.preventDefault();
-		const sourceId = draggedId.current;
-		const draggedElement = elements.find(element => element.localId === sourceId);
-		if (!sourceId || draggedElement?.kind !== "assignment_group") return;
-		event.stopPropagation();
-		setElements(current => {
+	function moveElementToGroupEnd(sourceId: string, groupId?: string) {
+		updateOrder(current => {
 			const source = current.find(element => element.localId === sourceId);
 			if (!source || source.kind !== "assignment_group") return current;
 			const destination = sorted(current.filter(element => element.kind === "assignment_group" && element.parentLocalId === groupId && element.localId !== sourceId));
@@ -387,20 +434,73 @@ function StatusPageBuilderWorkspace({
 					index
 				])
 			);
-			return current.map(element => {
+			const next = current.map(element => {
 				if (element.localId === sourceId) return { ...element, parentLocalId: groupId, sortOrder: destinationOrder.get(element.localId) ?? 0 };
 				if (destinationOrder.has(element.localId)) return { ...element, sortOrder: destinationOrder.get(element.localId) ?? element.sortOrder };
 				if (source.parentLocalId !== groupId && sourceOrder.has(element.localId)) return { ...element, sortOrder: sourceOrder.get(element.localId) ?? element.sortOrder };
 				return element;
 			});
+			return next.every((element, index) => element.parentLocalId === current[index]?.parentLocalId && element.sortOrder === current[index]?.sortOrder) ? current : next;
 		});
-		draggedId.current = undefined;
 	}
 
-	function startDragging(event: DragEvent<HTMLElement>, localId: string) {
+	function startDragging(event: PointerEvent<HTMLElement>, localId: string) {
+		if (event.button !== 0) return;
+		event.preventDefault();
+		dragCleanup.current?.();
 		draggedId.current = localId;
-		event.dataTransfer.effectAllowed = "move";
-		event.dataTransfer.setData("text/plain", localId);
+		lastPointerTarget.current = undefined;
+		setDraggingId(localId);
+
+		const handlePointerMove = (pointerEvent: globalThis.PointerEvent) => moveDragging(pointerEvent);
+		const handlePointerEnd = () => stopDragging();
+		document.addEventListener("pointermove", handlePointerMove, { passive: false });
+		document.addEventListener("pointerup", handlePointerEnd);
+		document.addEventListener("pointercancel", handlePointerEnd);
+		dragCleanup.current = () => {
+			document.removeEventListener("pointermove", handlePointerMove);
+			document.removeEventListener("pointerup", handlePointerEnd);
+			document.removeEventListener("pointercancel", handlePointerEnd);
+		};
+	}
+
+	function moveDragging(event: globalThis.PointerEvent) {
+		const sourceId = draggedId.current;
+		if (!sourceId) return;
+		event.preventDefault();
+		const source = elementsRef.current.find(element => element.localId === sourceId);
+		const hit = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>("[data-builder-sort-id], [data-builder-drop-parent]");
+		if (!source || !hit) return;
+
+		const targetElement = hit.closest<HTMLElement>("[data-builder-sort-id]");
+		const targetId = targetElement?.dataset.builderSortId;
+		const target = elementsRef.current.find(element => element.localId === targetId);
+		if (targetId && target && target.kind === source.kind) {
+			const rect = targetElement?.getBoundingClientRect();
+			const placement = rect && event.clientY > rect.top + rect.height / 2 ? "after" : "before";
+			const parentId = targetElement?.dataset.builderParentId || undefined;
+			const signature = `${targetId}:${parentId ?? "root"}:${placement}`;
+			if (signature === lastPointerTarget.current) return;
+			lastPointerTarget.current = signature;
+			moveElementToTarget(sourceId, targetId, parentId, placement);
+			return;
+		}
+
+		const dropTarget = hit.closest<HTMLElement>("[data-builder-drop-parent]");
+		if (source.kind !== "assignment_group" || !dropTarget) return;
+		const parentId = dropTarget.dataset.builderDropParent || undefined;
+		const signature = `group:${parentId ?? "root"}`;
+		if (signature === lastPointerTarget.current) return;
+		lastPointerTarget.current = signature;
+		moveElementToGroupEnd(sourceId, parentId);
+	}
+
+	function stopDragging() {
+		dragCleanup.current?.();
+		dragCleanup.current = undefined;
+		draggedId.current = undefined;
+		lastPointerTarget.current = undefined;
+		setDraggingId(undefined);
 	}
 
 	function reset() {
@@ -484,7 +584,7 @@ function StatusPageBuilderWorkspace({
 	const editorTitle = addingBlock ? "Add Block" : selectedElement ? (selectedElement.kind === "folder" ? "Editing Group" : "Editing Block") : "Editing Page";
 
 	return (
-		<div className={styles.builder}>
+		<div ref={builderRef} className={styles.builder}>
 			<aside className={styles.sidebar} aria-label="Status page settings">
 				<div className={styles.sidebarHeader}>
 					<div>
@@ -510,6 +610,7 @@ function StatusPageBuilderWorkspace({
 				elements={elements}
 				checks={options}
 				selectedId={selectedId}
+				draggingId={draggingId}
 				onSelect={id => {
 					setSelectedId(id);
 					setAddingBlock(false);
@@ -518,12 +619,7 @@ function StatusPageBuilderWorkspace({
 				onAddBlock={startAddingBlock}
 				onMove={moveElement}
 				onRemove={removeElement}
-				onDragStart={startDragging}
-				onDragEnd={() => {
-					draggedId.current = undefined;
-				}}
-				onDrop={handleDrop}
-				onDropGroup={dropIntoGroup}
+				onReorderStart={startDragging}
 			/>
 		</div>
 	);
@@ -911,29 +1007,25 @@ function StatusPageCanvas({
 	elements,
 	checks,
 	selectedId,
+	draggingId,
 	onSelect,
 	onAddGroup,
 	onAddBlock,
 	onMove,
 	onRemove,
-	onDragStart,
-	onDragEnd,
-	onDrop,
-	onDropGroup
+	onReorderStart
 }: {
 	page: PageDraft;
 	elements: ElementDraft[];
 	checks: CheckOption[];
 	selectedId?: string;
+	draggingId?: string;
 	onSelect: (id: string) => void;
 	onAddGroup: () => void;
 	onAddBlock: () => void;
 	onMove: (id: string, direction: -1 | 1) => void;
 	onRemove: (id: string) => void;
-	onDragStart: (event: DragEvent<HTMLElement>, id: string) => void;
-	onDragEnd: () => void;
-	onDrop: (event: DragEvent<HTMLElement>, targetId: string, parentId?: string) => void;
-	onDropGroup: (event: DragEvent<HTMLElement>, groupId: string) => void;
+	onReorderStart: (event: PointerEvent<HTMLElement>, id: string) => void;
 }) {
 	const groups = sorted(elements.filter(element => element.kind === "folder"));
 	const ungrouped = sorted(elements.filter(element => element.kind === "assignment_group" && !element.parentLocalId));
@@ -997,18 +1089,16 @@ function StatusPageCanvas({
 							checks={checks}
 							page={page}
 							selectedId={selectedId}
+							draggingId={draggingId}
 							onSelect={onSelect}
 							onMove={onMove}
 							onRemove={onRemove}
-							onDragStart={onDragStart}
-							onDragEnd={onDragEnd}
-							onDrop={onDrop}
-							onDropGroup={onDropGroup}
+							onReorderStart={onReorderStart}
 						/>
 					))}
 
 					{ungrouped.length ? (
-						<section className={styles.previewGroup}>
+						<section className={styles.previewGroup} data-builder-drop-parent="">
 							<div className={styles.previewGroupHeader}>
 								<div>
 									<h2>Other services</h2>
@@ -1023,14 +1113,13 @@ function StatusPageCanvas({
 										check={checks.find(check => check.id === element.checkId)}
 										page={page}
 										selected={element.localId === selectedId}
+										dragging={element.localId === draggingId}
 										first={index === 0}
 										last={index === ungrouped.length - 1}
 										onSelect={onSelect}
 										onMove={onMove}
 										onRemove={onRemove}
-										onDragStart={onDragStart}
-										onDragEnd={onDragEnd}
-										onDrop={event => onDrop(event, element.localId)}
+										onReorderStart={onReorderStart}
 									/>
 								))}
 							</div>
@@ -1063,13 +1152,11 @@ function PreviewGroup({
 	checks,
 	page,
 	selectedId,
+	draggingId,
 	onSelect,
 	onMove,
 	onRemove,
-	onDragStart,
-	onDragEnd,
-	onDrop,
-	onDropGroup
+	onReorderStart
 }: {
 	group: ElementDraft;
 	first: boolean;
@@ -1078,23 +1165,21 @@ function PreviewGroup({
 	checks: CheckOption[];
 	page: PageDraft;
 	selectedId?: string;
+	draggingId?: string;
 	onSelect: (id: string) => void;
 	onMove: (id: string, direction: -1 | 1) => void;
 	onRemove: (id: string) => void;
-	onDragStart: (event: DragEvent<HTMLElement>, id: string) => void;
-	onDragEnd: () => void;
-	onDrop: (event: DragEvent<HTMLElement>, targetId: string, parentId?: string) => void;
-	onDropGroup: (event: DragEvent<HTMLElement>, groupId: string) => void;
+	onReorderStart: (event: PointerEvent<HTMLElement>, id: string) => void;
 }) {
 	return (
 		<section
-			className={`${styles.previewGroup} ns-status-group ${group.localId === selectedId ? styles.selectedElement : ""}`}
-			onDragOver={event => event.preventDefault()}
-			onDrop={event => onDrop(event, group.localId)}
+			className={`${styles.previewGroup} ns-status-group ${group.localId === selectedId ? styles.selectedElement : ""} ${group.localId === draggingId ? styles.draggingElement : ""}`}
+			data-builder-sort-id={group.localId}
+			data-builder-parent-id=""
 		>
-			<div className={styles.previewGroupHeader} onDragOver={event => event.preventDefault()} onDrop={event => onDropGroup(event, group.localId)}>
+			<div className={styles.previewGroupHeader} data-builder-drop-parent={group.localId}>
 				<div className={styles.previewGroupIdentity}>
-					<DragHandle label={`Drag ${group.title || "group"}`} onDragStart={event => onDragStart(event, group.localId)} onDragEnd={onDragEnd} />
+					<DragHandle label={`Drag ${group.title || "group"}`} onReorderStart={event => onReorderStart(event, group.localId)} />
 					<div>
 						<h2>{group.title || "Untitled group"}</h2>
 						{group.description ? <p>{group.description}</p> : null}
@@ -1111,18 +1196,17 @@ function PreviewGroup({
 							check={checks.find(check => check.id === element.checkId)}
 							page={page}
 							selected={element.localId === selectedId}
+							dragging={element.localId === draggingId}
 							first={index === 0}
 							last={index === blocks.length - 1}
 							onSelect={onSelect}
 							onMove={onMove}
 							onRemove={onRemove}
-							onDragStart={onDragStart}
-							onDragEnd={onDragEnd}
-							onDrop={event => onDrop(event, element.localId, group.localId)}
+							onReorderStart={onReorderStart}
 						/>
 					))
 				) : (
-					<div className={styles.groupDropZone} onDragOver={event => event.preventDefault()} onDrop={event => onDropGroup(event, group.localId)}>
+					<div className={styles.groupDropZone} data-builder-drop-parent={group.localId}>
 						Drag a status block into this group
 					</div>
 				)}
@@ -1136,37 +1220,39 @@ function PreviewBlock({
 	check,
 	page,
 	selected,
+	dragging,
 	first,
 	last,
 	onSelect,
 	onMove,
 	onRemove,
-	onDragStart,
-	onDragEnd,
-	onDrop
+	onReorderStart
 }: {
 	element: ElementDraft;
 	check?: CheckOption;
 	page: PageDraft;
 	selected: boolean;
+	dragging: boolean;
 	first: boolean;
 	last: boolean;
 	onSelect: (id: string) => void;
 	onMove: (id: string, direction: -1 | 1) => void;
 	onRemove: (id: string) => void;
-	onDragStart: (event: DragEvent<HTMLElement>, id: string) => void;
-	onDragEnd: () => void;
-	onDrop: (event: DragEvent<HTMLElement>) => void;
+	onReorderStart: (event: PointerEvent<HTMLElement>, id: string) => void;
 }) {
 	const metadata = [check?.type, page.showTargets ? check?.target : undefined, page.showProbeNames ? "Probe names" : undefined, page.showProbeLocations ? "Public locations" : undefined].filter(
 		Boolean
 	);
 
 	return (
-		<article className={`${styles.previewBlock} ns-status-block ${selected ? styles.selectedElement : ""}`} onDragOver={event => event.preventDefault()} onDrop={onDrop}>
+		<article
+			className={`${styles.previewBlock} ns-status-block ${selected ? styles.selectedElement : ""} ${dragging ? styles.draggingElement : ""}`}
+			data-builder-sort-id={element.localId}
+			data-builder-parent-id={element.parentLocalId ?? ""}
+		>
 			<div className={styles.previewBlockTop}>
 				<div className={styles.previewBlockIdentity}>
-					<DragHandle label={`Drag ${element.title || check?.name || "block"}`} onDragStart={event => onDragStart(event, element.localId)} onDragEnd={onDragEnd} />
+					<DragHandle label={`Drag ${element.title || check?.name || "block"}`} onReorderStart={event => onReorderStart(event, element.localId)} />
 					<span className={styles.operationalDot} aria-hidden="true" />
 					<div>
 						<strong>{element.title || check?.name || "Untitled service"}</strong>
@@ -1238,9 +1324,9 @@ function PreviewMetric({ label, value }: { label: string; value: string }) {
 	);
 }
 
-function DragHandle({ label, onDragStart, onDragEnd }: { label: string; onDragStart: (event: DragEvent<HTMLButtonElement>) => void; onDragEnd: () => void }) {
+function DragHandle({ label, onReorderStart }: { label: string; onReorderStart: (event: PointerEvent<HTMLButtonElement>) => void }) {
 	return (
-		<button type="button" className={styles.dragHandle} draggable aria-label={label} onDragStart={onDragStart} onDragEnd={onDragEnd}>
+		<button type="button" className={styles.dragHandle} aria-label={label} onPointerDown={onReorderStart}>
 			<DotsSixVerticalIcon aria-hidden="true" />
 		</button>
 	);
