@@ -65,6 +65,7 @@ type DragDestination = { kind: "target"; targetId: string; parentId?: string; pl
 
 const supportedStatusCheckTypes = new Set(["http", "ping", "tcp"]);
 const emptyAssignments: ApiProjectAssignment[] = [];
+const emptyElementDrafts: ElementDraft[] = [];
 
 const themeOptions = [
 	{ value: "auto", label: "Auto" },
@@ -207,58 +208,6 @@ function checkOptions(assignments: ApiProjectAssignment[]) {
 	return [...options.values()].sort((left, right) => left.name.localeCompare(right.name));
 }
 
-function defaultDashboardElements(checks: CheckOption[]): ElementDraft[] {
-	if (!checks.length) return [];
-	const serviceGroupId = localID();
-	const networkGroupId = localID();
-	const modes: Array<{ mode: DisplayMode; groupId: string; title: string; description: string }> = [
-		{ mode: "status", groupId: serviceGroupId, title: "Current availability", description: "Live assignment health, uptime, and active viewpoints." },
-		{ mode: "history", groupId: serviceGroupId, title: "Incident history", description: "Recent degradation and recovery context." },
-		{ mode: "latency", groupId: networkGroupId, title: "Latency performance", description: "Current, median, and percentile response trends." },
-		{ mode: "map", groupId: networkGroupId, title: "Monitoring locations", description: "Public probe coverage using configured coordinates." }
-	];
-
-	return [
-		{
-			localId: serviceGroupId,
-			kind: "folder",
-			assignmentIds: [],
-			title: "Service health",
-			description: "Availability and incident context for customer-facing services.",
-			sortOrder: 0,
-			displayMode: "status",
-			chartMode: "inherit"
-		},
-		{
-			localId: networkGroupId,
-			kind: "folder",
-			assignmentIds: [],
-			title: "Performance and coverage",
-			description: "Latency trends and the probes observing this network.",
-			sortOrder: 1,
-			displayMode: "status",
-			chartMode: "inherit"
-		},
-		...modes.map((feature, index) => {
-			const check = checks[index % checks.length] as CheckOption;
-			return {
-				localId: localID(),
-				parentLocalId: feature.groupId,
-				kind: "assignment_group" as const,
-				checkId: check.id,
-				assignmentSelectionMode: "all_check" as const,
-				assignmentIds: [],
-				title: `${check.name} · ${feature.title}`,
-				description: feature.description,
-				sortOrder: index % 2,
-				displayMode: feature.mode,
-				chartMode: feature.mode === "latency" ? ("compact" as const) : ("inherit" as const),
-				chartRange: feature.mode === "latency" ? ("24h" as const) : undefined
-			};
-		})
-	];
-}
-
 function checkForElement(element: ElementDraft, checks: CheckOption[]) {
 	return checks.find(check => check.id === element.checkId) ?? checks.find(check => element.assignmentIds?.some(assignmentId => check.assignmentIds.includes(assignmentId)));
 }
@@ -278,7 +227,6 @@ export function StatusPageBuilderPage() {
 	const assignments = assignmentsQuery.data?.assignments ?? emptyAssignments;
 	const checks = useMemo(() => checkOptions(assignments), [assignments]);
 	const [defaultPage] = useState(createDefaultPage);
-	const defaultElements = useMemo(() => defaultDashboardElements(checks), [checks]);
 
 	if (!projectRef || assignmentsQuery.isPending || (!creating && detailQuery.isPending)) {
 		return <Spinner label="Loading status page builder" layout="page" size="lg" />;
@@ -302,7 +250,7 @@ export function StatusPageBuilderPage() {
 			projectRef={projectRef}
 			pageId={page?.id}
 			initialPage={page ? pageDraft(page) : defaultPage}
-			initialElements={page ? (detailQuery.data?.elements ?? []).map(element => elementDraft(element, checks)) : defaultElements}
+			initialElements={page ? (detailQuery.data?.elements ?? []).map(element => elementDraft(element, checks)) : emptyElementDrafts}
 			assignments={assignments}
 			assignmentsLoading={assignmentsQuery.isPending}
 		/>
