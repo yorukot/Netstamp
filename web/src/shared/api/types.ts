@@ -83,6 +83,8 @@ export type TcpSeriesResponse = Omit<components["schemas"]["TcpSeriesResponse"],
 	series: Partial<Record<TcpSeriesKey, ApiSeries>> & Record<string, ApiSeries | undefined>;
 };
 export type HttpInsightResponse = components["schemas"]["HttpInsightResponse"];
+export type LatestHttpResult = components["schemas"]["LatestHttpResult"];
+export type LatestHttpResultsResponse = components["schemas"]["LatestHttpResultsResponse"];
 export type HttpSeriesKey = "dns_avg" | "connect_avg" | "tls_avg" | "ttfb_avg" | "total_avg" | "failure_percent";
 export type HttpSeriesParameter = components["parameters"]["HttpSeriesQuery.series"];
 export type HttpSeriesResponse = Omit<components["schemas"]["HttpSeriesResponse"], "series"> & {
@@ -132,6 +134,11 @@ export interface LatestResultsFilters {
 	probeId?: string;
 	checkId?: string;
 	type?: LatestResultType;
+}
+
+export interface LatestHttpResultsFilters {
+	probeId?: string;
+	checkId?: string;
 }
 
 export interface PingSeriesFilters {

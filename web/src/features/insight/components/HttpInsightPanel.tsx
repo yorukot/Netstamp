@@ -1,6 +1,7 @@
 import type { CheckDefinition } from "@/features/checks/data/checks";
+import { HttpLatestResultPanel } from "@/features/insight/components/HttpLatestResultPanel";
 import type { Probe } from "@/features/probes/data/probes";
-import type { HttpInsightResponse, HttpSeriesKey, HttpSeriesResponse } from "@/shared/api/types";
+import type { HttpInsightResponse, HttpSeriesKey, HttpSeriesResponse, LatestHttpResult } from "@/shared/api/types";
 import { formatCount, formatMs, formatPercent } from "@/shared/utils/insightFormatters";
 import type { ChartOption } from "@/shared/visualizations/chartOptions";
 import { ChartPanel } from "@/shared/visualizations/ChartPanel";
@@ -38,11 +39,14 @@ interface Props {
 	selectedTarget: CheckDefinition | null;
 	insightData?: HttpInsightResponse;
 	seriesData?: HttpSeriesResponse;
+	latestResult?: LatestHttpResult;
+	nowMs: number;
 	isLoading: boolean;
+	isLatestLoading: boolean;
 	isFetching: boolean;
 	onSelectTimeWindow: (value: { from: number; to: number }) => void;
 }
-export function HttpInsightPanel({ selectedProbe, selectedTarget, insightData, seriesData, isLoading, isFetching, onSelectTimeWindow }: Props) {
+export function HttpInsightPanel({ selectedProbe, selectedTarget, insightData, seriesData, latestResult, nowMs, isLoading, isLatestLoading, isFetching, onSelectTimeWindow }: Props) {
 	if (!selectedProbe || !selectedTarget)
 		return (
 			<Panel tone="deep" title="No HTTP target selected">
@@ -63,7 +67,7 @@ export function HttpInsightPanel({ selectedProbe, selectedTarget, insightData, s
 		{ label: "Average TTFB", value: formatMs(summary?.averageTtfbMs), detail: "server wait" },
 		{ label: "Failure", value: formatPercent(summary?.failurePercent), detail: "timeout + error" },
 		{ label: "Success", value: formatPercent(summary?.successRate), detail: "successful" },
-		{ label: "Certificate", value: summary?.certificateDaysRemaining == null ? "-" : `${Math.floor(summary.certificateDaysRemaining)}d`, detail: "days remaining" }
+		{ label: "Certificate floor", value: summary?.certificateDaysRemaining == null ? "-" : `${Math.floor(summary.certificateDaysRemaining)}d`, detail: "minimum in range" }
 	];
 	const hasData = points(seriesData, "total_avg").length > 0;
 	return (
@@ -77,6 +81,7 @@ export function HttpInsightPanel({ selectedProbe, selectedTarget, insightData, s
 					</div>
 				))}
 			</div>
+			<HttpLatestResultPanel latestResult={latestResult} target={selectedTarget.target} nowMs={nowMs} isLoading={isLatestLoading} isFetching={isFetching} />
 			<Panel tone="deep" title={`${selectedProbe.name} -> ${selectedTarget.target}`}>
 				<div className={styles.chartMeta}>
 					<span>{isFetching ? "syncing result series" : `${formatCount(meta?.totalPoints)} points`}</span>

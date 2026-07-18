@@ -121,6 +121,11 @@ model HttpInsightQuery {
 	maxDataPoints?: int32 = 600;
 }
 
+model LatestHttpResultsQuery {
+	@query probeId?: uuid;
+	@query checkId?: uuid;
+}
+
 model TracerouteRunsQuery {
 	@query
 	probeId: uuid;
@@ -271,6 +276,19 @@ interface ResultService {
 	@route("/http/insight")
 	queryProjectHttpResultInsight(...ProjectRefParam, ...HttpInsightQuery):
 		| OkJson<HttpInsightResponse>
+		| BadRequestProblem
+		| UnauthorizedProblem
+		| NotFoundProblem
+		| UnprocessableEntityProblem
+		| InternalServerProblem;
+
+	@operationId("queryProjectLatestHttpResults")
+	@summary("Query latest project HTTP results")
+	@doc("List the latest detailed HTTP result for each active HTTP assignment, optionally filtered by probe or check.")
+	@get
+	@route("/http/latest")
+	queryProjectLatestHttpResults(...ProjectRefParam, ...LatestHttpResultsQuery):
+		| OkJson<LatestHttpResultsResponse>
 		| BadRequestProblem
 		| UnauthorizedProblem
 		| NotFoundProblem

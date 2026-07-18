@@ -44,6 +44,7 @@ func (h *Handler) RegisterRoutes(api chi.Router) {
 		r.Get("/projects/{ref}/results/tcp/insight", h.handleQueryTCPInsight)
 		r.Get("/projects/{ref}/results/http/series", h.handleQueryHTTPSeries)
 		r.Get("/projects/{ref}/results/http/insight", h.handleQueryHTTPInsight)
+		r.Get("/projects/{ref}/results/http/latest", h.handleQueryLatestHTTPResults)
 		r.Get("/projects/{ref}/results/traceroute/runs", h.handleQueryTracerouteRuns)
 		r.Get("/projects/{ref}/results/traceroute/insight", h.handleQueryTracerouteInsight)
 		r.Get("/projects/{ref}/results/traceroute/topology", h.handleQueryTracerouteTopology)
@@ -141,6 +142,20 @@ func (h *Handler) handleQueryHTTPInsight(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	output, err := h.queryHTTPInsight(r.Context(), input)
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, output.Body)
+}
+
+func (h *Handler) handleQueryLatestHTTPResults(w http.ResponseWriter, r *http.Request) {
+	input, err := newQueryLatestHTTPResultsInput(r)
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	output, err := h.queryLatestHTTPResults(r.Context(), input)
 	if err != nil {
 		httpx.WriteProblem(w, r, err)
 		return
@@ -257,6 +272,14 @@ func newQueryTCPInsightInput(r *http.Request) (*queryTCPInsightInput, error) {
 
 func newQueryHTTPInsightInput(r *http.Request) (*queryHTTPInsightInput, error) {
 	return newQueryInsightInput(r)
+}
+
+func newQueryLatestHTTPResultsInput(r *http.Request) (*queryLatestHTTPResultsInput, error) {
+	return &queryLatestHTTPResultsInput{
+		Ref:     httpx.Path(r, "ref"),
+		ProbeID: httpx.QueryString(r, "probeId"),
+		CheckID: httpx.QueryString(r, "checkId"),
+	}, nil
 }
 
 func newQueryHTTPSeriesInput(r *http.Request) (*queryHTTPSeriesInput, error) {

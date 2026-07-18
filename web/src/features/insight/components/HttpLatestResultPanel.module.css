@@ -1,0 +1,101 @@
+.stack {
+	display: grid;
+	gap: 1rem;
+}
+
+.badges {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	gap: 0.5rem;
+}
+
+.certificateSummary,
+.errorSummary {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	gap: 1rem;
+	align-items: center;
+	padding: 1rem;
+	background: var(--ns-surface-raised);
+	border-inline-start: 0.125rem solid var(--ns-secondary);
+}
+
+.certificateSummary div,
+.errorSummary {
+	min-width: 0;
+}
+
+.certificateSummary strong {
+	display: block;
+	margin-top: 0.25rem;
+	color: var(--ns-text);
+	font-family: var(--ns-font-display);
+	font-size: 1.5rem;
+	line-height: 1.1;
+}
+
+.certificateSummary p,
+.errorSummary p {
+	margin: 0;
+	color: var(--ns-text-subtle);
+	font-size: 0.8125rem;
+	overflow-wrap: anywhere;
+}
+
+.sectionLabel {
+	color: var(--ns-text-low);
+	font-size: 0.75rem;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.errorSummary {
+	grid-template-columns: 1fr;
+	border-inline-start-color: var(--ns-critical);
+}
+
+.errorSummary strong {
+	color: var(--ns-critical);
+	font-family: var(--ns-font-mono);
+	font-size: 0.8125rem;
+	overflow-wrap: anywhere;
+}
+
+.section {
+	display: grid;
+	gap: 0.75rem;
+}
+
+.section h3 {
+	margin: 0;
+	color: var(--ns-text);
+	font-size: 0.875rem;
+	font-weight: 750;
+}
+
+.detailsGrid strong,
+.phaseGrid strong {
+	overflow-wrap: anywhere;
+}
+
+.phaseGrid {
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media (max-width: 72rem) {
+	.phaseGrid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+@media (max-width: 58rem) {
+	.certificateSummary {
+		grid-template-columns: 1fr;
+	}
+
+	.phaseGrid {
+		grid-template-columns: 1fr;
+	}
+}

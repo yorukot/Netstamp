@@ -103,6 +103,48 @@ func TestQueryInsightUsesRollupPastRawRetention(t *testing.T) {
 	}
 }
 
+func TestQueryLatestMapsDetailedHTTPResults(t *testing.T) {
+	startedAt := time.Date(2026, 7, 18, 9, 30, 0, 0, time.UTC)
+	finishedAt := startedAt.Add(125 * time.Millisecond)
+	tlsVersion := "TLS 1.3"
+	certificateNotAfter := startedAt.Add(30 * 24 * time.Hour)
+	repo := &recordingRepository{
+		latest: domainhttp.LatestResultList{Results: []domainhttp.LatestResult{{
+			ProbeID: testProbeID,
+			CheckID: testCheckID,
+			Result: domainhttp.Result{
+				StartedAt:           startedAt,
+				FinishedAt:          finishedAt,
+				DurationMs:          125,
+				Status:              domainhttp.StatusSuccessful,
+				TLSVersion:          &tlsVersion,
+				CertificateNotAfter: &certificateNotAfter,
+			},
+		}}},
+	}
+	service := NewService(repo, staticProjectAccess{})
+
+	output, err := service.QueryLatest(context.Background(), QueryLatestInput{
+		CurrentUserID: testUserID,
+		ProjectRef:    "vector-ix",
+		ProbeID:       testProbeID,
+		CheckID:       testCheckID,
+	})
+	if err != nil {
+		t.Fatalf("expected latest query to succeed: %v", err)
+	}
+	if repo.gotLatest.ProjectID != testProjectID || repo.gotLatest.ProbeID != testProbeID || repo.gotLatest.CheckID != testCheckID {
+		t.Fatalf("unexpected latest repository input: %#v", repo.gotLatest)
+	}
+	if len(output.Results) != 1 {
+		t.Fatalf("expected one latest result, got %#v", output.Results)
+	}
+	got := output.Results[0]
+	if got.ProbeID != testProbeID || got.CheckID != testCheckID || got.Result.TLSVersion == nil || *got.Result.TLSVersion != tlsVersion || got.Result.CertificateNotAfter == nil || !got.Result.CertificateNotAfter.Equal(certificateNotAfter) {
+		t.Fatalf("unexpected latest result: %#v", got)
+	}
+}
+
 type staticProjectAccess struct{}
 
 func (staticProjectAccess) GetProjectForUser(_ context.Context, projectRef, userID string) (domainproject.Project, error) {
@@ -116,9 +158,16 @@ type recordingRepository struct {
 	gotCount   domainhttp.SeriesPointCountQuery
 	gotSeries  domainhttp.SeriesReadQuery
 	gotSummary domainhttp.InsightSummaryQuery
+	gotLatest  domainhttp.LatestResultQuery
 	rawPoints  int64
 	series     map[string]domainhttp.SeriesData
 	summary    domainhttp.InsightSummary
+	latest     domainhttp.LatestResultList
+}
+
+func (r *recordingRepository) ListLatestHTTPResults(_ context.Context, input domainhttp.LatestResultQuery) (domainhttp.LatestResultList, error) {
+	r.gotLatest = input
+	return r.latest, nil
 }
 
 func (r *recordingRepository) CountHTTPSeriesPoints(_ context.Context, input domainhttp.SeriesPointCountQuery) (int64, error) {

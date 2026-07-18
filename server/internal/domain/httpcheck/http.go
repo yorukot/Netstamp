@@ -330,6 +330,22 @@ type ResultStorageInput struct {
 	Result
 }
 
+type LatestResultQuery struct {
+	ProjectID string
+	ProbeID   string
+	CheckID   string
+}
+
+type LatestResult struct {
+	ProbeID string
+	CheckID string
+	Result  Result
+}
+
+type LatestResultList struct {
+	Results []LatestResult
+}
+
 type (
 	SeriesReadMode   string
 	SeriesSource     string

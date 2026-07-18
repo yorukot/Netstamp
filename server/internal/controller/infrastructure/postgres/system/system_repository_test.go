@@ -64,6 +64,23 @@ func TestNormalizeDataImportAcceptsPasswordlessCurrentExport(t *testing.T) {
 	}
 }
 
+func TestNormalizeDataImportUpgradesV3WithHTTPResultTables(t *testing.T) {
+	tables := emptyDataExportTables()
+	delete(tables, "http_check_configs")
+	delete(tables, "http_results")
+
+	normalized, err := normalizeDataImport(domainsystem.DataExport{Format: legacyDataExportFormatV3, Tables: tables})
+	if err != nil {
+		t.Fatalf("normalize v3 export: %v", err)
+	}
+	if normalized.Format != dataExportFormat {
+		t.Fatalf("expected format %q, got %q", dataExportFormat, normalized.Format)
+	}
+	if len(normalized.Tables["http_check_configs"]) != 0 || len(normalized.Tables["http_results"]) != 0 {
+		t.Fatalf("expected empty HTTP tables in upgraded export: %#v", normalized.Tables)
+	}
+}
+
 func emptyDataExportTables() map[string][]domainsystem.RawDataRow {
 	tables := make(map[string][]domainsystem.RawDataRow, len(dataExportTables))
 	for _, table := range dataExportTables {

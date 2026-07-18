@@ -5,7 +5,35 @@ import (
 
 	resultshared "github.com/yorukot/netstamp/internal/controller/application/result/shared"
 	appvalidation "github.com/yorukot/netstamp/internal/controller/application/validation"
+	domainproject "github.com/yorukot/netstamp/internal/domain/project"
 )
+
+func normalizeQueryLatestInput(input QueryLatestInput) (normalizedLatestInput, error) {
+	var validation appvalidation.Collector
+
+	projectRef, err := domainproject.VNProjectRef(input.ProjectRef)
+	if err != nil {
+		validation.AddError("projectRef", err, input.ProjectRef)
+	}
+	probeID, err := resultshared.NormalizeOptionalProbeID(input.ProbeID)
+	if err != nil {
+		validation.AddError("probeId", err, input.ProbeID)
+	}
+	checkID, err := resultshared.NormalizeOptionalCheckID(input.CheckID)
+	if err != nil {
+		validation.AddError("checkId", err, input.CheckID)
+	}
+	if err := validation.Err(resultshared.ErrInvalidInput); err != nil {
+		return normalizedLatestInput{}, err
+	}
+
+	return normalizedLatestInput{
+		currentUserID: input.CurrentUserID,
+		projectRef:    projectRef,
+		probeID:       probeID,
+		checkID:       checkID,
+	}, nil
+}
 
 func normalizeQuerySeriesInput(input QuerySeriesInput) (normalizedSeriesInput, error) {
 	var validation appvalidation.Collector
