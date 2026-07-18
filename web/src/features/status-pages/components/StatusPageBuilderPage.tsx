@@ -1,4 +1,4 @@
-import statusPageBanner from "@/features/status-pages/assets/status-page-banner.svg";
+import defaultStatusPageCover from "@/features/status-pages/assets/default-status-page-cover.svg";
 import { pathForStatusPageEditor } from "@/routes/routePaths";
 import {
 	useCreatePublicStatusElementMutation,
@@ -946,7 +946,7 @@ function StatusPageCanvas({
 				{previewCSS ? <style>{previewCSS}</style> : null}
 				<div className={styles.publicShell}>
 					<header className={`${styles.previewHero} ns-status-hero`}>
-						<img className={`${styles.previewBanner} ns-status-banner`} src={page.bannerImageUrl || statusPageBanner} alt="" />
+						<img className={`${styles.previewBanner} ns-status-banner`} src={page.bannerImageUrl || defaultStatusPageCover} alt="" />
 						<div className={styles.previewHeroBody}>
 							<div className={styles.previewBrand}>
 								<img src={previewTheme === "dark" ? netstampLogoLight : netstampLogoDark} alt="Netstamp" />
