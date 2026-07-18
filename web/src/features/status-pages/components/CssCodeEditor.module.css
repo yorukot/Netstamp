@@ -48,11 +48,20 @@
 }
 
 .highlight {
+	z-index: 0;
+	overflow: hidden;
 	pointer-events: none;
 	color: var(--ns-text);
 }
 
+.highlight code {
+	display: block;
+	width: max-content;
+	min-width: 100%;
+}
+
 .editor textarea {
+	z-index: 1;
 	resize: none;
 	outline: transparent solid 0.0625rem;
 	background: transparent;
@@ -74,6 +83,7 @@
 
 .comment {
 	color: var(--ns-text-subtle);
+	font-style: italic;
 }
 
 .string {
@@ -91,4 +101,21 @@
 
 .punctuation {
 	color: var(--ns-text-muted);
+}
+
+.selector {
+	color: var(--ns-secondary);
+}
+
+.property {
+	color: var(--ns-text);
+}
+
+.atRule,
+.function {
+	color: var(--ns-primary-hover);
+}
+
+.keyword {
+	color: var(--ns-metal);
 }
