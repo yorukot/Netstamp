@@ -61,6 +61,8 @@ interface CheckOption {
 	}>;
 }
 
+type DragDestination = { kind: "target"; targetId: string; parentId?: string; placement: "before" | "after" } | { kind: "group"; parentId?: string };
+
 const supportedStatusCheckTypes = new Set(["http", "ping", "tcp"]);
 const emptyAssignments: ApiProjectAssignment[] = [];
 
@@ -332,7 +334,8 @@ function StatusPageBuilderWorkspace({
 	const [draggingId, setDraggingId] = useState<string>();
 	const builderRef = useRef<HTMLDivElement | null>(null);
 	const draggedId = useRef<string | undefined>(undefined);
-	const lastPointerTarget = useRef<string | undefined>(undefined);
+	const dragDestination = useRef<DragDestination | undefined>(undefined);
+	const dragIndicator = useRef<HTMLElement | undefined>(undefined);
 	const dragCleanup = useRef<(() => void) | undefined>(undefined);
 	const elementsRef = useRef(elements);
 	const options = useMemo(() => checkOptions(assignments), [assignments]);
@@ -540,19 +543,34 @@ function StatusPageBuilderWorkspace({
 		event.preventDefault();
 		dragCleanup.current?.();
 		draggedId.current = localId;
-		lastPointerTarget.current = undefined;
+		dragDestination.current = undefined;
+		clearDragIndicator();
 		setDraggingId(localId);
 
 		const handlePointerMove = (pointerEvent: globalThis.PointerEvent) => moveDragging(pointerEvent);
-		const handlePointerEnd = () => stopDragging();
+		const handlePointerEnd = () => stopDragging(true);
+		const handlePointerCancel = () => stopDragging(false);
 		document.addEventListener("pointermove", handlePointerMove, { passive: false });
 		document.addEventListener("pointerup", handlePointerEnd);
-		document.addEventListener("pointercancel", handlePointerEnd);
+		document.addEventListener("pointercancel", handlePointerCancel);
 		dragCleanup.current = () => {
 			document.removeEventListener("pointermove", handlePointerMove);
 			document.removeEventListener("pointerup", handlePointerEnd);
-			document.removeEventListener("pointercancel", handlePointerEnd);
+			document.removeEventListener("pointercancel", handlePointerCancel);
 		};
+	}
+
+	function showDragIndicator(element: HTMLElement, placement: "before" | "after" | "inside") {
+		if (dragIndicator.current !== element) {
+			dragIndicator.current?.removeAttribute("data-builder-drag-over");
+			dragIndicator.current = element;
+		}
+		element.dataset.builderDragOver = placement;
+	}
+
+	function clearDragIndicator() {
+		dragIndicator.current?.removeAttribute("data-builder-drag-over");
+		dragIndicator.current = undefined;
 	}
 
 	function moveDragging(event: globalThis.PointerEvent) {
@@ -566,32 +584,38 @@ function StatusPageBuilderWorkspace({
 		const targetElement = hit.closest<HTMLElement>("[data-builder-sort-id]");
 		const targetId = targetElement?.dataset.builderSortId;
 		const target = elementsRef.current.find(element => element.localId === targetId);
-		if (targetId && target && target.kind === source.kind) {
+		if (targetId && targetId !== sourceId && target && target.kind === source.kind) {
 			const rect = targetElement?.getBoundingClientRect();
 			const placement = rect && event.clientY > rect.top + rect.height / 2 ? "after" : "before";
 			const parentId = targetElement?.dataset.builderParentId || undefined;
-			const signature = `${targetId}:${parentId ?? "root"}:${placement}`;
-			if (signature === lastPointerTarget.current) return;
-			lastPointerTarget.current = signature;
-			moveElementToTarget(sourceId, targetId, parentId, placement);
+			dragDestination.current = { kind: "target", targetId, parentId, placement };
+			if (targetElement) showDragIndicator(targetElement, placement);
 			return;
 		}
 
 		const dropTarget = hit.closest<HTMLElement>("[data-builder-drop-parent]");
 		if (source.kind !== "assignment_group" || !dropTarget) return;
 		const parentId = dropTarget.dataset.builderDropParent || undefined;
-		const signature = `group:${parentId ?? "root"}`;
-		if (signature === lastPointerTarget.current) return;
-		lastPointerTarget.current = signature;
-		moveElementToGroupEnd(sourceId, parentId);
+		dragDestination.current = { kind: "group", parentId };
+		showDragIndicator(dropTarget, "inside");
 	}
 
-	function stopDragging() {
+	function stopDragging(commit: boolean) {
+		const sourceId = draggedId.current;
+		const destination = dragDestination.current;
 		dragCleanup.current?.();
 		dragCleanup.current = undefined;
 		draggedId.current = undefined;
-		lastPointerTarget.current = undefined;
+		dragDestination.current = undefined;
+		clearDragIndicator();
 		setDraggingId(undefined);
+
+		if (!commit || !sourceId || !destination) return;
+		if (destination.kind === "target") {
+			moveElementToTarget(sourceId, destination.targetId, destination.parentId, destination.placement);
+		} else {
+			moveElementToGroupEnd(sourceId, destination.parentId);
+		}
 	}
 
 	function reset() {
@@ -700,25 +724,27 @@ function StatusPageBuilderWorkspace({
 						<PageSettings page={page} update={updatePage} />
 					)}
 				</div>
-				<UnsavedChangesBar className={styles.saveBar} show={hasChanges} saving={saving} onReset={reset} onSave={() => void save()} />
 			</aside>
 
-			<StatusPageCanvas
-				page={page}
-				elements={elements}
-				checks={options}
-				selectedId={selectedId}
-				draggingId={draggingId}
-				onSelect={id => {
-					setSelectedId(id);
-					setAddingBlock(false);
-				}}
-				onAddGroup={addGroup}
-				onAddBlock={startAddingBlock}
-				onMove={moveElement}
-				onRemove={removeElement}
-				onReorderStart={startDragging}
-			/>
+			<div className={styles.main}>
+				<StatusPageCanvas
+					page={page}
+					elements={elements}
+					checks={options}
+					selectedId={selectedId}
+					draggingId={draggingId}
+					onSelect={id => {
+						setSelectedId(id);
+						setAddingBlock(false);
+					}}
+					onAddGroup={addGroup}
+					onAddBlock={startAddingBlock}
+					onMove={moveElement}
+					onRemove={removeElement}
+					onReorderStart={startDragging}
+				/>
+				<UnsavedChangesBar className={styles.saveBar} show={hasChanges} saving={saving} onReset={reset} onSave={() => void save()} />
+			</div>
 		</div>
 	);
 }
