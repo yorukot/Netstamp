@@ -58,7 +58,8 @@
 }
 
 :root,
-:root[data-theme="dark"] {
+:root[data-theme="dark"],
+.ns-theme-dark {
 	--ns-bg: #000000;
 	--ns-bg-section: #000000;
 	--ns-bg-subtle: #131518;
@@ -112,6 +113,14 @@
 	--ns-border: #2d3035;
 	--ns-border-strong: #4a4f58;
 	--ns-border-faint: #1b1d21;
+	--ns-focus-ring: color-mix(in srgb, var(--ns-border-strong) 78%, var(--ns-text-subtle));
+	--ns-focus-outline: 2px solid var(--ns-focus-ring);
+	--ns-container-bg: var(--ns-surface-raised);
+	--ns-container-bg-raised: color-mix(in srgb, var(--ns-surface-raised) 88%, var(--ns-border-strong));
+	--ns-container-bg-hover: color-mix(in srgb, var(--ns-surface-raised) 82%, var(--ns-border-strong));
+	--ns-control-bg: var(--ns-surface-raised);
+	--ns-control-bg-raised: color-mix(in srgb, var(--ns-surface-raised) 88%, var(--ns-border-strong));
+	--ns-control-bg-hover: color-mix(in srgb, var(--ns-surface-raised) 82%, var(--ns-border-strong));
 	color-scheme: dark;
 }
 

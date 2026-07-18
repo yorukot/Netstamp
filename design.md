@@ -164,6 +164,8 @@ Reference palette extraction is based on the local image and SVG assets currentl
 
 Implementation decision: root defaults to the dark palette, with `:root` and `:root[data-theme="dark"]` sharing the same values. Public body uses `#000000` by default and `#f4f5f7` only in explicit light mode. Public floating navigation and dark chrome use `#131518` with white text. The public homepage is locked to the unified dark design and uses the dark product screenshot as the canonical screenshot asset.
 
+Fixed dark surfaces inside a theme-switching page use the global `.ns-theme-dark` boundary. Apply it to the surface itself and to any portaled drawers, menus, or popovers so shared controls inherit the dark token set instead of the page theme.
+
 ### Compatibility Aliases
 
 - `--ns-accent` and related `--ns-accent-*` tokens are aliases for primary orange. New code should prefer `--ns-primary-*` when the role is primary.

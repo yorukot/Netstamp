@@ -51,7 +51,7 @@ export function UserMenu({ user, collapsed = false, onLogout }: UserMenuProps) {
 			</PopoverTrigger>
 
 			<PopoverPortal>
-				<PopoverContent className={styles.userPopover} align={collapsed ? "center" : "start"} side="top" sideOffset={10} collisionPadding={8}>
+				<PopoverContent className={classNames("ns-theme-dark", styles.userPopover)} align={collapsed ? "center" : "start"} side="top" sideOffset={10} collisionPadding={8}>
 					{content}
 				</PopoverContent>
 			</PopoverPortal>
