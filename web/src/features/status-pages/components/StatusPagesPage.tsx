@@ -6,7 +6,7 @@ import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { pushErrorToast, pushToast } from "@/shared/toast/toastStore";
-import { Badge, Button, DataTable, Panel, Spinner, type DataColumn } from "@netstamp/ui";
+import { Badge, Button, DataTable, Spinner, type DataColumn } from "@netstamp/ui";
 import { CopyIcon } from "@phosphor-icons/react/dist/csr/Copy";
 import { PlusIcon } from "@phosphor-icons/react/dist/csr/Plus";
 import { useQuery } from "@tanstack/react-query";
@@ -81,35 +81,35 @@ export function StatusPagesPage() {
 				}
 			/>
 
-			<Panel title="Pages" actions={pagesQuery.isFetching ? <Badge tone="neutral">Syncing</Badge> : null} padded={false} bodySurface="transparent">
-				{pagesQuery.isPending ? (
-					<Spinner label="Loading status pages" layout="panel" size="lg" />
-				) : (
-					<DataTable
-						columns={columns}
-						rows={pages}
-						density="compact"
-						minWidth="52rem"
-						ariaLabel="Project status pages"
-						getRowKey={row => row.id}
-						emptyLabel="No status pages yet. Create a page to share service health."
-						rowActions={page => (
-							<div className={styles.rowActions}>
-								<Button asChild variant="outline" size="sm">
-									<Link to={pathForStatusPageEditor(projectRef, page.id)}>Edit</Link>
-								</Button>
-								<Button type="button" variant="ghost" size="sm" onClick={() => void copyPageLink(page)}>
-									<CopyIcon aria-hidden="true" focusable="false" />
-									Copy Link
-								</Button>
-								<Button asChild type="button" variant="secondary" size="sm">
-									<Link to={publicStatusPath(page.slug)}>View</Link>
-								</Button>
-							</div>
-						)}
-					/>
-				)}
-			</Panel>
+			{pagesQuery.isPending ? (
+				<Spinner label="Loading status pages" layout="panel" size="lg" />
+			) : (
+				<DataTable
+					columns={columns}
+					rows={pages}
+					density="compact"
+					minWidth="52rem"
+					ariaLabel="Project status pages"
+					getRowKey={row => row.id}
+					emptyLabel="No status pages yet. Create a page to share service health."
+					rowActions={page => (
+						<div className={styles.rowActions}>
+							<Button asChild variant="outline" size="sm">
+								<Link to={pathForStatusPageEditor(projectRef, page.id)}>Edit</Link>
+							</Button>
+							<Button type="button" variant="ghost" size="sm" onClick={() => void copyPageLink(page)}>
+								<CopyIcon aria-hidden="true" focusable="false" />
+								Copy Link
+							</Button>
+							<Button asChild variant="secondary" size="sm">
+								<a href={publicStatusPath(page.slug)} target="_blank" rel="noreferrer">
+									View
+								</a>
+							</Button>
+						</div>
+					)}
+				/>
+			)}
 		</PageStack>
 	);
 }
