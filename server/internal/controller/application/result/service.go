@@ -40,6 +40,10 @@ func (s *Service) QueryHTTPInsight(ctx context.Context, input QueryHTTPInsightIn
 	return s.httpResults.QueryInsight(ctx, input)
 }
 
+func (s *Service) QueryLatestHTTPResults(ctx context.Context, input QueryLatestHTTPResultsInput) (LatestHTTPResultsOutput, error) {
+	return s.httpResults.QueryLatest(ctx, input)
+}
+
 func (s *Service) QueryPingSeries(ctx context.Context, input QueryPingSeriesInput) (PingSeriesOutput, error) {
 	return s.pings.QuerySeries(ctx, input)
 }

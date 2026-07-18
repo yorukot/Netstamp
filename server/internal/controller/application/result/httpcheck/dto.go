@@ -4,6 +4,7 @@ import (
 	"time"
 
 	resultshared "github.com/yorukot/netstamp/internal/controller/application/result/shared"
+	domainhttp "github.com/yorukot/netstamp/internal/domain/httpcheck"
 )
 
 type SeriesKey string
@@ -40,6 +41,13 @@ type QueryInsightInput struct {
 	Now           time.Time
 }
 
+type QueryLatestInput struct {
+	CurrentUserID string
+	ProjectRef    string
+	ProbeID       string
+	CheckID       string
+}
+
 type SeriesOutput struct {
 	Series map[string]Series
 	Meta   resultshared.QueryMetadata
@@ -48,6 +56,16 @@ type SeriesOutput struct {
 type InsightOutput struct {
 	Summary InsightSummary
 	Meta    resultshared.QueryMetadata
+}
+
+type LatestResultsOutput struct {
+	Results []LatestResult
+}
+
+type LatestResult struct {
+	ProbeID string
+	CheckID string
+	Result  domainhttp.Result
 }
 
 type Series struct {
@@ -90,4 +108,11 @@ type normalizedInsightInput struct {
 	base resultshared.QueryBase
 
 	maxDataPoints int32
+}
+
+type normalizedLatestInput struct {
+	currentUserID string
+	projectRef    string
+	probeID       string
+	checkID       string
 }

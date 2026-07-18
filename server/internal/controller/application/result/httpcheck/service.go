@@ -22,6 +22,54 @@ func NewService(repo Repository, projects resultshared.ProjectAccess) *Service {
 	return &Service{repo: repo, projects: projects}
 }
 
+func (s *Service) QueryLatest(ctx context.Context, input QueryLatestInput) (LatestResultsOutput, error) {
+	ctx, span := resultTracer.Start(ctx, "result.http.latest.query", trace.WithAttributes(
+		attrProjectRef.String(input.ProjectRef),
+		attrProbeID.String(input.ProbeID),
+		attrCheckID.String(input.CheckID),
+	))
+	defer span.End()
+
+	normalized, err := normalizeQueryLatestInput(input)
+	if err != nil {
+		span.SetStatus(codes.Error, "invalid latest HTTP result query input")
+		return LatestResultsOutput{}, err
+	}
+	span.SetAttributes(
+		attrProjectRef.String(normalized.projectRef),
+		attrProbeID.String(normalized.probeID),
+		attrCheckID.String(normalized.checkID),
+	)
+
+	project, err := s.projects.GetProjectForUser(ctx, normalized.projectRef, normalized.currentUserID)
+	if err != nil {
+		span.SetStatus(codes.Error, "project lookup failed")
+		span.RecordError(err)
+		return LatestResultsOutput{}, err
+	}
+	span.SetAttributes(attrProjectID.String(project.ID))
+
+	if s.repo == nil {
+		configuredErr := errors.New("http result repository is not configured")
+		span.SetStatus(codes.Error, "http repository missing")
+		span.RecordError(configuredErr)
+		return LatestResultsOutput{}, configuredErr
+	}
+
+	latest, err := s.repo.ListLatestHTTPResults(ctx, domainhttp.LatestResultQuery{
+		ProjectID: project.ID,
+		ProbeID:   normalized.probeID,
+		CheckID:   normalized.checkID,
+	})
+	if err != nil {
+		span.SetStatus(codes.Error, "latest HTTP result query failed")
+		span.RecordError(err)
+		return LatestResultsOutput{}, err
+	}
+
+	return LatestResultsOutput{Results: newLatestResults(latest.Results)}, nil
+}
+
 func (s *Service) QuerySeries(ctx context.Context, input QuerySeriesInput) (SeriesOutput, error) {
 	ctx, span := resultTracer.Start(ctx, "result.http.series.query", trace.WithAttributes(
 		attrProjectRef.String(input.ProjectRef),
@@ -239,6 +287,18 @@ func newInsightSummary(summary domainhttp.InsightSummary) InsightSummary {
 		CertificateDaysRemaining: summary.CertificateDaysRemaining,
 		Samples:                  summary.Samples,
 	}
+}
+
+func newLatestResults(results []domainhttp.LatestResult) []LatestResult {
+	values := make([]LatestResult, 0, len(results))
+	for _, result := range results {
+		values = append(values, LatestResult{
+			ProbeID: result.ProbeID,
+			CheckID: result.CheckID,
+			Result:  result.Result,
+		})
+	}
+	return values
 }
 
 func seriesKeyStrings(keys []SeriesKey) []string {

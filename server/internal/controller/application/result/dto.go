@@ -33,6 +33,7 @@ type (
 	QueryTCPInsightInput         = tcp.QueryInsightInput
 	QueryHTTPSeriesInput         = apphttp.QuerySeriesInput
 	QueryHTTPInsightInput        = apphttp.QueryInsightInput
+	QueryLatestHTTPResultsInput  = apphttp.QueryLatestInput
 	QueryTracerouteRunsInput     = traceroute.QueryRunsInput
 	QueryTracerouteInsightInput  = traceroute.QueryInsightInput
 	QueryTracerouteTopologyInput = traceroute.QueryTopologyInput
@@ -46,6 +47,7 @@ type (
 	TCPInsightOutput         = tcp.InsightOutput
 	HTTPSeriesOutput         = apphttp.SeriesOutput
 	HTTPInsightOutput        = apphttp.InsightOutput
+	LatestHTTPResultsOutput  = apphttp.LatestResultsOutput
 	TracerouteRunsOutput     = traceroute.RunsOutput
 	TracerouteInsightOutput  = traceroute.InsightOutput
 	TracerouteTopologyOutput = traceroute.TopologyOutput
@@ -73,6 +75,7 @@ type (
 	HTTPSeries                      = apphttp.Series
 	HTTPSeriesPoint                 = apphttp.SeriesPoint
 	HTTPInsightSummary              = apphttp.InsightSummary
+	LatestHTTPResult                = apphttp.LatestResult
 	QueryMetadata                   = resultshared.QueryMetadata
 	TracerouteRunsQueryMetadata     = traceroute.RunsQueryMetadata
 	TracerouteInsightQueryMetadata  = traceroute.InsightQueryMetadata
