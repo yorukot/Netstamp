@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, type KeyboardEvent, type ReactNode, type UIEvent } from "react";
+import { useLayoutEffect, useMemo, useRef, type ChangeEvent, type KeyboardEvent, type ReactNode, type UIEvent } from "react";
 import styles from "./CssCodeEditor.module.css";
 
 interface CssCodeEditorProps {
@@ -55,6 +55,7 @@ export function CssCodeEditor({ value, onChange }: CssCodeEditorProps) {
 	const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 	const highlightRef = useRef<HTMLPreElement | null>(null);
 	const pendingSelection = useRef<{ start: number; end: number } | null>(null);
+	const openingBraceSelection = useRef<{ start: number; end: number } | null>(null);
 	const highlighted = useMemo(() => highlightedCSS(value), [value]);
 
 	useLayoutEffect(() => {
@@ -69,16 +70,36 @@ export function CssCodeEditor({ value, onChange }: CssCodeEditorProps) {
 		onChange(nextValue);
 	}
 
+	function handleChange(event: ChangeEvent<HTMLTextAreaElement>) {
+		const textarea = event.currentTarget;
+		const braceSelection = openingBraceSelection.current;
+		openingBraceSelection.current = null;
+
+		if (braceSelection) {
+			const selected = value.slice(braceSelection.start, braceSelection.end);
+			commit(`${value.slice(0, braceSelection.start)}{${selected}}${value.slice(braceSelection.end)}`, braceSelection.start + 1, selected ? braceSelection.end + 1 : braceSelection.start + 1);
+			return;
+		}
+
+		const inputEvent = event.nativeEvent as InputEvent;
+		const nextValue = textarea.value;
+		const cursor = textarea.selectionStart;
+		if (inputEvent.inputType === "insertText" && inputEvent.data === "{" && cursor === textarea.selectionEnd) {
+			commit(`${nextValue.slice(0, cursor)}}${nextValue.slice(cursor)}`, cursor);
+			return;
+		}
+
+		onChange(nextValue);
+	}
+
 	function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
 		if (event.metaKey || event.ctrlKey || event.altKey) return;
 		const textarea = event.currentTarget;
 		const start = textarea.selectionStart;
 		const end = textarea.selectionEnd;
-		const selected = value.slice(start, end);
 
 		if (event.key === "{") {
-			event.preventDefault();
-			commit(`${value.slice(0, start)}{${selected}}${value.slice(end)}`, start + 1, selected ? end + 1 : start + 1);
+			openingBraceSelection.current = { start, end };
 			return;
 		}
 
@@ -119,20 +140,8 @@ export function CssCodeEditor({ value, onChange }: CssCodeEditorProps) {
 				<pre ref={highlightRef} aria-hidden="true" className={styles.highlight}>
 					<code>{highlighted}</code>
 				</pre>
-				<textarea
-					ref={textareaRef}
-					id="status-page-custom-css"
-					value={value}
-					spellCheck={false}
-					aria-describedby="status-page-custom-css-help"
-					onChange={event => onChange(event.currentTarget.value)}
-					onKeyDown={handleKeyDown}
-					onScroll={syncScroll}
-				/>
+				<textarea ref={textareaRef} id="status-page-custom-css" value={value} spellCheck={false} onChange={handleChange} onKeyDown={handleKeyDown} onScroll={syncScroll} />
 			</div>
-			<p id="status-page-custom-css-help">
-				Applied after built-in styles. Use semantic elements or stable hooks such as <code>.ns-status-page</code> and <code>.ns-status-block</code>.
-			</p>
 		</div>
 	);
 }

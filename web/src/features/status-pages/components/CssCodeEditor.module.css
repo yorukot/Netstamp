@@ -74,13 +74,6 @@
 	background: color-mix(in srgb, var(--ns-primary) 42%, transparent);
 }
 
-.field > p {
-	margin: 0;
-	color: var(--ns-text-subtle);
-	font-size: 0.72rem;
-	line-height: 1.4;
-}
-
 .comment {
 	color: var(--ns-text-subtle);
 	font-style: italic;
