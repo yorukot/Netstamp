@@ -16,7 +16,7 @@ import {
 	StatusPagesPage
 } from "./lazyRoutes";
 import { pageTitleHandle } from "./pageTitles";
-import { DefaultProjectRedirect, LegacyCheckDetailRedirect, LegacyLabelDetailRedirect, LegacyProbeDetailRedirect } from "./redirects";
+import { DefaultProjectRedirect, LegacyCheckDetailRedirect, LegacyLabelDetailRedirect, LegacyProbeDetailRedirect, LegacyStatusPageEditorRedirect } from "./redirects";
 import { RouteFrame } from "./RouteFrame";
 import { pathForRoute, projectRoutePath } from "./routePaths";
 import { lazyRoute } from "./routeSuspense";
@@ -65,7 +65,7 @@ export const router = createBrowserRouter([
 					{ path: "insight", handle: pageTitleHandle("Insight"), element: <DefaultProjectRedirect route="insight" /> },
 					{ path: "alerts", handle: pageTitleHandle("Alerts"), element: <DefaultProjectRedirect route="alerts" /> },
 					{ path: "status-pages", handle: pageTitleHandle("Status Pages"), element: <DefaultProjectRedirect route="statusPages" /> },
-					{ path: "status-pages/:pageId/edit", handle: pageTitleHandle("Status Page Editor"), element: <DefaultProjectRedirect route="statusPages" /> },
+					{ path: "status-pages/:pageId/edit", handle: pageTitleHandle("Status Page Editor"), element: <LegacyStatusPageEditorRedirect /> },
 					{ path: "members", handle: pageTitleHandle("Members"), element: <DefaultProjectRedirect route="members" /> },
 					{ path: "project", handle: pageTitleHandle("Project Settings"), element: <DefaultProjectRedirect route="projectSettings" /> },
 					{ path: "projects", handle: pageTitleHandle("Overview"), element: <DefaultProjectRedirect route="dashboard" /> },

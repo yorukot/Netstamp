@@ -2,7 +2,7 @@ import { useSession } from "@/features/auth/session/SessionContext";
 import { checkTypeLabel, formatDateTime, formatMetric, publicStatusChartOption, severityTone, statusLabel, statusTone } from "@/features/status-pages/api/statusPageAdapters";
 import { pathForRoute, pathForStatusPageEditor } from "@/routes/routePaths";
 import { hasApiProblemCode } from "@/shared/api/client";
-import { projectQueries, publicStatusQueries } from "@/shared/api/queries";
+import { publicStatusQueries } from "@/shared/api/queries";
 import type {
 	ApiPublicStatusEditorContextResponse,
 	ApiPublicStatusElementChartResponse,
@@ -17,7 +17,7 @@ import netstampLogoDark from "@netstamp/brand/assets/netstamp-logo-dark.svg";
 import netstampLogoLight from "@netstamp/brand/assets/netstamp-logo-light.svg";
 import { Badge, Button, Spinner, type BadgeTone } from "@netstamp/ui";
 import { CaretDownIcon } from "@phosphor-icons/react/dist/csr/CaretDown";
-import { useQueries, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import styles from "./PublicStatusPage.module.css";
@@ -37,27 +37,7 @@ export function PublicStatusPage() {
 		enabled: Boolean(slug && session),
 		select: data => data as ApiPublicStatusEditorContextResponse
 	});
-	const useLegacyEditorLookup = Boolean(session && hasApiProblemCode(editorContextQuery.error, "ROUTE_NOT_FOUND"));
-	const legacyProjectsQuery = useQuery({
-		...projectQueries.list(),
-		enabled: useLegacyEditorLookup
-	});
-	const legacyProjectRefs = (legacyProjectsQuery.data?.projects ?? []).map(project => project.slug || project.id);
-	const legacyStatusPageQueries = useQueries({
-		queries: legacyProjectRefs.map(projectRef => ({
-			...projectQueries.statusPages(projectRef),
-			enabled: useLegacyEditorLookup
-		}))
-	});
-	let legacyEditorContext: ApiPublicStatusEditorContextResponse | undefined;
-	for (const [index, query] of legacyStatusPageQueries.entries()) {
-		const page = query.data?.pages.find(candidate => candidate.slug === slug);
-		if (page) {
-			legacyEditorContext = { projectRef: legacyProjectRefs[index] || "", pageId: page.id };
-			break;
-		}
-	}
-	const editorContext = editorContextQuery.data ?? legacyEditorContext;
+	const editorContext = editorContextQuery.data;
 	const summaryQuery = useQuery({
 		...publicStatusQueries.summary(slug),
 		enabled: Boolean(slug),
@@ -140,7 +120,7 @@ export function PublicStatusPage() {
 											<Button asChild size="sm">
 												<Link to={pathForStatusPageEditor(editorContext.projectRef, editorContext.pageId)}>Edit Page</Link>
 											</Button>
-										) : editorContextQuery.isPending || (useLegacyEditorLookup && (legacyProjectsQuery.isPending || legacyStatusPageQueries.some(query => query.isPending))) ? (
+										) : editorContextQuery.isPending ? (
 											<Button type="button" variant="outline" size="sm" disabled>
 												Checking edit access
 											</Button>
