@@ -3,12 +3,12 @@ import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
 import { MutationCache, QueryCache, QueryClient } from "@tanstack/react-query";
 import { hasApiProblemCode } from "./client";
 
-interface MutationErrorMeta {
+interface ErrorMeta {
 	suppressGlobalErrorToast?: boolean;
 }
 
 function suppressesGlobalErrorToast(meta: unknown) {
-	return Boolean(meta && typeof meta === "object" && (meta as MutationErrorMeta).suppressGlobalErrorToast === true);
+	return Boolean(meta && typeof meta === "object" && (meta as ErrorMeta).suppressGlobalErrorToast === true);
 }
 
 export const queryClient = new QueryClient({
@@ -23,6 +23,10 @@ export const queryClient = new QueryClient({
 	}),
 	queryCache: new QueryCache({
 		onError: (error, query) => {
+			if (suppressesGlobalErrorToast(query.meta)) {
+				return;
+			}
+
 			if (query.queryKey[0] === "auth" && hasApiProblemCode(error, "AUTH_MISSING_SESSION", "AUTH_INVALID_SESSION")) {
 				return;
 			}

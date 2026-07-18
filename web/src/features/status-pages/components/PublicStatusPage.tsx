@@ -1,8 +1,8 @@
 import { useSession } from "@/features/auth/session/SessionContext";
 import { checkTypeLabel, formatDateTime, formatMetric, publicStatusChartOption, severityTone, statusLabel, statusTone } from "@/features/status-pages/api/statusPageAdapters";
-import { pathForStatusPageEditor } from "@/routes/routePaths";
+import { pathForRoute, pathForStatusPageEditor } from "@/routes/routePaths";
 import { hasApiProblemCode } from "@/shared/api/client";
-import { publicStatusQueries } from "@/shared/api/queries";
+import { projectQueries, publicStatusQueries } from "@/shared/api/queries";
 import type {
 	ApiPublicStatusEditorContextResponse,
 	ApiPublicStatusElementChartResponse,
@@ -15,9 +15,9 @@ import type {
 import { ChartPanel } from "@/shared/visualizations/ChartPanel";
 import netstampLogoDark from "@netstamp/brand/assets/netstamp-logo-dark.svg";
 import netstampLogoLight from "@netstamp/brand/assets/netstamp-logo-light.svg";
-import { Badge, Button, Panel, Spinner, type BadgeTone } from "@netstamp/ui";
+import { Badge, Button, Spinner, type BadgeTone } from "@netstamp/ui";
 import { CaretDownIcon } from "@phosphor-icons/react/dist/csr/CaretDown";
-import { useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import styles from "./PublicStatusPage.module.css";
@@ -37,6 +37,27 @@ export function PublicStatusPage() {
 		enabled: Boolean(slug && session),
 		select: data => data as ApiPublicStatusEditorContextResponse
 	});
+	const useLegacyEditorLookup = Boolean(session && hasApiProblemCode(editorContextQuery.error, "ROUTE_NOT_FOUND"));
+	const legacyProjectsQuery = useQuery({
+		...projectQueries.list(),
+		enabled: useLegacyEditorLookup
+	});
+	const legacyProjectRefs = (legacyProjectsQuery.data?.projects ?? []).map(project => project.slug || project.id);
+	const legacyStatusPageQueries = useQueries({
+		queries: legacyProjectRefs.map(projectRef => ({
+			...projectQueries.statusPages(projectRef),
+			enabled: useLegacyEditorLookup
+		}))
+	});
+	let legacyEditorContext: ApiPublicStatusEditorContextResponse | undefined;
+	for (const [index, query] of legacyStatusPageQueries.entries()) {
+		const page = query.data?.pages.find(candidate => candidate.slug === slug);
+		if (page) {
+			legacyEditorContext = { projectRef: legacyProjectRefs[index] || "", pageId: page.id };
+			break;
+		}
+	}
+	const editorContext = editorContextQuery.data ?? legacyEditorContext;
 	const summaryQuery = useQuery({
 		...publicStatusQueries.summary(slug),
 		enabled: Boolean(slug),
@@ -69,9 +90,10 @@ export function PublicStatusPage() {
 		return (
 			<main className={styles.page}>
 				<div className={styles.shell}>
-					<Panel tone="deep" title={notFound ? "Status page not found" : "Status page unavailable"}>
+					<section className={styles.messageSurface}>
+						<h1>{notFound ? "Status page not found" : "Status page unavailable"}</h1>
 						<p className={styles.muted}>{notFound ? "This public status page is disabled or does not exist." : "The controller could not return this status page right now."}</p>
-					</Panel>
+					</section>
 				</div>
 			</main>
 		);
@@ -85,42 +107,53 @@ export function PublicStatusPage() {
 	return (
 		<main className={styles.page} data-status={summary.page.status}>
 			{summary.page.customCss ? <style>{summary.page.customCss}</style> : null}
-			<div className={styles.shell}>
-				<header className={styles.hero}>
-					{summary.page.bannerImageUrl ? (
-						<img className={`${styles.banner} ${styles.bannerImage}`} src={summary.page.bannerImageUrl} alt="" />
-					) : (
-						<div className={styles.banner} role="img" aria-label="Network telemetry paths between global monitoring locations" />
-					)}
-					<div className={styles.heroBody}>
-						<div className={styles.brandRow}>
-							<img src={mapTheme === "dark" ? netstampLogoLight : netstampLogoDark} alt="Netstamp" />
-							<span>Public status</span>
-						</div>
-						<div className={styles.titleRow}>
-							<div className={styles.headerCopy}>
-								<h1>{summary.page.title}</h1>
-								{summary.page.description ? <p>{summary.page.description}</p> : null}
-							</div>
-							{summary.page.showGeneratedAt || editorContextQuery.data ? (
-								<div className={styles.heroActions}>
-									{summary.page.showGeneratedAt ? (
-										<div className={styles.generated}>
-											<span>Last checked</span>
-											<strong>{formatDateTime(summary.generatedAt)}</strong>
-										</div>
-									) : null}
-									{editorContextQuery.data ? (
-										<Button asChild variant="outline" size="sm">
-											<Link to={pathForStatusPageEditor(editorContextQuery.data.projectRef, editorContextQuery.data.pageId)}>Edit page</Link>
-										</Button>
-									) : null}
-								</div>
-							) : null}
-						</div>
+			<header className={styles.hero}>
+				{summary.page.bannerImageUrl ? (
+					<img className={`${styles.banner} ${styles.bannerImage}`} src={summary.page.bannerImageUrl} alt="" />
+				) : (
+					<div className={styles.banner} role="img" aria-label="Network telemetry paths between global monitoring locations" />
+				)}
+				<div className={styles.heroBody}>
+					<div className={styles.brandRow}>
+						<img src={mapTheme === "dark" ? netstampLogoLight : netstampLogoDark} alt="Netstamp" />
+						<span>Public status</span>
 					</div>
-				</header>
+					<div className={styles.titleRow}>
+						<div className={styles.headerCopy}>
+							<h1>{summary.page.title}</h1>
+							{summary.page.description ? <p>{summary.page.description}</p> : null}
+						</div>
+						{summary.page.showGeneratedAt || session ? (
+							<div className={styles.heroActions}>
+								{summary.page.showGeneratedAt ? (
+									<div className={styles.generated}>
+										<span>Last checked</span>
+										<strong>{formatDateTime(summary.generatedAt)}</strong>
+									</div>
+								) : null}
+								{session ? (
+									<div className={styles.sessionActions}>
+										<Button asChild variant="ghost" size="sm">
+											<Link to={pathForRoute("dashboard", { projectRef: editorContext?.projectRef })}>Go to dashboard</Link>
+										</Button>
+										{editorContext ? (
+											<Button asChild variant="outline" size="sm">
+												<Link to={pathForStatusPageEditor(editorContext.projectRef, editorContext.pageId)}>Edit status page</Link>
+											</Button>
+										) : editorContextQuery.isPending || (useLegacyEditorLookup && (legacyProjectsQuery.isPending || legacyStatusPageQueries.some(query => query.isPending))) ? (
+											<Button type="button" variant="outline" size="sm" disabled>
+												Checking edit access
+											</Button>
+										) : null}
+									</div>
+								) : null}
+							</div>
+						) : null}
+					</div>
+				</div>
+			</header>
 
+			<div className={styles.shell}>
 				<section className={styles.overallStatus} aria-label="Current overall status">
 					<span className={styles.statusMarker} aria-hidden="true" />
 					<div>
@@ -176,9 +209,10 @@ function IncidentSection({
 	if (isLoading) {
 		return (
 			<section className={styles.incidents} aria-label="Incidents">
-				<Panel tone="deep" title="Open incidents">
+				<div className={styles.incidentPanel}>
+					<h2>Open incidents</h2>
 					<Spinner label="Loading incidents" layout="compact" size="lg" />
-				</Panel>
+				</div>
 			</section>
 		);
 	}
@@ -186,9 +220,10 @@ function IncidentSection({
 	if (hasError) {
 		return (
 			<section className={styles.incidents} aria-label="Incidents">
-				<Panel tone="deep" title="Open incidents">
+				<div className={styles.incidentPanel}>
+					<h2>Open incidents</h2>
 					<p className={styles.muted}>Incidents are unavailable right now.</p>
-				</Panel>
+				</div>
 			</section>
 		);
 	}
@@ -200,13 +235,17 @@ function IncidentSection({
 	return (
 		<section className={styles.incidents} aria-label="Incidents">
 			{activeIncidents.length ? (
-				<Panel tone="deep" title="Active incidents" summary="Current service interruptions and ongoing investigation updates.">
+				<div className={styles.incidentPanel}>
+					<div className={styles.incidentHeading}>
+						<h2>Active incidents</h2>
+						<p>Current service interruptions and ongoing investigation updates.</p>
+					</div>
 					<div className={styles.incidentList}>
 						{activeIncidents.map(incident => (
 							<IncidentRow key={incident.id} incident={incident} />
 						))}
 					</div>
-				</Panel>
+				</div>
 			) : null}
 			{resolvedIncidents.length ? (
 				<details className={styles.resolvedIncidents}>
@@ -273,9 +312,10 @@ function ElementSection({
 	if (hasError) {
 		return (
 			<section className={styles.elements} aria-label="Status checks">
-				<Panel tone="deep" title="Status checks unavailable">
+				<div className={styles.messageSurface}>
+					<h2>Status checks unavailable</h2>
 					<p className={styles.muted}>The current status checks could not be loaded.</p>
-				</Panel>
+				</div>
 			</section>
 		);
 	}
@@ -321,35 +361,41 @@ function ExpandableStatusRow({ slug, element, mapTheme }: { slug: string; elemen
 	return (
 		<article className={styles.check} data-expanded={expanded}>
 			<button type="button" className={styles.checkToggle} aria-expanded={expanded} aria-controls={`status-details-${element.id}`} onClick={() => setExpanded(current => !current)}>
-				<div className={styles.checkIdentity}>
-					<span className={`${styles.serviceState} ${serviceStateClass(element.status)}`} aria-hidden="true" />
-					<div className={styles.checkCopy}>
-						<h3>{element.title}</h3>
-						<div className={styles.checkMeta}>
-							{element.type ? <span>{checkTypeLabel(element.type)}</span> : <span>{element.assignmentCount ?? element.assignments?.length ?? 0} viewpoints</span>}
-							<span>{displayModeLabel(element.displayMode)}</span>
-							{element.latestStartedAt ? <span>Checked {formatDateTime(element.latestStartedAt)}</span> : null}
+				<div className={styles.checkSummary}>
+					<div className={styles.checkIdentity}>
+						<span className={`${styles.serviceState} ${serviceStateClass(element.status)}`} aria-hidden="true" />
+						<div className={styles.checkCopy}>
+							<h3>{element.title}</h3>
+							<div className={styles.checkMeta}>
+								{element.type ? <span>{checkTypeLabel(element.type)}</span> : <span>{element.assignmentCount ?? element.assignments?.length ?? 0} viewpoints</span>}
+								<span>{displayModeLabel(element.displayMode)}</span>
+								{element.latestStartedAt ? <span>Checked {formatDateTime(element.latestStartedAt)}</span> : null}
+							</div>
 						</div>
 					</div>
+					<div className={styles.checkState}>
+						<strong>{statusLabel(element.status)}</strong>
+						<CaretDownIcon aria-hidden="true" focusable="false" />
+					</div>
 				</div>
-				<div className={styles.checkState}>
-					<strong>{statusLabel(element.status)}</strong>
-					<CaretDownIcon aria-hidden="true" focusable="false" />
-				</div>
+				<LazyPublicElementDailyStatus slug={slug} element={element} />
 			</button>
-			<LazyPublicElementDailyStatus slug={slug} element={element} />
-			<div id={`status-details-${element.id}`} className={styles.checkDetails} hidden={!expanded}>
-				{element.description ? <p className={styles.checkDescription}>{element.description}</p> : null}
-				<div className={styles.assignmentStats}>
-					<span>{element.successfulAssignments ?? 0} operational</span>
-					<span>{element.failingAssignments ?? 0} failing</span>
-					<span>{element.staleAssignments ?? 0} stale</span>
+			<div id={`status-details-${element.id}`} className={styles.checkDetailsRegion} aria-hidden={!expanded}>
+				<div className={styles.checkDetailsClip}>
+					<div className={styles.checkDetails}>
+						{element.description ? <p className={styles.checkDescription}>{element.description}</p> : null}
+						<div className={styles.assignmentStats}>
+							<span>{element.successfulAssignments ?? 0} operational</span>
+							<span>{element.failingAssignments ?? 0} failing</span>
+							<span>{element.staleAssignments ?? 0} stale</span>
+						</div>
+						<Metrics element={element} />
+						<AssignmentRows assignments={element.assignments ?? []} />
+						{expanded && element.displayMode === "map" ? <AssignmentMap assignments={element.assignments ?? []} theme={mapTheme} /> : null}
+						{showChart && element.chart?.series.length ? <ChartPanel className={styles.chart} option={publicStatusChartOption(element)} height="12rem" /> : null}
+						{showChart && !element.chart?.series.length ? <LazyPublicElementChart slug={slug} element={element} /> : null}
+					</div>
 				</div>
-				<Metrics element={element} />
-				<AssignmentRows assignments={element.assignments ?? []} />
-				{expanded && element.displayMode === "map" ? <AssignmentMap assignments={element.assignments ?? []} theme={mapTheme} /> : null}
-				{showChart && element.chart?.series.length ? <ChartPanel className={styles.chart} option={publicStatusChartOption(element)} height="12rem" /> : null}
-				{showChart && !element.chart?.series.length ? <LazyPublicElementChart slug={slug} element={element} /> : null}
 			</div>
 		</article>
 	);
