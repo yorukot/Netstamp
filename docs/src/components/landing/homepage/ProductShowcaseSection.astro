@@ -70,41 +70,43 @@ const items = [
 ---
 
 <section id="green-dot" class="showcase" aria-labelledby="green-dot-title" data-product-showcase>
-	<header>
-		<h2 id="green-dot-title">A green dot is not enough.</h2>
-		<p>Netstamp connects the current state to the evidence behind it.</p>
-	</header>
 	<div class="showcase-grid">
-		<div class="feature-gallery" aria-label="Netstamp product highlights" data-showcase-controls>
-			{
-				items.map((item, index) => (
-					<button
-						type="button"
-						class:list={["feature-card", { "is-active": index === 0 }]}
-						aria-controls="product-showcase-visual"
-						aria-pressed={index === 0 ? "true" : "false"}
-						data-showcase-trigger
-						data-showcase-index={index}
-						data-showcase-description={`${item.title}. ${item.description}`}
-					>
-						<span class="feature-icon" aria-hidden="true">
-							{item.icon === "map" ? <ph-map-trifold weight="regular" focusable="false" /> : null}
-							{item.icon === "pulse" ? <ph-pulse weight="regular" focusable="false" /> : null}
-							{item.icon === "globe" ? <ph-globe-hemisphere-west weight="regular" focusable="false" /> : null}
-							{item.icon === "plugs" ? <ph-plugs weight="regular" focusable="false" /> : null}
-							{item.icon === "route" ? <ph-git-branch weight="regular" focusable="false" /> : null}
-							{item.icon === "shield" ? <ph-shield-check weight="regular" focusable="false" /> : null}
-							{item.icon === "warning" ? <ph-warning weight="regular" focusable="false" /> : null}
-							{item.icon === "monitor" ? <ph-monitor weight="regular" focusable="false" /> : null}
-						</span>
-						<span class="feature-title">{item.title}</span>
-						<span class="feature-description">{item.description}</span>
-					</button>
-				))
-			}
+		<div class="showcase-copy">
+			<header>
+				<h2 id="green-dot-title">A green dot is not enough.</h2>
+				<p>Netstamp connects the current state to the evidence behind it.</p>
+			</header>
+			<div class="feature-gallery" aria-label="Netstamp product highlights" data-showcase-controls>
+				{
+					items.map((item, index) => (
+						<button
+							type="button"
+							class:list={["feature-card", { "is-active": index === 0 }]}
+							aria-controls="product-showcase-visual"
+							aria-pressed={index === 0 ? "true" : "false"}
+							data-showcase-trigger
+							data-showcase-index={index}
+							data-showcase-description={item.description}
+						>
+							<span class="feature-icon" aria-hidden="true">
+								{item.icon === "map" ? <ph-map-trifold weight="regular" focusable="false" /> : null}
+								{item.icon === "pulse" ? <ph-pulse weight="regular" focusable="false" /> : null}
+								{item.icon === "globe" ? <ph-globe-hemisphere-west weight="regular" focusable="false" /> : null}
+								{item.icon === "plugs" ? <ph-plugs weight="regular" focusable="false" /> : null}
+								{item.icon === "route" ? <ph-git-branch weight="regular" focusable="false" /> : null}
+								{item.icon === "shield" ? <ph-shield-check weight="regular" focusable="false" /> : null}
+								{item.icon === "warning" ? <ph-warning weight="regular" focusable="false" /> : null}
+								{item.icon === "monitor" ? <ph-monitor weight="regular" focusable="false" /> : null}
+							</span>
+							<span class="feature-title">{item.title}</span>
+						</button>
+					))
+				}
+			</div>
+			<p id="product-showcase-caption" class="feature-caption" data-showcase-caption>{items[0].description}</p>
 		</div>
 
-		<figure id="product-showcase-visual" class="showcase-visual" role="img" aria-labelledby="product-showcase-caption">
+		<figure id="product-showcase-visual" class="showcase-visual" aria-describedby="product-showcase-caption">
 			<div class="macbook">
 				<div class="screen-stack" aria-hidden="true">
 					{
@@ -113,8 +115,8 @@ const items = [
 								class:list={["showcase-image", { "is-active": index === 0 }]}
 								src={item.image}
 								alt=""
-								width="958"
-								height="623"
+								width="1200"
+								height="780"
 								loading="eager"
 								decoding="async"
 								data-showcase-image
@@ -125,7 +127,6 @@ const items = [
 				</div>
 				<img class="macbook-frame" src={macbookFrame} alt="" width="1200" height="727" loading="eager" decoding="async" aria-hidden="true" />
 			</div>
-			<figcaption id="product-showcase-caption" class="sr-only" data-showcase-caption>{items[0].title}. {items[0].description}</figcaption>
 		</figure>
 	</div>
 </section>
@@ -138,11 +139,6 @@ const items = [
 		padding: 7.5rem clamp(1rem, 4vw, 4rem) 8.5rem;
 		background: var(--ns-chrome-text);
 		color: var(--ns-bg);
-	}
-
-	header {
-		max-width: 88rem;
-		margin: 0 auto 3rem;
 	}
 
 	h2 {
@@ -170,6 +166,14 @@ const items = [
 		margin: 0 auto;
 	}
 
+	.showcase-copy {
+		min-width: 0;
+	}
+
+	header {
+		margin-bottom: 3rem;
+	}
+
 	.feature-gallery {
 		display: grid;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -181,9 +185,9 @@ const items = [
 		display: grid;
 		grid-template-columns: auto minmax(0, 1fr);
 		column-gap: 0.75rem;
-		align-content: start;
+		align-content: center;
 		min-width: 0;
-		min-height: 3.75rem;
+		min-height: 4.5rem;
 		padding: 1rem;
 		border: 1px solid color-mix(in srgb, var(--ns-bg) 12%, transparent);
 		border-radius: 0;
@@ -194,14 +198,12 @@ const items = [
 		text-align: left;
 		cursor: pointer;
 		transition:
-			min-height var(--ns-transition),
 			border-color var(--ns-transition),
 			background var(--ns-transition);
 	}
 
 	.feature-card:hover,
 	.feature-card.is-active {
-		min-height: 8.75rem;
 		border-color: color-mix(in srgb, var(--ns-primary-active) 72%, transparent);
 		background: color-mix(in srgb, var(--ns-chrome-text) 88%, var(--ns-primary-active));
 	}
@@ -239,33 +241,14 @@ const items = [
 		line-height: 1.25;
 	}
 
-	.feature-description {
-		grid-column: 1 / -1;
-		align-self: start;
-		max-height: 0;
-		margin-top: 0;
-		overflow: hidden;
+	.feature-caption {
+		min-height: 5.5rem;
+		margin: 1.25rem 0 0;
+		padding-top: 1rem;
+		border-top: 1px solid color-mix(in srgb, var(--ns-bg) 18%, transparent);
 		color: color-mix(in srgb, var(--ns-bg) 70%, var(--ns-chrome-text));
-		font-size: 0.86rem;
-		line-height: 1.45;
-		opacity: 0;
-		visibility: hidden;
-		transform: translateY(0.25rem);
-		transition:
-			max-height var(--ns-transition),
-			margin-top var(--ns-transition),
-			opacity 180ms ease,
-			transform 180ms ease,
-			visibility 180ms ease;
-	}
-
-	.feature-card:hover .feature-description,
-	.feature-card.is-active .feature-description {
-		max-height: 7rem;
-		margin-top: 0.75rem;
-		opacity: 1;
-		visibility: visible;
-		transform: translateY(0);
+		font-size: 0.95rem;
+		line-height: 1.55;
 	}
 
 	.showcase-visual {
@@ -286,11 +269,11 @@ const items = [
 
 	.screen-stack {
 		position: absolute;
-		top: 3.1637%;
-		left: 10.0833%;
+		top: 3.0261%;
+		left: 10%;
 		z-index: 1;
-		width: 79.8333%;
-		height: 85.6946%;
+		width: 80%;
+		height: 85.9697%;
 		overflow: hidden;
 		background: var(--ns-bg);
 	}
