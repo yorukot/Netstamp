@@ -1,7 +1,7 @@
 import { pushErrorToast } from "@/shared/toast/toastStore";
 import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
 import { MutationCache, QueryCache, QueryClient } from "@tanstack/react-query";
-import { hasApiProblemCode } from "./client";
+import { isSessionUnavailableError } from "./client";
 
 interface MutationErrorMeta {
 	suppressGlobalErrorToast?: boolean;
@@ -14,7 +14,7 @@ function suppressesGlobalErrorToast(meta: unknown) {
 export const queryClient = new QueryClient({
 	mutationCache: new MutationCache({
 		onError: (error, _variables, _context, mutation) => {
-			if (suppressesGlobalErrorToast(mutation.options.meta)) {
+			if (isSessionUnavailableError(error) || suppressesGlobalErrorToast(mutation.options.meta)) {
 				return;
 			}
 
@@ -22,8 +22,8 @@ export const queryClient = new QueryClient({
 		}
 	}),
 	queryCache: new QueryCache({
-		onError: (error, query) => {
-			if (query.queryKey[0] === "auth" && hasApiProblemCode(error, "AUTH_MISSING_SESSION", "AUTH_INVALID_SESSION")) {
+		onError: error => {
+			if (isSessionUnavailableError(error)) {
 				return;
 			}
 
@@ -34,7 +34,7 @@ export const queryClient = new QueryClient({
 		queries: {
 			gcTime: 10 * 60 * 1000,
 			refetchOnWindowFocus: false,
-			retry: 1,
+			retry: (failureCount, error) => !isSessionUnavailableError(error) && failureCount < 1,
 			staleTime: 60 * 1000
 		},
 		mutations: {
