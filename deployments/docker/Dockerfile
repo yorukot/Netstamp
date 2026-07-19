@@ -23,12 +23,14 @@ RUN npm install -g pnpm@11.4.0
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY web/package.json web/package.json
 COPY packages/brand/package.json packages/brand/package.json
+COPY packages/i18n/package.json packages/i18n/package.json
 COPY packages/ui/package.json packages/ui/package.json
 
 RUN pnpm install --frozen-lockfile --filter @netstamp/web... --filter @netstamp/ui
 
 COPY web web
 COPY packages/brand packages/brand
+COPY packages/i18n packages/i18n
 COPY packages/ui packages/ui
 
 ARG VITE_NETSTAMP_REGISTRATION_ENABLED=true
