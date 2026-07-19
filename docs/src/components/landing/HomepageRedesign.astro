@@ -1,14 +1,10 @@
 ---
-import { GlobalFooter } from "@netstamp/ui";
-import { uiForLocale } from "../../i18n/ui";
 import FaqSection from "./homepage/FaqSection.astro";
 import FinalCtaSection from "./homepage/FinalCtaSection.astro";
 import HeroSection from "./homepage/HeroSection.astro";
 import ProductIntroSection from "./homepage/ProductIntroSection.astro";
 import ProductShowcaseSection from "./homepage/ProductShowcaseSection.astro";
 import ScrollFlowSection from "./homepage/ScrollFlowSection.astro";
-
-const ui = uiForLocale(Astro.currentLocale);
 ---
 
 <div class="homepage" data-homepage>
@@ -20,15 +16,6 @@ const ui = uiForLocale(Astro.currentLocale);
 		<FinalCtaSection />
 		<FaqSection />
 	</main>
-	<GlobalFooter
-		className="homepageFooter"
-		madeByLabel={ui.footer.madeBy}
-		separator={ui.footer.separator}
-		contributorsSeparator={ui.footer.contributorsSeparator}
-		contributorsLabel={ui.footer.contributors}
-		starLabel={ui.footer.star}
-	/>
-
 	<script>
 		import "../../scripts/homepageRedesign";
 	</script>
@@ -62,10 +49,6 @@ const ui = uiForLocale(Astro.currentLocale);
 
 		.homepage main {
 			overflow: clip;
-		}
-
-		.homepage .homepageFooter {
-			background: var(--ns-chrome-text);
 		}
 
 		.homepage section[id] {
