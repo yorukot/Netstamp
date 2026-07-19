@@ -6,7 +6,7 @@
 
 .mapScreen {
 	min-height: 0;
-	height: calc(100svh - var(--app-footer-min-height, 3.25rem));
+	height: 100svh;
 	margin: calc(-1 * var(--app-content-padding-top, 4rem)) calc(-1 * var(--app-content-padding-inline-end, 2rem)) calc(-1 * var(--app-content-padding-bottom, 2rem))
 		calc(-1 * var(--app-content-padding-inline-start, 2rem));
 	overflow: hidden;

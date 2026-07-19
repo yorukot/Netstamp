@@ -1,7 +1,6 @@
 import { useSession } from "@/features/auth/session/SessionContext";
 import { demoMode } from "@/shared/config/features";
 import { classNames } from "@/shared/utils/classNames";
-import { GlobalFooter } from "@netstamp/ui";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Outlet } from "react-router-dom";
@@ -10,7 +9,7 @@ import { Sidebar } from "./components/Sidebar";
 
 const sidebarCollapsedStorageKey = "netstamp:sidebar-collapsed";
 
-export function AppShell() {
+export const AppShell = () => {
 	const { t } = useTranslation("common");
 	const { session, logout } = useSession();
 	const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -56,10 +55,7 @@ export function AppShell() {
 						<Outlet />
 					</div>
 				</div>
-				<div className={styles.footerSlot}>
-					<GlobalFooter />
-				</div>
 			</main>
 		</div>
 	);
-}
+};
