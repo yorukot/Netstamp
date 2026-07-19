@@ -1,4 +1,7 @@
 import type { CheckDefinition } from "@/features/checks/data/checks";
+import { i18n } from "@/i18n";
+
+const checkT = i18n.getFixedT(null, "checks") as (key: string, options?: Record<string, unknown>) => string;
 
 function normalizedTargetKey(target: string) {
 	return target.trim().toLocaleLowerCase();
@@ -21,12 +24,12 @@ export function groupChecksByTarget(checks: CheckDefinition[]): CheckDefinition[
 
 export function displayProbeSelection(selectedProbes: string[]) {
 	if (!selectedProbes.length) {
-		return "No probes assigned";
+		return checkT("selector.noneAssigned");
 	}
 
 	if (selectedProbes.length === 1) {
 		return selectedProbes[0];
 	}
 
-	return `${selectedProbes.length} probes selected`;
+	return checkT("selector.selected", { count: selectedProbes.length });
 }

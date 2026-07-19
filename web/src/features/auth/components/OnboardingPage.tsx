@@ -3,7 +3,7 @@ import { type Navigate } from "@/routes/routeTypes";
 import { apiProblemCode } from "@/shared/api/client";
 import { useAcceptProjectInviteMutation, useCreateProjectInviteForRefMutation, useCreateProjectMutation } from "@/shared/api/mutations";
 import { projectQueries } from "@/shared/api/queries";
-import type { ApiProjectInvite } from "@/shared/api/types";
+import type { ApiProjectInvite, ProjectMemberRole } from "@/shared/api/types";
 import { useProjectSelection } from "@/shared/api/useCurrentProject";
 import { appFeatures } from "@/shared/config/features";
 import { pushErrorToast } from "@/shared/toast/toastStore";
@@ -12,7 +12,7 @@ import { Button, Input, PageShell, Spinner } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import type { FormEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Helmet } from "react-helmet-async";
+import { useTranslation } from "react-i18next";
 import styles from "./OnboardingPage.module.css";
 
 interface OnboardingPageProps {
@@ -66,19 +66,6 @@ function projectRefFromInvite(invite: ApiProjectInvite) {
 	return invite.project.slug || invite.project.id;
 }
 
-function roleLabel(role: string) {
-	return role.charAt(0).toUpperCase() + role.slice(1);
-}
-
-function inviteSummary(invites: ApiProjectInvite[]) {
-	if (invites.length === 1) {
-		const invite = invites[0];
-		return `You have pending ${roleLabel(invite.role)} access to ${invite.project.name}.`;
-	}
-
-	return `You have ${invites.length} pending project invites.`;
-}
-
 function shouldCreateProjectFromDecision(value: string) {
 	const normalized = value.trim().toLowerCase();
 
@@ -94,6 +81,7 @@ function shouldCreateProjectFromDecision(value: string) {
 }
 
 export function OnboardingPage({ navigate }: OnboardingPageProps) {
+	const { t } = useTranslation(["auth", "project"]);
 	const { session, loading, submitting, logout } = useAuth();
 	const createProjectMutation = useCreateProjectMutation({ suppressGlobalErrorToast: true });
 	const createInviteMutation = useCreateProjectInviteForRefMutation({ suppressGlobalErrorToast: true });
@@ -113,19 +101,23 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 	const decisionInputRef = useRef<HTMLInputElement | null>(null);
 	const projectInputRef = useRef<HTMLInputElement | null>(null);
 	const inviteRefs = useRef<Array<HTMLInputElement | null>>([]);
-	const displayName = session?.user.name.trim() || "there";
+	const displayName = session?.user.name.trim() || t("onboarding.there");
 	const pendingInvites = pendingInvitesQuery.data?.invites ?? [];
 	const shouldAskCreateProject = pendingInvites.length > 0 && !acceptedInviteProject;
 	const projectFlowReady = appFeatures.projectCreation && !pendingInvitesQuery.isPending && !shouldAskCreateProject;
 	const acceptingInvites = resolvingInvites || acceptInviteMutation.isPending;
+	const pendingInviteSummary =
+		pendingInvites.length === 1 && pendingInvites[0]
+			? t("onboarding.singleInvite", { role: t(`project:roles.${pendingInvites[0].role as ProjectMemberRole}`), project: pendingInvites[0].project.name })
+			: t("onboarding.inviteCount", { count: pendingInvites.length });
 	const scriptSteps = useMemo<ScriptStep[]>(
 		() => [
-			{ prompt: "netstamp", text: `Nice to meet you, ${displayName}`, autoAdvanceAfter: 180 },
-			{ prompt: "netstamp", text: acceptedInviteProject ? "Let's create a new project too." : "Let's create your first project.", autoAdvanceAfter: 760 },
-			{ prompt: "project", text: "How should we call your project?" },
-			{ prompt: "members", text: "Invite project members?" }
+			{ prompt: "netstamp", text: t("onboarding.niceToMeet", { name: displayName }), autoAdvanceAfter: 180 },
+			{ prompt: "netstamp", text: acceptedInviteProject ? t("onboarding.createAnother") : t("onboarding.createFirst"), autoAdvanceAfter: 760 },
+			{ prompt: "project", text: t("onboarding.projectQuestion") },
+			{ prompt: "members", text: t("onboarding.inviteQuestion") }
 		],
-		[acceptedInviteProject, displayName]
+		[acceptedInviteProject, displayName, t]
 	);
 
 	const activeScript = scriptSteps[activeStep];
@@ -255,13 +247,13 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 			const failedInviteCount = inviteResults.length - acceptedInvites.length;
 
 			if (failedInviteCount) {
-				pushErrorToast(`${failedInviteCount} project invite${failedInviteCount === 1 ? "" : "s"} could not be accepted.`);
+				pushErrorToast(t("onboarding.inviteAcceptFailed", { count: failedInviteCount }));
 			}
 
 			const acceptedInvite = acceptedInvites[0];
 
 			if (!acceptedInvite) {
-				throw new Error("Project invite could not be accepted.");
+				throw new Error(t("onboarding.inviteAcceptError"));
 			}
 
 			const projectRef = projectRefFromInvite(acceptedInvite);
@@ -285,7 +277,7 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 		const shouldCreateProject = shouldCreateProjectFromDecision(createProjectDecision);
 
 		if (shouldCreateProject === null) {
-			pushErrorToast("Answer y or n.");
+			pushErrorToast(t("onboarding.answerYN"));
 			return;
 		}
 
@@ -301,7 +293,7 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 			setActiveStep(0);
 			setTypedText("");
 		} catch (error) {
-			pushErrorToast(requestErrorMessage(error, "Project invite could not be accepted."));
+			pushErrorToast(requestErrorMessage(error, t("onboarding.inviteAcceptError")));
 		}
 	}
 
@@ -312,7 +304,7 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 			return;
 		}
 
-		const normalizedProjectName = projectName.trim() || "Yoru Labs";
+		const normalizedProjectName = projectName.trim() || t("onboarding.projectPlaceholder");
 		const baseSlug = slugifyProjectName(normalizedProjectName);
 
 		setCreatingProject(true);
@@ -331,7 +323,7 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 						const failedInviteCount = inviteResults.filter(result => result.status === "rejected").length;
 
 						if (failedInviteCount) {
-							pushErrorToast(`${failedInviteCount} project invite${failedInviteCount === 1 ? "" : "s"} could not be sent.`);
+							pushErrorToast(t("onboarding.inviteSendFailed", { count: failedInviteCount }));
 						}
 					}
 
@@ -346,9 +338,9 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 				}
 			}
 
-			pushErrorToast("Project slug is already in use. Try a different project name.");
+			pushErrorToast(t("onboarding.slugConflict"));
 		} catch (error) {
-			pushErrorToast(requestErrorMessage(error, "Project could not be created."));
+			pushErrorToast(requestErrorMessage(error, t("onboarding.createError")));
 		} finally {
 			setCreatingProject(false);
 		}
@@ -357,7 +349,7 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 	if (loading || pendingInvitesQuery.isPending) {
 		return (
 			<PageShell variant="constellation" center className={styles.shell}>
-				<Spinner label="Loading onboarding" layout="panel" size="lg" />
+				<Spinner label={t("onboarding.loading")} layout="panel" size="lg" />
 			</PageShell>
 		);
 	}
@@ -365,11 +357,7 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 	if (!appFeatures.projectCreation && !shouldAskCreateProject) {
 		return (
 			<PageShell variant="constellation" center className={styles.shell}>
-				<Helmet>
-					<title>No Project Access - Netstamp</title>
-				</Helmet>
-
-				<section className={styles.console} aria-label="Project access console">
+				<section className={styles.console} aria-label={t("onboarding.accessConsole")}>
 					<div className={styles.consoleBar}>
 						<span aria-hidden="true" />
 						<span aria-hidden="true" />
@@ -378,10 +366,10 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 					</div>
 					<div className={styles.consoleBody}>
 						<div className={styles.successView}>
-							<ScriptLine prompt="access" text="No projects are assigned to this account." />
-							<p>Use an invited demo account or ask an operator for project access.</p>
+							<ScriptLine prompt="access" text={t("onboarding.noProjects")} />
+							<p>{t("onboarding.noProjectsHelp")}</p>
 							<Button variant="plain" className={styles.tuiButton} type="button" onClick={logout}>
-								[ log out ]
+								{t("onboarding.logOut")}
 							</Button>
 						</div>
 					</div>
@@ -392,11 +380,7 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 
 	return (
 		<PageShell variant="constellation" center className={styles.shell}>
-			<Helmet>
-				<title>{shouldAskCreateProject ? "Welcome" : "Create Project"} - Netstamp</title>
-			</Helmet>
-
-			<section className={styles.console} aria-label="First contact onboarding console">
+			<section className={styles.console} aria-label={t("onboarding.console")}>
 				<div className={styles.consoleBar}>
 					<span aria-hidden="true" />
 					<span aria-hidden="true" />
@@ -407,14 +391,14 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 					{shouldAskCreateProject ? (
 						<>
 							<div className={styles.scriptLog}>
-								<ScriptLine prompt="netstamp" text={`Nice to meet you, ${displayName}`} />
-								<ScriptLine prompt="invite" text={inviteSummary(pendingInvites)} />
-								<ScriptLine prompt="project" text={appFeatures.projectCreation ? "Create a project? [Y/n]" : "Open invited project? [Y/n]"} />
+								<ScriptLine prompt="netstamp" text={t("onboarding.niceToMeet", { name: displayName })} />
+								<ScriptLine prompt="invite" text={pendingInviteSummary} />
+								<ScriptLine prompt="project" text={appFeatures.projectCreation ? t("onboarding.createDecision") : t("onboarding.openDecision")} />
 							</div>
 
 							<form className={styles.tuiForm} onSubmit={handleCreateProjectDecisionSubmit}>
 								<label className={styles.answerRow}>
-									<span className={styles.answerPrompt}>answer</span>
+									<span className={styles.answerPrompt}>{t("onboarding.answer")}</span>
 									<Input
 										variant="bare"
 										ref={decisionInputRef}
@@ -426,20 +410,20 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 										autoComplete="off"
 										disabled={acceptingInvites}
 									/>
-									<small>Press Enter for yes. Type n to use invited project access only.</small>
+									<small>{t("onboarding.decisionHelp")}</small>
 								</label>
 
 								<Button variant="plain" className={styles.tuiButton} type="submit" disabled={acceptingInvites}>
-									{acceptingInvites ? "[ accepting invites… ]" : "[ continue ]"}
+									{acceptingInvites ? t("onboarding.accepting") : t("onboarding.continue")}
 								</Button>
 							</form>
 						</>
 					) : createdProject ? (
 						<div className={styles.successView} aria-live="polite">
-							<ScriptLine prompt="success" text={`Project ${createdProject} created.`} />
-							<p>Nice, let's bring {createdProject} online. Next we will open the probe fleet and start the new probe wizard.</p>
+							<ScriptLine prompt="success" text={t("onboarding.created", { project: createdProject })} />
+							<p>{t("onboarding.createdDescription", { project: createdProject })}</p>
 							<Button variant="plain" className={styles.tuiButton} type="button" onClick={() => navigate("newProbe", { projectRef: createdProjectRef })}>
-								[ open probe fleet / create probe ]
+								{t("onboarding.openProbe")}
 							</Button>
 						</div>
 					) : (
@@ -454,19 +438,19 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 							<form className={styles.tuiForm} onSubmit={handleSubmit}>
 								{projectPromptReady ? (
 									<label className={styles.answerRow}>
-										<span className={styles.answerPrompt}>answer</span>
+										<span className={styles.answerPrompt}>{t("onboarding.answer")}</span>
 										<Input
 											variant="bare"
 											ref={projectInputRef}
 											name="project"
 											type="text"
 											value={projectName}
-											placeholder="Yoru Labs"
+											placeholder={t("onboarding.projectPlaceholder")}
 											onChange={event => setProjectName(event.currentTarget.value)}
 											onKeyDown={handleProjectKeyDown}
 											autoComplete="off"
 										/>
-										{activeStep === 2 ? <small>Press Enter to continue.</small> : null}
+										{activeStep === 2 ? <small>{t("onboarding.projectHelp")}</small> : null}
 									</label>
 								) : null}
 
@@ -477,9 +461,9 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 								{membersPromptReady ? (
 									<div className={styles.inviteSection}>
 										<div className={styles.inviteHeader}>
-											<p>Press Enter for next member email. Backspace on an empty row deletes it.</p>
+											<p>{t("onboarding.inviteHelp")}</p>
 											<Button variant="plain" className={styles.tuiMiniButton} type="button" onClick={addInvite}>
-												+ add
+												{t("onboarding.add")}
 											</Button>
 										</div>
 
@@ -503,14 +487,14 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 														/>
 													</label>
 													<Button variant="plain" className={styles.tuiMiniButton} type="button" onClick={() => removeInvite(index)}>
-														delete
+														{t("onboarding.delete")}
 													</Button>
 												</div>
 											))}
 										</div>
 
 										<Button variant="plain" className={styles.tuiButton} type="submit" disabled={submitting || creatingProject}>
-											{submitting || creatingProject ? "[ creating project… ]" : "[ create project ]"}
+											{submitting || creatingProject ? t("onboarding.creating") : t("onboarding.create")}
 										</Button>
 									</div>
 								) : null}

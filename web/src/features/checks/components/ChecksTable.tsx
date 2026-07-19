@@ -6,6 +6,7 @@ import { InfoIcon } from "@phosphor-icons/react/dist/csr/Info";
 import { PencilSimpleIcon } from "@phosphor-icons/react/dist/csr/PencilSimple";
 import { TrashIcon } from "@phosphor-icons/react/dist/csr/Trash";
 import { useMemo, useState, type MouseEvent, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import styles from "./ChecksPage.module.css";
 
 export type CheckTypeFilter = "all" | "ping" | "tcp" | "traceroute" | "http";
@@ -80,6 +81,7 @@ function tooltipDescription(description: string) {
 }
 
 function CheckDescriptionHint({ check }: { check: CheckDefinition }) {
+	const { t } = useTranslation("checks");
 	const [hovered, setHovered] = useState(false);
 	const [pinned, setPinned] = useState(false);
 	const open = hovered || pinned;
@@ -116,7 +118,7 @@ function CheckDescriptionHint({ check }: { check: CheckDefinition }) {
 					<button
 						type="button"
 						className={classNames(styles.descriptionTrigger, open && styles.descriptionTriggerOpen)}
-						aria-label={`Show ${check.name} description`}
+						aria-label={t("table.showDescription", { name: check.name })}
 						aria-expanded={open}
 						onClick={handleTriggerClick}
 					>
@@ -153,13 +155,14 @@ export function ChecksTable({
 	selectedSummary,
 	typeFilter
 }: ChecksTableProps) {
+	const { t } = useTranslation("checks");
 	const filteredChecks = useMemo(() => checks.filter(check => checkMatchesType(check, typeFilter) && checkMatchesSearch(check, search)), [checks, search, typeFilter]);
 	const selectedRowKeys = useMemo(() => rowSelectionKeys(rowSelection), [rowSelection]);
 	const columns = useMemo<DataColumn<CheckDefinition>[]>(
 		() => [
 			{
 				key: "name",
-				label: "Check name",
+				label: t("table.name"),
 				sortable: true,
 				render: check => (
 					<div className={styles.checkNameCell}>
@@ -170,41 +173,41 @@ export function ChecksTable({
 			},
 			{
 				key: "type",
-				label: "Type",
+				label: t("table.type"),
 				sortable: true,
 				render: check => <CheckTypeBadge type={check.type} />
 			},
 			{
 				key: "target",
-				label: "Target",
+				label: t("table.target"),
 				sortable: true
 			},
 			{
 				key: "interval",
-				label: "Interval",
+				label: t("table.interval"),
 				sortable: true,
 				sortValue: check => intervalValue(check.interval)
 			},
 			{
 				key: "assigned",
-				label: "Assigned probes",
+				label: t("table.assigned"),
 				sortable: true,
 				render: check => <Badge tone={check.assigned ? "accent" : "muted"}>{check.assigned}</Badge>
 			}
 		],
-		[]
+		[t]
 	);
 
 	return (
 		<DataTable
-			ariaLabel="Project checks"
+			ariaLabel={t("table.aria")}
 			className={styles.checkTableFrame}
 			columns={columns}
 			rows={filteredChecks}
 			density="compact"
 			minWidth="72rem"
 			getRowKey={check => check.id}
-			getRowAriaLabel={check => `Open check ${check.name}`}
+			getRowAriaLabel={check => t("table.open", { name: check.name })}
 			onRowClick={onOpenCheck}
 			selectedKey={selectedKey}
 			selectable
@@ -214,23 +217,23 @@ export function ChecksTable({
 			batchLabel={selectedSummary}
 			batchActions={
 				<Button type="button" variant="danger" size="sm" disabled={batchDeleteDisabled || batchDeletePending} onClick={onDeleteSelectedChecks}>
-					{batchDeletePending ? "Deleting" : "Delete selected"}
+					{batchDeletePending ? t("deleting") : t("table.deleteSelected")}
 				</Button>
 			}
 			rowActions={check => (
 				<div className={styles.rowActions}>
-					<IconAction label={`Open ${check.name}`} onClick={() => onOpenCheck(check)} disabled={actionDisabled}>
+					<IconAction label={t("table.open", { name: check.name })} onClick={() => onOpenCheck(check)} disabled={actionDisabled}>
 						<PencilSimpleIcon size={15} weight="bold" aria-hidden="true" focusable="false" />
 					</IconAction>
-					<IconAction label={`Duplicate ${check.name}`} onClick={() => onDuplicateCheck(check)} disabled={actionDisabled}>
+					<IconAction label={t("table.duplicate", { name: check.name })} onClick={() => onDuplicateCheck(check)} disabled={actionDisabled}>
 						<CopyIcon size={15} weight="bold" aria-hidden="true" focusable="false" />
 					</IconAction>
-					<IconAction label={`Delete ${check.name}`} onClick={() => onDeleteCheck(check)} disabled={actionDisabled} danger>
+					<IconAction label={t("table.delete", { name: check.name })} onClick={() => onDeleteCheck(check)} disabled={actionDisabled} danger>
 						<TrashIcon size={15} weight="bold" aria-hidden="true" focusable="false" />
 					</IconAction>
 				</div>
 			)}
-			emptyLabel="No checks match the current filters."
+			emptyLabel={t("table.empty")}
 		/>
 	);
 }

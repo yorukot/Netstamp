@@ -31,12 +31,15 @@ import { PlusIcon } from "@phosphor-icons/react/dist/csr/Plus";
 import { PulseIcon } from "@phosphor-icons/react/dist/csr/Pulse";
 import { TrashIcon } from "@phosphor-icons/react/dist/csr/Trash";
 import { useQuery } from "@tanstack/react-query";
+import type { TFunction } from "i18next";
 import { useEffect, useMemo, useRef, useState, type PointerEvent, type ReactNode } from "react";
 import { flushSync } from "react-dom";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import { CssCodeEditor } from "./CssCodeEditor";
 import styles from "./StatusPageBuilderPage.module.css";
 
+type StatusT = TFunction<"status">;
 type PageDraft = CreatePublicStatusPageInput;
 type DisplayMode = CreatePublicStatusElementInput["displayMode"];
 
@@ -67,30 +70,30 @@ const supportedStatusCheckTypes = new Set(["http", "ping", "tcp"]);
 const emptyAssignments: ApiProjectAssignment[] = [];
 const emptyElementDrafts: ElementDraft[] = [];
 
-const themeOptions = [
-	{ value: "auto", label: "Auto" },
-	{ value: "light", label: "Light" },
-	{ value: "dark", label: "Dark" }
+const themeOptions = (t: StatusT) => [
+	{ value: "auto", label: t("builder.themes.auto") },
+	{ value: "light", label: t("builder.themes.light") },
+	{ value: "dark", label: t("builder.themes.dark") }
 ];
 
-const chartRangeOptions = [
-	{ value: "24h", label: "24 hours" },
-	{ value: "7d", label: "7 days" },
-	{ value: "30d", label: "30 days" }
+const chartRangeOptions = (t: StatusT) => [
+	{ value: "24h", label: t("builder.ranges.24h") },
+	{ value: "7d", label: t("builder.ranges.7d") },
+	{ value: "30d", label: t("builder.ranges.30d") }
 ];
 
-const displayOptions = [
-	{ value: "status", label: "Service status" },
-	{ value: "history", label: "Incident history" },
-	{ value: "latency", label: "Latency chart" },
-	{ value: "map", label: "Probe map" }
+const displayOptions = (t: StatusT) => [
+	{ value: "status", label: t("builder.displays.status") },
+	{ value: "history", label: t("builder.displays.history") },
+	{ value: "latency", label: t("builder.displays.latency") },
+	{ value: "map", label: t("builder.displays.map") }
 ];
 
-const blockLibrary: Array<{ mode: DisplayMode; title: string; description: string; icon: ReactNode }> = [
-	{ mode: "status", title: "Service status", description: "Current availability, viewpoints, and 30-day bars.", icon: <PulseIcon aria-hidden="true" /> },
-	{ mode: "history", title: "Incident history", description: "Emphasize recent disruptions and recovered periods.", icon: <ClockCounterClockwiseIcon aria-hidden="true" /> },
-	{ mode: "latency", title: "Latency chart", description: "Show performance trend alongside availability.", icon: <ChartLineIcon aria-hidden="true" /> },
-	{ mode: "map", title: "Probe map", description: "Show public monitoring locations on a map.", icon: <MapTrifoldIcon aria-hidden="true" /> }
+const blockLibrary = (t: StatusT): Array<{ mode: DisplayMode; title: string; description: string; icon: ReactNode }> => [
+	{ mode: "status", title: t("builder.displays.status"), description: t("builder.displayDetails.status"), icon: <PulseIcon aria-hidden="true" /> },
+	{ mode: "history", title: t("builder.displays.history"), description: t("builder.displayDetails.history"), icon: <ClockCounterClockwiseIcon aria-hidden="true" /> },
+	{ mode: "latency", title: t("builder.displays.latency"), description: t("builder.displayDetails.latency"), icon: <ChartLineIcon aria-hidden="true" /> },
+	{ mode: "map", title: t("builder.displays.map"), description: t("builder.displayDetails.map"), icon: <MapTrifoldIcon aria-hidden="true" /> }
 ];
 
 function newCoverURL() {
@@ -98,13 +101,13 @@ function newCoverURL() {
 	return `https://picsum.photos/2000/500?random=${seed}`;
 }
 
-function createDefaultPage(withCover = true): PageDraft {
+function createDefaultPage(t: StatusT, withCover = true): PageDraft {
 	return {
 		slug: "new-status-page",
-		title: "Service Status",
-		description: "Live availability and incident updates for our services.",
+		title: t("builder.defaultTitle"),
+		description: t("builder.defaultDescription"),
 		enabled: false,
-		footerText: "Measurements are collected by Netstamp monitoring probes.",
+		footerText: t("builder.defaultFooter"),
 		bannerImageUrl: withCover ? newCoverURL() : undefined,
 		theme: "auto",
 		showTargets: false,
@@ -118,8 +121,8 @@ function createDefaultPage(withCover = true): PageDraft {
 	};
 }
 
-function pageDraft(page: ApiPublicStatusPage): PageDraft {
-	const defaults = createDefaultPage(false);
+function pageDraft(page: ApiPublicStatusPage, t: StatusT): PageDraft {
+	const defaults = createDefaultPage(t, false);
 	return {
 		slug: page.slug,
 		title: page.title,
@@ -213,6 +216,7 @@ function checkForElement(element: ElementDraft, checks: CheckOption[]) {
 }
 
 export function StatusPageBuilderPage() {
+	const { t } = useTranslation("status");
 	const { pageId = "new" } = useParams();
 	const { projectRef } = useCurrentProject();
 	const creating = pageId === "new";
@@ -226,18 +230,18 @@ export function StatusPageBuilderPage() {
 	});
 	const assignments = assignmentsQuery.data?.assignments ?? emptyAssignments;
 	const checks = useMemo(() => checkOptions(assignments), [assignments]);
-	const [defaultPage] = useState(createDefaultPage);
+	const [defaultPage] = useState(() => createDefaultPage(t));
 
 	if (!projectRef || assignmentsQuery.isPending || (!creating && detailQuery.isPending)) {
-		return <Spinner label="Loading status page builder" layout="page" size="lg" />;
+		return <Spinner label={t("builder.loading")} layout="page" size="lg" />;
 	}
 
 	if (!creating && (detailQuery.error || !detailQuery.data)) {
 		return (
 			<PageStack>
-				<ScreenHeader title="Status Page Editor" />
-				<Panel tone="deep" title="Status page unavailable">
-					<p className={styles.errorCopy}>This page could not be loaded or you no longer have access to it.</p>
+				<ScreenHeader title={t("builder.editor")} />
+				<Panel tone="deep" title={t("builder.unavailable")}>
+					<p className={styles.errorCopy}>{t("builder.unavailableDescription")}</p>
 				</Panel>
 			</PageStack>
 		);
@@ -249,7 +253,7 @@ export function StatusPageBuilderPage() {
 			key={page?.id ?? "new"}
 			projectRef={projectRef}
 			pageId={page?.id}
-			initialPage={page ? pageDraft(page) : defaultPage}
+			initialPage={page ? pageDraft(page, t) : defaultPage}
 			initialElements={page ? (detailQuery.data?.elements ?? []).map(element => elementDraft(element, checks)) : emptyElementDrafts}
 			assignments={assignments}
 			assignmentsLoading={assignmentsQuery.isPending}
@@ -273,6 +277,7 @@ function StatusPageBuilderWorkspace({
 	assignmentsLoading: boolean;
 }) {
 	const navigate = useNavigate();
+	const { t } = useTranslation("status");
 	const [page, setPage] = useState<PageDraft>(initialPage);
 	const [elements, setElements] = useState<ElementDraft[]>(initialElements);
 	const [baselinePage, setBaselinePage] = useState<PageDraft>(initialPage);
@@ -331,7 +336,7 @@ function StatusPageBuilderWorkspace({
 				localId,
 				kind: "folder",
 				assignmentIds: [],
-				title: `Group ${rootCount + 1}`,
+				title: t("builder.groupName", { number: rootCount + 1 }),
 				sortOrder: rootCount,
 				displayMode: "status",
 				chartMode: "inherit"
@@ -576,7 +581,7 @@ function StatusPageBuilderWorkspace({
 	async function save() {
 		const body = normalizedPage(page);
 		if (!body.title || !body.slug || !/^[a-z0-9-]+$/.test(body.slug)) {
-			pushErrorToast("Add a title and a lowercase slug using letters, numbers, or hyphens.");
+			pushErrorToast(t("builder.invalidPage"));
 			setSelectedId(undefined);
 			setAddingBlock(false);
 			return;
@@ -589,7 +594,7 @@ function StatusPageBuilderWorkspace({
 		if (invalidElement) {
 			setSelectedId(invalidElement.localId);
 			setAddingBlock(false);
-			pushErrorToast(invalidElement.assignmentSelectionMode === "selected_assignments" ? "Select at least one assignment for this block." : "Select a check for this block.");
+			pushErrorToast(invalidElement.assignmentSelectionMode === "selected_assignments" ? t("builder.selectAssignment") : t("builder.selectCheck"));
 			return;
 		}
 
@@ -609,7 +614,7 @@ function StatusPageBuilderWorkspace({
 			setElements(savedElements);
 			setBaselinePage(body);
 			setBaselineElements(savedElements);
-			pushToast({ title: pageId ? "Status page updated" : "Status page created", message: body.title, tone: "success" });
+			pushToast({ title: pageId ? t("builder.updated") : t("builder.created"), message: body.title, tone: "success" });
 
 			if (!pageId) {
 				navigate(pathForStatusPageEditor(projectRef, savedPageId), { replace: true });
@@ -651,17 +656,17 @@ function StatusPageBuilderWorkspace({
 		return next;
 	}
 
-	const editorTitle = addingBlock ? "Add Block" : selectedElement ? (selectedElement.kind === "folder" ? "Editing Group" : "Editing Block") : "Editing Page";
+	const editorTitle = addingBlock ? t("builder.addBlock") : selectedElement ? (selectedElement.kind === "folder" ? t("builder.editingGroup") : t("builder.editingBlock")) : t("builder.editingPage");
 
 	return (
 		<div ref={builderRef} className={styles.builder}>
-			<aside className={styles.sidebar} aria-label="Status page settings">
+			<aside className={styles.sidebar} aria-label={t("builder.settingsAria")}>
 				<div className={styles.sidebarHeader}>
 					<div>
-						<span>Status page builder</span>
+						<span>{t("builder.title")}</span>
 						<strong>{editorTitle}</strong>
 					</div>
-					<Badge tone={page.enabled ? "success" : "neutral"}>{page.enabled ? "Live" : "Private"}</Badge>
+					<Badge tone={page.enabled ? "success" : "neutral"}>{page.enabled ? t("builder.live") : t("builder.private")}</Badge>
 				</div>
 				<div className={styles.sidebarScroll}>
 					{addingBlock ? (
@@ -800,59 +805,49 @@ function scopedPreviewCSS(css: string | undefined) {
 }
 
 function PageSettings({ page, update }: { page: PageDraft; update: <K extends keyof PageDraft>(key: K, value: PageDraft[K]) => void }) {
+	const { t } = useTranslation("status");
 	return (
 		<div className={styles.settingsSection}>
 			<div className={styles.sectionIntro}>
-				<strong>Basic information</strong>
-				<p>Identity, publishing, visual mode, and public data boundaries.</p>
+				<strong>{t("builder.basic")}</strong>
+				<p>{t("builder.basicDescription")}</p>
 			</div>
 			<label className={styles.switchRow}>
 				<span>
-					<strong>Public visibility</strong>
-					<small>Anyone with the link can view this page.</small>
+					<strong>{t("builder.visibility")}</strong>
+					<small>{t("builder.visibilityDescription")}</small>
 				</span>
 				<Checkbox checked={page.enabled} onChange={event => update("enabled", event.currentTarget.checked)} />
 			</label>
 			<TextField
-				label="Slug"
-				helper={`Public URL: /status/${page.slug || "your-page"}`}
+				label={t("builder.slug")}
+				helper={t("builder.publicUrl", { slug: page.slug || t("builder.yourPage") })}
 				value={page.slug}
 				maxLength={64}
 				onChange={event => update("slug", event.currentTarget.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"))}
 			/>
-			<TextField label="Title" value={page.title} maxLength={128} onChange={event => update("title", event.currentTarget.value)} />
-			<TextAreaField label="Description" value={page.description ?? ""} maxLength={1024} rows={4} onChange={event => update("description", event.currentTarget.value)} />
-			<TextAreaField label="Footer text" value={page.footerText ?? ""} maxLength={2048} rows={3} onChange={event => update("footerText", event.currentTarget.value)} />
-			<TextField
-				label="Banner image URL"
-				helper="New pages start with a fixed Picsum image URL. Replace it with any absolute HTTPS image URL."
-				type="url"
-				value={page.bannerImageUrl ?? ""}
-				onChange={event => update("bannerImageUrl", event.currentTarget.value)}
-			/>
-			<SelectField label="Theme" value={page.theme} options={themeOptions} onChange={event => update("theme", event.currentTarget.value as PageDraft["theme"])} />
+			<TextField label={t("builder.pageTitle")} value={page.title} maxLength={128} onChange={event => update("title", event.currentTarget.value)} />
+			<TextAreaField label={t("builder.description")} value={page.description ?? ""} maxLength={1024} rows={4} onChange={event => update("description", event.currentTarget.value)} />
+			<TextAreaField label={t("builder.footer")} value={page.footerText ?? ""} maxLength={2048} rows={3} onChange={event => update("footerText", event.currentTarget.value)} />
+			<TextField label={t("builder.banner")} helper={t("builder.bannerHelper")} type="url" value={page.bannerImageUrl ?? ""} onChange={event => update("bannerImageUrl", event.currentTarget.value)} />
+			<SelectField label={t("builder.theme")} value={page.theme} options={themeOptions(t)} onChange={event => update("theme", event.currentTarget.value as PageDraft["theme"])} />
 
 			<div className={styles.fieldGroup}>
 				<div className={styles.fieldGroupHeading}>
-					<strong>Public data</strong>
-					<Badge tone="accent">Review exposure</Badge>
+					<strong>{t("builder.publicData")}</strong>
+					<Badge tone="accent">{t("builder.reviewExposure")}</Badge>
 				</div>
-				<PrivacyToggle label="Show check targets" detail="May reveal IP addresses, hostnames, or internal URLs." checked={page.showTargets} onChange={value => update("showTargets", value)} />
-				<PrivacyToggle label="Show probe names" detail="Publishes the configured probe display name." checked={page.showProbeNames} onChange={value => update("showProbeNames", value)} />
-				<PrivacyToggle
-					label="Show probe locations"
-					detail="Required for map coordinates and location labels."
-					checked={page.showProbeLocations}
-					onChange={value => update("showProbeLocations", value)}
-				/>
-				<PrivacyToggle label="Incident history" detail="Include recently resolved incidents." checked={page.showIncidentHistory} onChange={value => update("showIncidentHistory", value)} />
-				<PrivacyToggle label="Generated time" detail="Show when the page data was last calculated." checked={page.showGeneratedAt} onChange={value => update("showGeneratedAt", value)} />
+				<PrivacyToggle label={t("builder.showTargets")} detail={t("builder.showTargetsDetail")} checked={page.showTargets} onChange={value => update("showTargets", value)} />
+				<PrivacyToggle label={t("builder.showProbeNames")} detail={t("builder.showProbeNamesDetail")} checked={page.showProbeNames} onChange={value => update("showProbeNames", value)} />
+				<PrivacyToggle label={t("builder.showLocations")} detail={t("builder.showLocationsDetail")} checked={page.showProbeLocations} onChange={value => update("showProbeLocations", value)} />
+				<PrivacyToggle label={t("builder.incidentHistory")} detail={t("builder.incidentHistoryDetail")} checked={page.showIncidentHistory} onChange={value => update("showIncidentHistory", value)} />
+				<PrivacyToggle label={t("builder.generatedTime")} detail={t("builder.generatedTimeDetail")} checked={page.showGeneratedAt} onChange={value => update("showGeneratedAt", value)} />
 			</div>
 
 			<SelectField
-				label="Default chart range"
+				label={t("builder.defaultRange")}
 				value={page.defaultChartRange}
-				options={chartRangeOptions}
+				options={chartRangeOptions(t)}
 				onChange={event => update("defaultChartRange", event.currentTarget.value as PageDraft["defaultChartRange"])}
 			/>
 			<CssCodeEditor value={page.customCss ?? ""} onChange={value => update("customCss", value)} />
@@ -885,6 +880,7 @@ function BlockComposer({
 	onAdd: (mode: DisplayMode, checkId: string, parentLocalId?: string) => void;
 	onCancel: () => void;
 }) {
+	const { t } = useTranslation("status");
 	const groups = sorted(elements.filter(element => element.kind === "folder"));
 	const [mode, setMode] = useState<DisplayMode>();
 	const [category, setCategory] = useState("all");
@@ -896,20 +892,21 @@ function BlockComposer({
 	const visibleChecks = checks.filter(
 		check => (category === "all" || check.type === category) && (!normalizedSearch || `${check.name} ${check.target} ${check.type}`.toLowerCase().includes(normalizedSearch))
 	);
-	const selectedMode = blockLibrary.find(block => block.mode === mode);
+	const library = blockLibrary(t);
+	const selectedMode = library.find(block => block.mode === mode);
 
 	if (!mode) {
 		return (
 			<div className={styles.settingsSection}>
 				<button type="button" className={styles.backButton} onClick={onCancel}>
 					<ArrowLeftIcon aria-hidden="true" />
-					Page settings
+					{t("builder.editingPage")}
 				</button>
 				<div className={styles.sectionIntro}>
-					<strong>Choose a display</strong>
-					<p>Start with the information shape visitors should see.</p>
+					<strong>{t("builder.chooseDisplay")}</strong>
+					<p>{t("builder.chooseDisplayDescription")}</p>
 				</div>
-				{blockLibrary.map(block => (
+				{library.map(block => (
 					<button key={block.mode} type="button" className={styles.libraryCard} onClick={() => setMode(block.mode)}>
 						{block.icon}
 						<span>
@@ -927,7 +924,7 @@ function BlockComposer({
 		<div className={styles.settingsSection}>
 			<button type="button" className={styles.backButton} onClick={() => setMode(undefined)}>
 				<ArrowLeftIcon aria-hidden="true" />
-				Display types
+				{t("builder.chooseDisplay")}
 			</button>
 			<div className={styles.composerSelection}>
 				<span>{selectedMode?.icon}</span>
@@ -937,26 +934,26 @@ function BlockComposer({
 				</div>
 			</div>
 			<div className={styles.sectionIntro}>
-				<strong>Select a check</strong>
-				<p>Browse by monitor type, then choose the public service source.</p>
+				<strong>{t("builder.selectCheckTitle")}</strong>
+				<p>{t("builder.selectCheckDescription")}</p>
 			</div>
-			{loading ? <Spinner label="Loading checks" layout="compact" size="sm" /> : null}
+			{loading ? <Spinner label={t("builder.loadingChecks")} layout="compact" size="sm" /> : null}
 			{!loading && checks.length ? (
 				<div className={styles.checkPicker}>
-					<div className={styles.checkCategories} role="list" aria-label="Check categories">
+					<div className={styles.checkCategories} role="list" aria-label={t("builder.checkCategories")}>
 						{categories.map(value => {
 							const count = value === "all" ? checks.length : checks.filter(check => check.type === value).length;
 							return (
 								<button key={value} type="button" className={styles.checkCategory} data-selected={category === value} onClick={() => setCategory(value)}>
-									<span>{checkCategoryLabel(value)}</span>
+									<span>{checkCategoryLabel(value, t)}</span>
 									<Badge tone={category === value ? "accent" : "neutral"}>{count}</Badge>
 								</button>
 							);
 						})}
 					</div>
 					<div className={styles.checkChoices}>
-						<TextField label="Search checks" placeholder="name or target" value={search} onChange={event => setSearch(event.currentTarget.value)} />
-						<div className={styles.checkChoiceList} role="listbox" aria-label="Checks">
+						<TextField label={t("builder.searchChecks")} placeholder={t("builder.searchPlaceholder")} value={search} onChange={event => setSearch(event.currentTarget.value)} />
+						<div className={styles.checkChoiceList} role="listbox" aria-label={t("builder.checks")}>
 							{visibleChecks.map(check => (
 								<button
 									key={check.id}
@@ -971,41 +968,41 @@ function BlockComposer({
 									<span>{check.target}</span>
 								</button>
 							))}
-							{!visibleChecks.length ? <p className={styles.inlineNotice}>No checks match this category and search.</p> : null}
+							{!visibleChecks.length ? <p className={styles.inlineNotice}>{t("builder.noChecksMatch")}</p> : null}
 						</div>
 					</div>
 				</div>
 			) : null}
-			{!loading && !checks.length ? <p className={styles.inlineNotice}>Create a check and assign a probe before adding a status block.</p> : null}
+			{!loading && !checks.length ? <p className={styles.inlineNotice}>{t("builder.noChecks")}</p> : null}
 			<SelectField
-				label="Group"
+				label={t("builder.group")}
 				value={parentLocalId}
-				options={[{ value: "", label: "No group" }, ...groups.map(group => ({ value: group.localId, label: group.title || "Untitled group" }))]}
+				options={[{ value: "", label: t("builder.noGroup") }, ...groups.map(group => ({ value: group.localId, label: group.title || t("builder.untitledGroup") }))]}
 				onChange={event => setParentLocalId(event.currentTarget.value)}
 			/>
 			<div className={styles.composerActions}>
 				<Button type="button" variant="ghost" onClick={onCancel}>
-					Cancel
+					{t("builder.cancel")}
 				</Button>
 				<Button type="button" disabled={!checkId} onClick={() => onAdd(mode, checkId, parentLocalId || undefined)}>
 					<PlusIcon aria-hidden="true" />
-					Add block
+					{t("builder.addBlock")}
 				</Button>
 			</div>
 		</div>
 	);
 }
 
-function checkCategoryLabel(value: string) {
+function checkCategoryLabel(value: string, t: StatusT) {
 	switch (value.toLowerCase()) {
 		case "all":
-			return "All";
+			return t("builder.all");
 		case "http":
 			return "HTTP";
 		case "tcp":
 			return "TCP";
 		case "traceroute":
-			return "Trace";
+			return t("builder.trace");
 		default:
 			return value;
 	}
@@ -1024,47 +1021,48 @@ function ElementSettings({
 	update: (patch: Partial<ElementDraft>) => void;
 	onBack: () => void;
 }) {
+	const { t } = useTranslation("status");
 	const groups = sorted(elements.filter(candidate => candidate.kind === "folder"));
 	return (
 		<div className={styles.settingsSection}>
 			<button type="button" className={styles.backButton} onClick={onBack}>
 				<ArrowLeftIcon aria-hidden="true" />
-				Page settings
+				{t("builder.editingPage")}
 			</button>
 			<div className={styles.sectionIntro}>
-				<strong>{element.kind === "folder" ? "Group settings" : "Block settings"}</strong>
-				<p>{element.kind === "folder" ? "Set the public heading and description for this service group." : "Choose the service source, presentation, and public label."}</p>
+				<strong>{element.kind === "folder" ? t("builder.groupSettings") : t("builder.blockSettings")}</strong>
+				<p>{element.kind === "folder" ? t("builder.groupSettingsDescription") : t("builder.blockSettingsDescription")}</p>
 			</div>
-			<TextField label="Title" value={element.title ?? ""} maxLength={1024} onChange={event => update({ title: event.currentTarget.value })} />
-			<TextAreaField label="Description" value={element.description ?? ""} maxLength={1024} rows={3} onChange={event => update({ description: event.currentTarget.value })} />
+			<TextField label={t("builder.pageTitle")} value={element.title ?? ""} maxLength={1024} onChange={event => update({ title: event.currentTarget.value })} />
+			<TextAreaField label={t("builder.description")} value={element.description ?? ""} maxLength={1024} rows={3} onChange={event => update({ description: event.currentTarget.value })} />
 			{element.kind === "assignment_group" ? (
 				<>
 					<SelectField
-						label="Group"
+						label={t("builder.group")}
 						value={element.parentLocalId ?? ""}
-						options={[{ value: "", label: "No group" }, ...groups.map(group => ({ value: group.localId, label: group.title || "Untitled group" }))]}
+						options={[{ value: "", label: t("builder.noGroup") }, ...groups.map(group => ({ value: group.localId, label: group.title || t("builder.untitledGroup") }))]}
 						onChange={event => update({ parentLocalId: event.currentTarget.value || undefined })}
 					/>
 					<SelectField
-						label="Check"
+						label={t("builder.check")}
 						value={element.checkId ?? ""}
-						options={[{ value: "", label: "Select a check", disabled: true }, ...checks.map(check => ({ value: check.id, label: `${check.name} / ${check.type}` }))]}
+						options={[{ value: "", label: t("builder.selectCheckOption"), disabled: true }, ...checks.map(check => ({ value: check.id, label: `${check.name} / ${check.type}` }))]}
 						onChange={event => {
 							const check = checks.find(candidate => candidate.id === event.currentTarget.value);
 							update({ checkId: check?.id, title: element.title || check?.name });
 						}}
 					/>
 					<SelectField
-						label="Display"
+						label={t("builder.display")}
 						value={element.displayMode}
-						options={displayOptions}
+						options={displayOptions(t)}
 						onChange={event => update({ displayMode: event.currentTarget.value as DisplayMode, chartMode: event.currentTarget.value === "latency" ? "compact" : element.chartMode })}
 					/>
 					{element.displayMode === "latency" ? (
 						<SelectField
-							label="Chart range"
+							label={t("builder.chartRange")}
 							value={element.chartRange ?? "24h"}
-							options={chartRangeOptions}
+							options={chartRangeOptions(t)}
 							onChange={event => update({ chartRange: event.currentTarget.value as ElementDraft["chartRange"] })}
 						/>
 					) : null}
@@ -1099,13 +1097,14 @@ function StatusPageCanvas({
 	onRemove: (id: string) => void;
 	onReorderStart: (event: PointerEvent<HTMLElement>, id: string) => void;
 }) {
+	const { t } = useTranslation("status");
 	const groups = sorted(elements.filter(element => element.kind === "folder"));
 	const ungrouped = sorted(elements.filter(element => element.kind === "assignment_group" && !element.parentLocalId));
 	const previewTheme = page.theme === "auto" ? "dark" : page.theme;
 	const previewCSS = useMemo(() => scopedPreviewCSS(page.customCss), [page.customCss]);
 
 	return (
-		<section className={styles.canvas} aria-label="Status page preview">
+		<section className={styles.canvas} aria-label={t("builder.previewAria")}>
 			<div className={`${styles.previewViewport} ns-status-page`} data-preview-theme={previewTheme} data-status-preview>
 				{previewCSS ? <style>{previewCSS}</style> : null}
 				<div className={styles.publicShell}>
@@ -1118,16 +1117,16 @@ function StatusPageCanvas({
 						<div className={styles.previewHeroBody}>
 							<div className={styles.previewBrand}>
 								<img src={previewTheme === "dark" ? netstampLogoLight : netstampLogoDark} alt="Netstamp" />
-								<span>Public status</span>
+								<span>{t("builder.publicStatus")}</span>
 							</div>
 							<div className={styles.previewTitleRow}>
 								<div>
-									<h1>{page.title || "Untitled status page"}</h1>
+									<h1>{page.title || t("builder.untitledPage")}</h1>
 									{page.description ? <p>{page.description}</p> : null}
 								</div>
 								{page.showGeneratedAt ? (
 									<span className={styles.previewGenerated}>
-										Last checked <strong>just now</strong>
+										{t("builder.lastChecked")} <strong>{t("builder.justNow")}</strong>
 									</span>
 								) : null}
 							</div>
@@ -1137,21 +1136,21 @@ function StatusPageCanvas({
 					<div className={`${styles.previewOverall} ns-status-overall`}>
 						<span className={styles.previewStatusMarker} aria-hidden="true" />
 						<div>
-							<strong>All systems operational</strong>
-							<small>No active incidents reported</small>
+							<strong>{t("builder.allOperational")}</strong>
+							<small>{t("builder.noActiveIncidents")}</small>
 						</div>
 						<Badge className={styles.previewOverallBadge} tone="success">
-							Operational
+							{t("builder.operational")}
 						</Badge>
 					</div>
 					<div className={styles.previewAddActions}>
 						<Button type="button" variant="outline" size="sm" onClick={onAddGroup}>
 							<FolderIcon aria-hidden="true" />
-							Add Group
+							{t("builder.addGroup")}
 						</Button>
 						<Button type="button" size="sm" disabled={!checks.length} onClick={onAddBlock}>
 							<PlusIcon aria-hidden="true" />
-							Add Block
+							{t("builder.addBlock")}
 						</Button>
 					</div>
 
@@ -1177,8 +1176,8 @@ function StatusPageCanvas({
 						<section className={styles.previewGroup} data-builder-drop-parent="">
 							<div className={styles.previewGroupHeader}>
 								<div>
-									<h2>Other services</h2>
-									<p>Blocks that are not assigned to a group.</p>
+									<h2>{t("builder.otherServices")}</h2>
+									<p>{t("builder.otherServicesDescription")}</p>
 								</div>
 							</div>
 							<div className={styles.previewGroupBody}>
@@ -1205,14 +1204,14 @@ function StatusPageCanvas({
 					{!groups.length && !ungrouped.length ? (
 						<div className={styles.previewEmpty}>
 							<PulseIcon aria-hidden="true" />
-							<strong>Build your service view</strong>
-							<p>Add a group, then add status, history, latency, or map blocks.</p>
+							<strong>{t("builder.buildView")}</strong>
+							<p>{t("builder.buildViewDescription")}</p>
 						</div>
 					) : null}
 
 					<footer className={`${styles.previewFooter} ns-status-footer`}>
-						<p>{page.footerText || "Measurements are collected by configured Netstamp probes."}</p>
-						{page.showGeneratedAt ? <span>Updated just now</span> : null}
+						<p>{page.footerText || t("builder.fallbackFooter")}</p>
+						{page.showGeneratedAt ? <span>{t("builder.updatedNow")}</span> : null}
 					</footer>
 				</div>
 			</div>
@@ -1247,6 +1246,7 @@ function PreviewGroup({
 	onRemove: (id: string) => void;
 	onReorderStart: (event: PointerEvent<HTMLElement>, id: string) => void;
 }) {
+	const { t } = useTranslation("status");
 	return (
 		<section
 			className={`${styles.previewGroup} ns-status-group ${group.localId === selectedId ? styles.selectedElement : ""} ${group.localId === draggingId ? styles.draggingElement : ""}`}
@@ -1255,9 +1255,9 @@ function PreviewGroup({
 		>
 			<div className={styles.previewGroupHeader} data-builder-drop-parent={group.localId}>
 				<div className={styles.previewGroupIdentity}>
-					<DragHandle label={`Drag ${group.title || "group"}`} onReorderStart={event => onReorderStart(event, group.localId)} />
+					<DragHandle label={t("builder.drag", { name: group.title || t("builder.groupFallback") })} onReorderStart={event => onReorderStart(event, group.localId)} />
 					<div>
-						<h2>{group.title || "Untitled group"}</h2>
+						<h2>{group.title || t("builder.untitledGroup")}</h2>
 						{group.description ? <p>{group.description}</p> : null}
 					</div>
 				</div>
@@ -1283,7 +1283,7 @@ function PreviewGroup({
 					))
 				) : (
 					<div className={styles.groupDropZone} data-builder-drop-parent={group.localId}>
-						Drag a status block into this group
+						{t("builder.dragIntoGroup")}
 					</div>
 				)}
 			</div>
@@ -1316,6 +1316,7 @@ function PreviewBlock({
 	onRemove: (id: string) => void;
 	onReorderStart: (event: PointerEvent<HTMLElement>, id: string) => void;
 }) {
+	const { t } = useTranslation("status");
 	const probeNames = summarizeValues(check?.viewpoints.map(viewpoint => viewpoint.name) ?? []);
 	const probeLocations = summarizeValues(check?.viewpoints.flatMap(viewpoint => (viewpoint.locationName ? [viewpoint.locationName] : [])) ?? []);
 	const metadata = [check?.type, page.showTargets ? check?.target : undefined, page.showProbeNames ? probeNames : undefined, page.showProbeLocations ? probeLocations : undefined].filter(Boolean);
@@ -1338,58 +1339,58 @@ function PreviewBlock({
 		>
 			<div className={styles.previewBlockTop}>
 				<div className={styles.previewBlockIdentity}>
-					<DragHandle label={`Drag ${element.title || check?.name || "block"}`} onReorderStart={event => onReorderStart(event, element.localId)} />
+					<DragHandle label={t("builder.drag", { name: element.title || check?.name || t("builder.blockFallback") })} onReorderStart={event => onReorderStart(event, element.localId)} />
 					<span className={styles.operationalDot} aria-hidden="true" />
 					<div>
-						<strong>{element.title || check?.name || "Untitled service"}</strong>
-						<small>{metadata.length ? metadata.join(" / ") : displayLabel(element.displayMode)}</small>
+						<strong>{element.title || check?.name || t("builder.untitledService")}</strong>
+						<small>{metadata.length ? metadata.join(" / ") : displayLabel(element.displayMode, t)}</small>
 					</div>
 				</div>
 				<div className={styles.previewBlockActions}>
-					<span>Operational</span>
+					<span>{t("builder.operational")}</span>
 					<ElementControls element={element} label={element.title || check?.name} first={first} last={last} onSelect={onSelect} onMove={onMove} onRemove={onRemove} />
 				</div>
 			</div>
 			<div className={styles.uptimeHeading}>
-				<span>30-day uptime</span>
+				<span>{t("builder.uptime")}</span>
 				<strong>{element.displayMode === "history" ? "99.94%" : "99.98%"}</strong>
 			</div>
-			<div className={styles.uptimeBars} aria-label="Example 30-day uptime">
+			<div className={styles.uptimeBars} aria-label={t("builder.uptimeAria")}>
 				{Array.from({ length: 30 }, (_, index) => (
 					<span key={index} data-state={index === 11 && element.displayMode === "history" ? "degraded" : "operational"} />
 				))}
 			</div>
 			{element.displayMode === "status" ? (
 				<div className={styles.previewMetrics}>
-					<PreviewMetric label="Availability" value="99.98%" />
-					<PreviewMetric label="Median latency" value="28 ms" />
-					<PreviewMetric label="Viewpoints" value={`${check?.viewpoints.length ?? 0} active`} />
+					<PreviewMetric label={t("builder.availability")} value="99.98%" />
+					<PreviewMetric label={t("builder.medianLatency")} value="28 ms" />
+					<PreviewMetric label={t("builder.viewpoints")} value={t("builder.activeCount", { count: check?.viewpoints.length ?? 0 })} />
 				</div>
 			) : null}
 			{element.displayMode === "history" ? (
 				<div className={styles.historySummary}>
 					<span className={styles.operationalDot} aria-hidden="true" />
 					<div>
-						<strong>Last incident resolved</strong>
-						<small>Intermittent latency recovered after 18 minutes.</small>
+						<strong>{t("builder.incidentResolved")}</strong>
+						<small>{t("builder.incidentDescription")}</small>
 					</div>
-					<Badge tone="success">Resolved</Badge>
+					<Badge tone="success">{t("builder.resolved")}</Badge>
 				</div>
 			) : null}
 			{element.displayMode === "latency" ? (
 				<>
 					<div className={styles.previewMetrics}>
-						<PreviewMetric label="Current" value="31 ms" />
+						<PreviewMetric label={t("builder.current")} value="31 ms" />
 						<PreviewMetric label="P95" value="46 ms" />
-						<PreviewMetric label="Packet loss" value="0.02%" />
+						<PreviewMetric label={t("builder.packetLoss")} value="0.02%" />
 					</div>
-					<svg className={styles.miniChart} viewBox="0 0 640 72" preserveAspectRatio="none" role="img" aria-label="Example latency trend">
+					<svg className={styles.miniChart} viewBox="0 0 640 72" preserveAspectRatio="none" role="img" aria-label={t("builder.latencyTrend")}>
 						<path d="M0 52 C70 48 92 58 148 42 S242 35 300 44 S390 20 452 30 S552 42 640 16" />
 					</svg>
 				</>
 			) : null}
 			{element.displayMode === "map" && page.showProbeLocations ? (
-				<div className={styles.miniMap} aria-label="Configured public probe locations">
+				<div className={styles.miniMap} aria-label={t("builder.locationsAria")}>
 					<svg viewBox="0 0 100 48" preserveAspectRatio="none" aria-hidden="true">
 						<path d="M0 12H100M0 24H100M0 36H100M20 0V48M40 0V48M60 0V48M80 0V48" />
 					</svg>
@@ -1402,10 +1403,10 @@ function PreviewBlock({
 							aria-label={[point.name, point.locationName].filter(Boolean).join(" / ")}
 						/>
 					))}
-					<small>{mapPoints.length ? `${mapPoints.length} configured monitoring ${mapPoints.length === 1 ? "location" : "locations"}` : "No probe coordinates configured"}</small>
+					<small>{mapPoints.length ? t("builder.locationCount", { count: mapPoints.length }) : t("builder.noCoordinates")}</small>
 				</div>
 			) : null}
-			{element.displayMode === "map" && !page.showProbeLocations ? <div className={styles.mapPrivacyNotice}>Enable public probe locations to render this map.</div> : null}
+			{element.displayMode === "map" && !page.showProbeLocations ? <div className={styles.mapPrivacyNotice}>{t("builder.enableLocations")}</div> : null}
 		</article>
 	);
 }
@@ -1450,25 +1451,26 @@ function ElementControls({
 	onMove: (id: string, direction: -1 | 1) => void;
 	onRemove: (id: string) => void;
 }) {
-	const accessibleLabel = label || element.title || "element";
+	const { t } = useTranslation("status");
+	const accessibleLabel = label || element.title || t("builder.elementFallback");
 	return (
 		<div className={styles.elementControls}>
-			<IconButton aria-label={`Move ${accessibleLabel} up`} disabled={first} onClick={() => onMove(element.localId, -1)}>
+			<IconButton aria-label={t("builder.moveUp", { name: accessibleLabel })} disabled={first} onClick={() => onMove(element.localId, -1)}>
 				<ArrowUpIcon aria-hidden="true" />
 			</IconButton>
-			<IconButton aria-label={`Move ${accessibleLabel} down`} disabled={last} onClick={() => onMove(element.localId, 1)}>
+			<IconButton aria-label={t("builder.moveDown", { name: accessibleLabel })} disabled={last} onClick={() => onMove(element.localId, 1)}>
 				<ArrowDownIcon aria-hidden="true" />
 			</IconButton>
-			<IconButton aria-label={`Configure ${accessibleLabel}`} onClick={() => onSelect(element.localId)}>
+			<IconButton aria-label={t("builder.editElement", { name: accessibleLabel })} onClick={() => onSelect(element.localId)}>
 				<GearSixIcon aria-hidden="true" />
 			</IconButton>
-			<IconButton aria-label={`Remove ${accessibleLabel}`} danger onClick={() => onRemove(element.localId)}>
+			<IconButton aria-label={t("builder.deleteElement", { name: accessibleLabel })} danger onClick={() => onRemove(element.localId)}>
 				<TrashIcon aria-hidden="true" />
 			</IconButton>
 		</div>
 	);
 }
 
-function displayLabel(mode: DisplayMode) {
-	return displayOptions.find(option => option.value === mode)?.label ?? "Service status";
+function displayLabel(mode: DisplayMode, t: StatusT) {
+	return displayOptions(t).find(option => option.value === mode)?.label ?? t("builder.displays.status");
 }

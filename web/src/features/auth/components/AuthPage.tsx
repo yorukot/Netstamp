@@ -11,6 +11,7 @@ import { GithubLogoIcon } from "@phosphor-icons/react/dist/csr/GithubLogo";
 import { GoogleLogoIcon } from "@phosphor-icons/react/dist/csr/GoogleLogo";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState, type FormEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { AuthLayout } from "./AuthLayout";
 import styles from "./AuthPage.module.css";
@@ -25,6 +26,7 @@ function preloadForgotPasswordPage() {
 }
 
 export function AuthPage({ mode = "login", navigate }: AuthPageProps) {
+	const { t } = useTranslation("auth");
 	const isRegister = mode === "register";
 	const { submitting, login, register } = useAuth();
 	const createEmailVerification = useCreateEmailVerificationMutation();
@@ -32,13 +34,13 @@ export function AuthPage({ mode = "login", navigate }: AuthPageProps) {
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [verificationEmail, setVerificationEmail] = useState("");
-	const heading = isRegister ? "Sign Up" : "Login";
+	const heading = isRegister ? t("login.signUp") : t("login.login");
 	const showDemoCredentials = demoMode && Boolean(demoCredentials);
 	const providers = methodsQuery.data?.providers ?? [];
 	const callbackQuery = new URLSearchParams(window.location.search);
 	const authError = callbackQuery.get("auth_error") || callbackQuery.get("oidc_error");
 	const authProvider = callbackQuery.get("auth_provider");
-	const failedProviderName = providers.find(provider => provider.id === authProvider)?.displayName || "External sign-in";
+	const failedProviderName = providers.find(provider => provider.id === authProvider)?.displayName || t("common.externalSignIn");
 
 	function startExternalLogin(provider: string) {
 		const url = new URL(absoluteExternalAuthStartUrl(provider));
@@ -73,12 +75,12 @@ export function AuthPage({ mode = "login", navigate }: AuthPageProps) {
 
 		if (isRegister) {
 			if (password.length < 8) {
-				pushErrorToast("Password must be at least 8 characters.");
+				pushErrorToast(t("common.passwordMinimum"));
 				return;
 			}
 
 			if (password !== passwordAgain) {
-				pushErrorToast("Password confirmation does not match.");
+				pushErrorToast(t("common.passwordMismatch"));
 				return;
 			}
 
@@ -89,8 +91,8 @@ export function AuthPage({ mode = "login", navigate }: AuthPageProps) {
 				});
 				if (result.emailVerificationRequired) {
 					pushToast({
-						title: "Verify your email",
-						message: "We sent a verification link before you can log in.",
+						title: t("login.verifyRegistrationTitle"),
+						message: t("login.verifyRegistrationMessage"),
 						tone: "success"
 					});
 					navigate("login");
@@ -117,15 +119,15 @@ export function AuthPage({ mode = "login", navigate }: AuthPageProps) {
 	async function handleResendVerification() {
 		const targetEmail = verificationEmail || email;
 		if (!targetEmail) {
-			pushErrorToast("Email is required.");
+			pushErrorToast(t("login.emailRequired"));
 			return;
 		}
 
 		try {
 			await createEmailVerification.mutateAsync({ email: targetEmail });
 			pushToast({
-				title: "Verification email sent",
-				message: "Check your inbox for the latest verification link.",
+				title: t("login.verificationSentTitle"),
+				message: t("login.verificationSentMessage"),
 				tone: "success"
 			});
 		} catch {
@@ -134,23 +136,23 @@ export function AuthPage({ mode = "login", navigate }: AuthPageProps) {
 	}
 
 	return (
-		<AuthLayout title={heading} helmetTitle={isRegister ? "Sign Up" : "Login"}>
+		<AuthLayout title={heading}>
 			{!isRegister && providers.length ? (
 				<div className={styles.providerButtons}>
 					{providers.map(provider => (
 						<Button key={provider.id} type="button" variant="outline" size="lg" className={styles.providerButton} onClick={() => startExternalLogin(provider.id)}>
 							{provider.id === "google" ? <GoogleLogoIcon size="1.25rem" weight="bold" aria-hidden="true" focusable="false" /> : null}
 							{provider.id === "github" ? <GithubLogoIcon size="1.25rem" weight="bold" aria-hidden="true" focusable="false" /> : null}
-							Continue with {provider.displayName}
+							{t("login.continueWith", { provider: provider.displayName })}
 						</Button>
 					))}
 				</div>
 			) : null}
-			{!isRegister && authError ? <div className={styles.notice}>{failedProviderName} could not be completed. Try again or use another sign-in method.</div> : null}
+			{!isRegister && authError ? <div className={styles.notice}>{t("login.externalFailure", { provider: failedProviderName })}</div> : null}
 			<form className={styles.form} onSubmit={handleSubmit}>
-				{isRegister ? <TextField label="Display Name" name="displayName" type="text" autoComplete="name" /> : null}
+				{isRegister ? <TextField label={t("login.displayName")} name="displayName" type="text" autoComplete="name" /> : null}
 				<TextField
-					label="Email"
+					label={t("common.email")}
 					name="email"
 					type="email"
 					value={email}
@@ -162,7 +164,7 @@ export function AuthPage({ mode = "login", navigate }: AuthPageProps) {
 				/>
 				<div className={styles.passwordFieldGroup}>
 					<TextField
-						label="Password"
+						label={t("common.password")}
 						name="password"
 						type="password"
 						value={password}
@@ -172,38 +174,38 @@ export function AuthPage({ mode = "login", navigate }: AuthPageProps) {
 					/>
 					{!isRegister ? (
 						<Link className={styles.inlineLink} to={pathForRoute("forgotPassword")} onFocus={preloadForgotPasswordPage} onPointerEnter={preloadForgotPasswordPage}>
-							Forgot password?
+							{t("login.forgotPassword")}
 						</Link>
 					) : null}
 				</div>
-				{isRegister ? <TextField label="Password, again" name="passwordAgain" type="password" minLength={8} autoComplete="new-password" /> : null}
+				{isRegister ? <TextField label={t("login.passwordAgain")} name="passwordAgain" type="password" minLength={8} autoComplete="new-password" /> : null}
 				{!isRegister && showDemoCredentials && demoCredentials ? (
-					<div className={styles.demoCredentials} aria-label="Demo account credentials">
+					<div className={styles.demoCredentials} aria-label={t("login.demoCredentialsAria")}>
 						<div className={styles.demoCredentialText}>
-							<span>Demo account</span>
+							<span>{t("login.demoAccount")}</span>
 							<strong>{demoCredentials.email}</strong>
 							<code>{demoCredentials.password}</code>
 						</div>
 						<Button type="button" variant="secondary" size="sm" onClick={fillDemoCredentials}>
-							Use demo account
+							{t("login.useDemoAccount")}
 						</Button>
 					</div>
 				) : null}
 				<Button className={styles.submitButton} type="submit" size="lg" disabled={submitting}>
-					{submitting ? "Submitting" : isRegister ? "Create Account" : "Log in"}
+					{submitting ? t("common.submitting") : isRegister ? t("login.createAccount") : t("login.login")}
 				</Button>
 				{!isRegister && verificationEmail ? (
 					<div className={styles.notice}>
-						<div>Email verification is required for {verificationEmail}.</div>
+						<div>{t("login.verificationRequired", { email: verificationEmail })}</div>
 						<Button type="button" variant="secondary" size="sm" disabled={createEmailVerification.isPending} onClick={handleResendVerification}>
-							{createEmailVerification.isPending ? "Sending" : "Resend verification email"}
+							{createEmailVerification.isPending ? t("login.sendingVerification") : t("login.resendVerification")}
 						</Button>
 					</div>
 				) : null}
 			</form>
 			{isRegister || appFeatures.registration ? (
 				<Link className={styles.modeLink} to={pathForRoute(isRegister ? "login" : "register")}>
-					{isRegister ? "Login" : "Sign Up"}
+					{isRegister ? t("login.login") : t("login.signUp")}
 				</Link>
 			) : null}
 		</AuthLayout>

@@ -1,17 +1,20 @@
 import { TrackingConsentBanner } from "@/shared/tracking/TrackingConsentBanner";
-import { Helmet } from "react-helmet-async";
+import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Outlet, useMatches } from "react-router-dom";
 import { pageTitleFromMatches } from "./pageTitles";
 
 export function RouteFrame() {
+	const { t } = useTranslation("navigation");
 	const matches = useMatches();
-	const title = pageTitleFromMatches(matches);
+	const title = pageTitleFromMatches(matches, t);
+
+	useEffect(() => {
+		document.title = title;
+	}, [title]);
 
 	return (
 		<>
-			<Helmet>
-				<title>{title}</title>
-			</Helmet>
 			<Outlet />
 			<TrackingConsentBanner />
 		</>

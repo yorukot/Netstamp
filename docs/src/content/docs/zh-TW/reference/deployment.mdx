@@ -1,0 +1,53 @@
+---
+title: 部署
+description: 說明靜態 Docs build、產生的 API 合約與 Storybook 輸出如何組合並發布。
+icon: deployment
+head:
+  - tag: title
+    content: 部署 | Netstamp 說明文件
+---
+
+## 靜態輸出
+
+Docs 網站是建置至 `docs/dist` 的 Astro 應用程式，負責公開 host 上的首頁、說明文件 route、產生的 OpenAPI explorer 與靜態 Storybook 輸出。頁面仍會預先 render 成靜態檔案，Astro 的 `ClientRouter` 則讓站內導覽具有類似 SPA 的體驗。
+
+```bash
+pnpm build:docs
+```
+
+## 建置步驟
+
+Docs build 會先將共用 UI 的 Storybook 輸出發布到 `docs/public/storybook`，再執行 `astro build`。Astro 會將 Storybook artifact 與網站其他靜態檔案一起複製到 `docs/dist/storybook`。
+
+如此可將 API reference、說明文件頁面與 component example 放進同一個可部署 artifact。
+
+後端 route 變更時，請另外重新產生 OpenAPI 合約：
+
+```bash
+pnpm generate:openapi
+```
+
+## Route 所有權
+
+公開 host 透過 GitHub Pages 負責 `/`、`/docs/*`、`/openapi/` 與 `/storybook/`。App host 負責 `/login`、`/register` 與需驗證的 dashboard path，該 host 上的 `/api/*` 則會 proxy 到 Go controller。Observability deployment 可以將 Grafana 直接對應至 `grafana.netstamp.dev`。
+
+:::note 公開說明文件網站、app runtime 與 Grafana runtime 是不同的部署目標。GitHub Pages 為 `netstamp.dev` 提供 Astro 靜態 build；bundle 中的 nginx image 只為 React app 與 API 提供 `app.netstamp.dev`。 :::
+
+## 自行託管 Runtime
+
+預設的自行託管 runtime 是 `deployments/docker/compose.yaml`。它會拉取 `yorukot/netstamp` app image、執行 PostgreSQL/TimescaleDB、透過一次性 service 套用 migration，並由 Netstamp container 提供 React app 與 `/api/v1/*`。
+
+```bash
+curl -O https://raw.githubusercontent.com/yorukot/netstamp/main/deployments/docker/compose.yaml
+curl -O https://raw.githubusercontent.com/yorukot/netstamp/main/deployments/docker/example.env
+cp example.env .env
+docker compose up -d
+```
+
+公開 HTTPS deployment 請使用外部 reverse proxy。
+
+Reverse proxy 必須保留 personal access token 所需的 `Authorization` header。Netstamp 不會為 PAT endpoint 啟用 CORS；請使用 curl、CI、CLI 工具或後端 service，不要在瀏覽器 JavaScript 中放入權杖。
+
+## 驗證
+
+發布涉及 MDX、導覽、共用 UI Storybook 輸出或 Astro layout 的變更前，請先執行 Docs build。後端 API route 或 schema 變更時，請在 build 前執行 `pnpm generate:openapi`。

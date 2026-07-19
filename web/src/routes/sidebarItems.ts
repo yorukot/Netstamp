@@ -12,21 +12,21 @@ import type { Icon } from "@phosphor-icons/react/dist/lib/types";
 import type { AppRoute } from "./routeTypes";
 
 export interface SidebarItem {
-	label: string;
+	labelKey: "admin" | "alerts" | "checks" | "insight" | "labels" | "members" | "overview" | "probes" | "settings" | "status";
 	route: AppRoute;
 	icon: Icon;
 	systemAdminOnly?: boolean;
 }
 
 export const sidebarItems: SidebarItem[] = [
-	{ label: "Overview", route: "dashboard", icon: GaugeIcon },
-	{ label: "Probes", route: "probes", icon: BroadcastIcon },
-	{ label: "Checks", route: "checks", icon: CheckCircleIcon },
-	{ label: "Alerts", route: "alerts", icon: BellRingingIcon },
-	{ label: "Status", route: "statusPages", icon: GlobeIcon },
-	{ label: "Labels", route: "labels", icon: TagIcon },
-	{ label: "Insight", route: "insight", icon: ChartLineUpIcon },
-	{ label: "Members", route: "members", icon: UsersThreeIcon },
-	{ label: "Settings", route: "projectSettings", icon: GearSixIcon },
-	{ label: "Admin", route: "adminSettings", icon: ShieldCheckIcon, systemAdminOnly: true }
+	{ labelKey: "overview", route: "dashboard", icon: GaugeIcon },
+	{ labelKey: "probes", route: "probes", icon: BroadcastIcon },
+	{ labelKey: "checks", route: "checks", icon: CheckCircleIcon },
+	{ labelKey: "alerts", route: "alerts", icon: BellRingingIcon },
+	{ labelKey: "status", route: "statusPages", icon: GlobeIcon },
+	{ labelKey: "labels", route: "labels", icon: TagIcon },
+	{ labelKey: "insight", route: "insight", icon: ChartLineUpIcon },
+	{ labelKey: "members", route: "members", icon: UsersThreeIcon },
+	{ labelKey: "settings", route: "projectSettings", icon: GearSixIcon },
+	{ labelKey: "admin", route: "adminSettings", icon: ShieldCheckIcon, systemAdminOnly: true }
 ];

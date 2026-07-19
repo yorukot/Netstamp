@@ -11,6 +11,7 @@ import { CaretRightIcon } from "@phosphor-icons/react/dist/csr/CaretRight";
 import { ListIcon } from "@phosphor-icons/react/dist/csr/List";
 import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, NavLink } from "react-router-dom";
 import { ProjectSwitcher } from "./ProjectSwitcher";
 import styles from "./Sidebar.module.css";
@@ -24,14 +25,15 @@ interface SidebarProps {
 }
 
 export function Sidebar({ collapsed, user, onToggleCollapsed, onLogout }: SidebarProps) {
+	const { t } = useTranslation(["navigation", "common"]);
 	const { projectRef } = useCurrentProject();
 	const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 	const MobileMenuIcon = mobileMenuOpen ? XIcon : ListIcon;
 	const visibleSidebarItems = sidebarItems.filter(item => !item.systemAdminOnly || user.isSystemAdmin);
 
-	function closeMobileMenu() {
+	const closeMobileMenu = () => {
 		setMobileMenuOpen(false);
-	}
+	};
 
 	return (
 		<aside className={classNames("ns-theme-dark", styles.sidebar, collapsed && styles.collapsed)}>
@@ -40,7 +42,7 @@ export function Sidebar({ collapsed, user, onToggleCollapsed, onLogout }: Sideba
 					<button
 						type="button"
 						className={styles.mobileMenuButton}
-						aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+						aria-label={mobileMenuOpen ? t("navigation:closeMenu") : t("navigation:openMenu")}
 						aria-expanded={mobileMenuOpen}
 						onClick={() => setMobileMenuOpen(open => !open)}
 					>
@@ -50,10 +52,10 @@ export function Sidebar({ collapsed, user, onToggleCollapsed, onLogout }: Sideba
 						<img className={classNames(styles.brandLogo, styles.brandLogoFull)} src={netstampLogo} alt="Netstamp" />
 						<img className={classNames(styles.brandLogo, styles.brandLogoMark)} src={netstampMark} alt="" aria-hidden="true" />
 					</Link>
-					<button type="button" className={classNames(styles.brandToggle, styles.brandToggleExpanded)} aria-label="Collapse sidebar" onClick={onToggleCollapsed}>
+					<button type="button" className={classNames(styles.brandToggle, styles.brandToggleExpanded)} aria-label={t("navigation:collapseSidebar")} onClick={onToggleCollapsed}>
 						<CaretLeftIcon size={17} weight="bold" aria-hidden="true" focusable="false" />
 					</button>
-					<button type="button" className={classNames(styles.brandToggle, styles.brandToggleCollapsed)} aria-label="Expand sidebar" onClick={onToggleCollapsed}>
+					<button type="button" className={classNames(styles.brandToggle, styles.brandToggleCollapsed)} aria-label={t("navigation:expandSidebar")} onClick={onToggleCollapsed}>
 						<img className={classNames(styles.brandLogo, styles.brandLogoMark)} src={netstampMark} alt="" aria-hidden="true" />
 						<CaretRightIcon className={styles.brandToggleArrow} size={18} weight="bold" aria-hidden="true" focusable="false" />
 					</button>
@@ -61,21 +63,22 @@ export function Sidebar({ collapsed, user, onToggleCollapsed, onLogout }: Sideba
 
 				<ProjectSwitcher collapsed={collapsed} />
 
-				<nav className={styles.nav} aria-label="Primary app navigation">
+				<nav className={styles.nav} aria-label={t("common:a11y.primaryNavigation")}>
 					{visibleSidebarItems.map(item => {
 						const ItemIcon = item.icon;
+						const label = t(`navigation:${item.labelKey}`);
 
 						return (
 							<NavLink
 								key={item.route}
 								to={pathForRoute(item.route, { projectRef })}
 								className={({ isActive }) => classNames(isActive && styles.active)}
-								aria-label={item.label}
-								title={item.label}
+								aria-label={label}
+								title={label}
 								onClick={closeMobileMenu}
 							>
 								<ItemIcon className={styles.navIcon} size={18} weight="bold" aria-hidden="true" focusable="false" />
-								<span className={styles.navLabel}>{item.label}</span>
+								<span className={styles.navLabel}>{label}</span>
 							</NavLink>
 						);
 					})}
@@ -86,8 +89,8 @@ export function Sidebar({ collapsed, user, onToggleCollapsed, onLogout }: Sideba
 
 			<EditorDrawer
 				open={mobileMenuOpen}
-				title="Menu"
-				ariaLabel="Primary navigation menu"
+				title={t("navigation:menu")}
+				ariaLabel={t("common:a11y.primaryNavigationMenu")}
 				side="left"
 				className={classNames("ns-theme-dark", styles.mobileNavDrawer)}
 				contentClassName={styles.mobileNavDrawerContent}
@@ -96,7 +99,7 @@ export function Sidebar({ collapsed, user, onToggleCollapsed, onLogout }: Sideba
 				<div className={styles.mobileDrawerProject}>
 					<ProjectSwitcher variant="drawer" />
 				</div>
-				<nav className={styles.mobileDrawerNav} aria-label="Primary app navigation">
+				<nav className={styles.mobileDrawerNav} aria-label={t("common:a11y.primaryNavigation")}>
 					{visibleSidebarItems.map(item => {
 						const ItemIcon = item.icon;
 
@@ -108,7 +111,7 @@ export function Sidebar({ collapsed, user, onToggleCollapsed, onLogout }: Sideba
 								onClick={closeMobileMenu}
 							>
 								<ItemIcon className={styles.navIcon} size={20} weight="bold" aria-hidden="true" focusable="false" />
-								<span>{item.label}</span>
+								<span>{t(`navigation:${item.labelKey}`)}</span>
 							</NavLink>
 						);
 					})}

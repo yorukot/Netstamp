@@ -1,0 +1,34 @@
+---
+title: API Explorer
+description: 使用產生的 OpenAPI explorer 檢查路由，讓說明文件與後端行為保持一致。
+icon: api
+head:
+  - tag: title
+    content: API Explorer | Netstamp 說明文件
+---
+
+## 合約來源
+
+API explorer 會讀取 `docs/public/openapi.json`。此檔案由 `api/` 中的 TypeSpec 合約產生，之後也會複製到後端，讓非正式環境的 runtime docs 使用相同 schema。
+
+```bash
+pnpm generate:openapi
+```
+
+## 使用 Explorer
+
+從說明文件導覽開啟 [`/zh-TW/openapi/`](/zh-TW/openapi/)。公開頁面會使用 Scalar 顯示產生的合約，並依 TypeSpec 中定義的 tag 將 operation 分組。
+
+撰寫其他指南前，可先在此確認 request body、response schema 與 route path。
+
+Controller 環境會在 `/api/v1/docs` 提供 runtime Scalar API docs，對應 schema 位於 `/api/v1/openapi.json`。Runtime 頁面與 API 同源，因此可以傳送個人 Bearer token；公開文件的 explorer 僅作為參考介面，不需要跨來源 API 存取。
+
+## 需要驗證的路由
+
+專案 API route 可接受有效的 session cookie 或具有適當 scope 的 personal access token。帳號、成員、邀請與管理員 operation 仍僅能使用 session。Bearer 工作流程請參閱 [API 權杖](/zh-TW/docs/guides/api-tokens/)。
+
+:::warning 不要為了 route 變更而手動編輯 `docs/public/openapi.json`。請從 TypeSpec 重新產生，確保說明文件、Web API 型別與 runtime schema 保持同步。 :::
+
+## 更新說明文件
+
+Route 變更時，請更新解釋使用者可見行為的指南或參考頁面。實作細節應保留在後端程式碼，說明文件則聚焦於設計目的、工作流程與範例。

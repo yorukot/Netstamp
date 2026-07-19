@@ -8,14 +8,16 @@ import { LatencyRail } from "@/shared/visualizations/LatencyRail";
 import { RouteTopologyMap, type RouteTopologyEdge, type RouteTopologyNode } from "@/shared/visualizations/RouteTopologyMap";
 import { RunTimeline } from "@/shared/visualizations/RunTimeline";
 import { Badge, BodyCopy, DataTable, Panel, Spinner, type DataColumn } from "@netstamp/ui";
+import type { TFunction } from "i18next";
+import { useTranslation } from "react-i18next";
 import styles from "./TracerouteInsightPanel.module.css";
 
-function hopColumns(maxRtt: number): DataColumn<HopDiagnostic>[] {
+function hopColumns(maxRtt: number, t: TFunction<"insight">): DataColumn<HopDiagnostic>[] {
 	return [
-		{ key: "hopIndex", label: "Hop", render: row => String(row.hopIndex).padStart(2, "0") },
+		{ key: "hopIndex", label: t("panel.hop"), render: row => String(row.hopIndex).padStart(2, "0") },
 		{
 			key: "label",
-			label: "Node",
+			label: t("panel.node"),
 			render: row => (
 				<span className={styles.hopIdentity}>
 					<strong>{row.label}</strong>
@@ -23,16 +25,16 @@ function hopColumns(maxRtt: number): DataColumn<HopDiagnostic>[] {
 				</span>
 			)
 		},
-		{ key: "loss", label: "Loss", render: row => formatPercent(row.loss) },
+		{ key: "loss", label: t("panel.loss"), render: row => formatPercent(row.loss) },
 		{
 			key: "latency",
-			label: "Latency",
+			label: t("panel.latency"),
 			render: row => <LatencyRail minValue={row.minRtt} avgValue={row.avgRtt} maxValue={row.maxRtt} scaleMax={maxRtt} valueLabel={formatMs(row.avgRtt)} tone={row.tone} />
 		},
-		{ key: "medianRtt", label: "Median", render: row => formatMs(row.medianRtt) },
-		{ key: "range", label: "Range", render: row => `${formatMs(row.minRtt)} / ${formatMs(row.maxRtt)}` },
-		{ key: "sent", label: "Sent/Recv", render: row => `${row.sent}/${row.received}` },
-		{ key: "state", label: "State", render: row => <Badge tone={row.tone}>{row.state}</Badge> }
+		{ key: "medianRtt", label: t("panel.median"), render: row => formatMs(row.medianRtt) },
+		{ key: "range", label: t("panel.range"), render: row => `${formatMs(row.minRtt)} / ${formatMs(row.maxRtt)}` },
+		{ key: "sent", label: t("panel.sentReceived"), render: row => `${row.sent}/${row.received}` },
+		{ key: "state", label: t("panel.state"), render: row => <Badge tone={row.tone}>{row.state}</Badge> }
 	];
 }
 
@@ -67,6 +69,7 @@ export function TracerouteInsightPanel({
 	onSelectRun,
 	onSelectTimeWindow
 }: TracerouteInsightPanelProps) {
+	const { t } = useTranslation("insight");
 	const selectedRun = runs.find(run => run.startedAt === selectedRunStartedAt) || runs[0] || null;
 	const diagnostics = buildHopDiagnostics(selectedRun);
 	const timelinePoints = tracerouteInsightTimelinePoints(insight);
@@ -88,56 +91,56 @@ export function TracerouteInsightPanel({
 
 	if (!selectedProbe || !selectedTarget) {
 		return (
-			<Panel tone="deep" title="No route selected">
-				<BodyCopy>Select a probe and traceroute target to inspect route details.</BodyCopy>
+			<Panel tone="deep" title={t("panel.noRouteTitle")}>
+				<BodyCopy>{t("panel.noRouteDescription")}</BodyCopy>
 			</Panel>
 		);
 	}
 
 	if (isRouteLoading && !runs.length && !timelinePoints.length) {
 		return (
-			<Panel tone="deep" title="Route">
-				<Spinner label="Loading route" layout="panel" size="lg" />
+			<Panel tone="deep" title={t("panel.route")}>
+				<Spinner label={t("panel.loadingRoute")} layout="panel" size="lg" />
 			</Panel>
 		);
 	}
 
 	if (!runs.length && !timelinePoints.length) {
 		return (
-			<Panel tone="deep" title="No traceroute runs">
-				<BodyCopy>No traceroute results were recorded for this probe-target pair in the selected time range.</BodyCopy>
+			<Panel tone="deep" title={t("panel.noRunsTitle")}>
+				<BodyCopy>{t("panel.noRunsDescription")}</BodyCopy>
 			</Panel>
 		);
 	}
 
 	return (
 		<div className={styles.tracerouteStack}>
-			<Panel className={styles.tracePanel} tone="deep" title="Hop latency, loss, and run timeline">
+			<Panel className={styles.tracePanel} tone="deep" title={t("panel.traceTitle")}>
 				<div className={styles.traceStack}>
 					{diagnostics.length ? (
 						<DataTable
-							columns={hopColumns(Math.max(1, ...diagnostics.map(hop => hop.maxRtt ?? hop.avgRtt ?? 0)))}
+							columns={hopColumns(Math.max(1, ...diagnostics.map(hop => hop.maxRtt ?? hop.avgRtt ?? 0)), t)}
 							rows={diagnostics}
 							density="compact"
 							minWidth="68rem"
 							maxHeight="28rem"
 							getRowKey={row => row.id}
-							emptyLabel="No hop data"
+							emptyLabel={t("panel.noHopData")}
 						/>
 					) : (
-						<BodyCopy>This run did not include hop rows.</BodyCopy>
+						<BodyCopy>{t("panel.noHopRows")}</BodyCopy>
 					)}
 					<div className={styles.traceTimeline}>
 						<div className={styles.traceTimelineHeader}>
-							<span>Run timeline</span>
-							<strong className="ns-title">{totalRuns} runs in window</strong>
+							<span>{t("panel.runTimeline")}</span>
+							<strong className="ns-title">{t("panel.runsInWindow", { count: totalRuns })}</strong>
 						</div>
 						<RunTimeline
 							points={timelinePoints}
 							selectedPointId={selectedRun?.startedAt}
 							selectedValueLabel={selectedTimelineValueLabel(selectedRun, timelinePoints)}
 							timeRangeBounds={timeRangeBounds}
-							emptyState={isRouteLoading ? <Spinner label="Loading traceroute timeline" layout="compact" size="lg" /> : <BodyCopy>No traceroute runs in this time range.</BodyCopy>}
+							emptyState={isRouteLoading ? <Spinner label={t("panel.loadingTimeline")} layout="compact" size="lg" /> : <BodyCopy>{t("panel.noRunsInRange")}</BodyCopy>}
 							onSelectPoint={handleSelectTimelinePoint}
 							onSelectTimeRange={onSelectTimeWindow}
 						/>
@@ -146,13 +149,13 @@ export function TracerouteInsightPanel({
 			</Panel>
 
 			{showTopology ? (
-				<Panel tone="deep" title="Aggregated route graph">
+				<Panel tone="deep" title={t("panel.routeGraph")}>
 					{hasTopology ? (
 						<RouteTopologyMap nodes={topologyNodes} edges={topologyEdges} />
 					) : isTopologyLoading ? (
-						<Spinner label="Loading topology" layout="panel" size="lg" />
+						<Spinner label={t("panel.loadingTopology")} layout="panel" size="lg" />
 					) : (
-						<BodyCopy>Topology data is unavailable for the selected filters; hop rows still show the latest run.</BodyCopy>
+						<BodyCopy>{t("panel.topologyUnavailable")}</BodyCopy>
 					)}
 				</Panel>
 			) : null}

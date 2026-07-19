@@ -1,0 +1,292 @@
+---
+import { ScalarComponent } from "@scalar/astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { localeFromAstro, pathForLocale, uiForLocale } from "../i18n/ui";
+import { absoluteUrl, createApiReferenceSchema, createBreadcrumbSchema, resolveSiteUrl } from "../lib/seo";
+
+const locale = localeFromAstro(Astro.currentLocale);
+const ui = uiForLocale(locale);
+const title = ui.openapi.title;
+const description = ui.openapi.description;
+const siteUrl = resolveSiteUrl(Astro.site);
+const pageUrl = absoluteUrl(pathForLocale("/openapi/", locale), siteUrl);
+const schema = [
+	createBreadcrumbSchema([
+		{ name: "Netstamp", url: siteUrl },
+		{ name: "OpenAPI", url: pageUrl }
+	]),
+	createApiReferenceSchema(siteUrl, pageUrl, title, description)
+];
+const scalarApiReferenceVersion = "1.62.0";
+const scalarCustomCss = String.raw`
+.scalar-app,
+.scalar-api-reference,
+.scalar-api-references-standalone-mobile,
+.references-layout,
+.light-mode,
+.dark-mode {
+	--scalar-font: var(--ns-font-body);
+	--scalar-font-code: var(--ns-font-code);
+	--scalar-font-normal: 400;
+	--scalar-font-medium: 650;
+	--scalar-font-bold: 800;
+	--scalar-background-1: var(--ns-bg);
+	--scalar-background-2: var(--ns-bg-subtle);
+	--scalar-background-3: var(--ns-surface-raised);
+	--scalar-background-4: var(--ns-surface-deep);
+	--scalar-background-card: var(--ns-bg-subtle);
+	--scalar-background-accent: var(--ns-primary-muted);
+	--scalar-background-alert: var(--ns-secondary-muted);
+	--scalar-background-danger: color-mix(in srgb, var(--ns-critical) 11%, transparent);
+	--scalar-color-1: var(--ns-text);
+	--scalar-color-2: var(--ns-text-muted);
+	--scalar-color-3: var(--ns-text-subtle);
+	--scalar-color-disabled: var(--ns-text-low);
+	--scalar-color-accent: var(--ns-primary);
+	--scalar-color-alert: var(--ns-secondary);
+	--scalar-color-danger: var(--ns-critical);
+	--scalar-color-green: var(--ns-success);
+	--scalar-color-yellow: var(--ns-warning);
+	--scalar-color-orange: var(--ns-primary);
+	--scalar-color-red: var(--ns-critical);
+	--scalar-color-blue: var(--ns-secondary);
+	--scalar-color-purple: var(--ns-metal);
+	--scalar-border-color: var(--ns-border);
+	--scalar-border-width: 1px;
+	--scalar-radius: 0;
+	--scalar-radius-lg: 0;
+	--scalar-radius-xl: 0;
+	--scalar-shadow-1: none;
+	--scalar-shadow-2: none;
+	--scalar-button-1: var(--ns-primary);
+	--scalar-button-1-hover: var(--ns-primary-hover);
+	--scalar-button-1-color: var(--ns-text-on-accent);
+	--scalar-link-color: var(--ns-secondary);
+	--scalar-link-color-hover: var(--ns-secondary-hover);
+	--scalar-link-color-visited: var(--ns-secondary-active);
+	--scalar-text-decoration: none;
+	--scalar-text-decoration-hover: none;
+	--scalar-scrollbar-color: var(--ns-border-strong);
+	--scalar-scrollbar-color-active: var(--ns-primary);
+	--scalar-header-background-1: var(--ns-bg);
+	--scalar-header-background-2: var(--ns-bg-subtle);
+	--scalar-header-border-color: var(--ns-border);
+	--scalar-header-color-1: var(--ns-text);
+	--scalar-header-color-2: var(--ns-text-subtle);
+	--scalar-header-height: 0;
+	--scalar-custom-header-height: 5.75rem;
+	--scalar-sidebar-background-1: var(--ns-bg-subtle);
+	--scalar-sidebar-border-color: var(--ns-border);
+	--scalar-sidebar-color-1: var(--ns-text);
+	--scalar-sidebar-color-2: var(--ns-text-subtle);
+	--scalar-sidebar-color-active: var(--ns-primary);
+	--scalar-sidebar-item-active-background: var(--ns-primary-muted);
+	--scalar-sidebar-item-hover-background: var(--ns-glass-light);
+	--scalar-sidebar-item-hover-color: var(--ns-text);
+	--scalar-sidebar-search-background: var(--ns-surface);
+	--scalar-sidebar-search-border-color: var(--ns-border);
+	--scalar-sidebar-search-color: var(--ns-text);
+	--scalar-sidebar-sticky-offset: 5.75rem;
+	--scalar-tooltip-background: var(--ns-chrome-bg);
+	--scalar-tooltip-color: var(--ns-chrome-text);
+}
+
+.scalar-app {
+	min-height: calc(100svh - 5.75rem);
+	color: var(--ns-text);
+	background: var(--ns-bg);
+}
+
+.scalar-app .references-layout,
+.scalar-app .scalar-api-reference,
+.scalar-app .scalar-container {
+	background: var(--ns-bg);
+}
+
+.scalar-app .references-sidebar {
+	border-right: 1px solid var(--ns-border);
+	background: var(--ns-bg-subtle);
+}
+
+.scalar-app .t-doc__sidebar {
+	position: sticky !important;
+	top: var(--scalar-custom-header-height) !important;
+	align-self: start;
+	height: calc(100svh - var(--scalar-custom-header-height)) !important;
+	max-height: calc(100svh - var(--scalar-custom-header-height)) !important;
+	overflow-y: auto;
+}
+
+.scalar-app .t-doc__sidebar > div:first-child {
+	position: sticky;
+	top: 0;
+	z-index: 3;
+	background: var(--ns-bg-subtle);
+}
+
+.scalar-app .t-doc__sidebar > div:first-child::after {
+	content: "";
+	position: absolute;
+	top: 100%;
+	right: 0;
+	left: 0;
+	height: 1.5rem;
+	pointer-events: none;
+	background: linear-gradient(to bottom, var(--ns-bg-subtle) 0%, color-mix(in srgb, var(--ns-bg-subtle) 72%, transparent) 42%, transparent 100%);
+}
+
+.scalar-app .t-doc__sidebar .darklight-reference {
+	min-height: 3.5rem;
+	padding-top: 1rem;
+}
+
+.scalar-app .section-header:has(> h1.section-header-label) {
+	margin-top: 0.45rem;
+	margin-bottom: 1rem;
+}
+
+.scalar-app h1.section-header-label {
+	font-size: clamp(2rem, 2.6vw, 2.8rem);
+	line-height: 1.03;
+}
+
+.scalar-app .section-flare {
+	display: none;
+}
+
+.scalar-app.z-overlay:not(:has(.scalar-client--open)) {
+	display: none !important;
+}
+
+.scalar-app .scalar-code-block,
+.scalar-app pre,
+.scalar-app code {
+	font-family: var(--ns-font-code);
+}
+
+.scalar-app .scalar-code-block,
+.scalar-app pre {
+	background: var(--ns-surface-deep);
+}
+
+.scalar-app .open-api-client-button,
+.scalar-app .show-api-client-button {
+	border: 1px solid var(--ns-primary-border);
+	color: var(--ns-text-on-accent);
+	background: var(--ns-primary);
+	font-weight: 750;
+}
+
+.scalar-app .open-api-client-button:hover,
+.scalar-app .show-api-client-button:hover {
+	border-color: var(--ns-primary-hover);
+	background: var(--ns-primary-hover);
+}
+
+.scalar-app a:focus-visible,
+.scalar-app button:focus-visible,
+.scalar-app input:focus-visible,
+.scalar-app textarea:focus-visible,
+.scalar-app select:focus-visible {
+	outline: var(--ns-focus-outline);
+	outline-offset: var(--ns-focus-outline-offset);
+}
+
+@media (max-width: 48rem) {
+	.scalar-app,
+	.scalar-app .references-layout {
+		min-height: calc(100svh - 7rem);
+	}
+}
+`;
+const scalarConfiguration = {
+	cdn: `https://cdn.jsdelivr.net/npm/@scalar/api-reference@${scalarApiReferenceVersion}`,
+	pageTitle: title,
+	title: "Netstamp API",
+	slug: "netstamp",
+	url: "/openapi.json",
+	layout: "modern",
+	theme: "none",
+	withDefaultFonts: false,
+	hideClientButton: true,
+	hideDarkModeToggle: true,
+	showDeveloperTools: "never",
+	telemetry: false,
+	documentDownloadType: "json",
+	operationTitleSource: "summary",
+	modelsSectionLabel: ui.openapi.schemas,
+	defaultOpenFirstTag: true,
+	defaultHttpClient: {
+		targetKey: "shell",
+		clientKey: "curl"
+	},
+	agent: {
+		disabled: true
+	},
+	mcp: {
+		disabled: true
+	},
+	customCss: scalarCustomCss
+} as const;
+---
+
+<BaseLayout title={title} description={description} canonicalPath={pathForLocale("/openapi/", locale)} schema={schema}>
+	<main id="content" class="openapiPage">
+		<div class="scalarReferenceMount">
+			<span class="scalarLoading">{ui.openapi.loading}</span>
+			<ScalarComponent renderMode="client" configuration={scalarConfiguration} />
+		</div>
+	</main>
+</BaseLayout>
+
+<style>
+	.openapiPage {
+		min-height: 100svh;
+		padding-top: 5.75rem;
+		color: var(--ns-text);
+		background: var(--ns-bg);
+	}
+
+	.scalarReferenceMount {
+		position: relative;
+		min-height: calc(100svh - 5.75rem);
+		background: var(--ns-bg);
+	}
+
+	.scalarReferenceMount :global([data-scalar-client]) {
+		min-height: calc(100svh - 5.75rem);
+		background: var(--ns-bg);
+	}
+
+	.scalarReferenceMount :global([data-scalar-client]:empty) {
+		display: grid;
+		place-items: center;
+		color: var(--ns-text-subtle);
+	}
+
+	.scalarLoading {
+		position: absolute;
+		inset: 50% auto auto 50%;
+		translate: -50% -50%;
+		font-family: var(--ns-font-code);
+		font-size: 0.75rem;
+		font-weight: 800;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+	}
+
+	.scalarReferenceMount:has(:global([data-scalar-client]:not(:empty))) .scalarLoading {
+		display: none;
+	}
+
+	@media (max-width: 48rem) {
+		.openapiPage {
+			padding-top: 7rem;
+		}
+
+		.scalarReferenceMount,
+		.scalarReferenceMount :global([data-scalar-client]) {
+			min-height: calc(100svh - 7rem);
+		}
+	}
+</style>

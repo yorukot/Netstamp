@@ -1,3 +1,4 @@
+import { useLocaleFormat } from "@/i18n/format";
 import { pathForLabelDetail, pathForRoute } from "@/routes/routePaths";
 import { useDeleteProjectLabelMutation, useSaveProjectLabelMutation } from "@/shared/api/mutations";
 import { projectQueries } from "@/shared/api/queries";
@@ -11,6 +12,7 @@ import { Badge, Button, DialogContent, DialogOverlay, DialogPortal, DialogRoot, 
 import { PlusIcon } from "@phosphor-icons/react/dist/csr/Plus";
 import { useQuery } from "@tanstack/react-query";
 import { type AnimationEvent, type FormEvent, type KeyboardEvent, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import styles from "./LabelsPage.module.css";
 
@@ -44,16 +46,6 @@ const emptyLabels: ApiLabel[] = [];
 const emptyProbes: ApiProbe[] = [];
 const emptyChecks: ApiCheck[] = [];
 
-function formatUpdatedAt(value: string) {
-	const date = new Date(value);
-
-	if (Number.isNaN(date.getTime())) {
-		return "-";
-	}
-
-	return date.toLocaleString();
-}
-
 function labelToken(label: Pick<ApiLabel, "key" | "value">) {
 	return `${label.key}:${label.value}`;
 }
@@ -84,20 +76,16 @@ function buildUsage(labels: ApiLabel[], probes: ApiProbe[], checks: ApiCheck[]) 
 	return usage;
 }
 
-function usageNames(names: string[]) {
+function usageNames(names: string[], emptyLabel: string) {
 	if (!names.length) {
-		return "None";
+		return emptyLabel;
 	}
 
 	return names.slice(0, 3).join(", ") + (names.length > 3 ? ` +${names.length - 3}` : "");
 }
 
-function countLabel(count: number, singular: string) {
-	return `${count} ${singular}${count === 1 ? "" : "s"}`;
-}
-
-function renderUsage(count: number, names: string[], tone: "accent" | "success") {
-	const summary = usageNames(names);
+function renderUsage(count: number, names: string[], tone: "accent" | "success", emptyLabel: string) {
+	const summary = usageNames(names, emptyLabel);
 
 	return (
 		<div className={styles.usageSummary} title={summary}>
@@ -150,6 +138,8 @@ function buildLabelGroups(rows: LabelRow[]) {
 }
 
 export function LabelsPage() {
+	const { t } = useTranslation(["labels", "common"]);
+	const format = useLocaleFormat();
 	const { projectRef } = useCurrentProject();
 	const { labelId = "" } = useParams();
 	const navigate = useNavigate();
@@ -191,16 +181,16 @@ export function LabelsPage() {
 					key: label.key,
 					value: label.value,
 					token: labelToken(label),
-					updatedAt: formatUpdatedAt(label.updatedAt),
+					updatedAt: Number.isNaN(new Date(label.updatedAt).getTime()) ? "-" : format.dateTime(label.updatedAt),
 					probeCount: probeNames.length,
 					checkCount: checkNames.length,
 					probeNames,
 					checkNames
 				};
 			}),
-		[labels, usageByLabelID]
+		[format, labels, usageByLabelID]
 	);
-	const keyOptions = useMemo(() => [{ value: "all", label: "All keys" }, ...sortedUnique(labels.map(label => label.key)).map(key => ({ value: key, label: key }))], [labels]);
+	const keyOptions = useMemo(() => [{ value: "all", label: t("allKeys") }, ...sortedUnique(labels.map(label => label.key)).map(key => ({ value: key, label: key }))], [labels, t]);
 	const filteredRows = useMemo(() => {
 		const query = search.trim().toLowerCase();
 
@@ -224,9 +214,9 @@ export function LabelsPage() {
 	const activeDraftValue = isCreating || hasSelectedDraft ? draftValue : (selectedLabel?.value ?? "");
 	const mutationError = saveLabelMutation.error ?? deleteLabelMutation.error;
 	const canSave = Boolean(projectRef && activeDraftKey.trim() && activeDraftValue.trim() && (isCreating || (selectedLabel && selectedLabel.value !== activeDraftValue.trim())));
-	const emptyLabel = projectRef ? labelsQuery.isLoading ? <Spinner label="Loading labels" layout="compact" size="lg" /> : "No labels match this view" : "Select a project to manage labels";
-	const editorTitle = isNewLabel ? "New label" : isAddingValue ? `Add ${activeDraftKey} value` : selectedLabel ? `Edit ${selectedLabel.key}` : "Label";
-	const editorSubmitLabel = saveLabelMutation.isPending ? "Saving" : isEditing ? "Save value" : isNewLabel ? "Create label" : "Add value";
+	const emptyLabel = projectRef ? labelsQuery.isLoading ? <Spinner label={t("loading")} layout="compact" size="lg" /> : t("noMatch") : t("selectProject");
+	const editorTitle = isNewLabel ? t("editor.new") : isAddingValue ? t("editor.add", { key: activeDraftKey }) : selectedLabel ? t("editor.edit", { key: selectedLabel.key }) : t("editor.title");
+	const editorSubmitLabel = saveLabelMutation.isPending ? t("editor.saving") : isEditing ? t("editor.saveValue") : isNewLabel ? t("editor.create") : t("editor.addValue");
 
 	useEffect(() => {
 		if (!projectRef || !labelId || labelsQuery.isPending || labelsQuery.isError || selectedLabel) {
@@ -328,9 +318,9 @@ export function LabelsPage() {
 
 	async function deleteLabel(row: LabelRow) {
 		const confirmed = await confirm({
-			title: `Delete ${row.value}?`,
-			message: `This removes the value from ${row.key} and refreshes matching assignments.`,
-			confirmLabel: "Delete value",
+			title: t("editor.deleteQuestion", { value: row.value }),
+			message: t("editor.deleteMessage", { key: row.key }),
+			confirmLabel: t("editor.delete"),
 			tone: "danger"
 		});
 
@@ -349,22 +339,22 @@ export function LabelsPage() {
 
 	return (
 		<PageStack>
-			<ScreenHeader title="Labels" actions={<Button onClick={() => startNewLabel()}>New label</Button>} />
+			<ScreenHeader title={t("title")} actions={<Button onClick={() => startNewLabel()}>{t("new")}</Button>} />
 
 			<div className={styles.listStack}>
 				<FilterGrid className={styles.filters}>
-					<TextField label="Search" placeholder="region:tokyo, provider, edge" value={search} disabled={!projectRef} onChange={event => setSearch(event.currentTarget.value)} />
-					<SelectField label="Key" value={keyFilter} disabled={!projectRef} options={keyOptions} onChange={event => setKeyFilter(event.currentTarget.value)} />
+					<TextField label={t("search")} placeholder={t("searchPlaceholder")} value={search} disabled={!projectRef} onChange={event => setSearch(event.currentTarget.value)} />
+					<SelectField label={t("key")} value={keyFilter} disabled={!projectRef} options={keyOptions} onChange={event => setKeyFilter(event.currentTarget.value)} />
 				</FilterGrid>
 				<div className={["ns-frame", styles.groupedTableFrame].join(" ")}>
 					<div className={["ns-scrollbar", styles.groupedTableScroller].join(" ")}>
-						<table className={styles.groupedTable} aria-label="Project labels grouped by key">
+						<table className={styles.groupedTable} aria-label={t("groupedAria")}>
 							<thead>
 								<tr>
-									<th>Value</th>
-									<th>Probes</th>
-									<th>Checks</th>
-									<th>Updated</th>
+									<th>{t("value")}</th>
+									<th>{t("probes")}</th>
+									<th>{t("checks")}</th>
+									<th>{t("updated")}</th>
 								</tr>
 							</thead>
 							{labelGroups.length ? (
@@ -376,12 +366,12 @@ export function LabelsPage() {
 													<div className={styles.groupHeading}>
 														<strong translate="no">{group.key}</strong>
 														<span>
-															{countLabel(group.rows.length, "value")} · {countLabel(group.probeCount, "probe")} · {countLabel(group.checkCount, "check")}
+															{t("valueCount", { count: group.rows.length })} · {t("probeCount", { count: group.probeCount })} · {t("checkCount", { count: group.checkCount })}
 														</span>
 													</div>
 													<Button type="button" variant="secondary" size="sm" onClick={() => startNewLabel(group.key)}>
 														<PlusIcon className={styles.addValueIcon} size={14} weight="bold" aria-hidden="true" focusable="false" />
-														Add value
+														{t("addValue")}
 													</Button>
 												</div>
 											</th>
@@ -393,7 +383,7 @@ export function LabelsPage() {
 												<tr
 													key={row.id}
 													className={[styles.labelValueRow, selected && styles.selectedLabelValueRow].filter(Boolean).join(" ")}
-													aria-label={`Open ${row.key} value ${row.value}`}
+													aria-label={t("openValue", { key: row.key, value: row.value })}
 													aria-selected={selected || undefined}
 													tabIndex={0}
 													onClick={() => selectLabel(row)}
@@ -404,8 +394,8 @@ export function LabelsPage() {
 															<strong translate="no">{row.value}</strong>
 														</div>
 													</td>
-													<td>{renderUsage(row.probeCount, row.probeNames, "success")}</td>
-													<td>{renderUsage(row.checkCount, row.checkNames, "accent")}</td>
+													<td>{renderUsage(row.probeCount, row.probeNames, "success", t("none"))}</td>
+													<td>{renderUsage(row.checkCount, row.checkNames, "accent", t("none"))}</td>
 													<td className={styles.updatedCell}>{row.updatedAt}</td>
 												</tr>
 											);
@@ -445,7 +435,7 @@ export function LabelsPage() {
 								</div>
 
 								<TextField
-									label="Key"
+									label={t("key")}
 									placeholder="region"
 									value={activeDraftKey}
 									disabled={!projectRef || saveLabelMutation.isPending}
@@ -456,7 +446,7 @@ export function LabelsPage() {
 								/>
 
 								<TextField
-									label="Value"
+									label={t("value")}
 									placeholder="tokyo"
 									value={activeDraftValue}
 									disabled={!projectRef || saveLabelMutation.isPending}
@@ -465,17 +455,17 @@ export function LabelsPage() {
 									autoFocus={!isNewLabel}
 								/>
 
-								{mutationError ? <p className={styles.errorNotice}>{requestErrorMessage(mutationError, "Label operation failed.")}</p> : null}
+								{mutationError ? <p className={styles.errorNotice}>{requestErrorMessage(mutationError, t("editor.operationFailed"))}</p> : null}
 
 								<div className={styles.popupActions}>
 									{selectedRow ? (
 										<Button type="button" variant="danger" disabled={deleteLabelMutation.isPending || saveLabelMutation.isPending} onClick={() => void deleteLabel(selectedRow)}>
-											{deleteLabelMutation.isPending ? "Deleting" : "Delete value"}
+											{deleteLabelMutation.isPending ? t("editor.deleting") : t("editor.delete")}
 										</Button>
 									) : null}
 									<div className={styles.primaryActions}>
 										<Button type="button" variant="ghost" disabled={saveLabelMutation.isPending || deleteLabelMutation.isPending} onClick={closeEditor}>
-											Cancel
+											{t("common:actions.cancel")}
 										</Button>
 										<Button type="submit" disabled={!canSave || saveLabelMutation.isPending || deleteLabelMutation.isPending}>
 											{editorSubmitLabel}

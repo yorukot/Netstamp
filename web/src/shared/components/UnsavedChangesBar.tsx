@@ -1,6 +1,7 @@
 import { classNames } from "@/shared/utils/classNames";
 import { Button } from "@netstamp/ui";
 import { useState, type AnimationEvent, type ButtonHTMLAttributes, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import styles from "./UnsavedChangesBar.module.css";
 
 interface UnsavedChangesBarProps {
@@ -22,10 +23,10 @@ type VisibilityState = "closed" | "open" | "closing";
 
 export function UnsavedChangesBar({
 	show = true,
-	message = "Careful, you have unsaved changes.",
-	resetLabel = "Reset",
-	saveLabel = "Save Changes",
-	savingLabel = "Saving",
+	message,
+	resetLabel,
+	saveLabel,
+	savingLabel,
 	saving = false,
 	disabled = false,
 	form,
@@ -34,7 +35,12 @@ export function UnsavedChangesBar({
 	onReset,
 	onSave
 }: UnsavedChangesBarProps) {
+	const { t } = useTranslation("common");
 	const [visibility, setVisibility] = useState<VisibilityState>(() => (show ? "open" : "closed"));
+	const visibleMessage = message ?? t("unsaved.message");
+	const visibleResetLabel = resetLabel ?? t("actions.reset");
+	const visibleSaveLabel = saveLabel ?? t("actions.saveChanges");
+	const visibleSavingLabel = savingLabel ?? t("actions.saving");
 	let visibleState = visibility;
 
 	if (show && visibility !== "open") {
@@ -61,13 +67,13 @@ export function UnsavedChangesBar({
 
 	return (
 		<div className={classNames(styles.bar, className)} data-state={visibleState} role="status" aria-live="polite" aria-hidden={closing || undefined} onAnimationEnd={finishExit}>
-			<strong className={styles.message}>{message}</strong>
+			<strong className={styles.message}>{visibleMessage}</strong>
 			<div className={styles.actions}>
 				<Button type="button" variant="plain" className={styles.resetButton} disabled={saving || closing} onClick={onReset}>
-					{resetLabel}
+					{visibleResetLabel}
 				</Button>
 				<Button type={saveType} form={form} disabled={disabled || saving || closing} onClick={onSave}>
-					{saving ? savingLabel : saveLabel}
+					{saving ? visibleSavingLabel : visibleSaveLabel}
 				</Button>
 			</div>
 		</div>

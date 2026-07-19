@@ -2,16 +2,15 @@
 import { unified } from "@astrojs/markdown-remark";
 import mdx from "@astrojs/mdx";
 import react from "@astrojs/react";
+import { supportedLocales } from "@netstamp/i18n";
 import { defineConfig } from "astro/config";
 import remarkDirective from "remark-directive";
 
 const site = process.env.PUBLIC_SITE_URL || "https://netstamp.dev";
 
 const calloutLabels = {
-	note: "Note",
-	tip: "Tip",
-	warning: "Warning",
-	caution: "Caution"
+	en: { note: "Note", tip: "Tip", warning: "Warning", caution: "Caution" },
+	"zh-TW": { note: "注意", tip: "提示", warning: "警告", caution: "小心" }
 };
 
 const calloutIcons = {
@@ -22,7 +21,9 @@ const calloutIcons = {
 };
 
 function remarkCallouts() {
-	return tree => {
+	return (tree, file) => {
+		const locale = String(file.path || "").includes("/zh-TW/") ? "zh-TW" : "en";
+		const localizedCalloutLabels = calloutLabels[locale];
 		function getText(node) {
 			if (!node) return "";
 			if (node.type === "text") return node.value ?? "";
@@ -50,7 +51,7 @@ function remarkCallouts() {
 						],
 						children: []
 					},
-					{ type: "text", value: calloutLabels[name] }
+					{ type: "text", value: localizedCalloutLabels[name] }
 				]
 			};
 		}
@@ -69,7 +70,7 @@ function remarkCallouts() {
 		}
 
 		function visit(node) {
-			if (node.type === "containerDirective" && Object.hasOwn(calloutLabels, node.name)) {
+			if (node.type === "containerDirective" && Object.hasOwn(localizedCalloutLabels, node.name)) {
 				Object.assign(node, createCallout(node.name, node.children));
 			}
 
@@ -152,6 +153,14 @@ function remarkCodeBlocks() {
 export default defineConfig({
 	site,
 	output: "static",
+	i18n: {
+		defaultLocale: "en",
+		locales: [...supportedLocales],
+		routing: {
+			prefixDefaultLocale: false,
+			redirectToDefaultLocale: false
+		}
+	},
 	markdown: {
 		processor: unified({ remarkPlugins: [remarkDirective, remarkCallouts, remarkCodeBlocks] })
 	},

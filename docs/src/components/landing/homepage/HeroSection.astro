@@ -1,3 +1,10 @@
+---
+import { localeFromAstro, pathForLocale, uiForLocale } from "../../../i18n/ui";
+
+const locale = localeFromAstro(Astro.currentLocale);
+const ui = uiForLocale(locale);
+---
+
 <section class="hero" aria-labelledby="homepage-title">
 	<canvas id="ns-canvas" aria-hidden="true"></canvas>
 	<canvas id="ns-cable-canvas" aria-hidden="true"></canvas>
@@ -5,13 +12,13 @@
 	<div class="vignette" aria-hidden="true"></div>
 	<div class="hero-content">
 		<h1 id="homepage-title">
-			<span class="line1">Trace every path.</span>
-			<span class="line2">Before it breaks.</span>
+			<span class="line1">{ui.home.heroLine1}</span>
+			<span class="line2">{ui.home.heroLine2}</span>
 		</h1>
-		<p class="sub">Open-source network observability from probes you control.</p>
+		<p class="sub">{ui.home.subtitle}</p>
 		<div class="cta-row">
-			<a href="/docs/guides/getting-started/" class="btn btn-primary">Get Started</a>
-			<a href="https://github.com/yorukot/netstamp" class="btn btn-outline" target="_blank" rel="noreferrer">View on GitHub</a>
+			<a href={pathForLocale("/docs/guides/getting-started/", locale)} class="btn btn-primary">{ui.home.getStarted}</a>
+			<a href="https://github.com/yorukot/netstamp" class="btn btn-outline" target="_blank" rel="noreferrer">{ui.home.viewGithub}</a>
 		</div>
 	</div>
 	<div class="hero-horizon" aria-hidden="true"></div>

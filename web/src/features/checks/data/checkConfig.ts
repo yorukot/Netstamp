@@ -1,4 +1,7 @@
+import { i18n } from "@/i18n";
 import type { ApiCheck, CreateCheckInput } from "@/shared/api/types";
+
+const checkT = i18n.getFixedT(null, "checks") as (key: string, options?: Record<string, unknown>) => string;
 
 export type PingConfigPayload = NonNullable<CreateCheckInput["pingConfig"]>;
 export type TCPConfigPayload = NonNullable<CreateCheckInput["tcpConfig"]>;
@@ -111,25 +114,25 @@ function validateIntegerField(label: string, value: string, options: { min: numb
 	const trimmed = value.trim();
 
 	if (!trimmed) {
-		return { value: Number.NaN, error: `${label} is required.` };
+		return { value: Number.NaN, error: checkT("config.required", { label }) };
 	}
 
 	if (!/^\d+$/.test(trimmed)) {
-		return { value: Number.NaN, error: `${label} must be a whole number.` };
+		return { value: Number.NaN, error: checkT("config.wholeNumber", { label }) };
 	}
 
 	const parsed = Number.parseInt(trimmed, 10);
 
 	if (!Number.isFinite(parsed)) {
-		return { value: Number.NaN, error: `${label} must be a number.` };
+		return { value: Number.NaN, error: checkT("config.number", { label }) };
 	}
 
 	if (parsed < options.min) {
-		return { value: parsed, error: `${label} must be at least ${options.min}.` };
+		return { value: parsed, error: checkT("config.minimum", { label, min: options.min }) };
 	}
 
 	if (typeof options.max === "number" && parsed > options.max) {
-		return { value: parsed, error: `${label} must be at most ${options.max}.` };
+		return { value: parsed, error: checkT("config.maximum", { label, max: options.max }) };
 	}
 
 	return { value: parsed, error: "" };
@@ -137,26 +140,26 @@ function validateIntegerField(label: string, value: string, options: { min: numb
 
 export function validatePingConfig(state: PingConfigFormState): PingConfigValidation {
 	return {
-		packetCount: validateIntegerField("Packet count", state.packetCount, { min: 1, max: 10000 }),
-		packetSizeBytes: validateIntegerField("Packet size bytes", state.packetSizeBytes, { min: 1, max: 65507 }),
-		timeoutMs: validateIntegerField("Timeout ms", state.timeoutMs, { min: 1, max: 60000 })
+		packetCount: validateIntegerField(checkT("config.packetCount"), state.packetCount, { min: 1, max: 10000 }),
+		packetSizeBytes: validateIntegerField(checkT("config.packetSizeBytes"), state.packetSizeBytes, { min: 1, max: 65507 }),
+		timeoutMs: validateIntegerField(checkT("config.timeoutMs"), state.timeoutMs, { min: 1, max: 60000 })
 	};
 }
 
 export function validateTCPConfig(state: TCPConfigFormState): TCPConfigValidation {
 	return {
-		port: validateIntegerField("Port", state.port, { min: 1, max: 65535 }),
-		timeoutMs: validateIntegerField("Timeout ms", state.timeoutMs, { min: 1, max: 60000 })
+		port: validateIntegerField(checkT("config.port"), state.port, { min: 1, max: 65535 }),
+		timeoutMs: validateIntegerField(checkT("config.timeoutMs"), state.timeoutMs, { min: 1, max: 60000 })
 	};
 }
 
 export function validateTracerouteConfig(state: TracerouteConfigFormState): TracerouteConfigValidation {
 	return {
-		maxHops: validateIntegerField("Max hops", state.maxHops, { min: 1, max: 64 }),
-		timeoutMs: validateIntegerField("Timeout ms", state.timeoutMs, { min: 1, max: 60000 }),
-		queriesPerHop: validateIntegerField("Queries per hop", state.queriesPerHop, { min: 1, max: 10 }),
-		packetSizeBytes: validateIntegerField("Packet size bytes", state.packetSizeBytes, { min: 1, max: 65507 }),
-		port: validateIntegerField("Port", state.port, { min: 1, max: 65535 })
+		maxHops: validateIntegerField(checkT("config.maxHops"), state.maxHops, { min: 1, max: 64 }),
+		timeoutMs: validateIntegerField(checkT("config.timeoutMs"), state.timeoutMs, { min: 1, max: 60000 }),
+		queriesPerHop: validateIntegerField(checkT("config.queriesPerHop"), state.queriesPerHop, { min: 1, max: 10 }),
+		packetSizeBytes: validateIntegerField(checkT("config.packetSizeBytes"), state.packetSizeBytes, { min: 1, max: 65507 }),
+		port: validateIntegerField(checkT("config.port"), state.port, { min: 1, max: 65535 })
 	};
 }
 
@@ -220,7 +223,7 @@ export function httpConfigFormStateFromApi(check: Pick<ApiCheck, "httpConfig"> |
 }
 
 export function validateHTTPConfig(state: HTTPConfigFormState): HTTPConfigValidation {
-	const timeout = validateIntegerField("Timeout ms", state.timeoutMs, { min: 1, max: 60000 });
+	const timeout = validateIntegerField(checkT("config.timeoutMs"), state.timeoutMs, { min: 1, max: 60000 });
 	const codes: number[] = [];
 	let statusError = "";
 	for (const value of state.statusCodes
@@ -228,13 +231,13 @@ export function validateHTTPConfig(state: HTTPConfigFormState): HTTPConfigValida
 		.map(value => value.trim())
 		.filter(Boolean)) {
 		if (!/^\d{3}$/.test(value) || Number(value) < 100 || Number(value) > 599) {
-			statusError = "Status codes must be between 100 and 599.";
+			statusError = checkT("config.statusRange");
 			break;
 		}
 		codes.push(Number(value));
 	}
-	if (!statusError && state.statusClasses.length === 0 && codes.length === 0) statusError = "Select at least one expected status.";
-	const bodyError = (state.method === "GET" || state.method === "HEAD") && state.body ? `${state.method} requests cannot include a body.` : "";
+	if (!statusError && state.statusClasses.length === 0 && codes.length === 0) statusError = checkT("config.expectedStatusRequired");
+	const bodyError = (state.method === "GET" || state.method === "HEAD") && state.body ? checkT("config.bodyNotAllowed", { method: state.method }) : "";
 	return { timeout, codes: Array.from(new Set(codes)).sort((a, b) => a - b), statusError, bodyError, error: timeout.error || statusError || bodyError };
 }
 
@@ -328,10 +331,10 @@ export function checkConfigSummaryFields(check: ApiCheck): Array<[label: string,
 		const config = tracerouteConfigFormStateFromApi(check);
 
 		return [
-			["Protocol", config.protocol],
-			["Max hops", config.maxHops],
-			["Queries/hop", config.queriesPerHop],
-			["Timeout", `${config.timeoutMs}ms`]
+			[checkT("summary.protocol"), config.protocol],
+			[checkT("summary.maxHops"), config.maxHops],
+			[checkT("summary.queriesPerHop"), config.queriesPerHop],
+			[checkT("summary.timeout"), `${config.timeoutMs}ms`]
 		];
 	}
 
@@ -339,25 +342,25 @@ export function checkConfigSummaryFields(check: ApiCheck): Array<[label: string,
 		const config = tcpConfigFormStateFromApi(check);
 
 		return [
-			["Port", config.port],
-			["Timeout", `${config.timeoutMs}ms`],
-			["IP family", config.ipFamily || "Auto"]
+			[checkT("summary.port"), config.port],
+			[checkT("summary.timeout"), `${config.timeoutMs}ms`],
+			[checkT("summary.ipFamily"), config.ipFamily || checkT("config.auto")]
 		];
 	}
 	if (check.type === "http") {
 		const config = httpConfigFormStateFromApi(check);
 		return [
-			["Method", config.method],
-			["Expected", [...config.statusClasses, config.statusCodes].filter(Boolean).join(", ")],
-			["Timeout", `${config.timeoutMs}ms`]
+			[checkT("summary.method"), config.method],
+			[checkT("summary.expected"), [...config.statusClasses, config.statusCodes].filter(Boolean).join(", ")],
+			[checkT("summary.timeout"), `${config.timeoutMs}ms`]
 		];
 	}
 
 	const config = pingConfigFormStateFromApi(check);
 
 	return [
-		["Packets", config.packetCount],
-		["Packet size", `${config.packetSizeBytes} bytes`],
-		["Timeout", `${config.timeoutMs}ms`]
+		[checkT("summary.packets"), config.packetCount],
+		[checkT("summary.packetSize"), checkT("summary.bytes", { count: Number(config.packetSizeBytes) })],
+		[checkT("summary.timeout"), `${config.timeoutMs}ms`]
 	];
 }

@@ -152,6 +152,22 @@ pnpm generate:openapi
 
 Commit the generated OpenAPI documents, the backend embedded copy, and the web API types with the source contract change. Do not edit generated artifacts by hand.
 
+## Localization
+
+English UI resources and English MDX are the source of truth. Traditional Chinese resources are synchronized through Crowdin. Read [`docs/localization.md`](./docs/localization.md) before changing user-visible text, locale routing, documentation content, or translation workflow.
+
+Translation-only contributors can work directly in the [Netstamp Crowdin project](https://crowdin.com/project/netstamp) without repository write access or a Crowdin API token. The public [Translating Netstamp guide](./docs/src/content/docs/en/guides/translating.mdx) explains how to select strings, preserve code and placeholders, use Taiwanese terminology, handle QA warnings, and request context. Do not open a pull request that changes only Crowdin-managed output unless the same correction has already been made in Crowdin.
+
+Run the localization checks for every user-visible text change:
+
+```bash
+pnpm check:i18n
+pnpm test:i18n
+pnpm test:web
+```
+
+Never commit Crowdin tokens or populated `.env` files. Do not manually change Crowdin-managed `zh-TW` output without applying the same correction in Crowdin, or the next translation download may overwrite it.
+
 ## Validation
 
 Run checks that match the affected area. The canonical repository-level commands are:

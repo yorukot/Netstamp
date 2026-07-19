@@ -1,0 +1,30 @@
+---
+title: 架構
+description: 公開網站、服務應用程式、API 與共用 UI 套件，依部署目標與職責彼此分離。
+icon: route
+head:
+  - tag: title
+    content: 架構 | Netstamp 說明文件
+---
+
+## 各個介面
+
+`docs/` 是公開網站與說明文件介面。它使用 Astro，並為 `netstamp.dev` 等主要公開 host 輸出靜態資產。Landing page 只有在需要重用互動式視覺元件時才會使用 React island。
+
+`web/` 是應用程式服務本身。它在 `app.netstamp.dev` 等 app host 上使用 React Router，並將產品驗證與公開網站分開。
+
+`packages/ui/` 包含可重用的 React primitive 與共用 design token。`GlobalFooter` 等跨介面 UI 應放在此處。
+
+## Request 流程
+
+後端透過 chi 在 `/api/{version}` 下提供 HTTP route。公開 API 合約以 TypeSpec 編寫、輸出為 OpenAPI，並由後端提供給 Docs API explorer。
+
+```text
+Browser -> app host -> web/ React app -> /api/v1/* -> chi -> application service -> PostgreSQL/TimescaleDB
+```
+
+:::warning 不要從 `docs/` import `web/src`。共用 React 程式碼應移到 `packages/ui`，Docs 專用 Astro component 則應留在 `docs/src`。 :::
+
+## 路由
+
+公開 host 透過 GitHub Pages 提供的 Astro 靜態 build，負責 `/`、`/docs/*`、`/openapi/` 與 `/storybook/`。App host 負責 `/login`、`/register`、`/dashboard`、`/projects/*`、`/probes`、`/settings` 等 React 應用程式 route；該 host 上的 `/api/*` 會 proxy 到 Go controller。

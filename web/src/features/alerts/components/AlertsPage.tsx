@@ -26,6 +26,7 @@ import { TelegramLogoIcon } from "@phosphor-icons/react/dist/csr/TelegramLogo";
 import { WebhooksLogoIcon } from "@phosphor-icons/react/dist/csr/WebhooksLogo";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState, type FormEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
 	alertTabs,
@@ -51,6 +52,7 @@ import {
 	incidentTargetTitle,
 	incidentTone,
 	metricForCheckType,
+	metricLabel,
 	metricOptions,
 	metricOptionsForForm,
 	notificationDestination,
@@ -120,6 +122,7 @@ function sameValue(left: unknown, right: unknown) {
 }
 
 export function AlertsPage() {
+	const { t } = useTranslation("alerts");
 	const confirm = useConfirm();
 	const navigate = useNavigate();
 	const { incidentId = "" } = useParams();
@@ -208,50 +211,59 @@ export function AlertsPage() {
 		[notificationStatus, notificationType, notifications]
 	);
 	const enabledRules = rules.filter(rule => rule.enabled).length;
+	const localizedTabs = alertTabs.map(tab => ({ ...tab, label: t(`tabs.${tab.value}`) }));
+	const localizedIncidentStatusOptions = incidentStatusOptions.map(option => ({ ...option, label: t(`filters.${option.value}`) }));
+	const localizedRuleStatusOptions = ruleStatusOptions.map(option => ({ ...option, label: t(option.value === "all" ? "filters.anyStatus" : `filters.${option.value}`) }));
+	const localizedRuleCheckTypeOptions = ruleCheckTypeOptions.map(option => ({ ...option, label: option.value === "all" ? t("filters.anyType") : t(`rules.checkTypes.${option.value}`) }));
+	const localizedNotificationStatusOptions = notificationStatusOptions.map(option => ({ ...option, label: t(option.value === "all" ? "filters.anyStatus" : `filters.${option.value}`) }));
+	const localizedNotificationTypeOptions = notificationFilterTypeOptions.map(option => ({
+		...option,
+		label: option.value === "all" ? t("filters.anyType") : t(`notifications.types.${option.value}`)
+	}));
 	const ruleColumns: DataColumn<ApiAlertRule>[] = [
 		{
 			key: "name",
-			label: "Rule",
+			label: t("rules.rule"),
 			render: rule => (
 				<div className={styles.primaryCell}>
 					<strong>{rule.name}</strong>
-					<span>{rule.description || "No description"}</span>
+					<span>{rule.description || t("rules.noDescription")}</span>
 				</div>
 			)
 		},
 		{
 			key: "status",
-			label: "Status",
-			render: rule => <Badge tone={rule.enabled ? "success" : "muted"}>{rule.enabled ? "enabled" : "disabled"}</Badge>
+			label: t("common.status"),
+			render: rule => <Badge tone={rule.enabled ? "success" : "muted"}>{rule.enabled ? t("common.enabled") : t("common.disabled")}</Badge>
 		},
 		{
 			key: "scope",
-			label: "Scope",
+			label: t("rules.scope"),
 			render: rule => <span className={styles.monoCell}>{formatRuleScope(rule)}</span>
 		},
 		{
 			key: "condition",
-			label: "Condition",
+			label: t("rules.condition"),
 			render: rule => <span className={styles.monoCell}>{formatAlertCondition(rule.condition)}</span>
 		},
 		{
 			key: "triggerAfter",
-			label: "Trigger after",
+			label: t("rules.triggerAfter"),
 			render: rule => formatDuration(rule.triggerAfterSeconds)
 		},
 		{
 			key: "notify",
-			label: "Notify",
+			label: t("rules.notify"),
 			render: rule => <span className={styles.urlCell}>{notificationLabel(rule, notifications)}</span>
 		},
 		{
 			key: "cooldown",
-			label: "Cooldown",
+			label: t("rules.cooldown"),
 			render: rule => formatDuration(rule.cooldownSeconds)
 		},
 		{
 			key: "updatedAt",
-			label: "Updated",
+			label: t("rules.updated"),
 			render: rule => formatDateTime(rule.updatedAt)
 		},
 		{
@@ -267,7 +279,7 @@ export function AlertsPage() {
 						void deleteRule(rule);
 					}}
 				>
-					Delete
+					{t("common.delete")}
 				</Button>
 			)
 		}
@@ -275,12 +287,12 @@ export function AlertsPage() {
 	const incidentColumns: DataColumn<ApiAlertIncident>[] = [
 		{
 			key: "severity",
-			label: "Severity",
-			render: incident => <Badge tone={severityTone(incident.severity)}>{incident.severity}</Badge>
+			label: t("incidents.severity"),
+			render: incident => <Badge tone={severityTone(incident.severity)}>{t(`rules.severityOptions.${incident.severity as AlertSeverity}`)}</Badge>
 		},
 		{
 			key: "target",
-			label: "Target",
+			label: t("incidents.target"),
 			render: incident => (
 				<div className={styles.primaryCell}>
 					<strong title={incidentTargetTitle(incident)}>{incidentCheckName(incident)}</strong>
@@ -292,7 +304,7 @@ export function AlertsPage() {
 		},
 		{
 			key: "why",
-			label: "Why",
+			label: t("incidents.why"),
 			render: incident => (
 				<div className={styles.primaryCell}>
 					<strong>{formatIncidentReason(incident)}</strong>
@@ -302,29 +314,29 @@ export function AlertsPage() {
 		},
 		{
 			key: "value",
-			label: "Value",
+			label: t("incidents.value"),
 			render: incident => (typeof incident.lastValue === "number" ? formatThreshold(incident.lastSummary.metric, Number(incident.lastValue.toFixed(2))) : "-")
 		},
 		{
 			key: "openedAt",
-			label: "Opened",
+			label: t("incidents.opened"),
 			render: incident => formatDateTime(incident.openedAt)
 		},
 		{
 			key: "lastEvaluatedAt",
-			label: "Last checked",
+			label: t("incidents.lastChecked"),
 			render: incident => formatDateTime(incident.lastEvaluatedAt)
 		},
 		{
 			key: "notifications",
-			label: "Notifications",
-			render: incident => (incident.suppressedNotificationCount > 0 ? `${incident.suppressedNotificationCount} suppressed` : formatDateTime(incident.lastNotificationSentAt))
+			label: t("incidents.notifications"),
+			render: incident => (incident.suppressedNotificationCount > 0 ? t("incidents.suppressed", { count: incident.suppressedNotificationCount }) : formatDateTime(incident.lastNotificationSentAt))
 		}
 	];
 	const notificationColumns: DataColumn<ApiNotification>[] = [
 		{
 			key: "name",
-			label: "Notification",
+			label: t("notifications.notification"),
 			render: notification => (
 				<div className={styles.primaryCell}>
 					<strong>{notification.name}</strong>
@@ -334,12 +346,12 @@ export function AlertsPage() {
 		},
 		{
 			key: "status",
-			label: "Status",
-			render: notification => <Badge tone={notification.enabled ? "success" : "muted"}>{notification.enabled ? "enabled" : "disabled"}</Badge>
+			label: t("common.status"),
+			render: notification => <Badge tone={notification.enabled ? "success" : "muted"}>{notification.enabled ? t("common.enabled") : t("common.disabled")}</Badge>
 		},
 		{
 			key: "url",
-			label: "Destination",
+			label: t("notifications.destination"),
 			render: notification => (
 				<span className={styles.urlCell} title={notificationDestination(notification)}>
 					{notificationDestination(notification)}
@@ -348,7 +360,7 @@ export function AlertsPage() {
 		},
 		{
 			key: "usedBy",
-			label: "Used by rules",
+			label: t("notifications.usedBy"),
 			render: notification => rulesUsingNotification(rules, notification.id).length
 		},
 		{
@@ -365,7 +377,7 @@ export function AlertsPage() {
 							void testNotification(notification);
 						}}
 					>
-						Test
+						{t("common.test")}
 					</Button>
 					<Button
 						variant="danger"
@@ -376,7 +388,7 @@ export function AlertsPage() {
 							void deleteNotification(notification);
 						}}
 					>
-						Delete
+						{t("common.delete")}
 					</Button>
 				</div>
 			)
@@ -422,9 +434,9 @@ export function AlertsPage() {
 
 	async function deleteRule(rule: ApiAlertRule) {
 		const accepted = await confirm({
-			title: "Delete alert rule?",
-			message: `This removes "${rule.name}". Existing incidents stay in history, but this rule will stop evaluating.`,
-			confirmLabel: "Delete rule",
+			title: t("rules.deleteQuestion"),
+			message: t("rules.deleteMessage", { name: rule.name }),
+			confirmLabel: t("rules.delete"),
 			tone: "danger"
 		});
 
@@ -434,7 +446,7 @@ export function AlertsPage() {
 
 		try {
 			await deleteRuleMutation.mutateAsync(rule.id);
-			pushToast({ title: "Rule deleted", message: rule.name, tone: "success" });
+			pushToast({ title: t("rules.deleted"), message: rule.name, tone: "success" });
 		} catch (error) {
 			pushErrorToast(requestErrorMessage(error));
 		}
@@ -443,11 +455,9 @@ export function AlertsPage() {
 	async function deleteNotification(notification: ApiNotification) {
 		const usedBy = rulesUsingNotification(rules, notification.id).length;
 		const accepted = await confirm({
-			title: "Delete notification?",
-			message: usedBy
-				? `"${notification.name}" is used by ${usedBy} rule${usedBy === 1 ? "" : "s"}. Remove it only after moving those rules to another notification.`
-				: `This removes "${notification.name}".`,
-			confirmLabel: "Delete notification",
+			title: t("notifications.deleteQuestion"),
+			message: usedBy ? t("notifications.usedMessage", { name: notification.name, count: usedBy }) : t("notifications.deleteMessage", { name: notification.name }),
+			confirmLabel: t("notifications.delete"),
 			tone: "danger"
 		});
 
@@ -457,7 +467,7 @@ export function AlertsPage() {
 
 		try {
 			await deleteNotificationMutation.mutateAsync(notification.id);
-			pushToast({ title: "Notification deleted", message: notification.name, tone: "success" });
+			pushToast({ title: t("notifications.deleted"), message: notification.name, tone: "success" });
 		} catch (error) {
 			pushErrorToast(requestErrorMessage(error));
 		}
@@ -467,10 +477,10 @@ export function AlertsPage() {
 		try {
 			const response = await testNotificationMutation.mutateAsync(notification.id);
 			if (response.result.delivered) {
-				pushToast({ title: "Test delivered", message: notification.name, tone: "success" });
+				pushToast({ title: t("notifications.testDelivered"), message: notification.name, tone: "success" });
 				return;
 			}
-			pushToast({ title: "Test failed", message: response.result.message || response.result.code || notification.name, tone: "critical" });
+			pushToast({ title: t("notifications.testFailed"), message: response.result.message || response.result.code || notification.name, tone: "critical" });
 		} catch (error) {
 			pushErrorToast(requestErrorMessage(error));
 		}
@@ -478,28 +488,33 @@ export function AlertsPage() {
 
 	return (
 		<PageStack>
-			<ScreenHeader title="Alerts" />
-			<section className={styles.summaryGrid} aria-label="Alert summary">
+			<ScreenHeader title={t("title")} />
+			<section className={styles.summaryGrid} aria-label={t("summary.aria")}>
 				<SummaryCard
-					label="Open incidents"
+					label={t("summary.openIncidents")}
 					value={openIncidents.length}
 					tone={openIncidents.length ? "critical" : "success"}
-					detail={openIncidentsQuery.isLoading ? "Loading" : openIncidents.length ? "Needs attention" : "No current incidents"}
+					detail={openIncidentsQuery.isLoading ? t("summary.loading") : openIncidents.length ? t("summary.needsAttention") : t("summary.noIncidents")}
 				/>
-				<SummaryCard label="Enabled rules" value={enabledRules} tone={enabledRules ? "success" : "muted"} detail={`${rules.length} total rules`} />
+				<SummaryCard label={t("summary.enabledRules")} value={enabledRules} tone={enabledRules ? "success" : "muted"} detail={t("summary.totalRules", { count: rules.length })} />
 				<SummaryCard
-					label="Notifications"
+					label={t("summary.notifications")}
 					value={notifications.length}
 					tone={notifications.length ? "accent" : "muted"}
-					detail={notifications.length ? "Ready to notify" : "No notification configured"}
+					detail={notifications.length ? t("summary.ready") : t("summary.none")}
 				/>
 			</section>
-			<Tabs tabs={alertTabs} value={visibleTab} ariaLabel="Alert sections" onValueChange={value => changeAlertTab(value as AlertTab)} />
+			<Tabs tabs={localizedTabs} value={visibleTab} ariaLabel={t("sectionsAria")} onValueChange={value => changeAlertTab(value as AlertTab)} />
 			{visibleTab === "incidents" ? (
 				<Panel className={styles.tablePanel} padded={false}>
 					<div className={styles.tableToolbar}>
 						<div className={styles.singlePanelAction}>
-							<SelectField label="Status" value={incidentStatus} options={incidentStatusOptions} onChange={event => updateAlertSearchParam("incidentStatus", event.currentTarget.value, "open")} />
+							<SelectField
+								label={t("filters.status")}
+								value={incidentStatus}
+								options={localizedIncidentStatusOptions}
+								onChange={event => updateAlertSearchParam("incidentStatus", event.currentTarget.value, "open")}
+							/>
 						</div>
 					</div>
 					<DataTable
@@ -509,10 +524,10 @@ export function AlertsPage() {
 						density="compact"
 						minWidth="58rem"
 						getRowKey={incident => incident.id}
-						getRowAriaLabel={incident => `Open incident ${shortID(incident.id)}`}
+						getRowAriaLabel={incident => t("incidents.openAria", { id: shortID(incident.id) })}
 						onRowClick={selectIncident}
 						selectedKey={incidentId || undefined}
-						emptyLabel={incidentsQuery.isLoading ? tableSpinner("Loading incidents") : incidentStatus === "open" ? "No open incidents" : "No incidents match this view"}
+						emptyLabel={incidentsQuery.isLoading ? tableSpinner(t("incidents.loading")) : incidentStatus === "open" ? t("incidents.noOpen") : t("incidents.noMatch")}
 					/>
 				</Panel>
 			) : null}
@@ -520,12 +535,27 @@ export function AlertsPage() {
 				<Panel className={styles.tablePanel} padded={false}>
 					<div className={styles.tableToolbar}>
 						<div className={styles.panelActions}>
-							<TextField label="Search" value={ruleSearch} onChange={event => updateAlertSearchParam("ruleSearch", event.currentTarget.value, "")} placeholder="loss, RTT, notification" />
-							<SelectField label="Status" value={ruleStatus} options={ruleStatusOptions} onChange={event => updateAlertSearchParam("ruleStatus", event.currentTarget.value, "all")} />
-							<SelectField label="Type" value={ruleCheckType} options={ruleCheckTypeOptions} onChange={event => updateAlertSearchParam("ruleType", event.currentTarget.value, "all")} />
+							<TextField
+								label={t("filters.search")}
+								value={ruleSearch}
+								onChange={event => updateAlertSearchParam("ruleSearch", event.currentTarget.value, "")}
+								placeholder={t("filters.searchPlaceholder")}
+							/>
+							<SelectField
+								label={t("filters.status")}
+								value={ruleStatus}
+								options={localizedRuleStatusOptions}
+								onChange={event => updateAlertSearchParam("ruleStatus", event.currentTarget.value, "all")}
+							/>
+							<SelectField
+								label={t("filters.type")}
+								value={ruleCheckType}
+								options={localizedRuleCheckTypeOptions}
+								onChange={event => updateAlertSearchParam("ruleType", event.currentTarget.value, "all")}
+							/>
 						</div>
 						<Button type="button" onClick={() => setRuleEditor({ mode: "create" })}>
-							Create rule
+							{t("rules.create")}
 						</Button>
 					</div>
 					<DataTable
@@ -535,20 +565,20 @@ export function AlertsPage() {
 						density="compact"
 						minWidth="72rem"
 						getRowKey={rule => rule.id}
-						getRowAriaLabel={rule => `Edit alert rule ${rule.name}`}
+						getRowAriaLabel={rule => t("rules.editAria", { name: rule.name })}
 						onRowClick={rule => setRuleEditor({ mode: "edit", rule })}
 						selectedKey={ruleEditor?.rule?.id}
 						emptyLabel={
 							rulesQuery.isLoading ? (
-								tableSpinner("Loading alert rules")
+								tableSpinner(t("rules.loading"))
 							) : rules.length ? (
-								"No alert rules match this view"
+								t("rules.noMatch")
 							) : (
 								<EmptyState
-									title="No alert rules yet"
+									title={t("rules.empty")}
 									action={
 										<Button type="button" size="sm" variant="secondary" onClick={() => setRuleEditor({ mode: "create" })}>
-											Create rule
+											{t("rules.create")}
 										</Button>
 									}
 								/>
@@ -562,20 +592,20 @@ export function AlertsPage() {
 					<div className={styles.tableToolbar}>
 						<div className={styles.notificationPanelActions}>
 							<SelectField
-								label="Status"
+								label={t("filters.status")}
 								value={notificationStatus}
-								options={notificationStatusOptions}
+								options={localizedNotificationStatusOptions}
 								onChange={event => updateAlertSearchParam("notificationStatus", event.currentTarget.value, "all")}
 							/>
 							<SelectField
-								label="Type"
+								label={t("filters.type")}
 								value={notificationType}
-								options={notificationFilterTypeOptions}
+								options={localizedNotificationTypeOptions}
 								onChange={event => updateAlertSearchParam("notificationType", event.currentTarget.value, "all")}
 							/>
 						</div>
 						<Button type="button" onClick={() => setNotificationEditor({ mode: "create" })}>
-							Add notification
+							{t("notifications.add")}
 						</Button>
 					</div>
 					<DataTable
@@ -585,20 +615,20 @@ export function AlertsPage() {
 						density="compact"
 						minWidth="52rem"
 						getRowKey={notification => notification.id}
-						getRowAriaLabel={notification => `Edit notification ${notification.name}`}
+						getRowAriaLabel={notification => t("notifications.editAria", { name: notification.name })}
 						onRowClick={notification => setNotificationEditor({ mode: "edit", notification })}
 						selectedKey={notificationEditor?.notification?.id}
 						emptyLabel={
 							notificationsQuery.isLoading ? (
-								tableSpinner("Loading notifications")
+								tableSpinner(t("notifications.loading"))
 							) : notifications.length ? (
-								"No notifications match this view"
+								t("notifications.noMatch")
 							) : (
 								<EmptyState
-									title="No notifications yet"
+									title={t("notifications.empty")}
 									action={
 										<Button type="button" size="sm" variant="secondary" onClick={() => setNotificationEditor({ mode: "create" })}>
-											Add notification
+											{t("notifications.add")}
 										</Button>
 									}
 								/>
@@ -626,10 +656,10 @@ export function AlertsPage() {
 							const body = rulePayload(form);
 							if (ruleEditor.mode === "edit" && ruleEditor.rule) {
 								await updateRuleMutation.mutateAsync({ ruleId: ruleEditor.rule.id, body });
-								pushToast({ title: "Rule updated", message: body.name, tone: "success" });
+								pushToast({ title: t("rules.updatedToast"), message: body.name, tone: "success" });
 							} else {
 								await createRuleMutation.mutateAsync(body);
-								pushToast({ title: "Rule created", message: body.name, tone: "success" });
+								pushToast({ title: t("rules.createdToast"), message: body.name, tone: "success" });
 							}
 							setRuleEditor(null);
 						} catch (error) {
@@ -648,11 +678,11 @@ export function AlertsPage() {
 							if (notificationEditor.mode === "edit" && notificationEditor.notification) {
 								const body = notificationPayload({ ...form, type: notificationEditor.notification.type });
 								await updateNotificationMutation.mutateAsync({ notificationId: notificationEditor.notification.id, body });
-								pushToast({ title: "Notification updated", message: body.name, tone: "success" });
+								pushToast({ title: t("notifications.updatedToast"), message: body.name, tone: "success" });
 							} else {
 								const body = notificationPayload(form);
 								await createNotificationMutation.mutateAsync(body);
-								pushToast({ title: "Notification created", message: body.name, tone: "success" });
+								pushToast({ title: t("notifications.createdToast"), message: body.name, tone: "success" });
 							}
 							setNotificationEditor(null);
 						} catch (error) {
@@ -677,45 +707,46 @@ function SummaryCard({ label, value, tone, detail }: { label: string; value: num
 }
 
 function IncidentDetailDrawer({ incident, isLoading, error, onClose }: { incident: ApiAlertIncident | null; isLoading: boolean; error: unknown; onClose: () => void }) {
+	const { t } = useTranslation("alerts");
 	return (
-		<EditorDrawer open title="Incident detail" ariaLabel="Incident detail" onClose={onClose}>
+		<EditorDrawer open title={t("incidents.detail")} ariaLabel={t("incidents.detail")} onClose={onClose}>
 			{incident ? (
 				<div className={styles.detailStack}>
 					<div className={styles.detailHeader}>
-						<Badge tone={incidentTone(incident.status)}>{incident.status}</Badge>
-						<Badge tone={severityTone(incident.severity)}>{incident.severity}</Badge>
+						<Badge tone={incidentTone(incident.status)}>{t(`filters.${incident.status as "open" | "acknowledged" | "resolved"}`)}</Badge>
+						<Badge tone={severityTone(incident.severity)}>{t(`rules.severityOptions.${incident.severity as AlertSeverity}`)}</Badge>
 					</div>
-					<Panel tone="deep" title="What happened">
+					<Panel tone="deep" title={t("incidents.whatHappened")}>
 						<p className={styles.detailLead}>{formatIncidentReason(incident)}</p>
 						<div className={styles.keyValueGrid}>
-							<KeyValueRow label="Probe" value={formatIncidentProbe(incident)} />
-							<KeyValueRow label="Check" value={formatIncidentCheck(incident)} />
-							<KeyValueRow label="Target" value={incidentCheckTarget(incident)} />
-							<KeyValueRow label="State" value={incident.lastEvaluationState} />
-							<KeyValueRow label="Value" value={typeof incident.lastValue === "number" ? formatThreshold(incident.lastSummary.metric, Number(incident.lastValue.toFixed(2))) : "-"} />
-							<KeyValueRow label="Rule" value={shortID(incident.ruleId)} />
+							<KeyValueRow label={t("incidents.probe")} value={formatIncidentProbe(incident)} />
+							<KeyValueRow label={t("incidents.check")} value={formatIncidentCheck(incident)} />
+							<KeyValueRow label={t("incidents.target")} value={incidentCheckTarget(incident)} />
+							<KeyValueRow label={t("incidents.state")} value={incident.lastEvaluationState} />
+							<KeyValueRow label={t("incidents.value")} value={typeof incident.lastValue === "number" ? formatThreshold(incident.lastSummary.metric, Number(incident.lastValue.toFixed(2))) : "-"} />
+							<KeyValueRow label={t("incidents.rule")} value={shortID(incident.ruleId)} />
 						</div>
 					</Panel>
-					<Panel tone="deep" title="Timeline">
+					<Panel tone="deep" title={t("incidents.timeline")}>
 						<div className={styles.keyValueGrid}>
-							<KeyValueRow label="Opened" value={formatDateTime(incident.openedAt)} />
-							<KeyValueRow label="Resolved" value={formatDateTime(incident.resolvedAt)} />
-							<KeyValueRow label="Last checked" value={formatDateTime(incident.lastEvaluatedAt)} />
-							<KeyValueRow label="Last triggered" value={formatDateTime(incident.lastTriggeredAt)} />
+							<KeyValueRow label={t("incidents.opened")} value={formatDateTime(incident.openedAt)} />
+							<KeyValueRow label={t("incidents.resolved")} value={formatDateTime(incident.resolvedAt)} />
+							<KeyValueRow label={t("incidents.lastChecked")} value={formatDateTime(incident.lastEvaluatedAt)} />
+							<KeyValueRow label={t("incidents.lastTriggered")} value={formatDateTime(incident.lastTriggeredAt)} />
 						</div>
 					</Panel>
-					<Panel tone="deep" title="Notifications">
+					<Panel tone="deep" title={t("incidents.notifications")}>
 						<div className={styles.keyValueGrid}>
-							<KeyValueRow label="Last sent" value={formatDateTime(incident.lastNotificationSentAt)} />
-							<KeyValueRow label="Next eligible" value={formatDateTime(incident.nextNotificationEligibleAt)} />
-							<KeyValueRow label="Suppressed" value={String(incident.suppressedNotificationCount)} />
+							<KeyValueRow label={t("incidents.lastSent")} value={formatDateTime(incident.lastNotificationSentAt)} />
+							<KeyValueRow label={t("incidents.nextEligible")} value={formatDateTime(incident.nextNotificationEligibleAt)} />
+							<KeyValueRow label={t("incidents.suppressedLabel")} value={String(incident.suppressedNotificationCount)} />
 						</div>
 					</Panel>
 				</div>
 			) : isLoading ? (
-				<Spinner label="Loading incident" layout="compact" size="lg" />
+				<Spinner label={t("incidents.loadingDetail")} layout="compact" size="lg" />
 			) : (
-				<BodyCopy>{error ? requestErrorMessage(error) : "Incident unavailable."}</BodyCopy>
+				<BodyCopy>{error ? requestErrorMessage(error) : t("incidents.unavailable")}</BodyCopy>
 			)}
 		</EditorDrawer>
 	);
@@ -734,10 +765,15 @@ function RuleEditorDrawer({
 	onClose: () => void;
 	onSubmit: (form: RuleFormState) => Promise<void>;
 }) {
+	const { t } = useTranslation("alerts");
 	const initialForm = useMemo(() => (editor.mode === "edit" && editor.rule ? ruleFormFromRule(editor.rule) : defaultRuleForm()), [editor.mode, editor.rule]);
 	const [form, setForm] = useState<RuleFormState>(() => initialForm);
-	const metricSelectOptions = useMemo(() => metricOptionsForForm(form), [form]);
-	const title = editor.mode === "edit" ? "Edit rule" : "Create rule";
+	const metricSelectOptions = metricOptionsForForm(form).map(option => ({ ...option, label: metricLabel(option.value) }));
+	const title = editor.mode === "edit" ? t("rules.edit") : t("rules.create");
+	const localizedEnabledOptions = enabledOptions.map(option => ({ ...option, label: t(option.value === "true" ? "common.enabled" : "common.disabled") }));
+	const localizedCheckTypeOptions = checkTypeOptions.map(option => ({ ...option, label: t(`rules.checkTypes.${option.value}`) }));
+	const localizedOperatorOptions = operatorOptions.map(option => ({ ...option, label: t(`rules.operators.${option.value}`) }));
+	const localizedSeverityOptions = severityOptions.map(option => ({ ...option, label: t(`rules.severityOptions.${option.value}`) }));
 	const checkTypeSupported = supportsAlertMetrics(form.checkType);
 	const numberValidation = validateRuleNumbers(form);
 	const numberError = ruleNumberError(numberValidation);
@@ -769,28 +805,33 @@ function RuleEditorDrawer({
 	return (
 		<EditorDrawer open title={title} ariaLabel={title} onClose={onClose}>
 			<form className={styles.drawerForm} onSubmit={handleSubmit}>
-				<Panel tone="deep" title="Target">
+				<Panel tone="deep" title={t("rules.target")}>
 					<div className={styles.formGrid}>
-						<TextField label="Name" value={form.name} onChange={event => updateForm({ name: event.currentTarget.value })} maxLength={128} required />
-						<TextAreaField label="Description" value={form.description} onChange={event => updateForm({ description: event.currentTarget.value })} rows={3} />
+						<TextField label={t("common.name")} value={form.name} onChange={event => updateForm({ name: event.currentTarget.value })} maxLength={128} required />
+						<TextAreaField label={t("common.description")} value={form.description} onChange={event => updateForm({ description: event.currentTarget.value })} rows={3} />
 						<div className={styles.twoColumns}>
-							<SelectField label="Status" value={form.enabled} options={enabledOptions} onChange={event => updateForm({ enabled: event.currentTarget.value })} />
-							<SelectField label="Check type" value={form.checkType} options={checkTypeOptions} onChange={event => handleCheckTypeChange(event.currentTarget.value as CheckType)} />
+							<SelectField label={t("common.status")} value={form.enabled} options={localizedEnabledOptions} onChange={event => updateForm({ enabled: event.currentTarget.value })} />
+							<SelectField label={t("rules.checkType")} value={form.checkType} options={localizedCheckTypeOptions} onChange={event => handleCheckTypeChange(event.currentTarget.value as CheckType)} />
 						</div>
 						<div className={styles.twoColumns}>
-							<TextField label="Probe ID" value={form.probeId} onChange={event => updateForm({ probeId: event.currentTarget.value })} placeholder="Optional probe UUID" />
-							<TextField label="Check ID" value={form.checkId} onChange={event => updateForm({ checkId: event.currentTarget.value })} placeholder="Optional check UUID" />
+							<TextField label={t("rules.probeId")} value={form.probeId} onChange={event => updateForm({ probeId: event.currentTarget.value })} placeholder={t("rules.optionalProbe")} />
+							<TextField label={t("rules.checkId")} value={form.checkId} onChange={event => updateForm({ checkId: event.currentTarget.value })} placeholder={t("rules.optionalCheck")} />
 						</div>
 					</div>
 				</Panel>
-				<Panel tone="deep" title="Condition">
+				<Panel tone="deep" title={t("rules.conditionPanel")}>
 					{checkTypeSupported ? (
 						<div className={styles.formGrid}>
-							<SelectField label="Metric" value={form.metric} options={metricSelectOptions} onChange={event => updateForm({ metric: event.currentTarget.value as AlertMetric })} />
+							<SelectField label={t("rules.metric")} value={form.metric} options={metricSelectOptions} onChange={event => updateForm({ metric: event.currentTarget.value as AlertMetric })} />
 							<div className={styles.twoColumns}>
-								<SelectField label="Operator" value={form.operator} options={operatorOptions} onChange={event => updateForm({ operator: event.currentTarget.value as AlertOperator })} />
+								<SelectField
+									label={t("rules.operator")}
+									value={form.operator}
+									options={localizedOperatorOptions}
+									onChange={event => updateForm({ operator: event.currentTarget.value as AlertOperator })}
+								/>
 								<TextField
-									label="Threshold"
+									label={t("rules.threshold")}
 									value={form.threshold}
 									onChange={event => updateForm({ threshold: event.currentTarget.value })}
 									inputMode="decimal"
@@ -799,8 +840,8 @@ function RuleEditorDrawer({
 								/>
 							</div>
 							<TextField
-								label="Trigger after (minutes)"
-								helper="The condition must remain firing for this long before an incident opens."
+								label={t("rules.triggerMinutes")}
+								helper={t("rules.triggerHelper")}
 								value={form.triggerAfterMinutes}
 								onChange={event => updateForm({ triggerAfterMinutes: event.currentTarget.value })}
 								inputMode="numeric"
@@ -811,15 +852,20 @@ function RuleEditorDrawer({
 							/>
 						</div>
 					) : (
-						<p className={styles.unsupportedNotice}>Traceroute alert rules are not available yet because the controller API exposes alert metrics for ping, TCP, and HTTP checks.</p>
+						<p className={styles.unsupportedNotice}>{t("rules.unsupported")}</p>
 					)}
 				</Panel>
-				<Panel tone="deep" title="Notify">
+				<Panel tone="deep" title={t("rules.notifyPanel")}>
 					<div className={styles.formGrid}>
 						<div className={styles.twoColumns}>
-							<SelectField label="Severity" value={form.severity} options={severityOptions} onChange={event => updateForm({ severity: event.currentTarget.value as AlertSeverity })} />
-							<div className={styles.notificationPicker} aria-label="Notification targets">
-								<span className={styles.notificationPickerLabel}>Notifications</span>
+							<SelectField
+								label={t("rules.severity")}
+								value={form.severity}
+								options={localizedSeverityOptions}
+								onChange={event => updateForm({ severity: event.currentTarget.value as AlertSeverity })}
+							/>
+							<div className={styles.notificationPicker} aria-label={t("rules.notificationTargets")}>
+								<span className={styles.notificationPickerLabel}>{t("rules.notifications")}</span>
 								{notifications.length ? (
 									notifications.map(notification => (
 										<label className={styles.notificationPickerOption} key={notification.id}>
@@ -828,15 +874,15 @@ function RuleEditorDrawer({
 										</label>
 									))
 								) : (
-									<span className={styles.notificationPickerEmpty}>No notifications configured</span>
+									<span className={styles.notificationPickerEmpty}>{t("rules.noNotifications")}</span>
 								)}
 							</div>
 						</div>
 						<details className={styles.advancedTiming}>
-							<summary>Advanced timing</summary>
+							<summary>{t("rules.advancedTiming")}</summary>
 							<div className={styles.threeColumns}>
 								<TextField
-									label="Window seconds"
+									label={t("rules.windowSeconds")}
 									value={form.windowSeconds}
 									onChange={event => updateForm({ windowSeconds: event.currentTarget.value })}
 									inputMode="numeric"
@@ -846,7 +892,7 @@ function RuleEditorDrawer({
 									required
 								/>
 								<TextField
-									label="Min samples"
+									label={t("rules.minSamples")}
 									value={form.minSamples}
 									onChange={event => updateForm({ minSamples: event.currentTarget.value })}
 									inputMode="numeric"
@@ -856,7 +902,7 @@ function RuleEditorDrawer({
 									required
 								/>
 								<TextField
-									label="Cooldown"
+									label={t("rules.cooldownSeconds")}
 									value={form.cooldownSeconds}
 									onChange={event => updateForm({ cooldownSeconds: event.currentTarget.value })}
 									inputMode="numeric"
@@ -893,6 +939,7 @@ function NotificationEditorDrawer({
 	onClose: () => void;
 	onSubmit: (form: NotificationFormState) => Promise<void>;
 }) {
+	const { t } = useTranslation("alerts");
 	const isEditing = editor.mode === "edit";
 	const initialForm = useMemo(
 		() => (editor.mode === "edit" && editor.notification ? notificationFormFromNotification(editor.notification) : defaultNotificationForm()),
@@ -901,7 +948,9 @@ function NotificationEditorDrawer({
 	const [form, setForm] = useState<NotificationFormState>(() => initialForm);
 	const [step, setStep] = useState<NotificationEditorStep>(isEditing ? "detail" : "type");
 	const selectedType = notificationTypeOption(form.type);
-	const title = isEditing ? "Edit notification" : "Add notification";
+	const title = isEditing ? t("notifications.edit") : t("notifications.add");
+	const localizedEnabledOptions = enabledOptions.map(option => ({ ...option, label: t(option.value === "true" ? "common.enabled" : "common.disabled") }));
+	const localizedNotificationTypeOptions = notificationTypeOptions.map(option => notificationTypeOption(option.value));
 	const hasNotificationChanges = !sameValue(form, initialForm);
 
 	function updateForm(patch: Partial<NotificationFormState>) {
@@ -922,7 +971,7 @@ function NotificationEditorDrawer({
 		return (
 			<EditorDrawer open title={title} ariaLabel={title} onClose={onClose}>
 				<div className={styles.notificationTypeGrid}>
-					{notificationTypeOptions.map(option => (
+					{localizedNotificationTypeOptions.map(option => (
 						<SelectableRow
 							key={option.value}
 							type="button"
@@ -940,16 +989,16 @@ function NotificationEditorDrawer({
 	return (
 		<EditorDrawer open title={title} ariaLabel={title} onClose={onClose}>
 			<form className={styles.drawerForm} onSubmit={handleSubmit}>
-				<Panel tone="deep" title="Notification type">
+				<Panel tone="deep" title={t("notifications.type")}>
 					<SelectableRow as="div" leading={<NotificationTypeIcon type={selectedType.value} />} title={selectedType.label} description={selectedType.detail} />
 				</Panel>
-				<Panel tone="deep" title={`${notificationTypeLabel(form.type)} settings`}>
+				<Panel tone="deep" title={t("notifications.settings", { type: notificationTypeLabel(form.type) })}>
 					<div className={styles.formGrid}>
-						<TextField label="Name" value={form.name} onChange={event => updateForm({ name: event.currentTarget.value })} maxLength={128} required />
+						<TextField label={t("common.name")} value={form.name} onChange={event => updateForm({ name: event.currentTarget.value })} maxLength={128} required />
 						{form.type === "telegram" ? (
 							<>
 								<TextField
-									label="Bot token"
+									label={t("notifications.botToken")}
 									value={form.botToken}
 									onChange={event => updateForm({ botToken: event.currentTarget.value })}
 									placeholder="123456:telegram-bot-token"
@@ -958,7 +1007,7 @@ function NotificationEditorDrawer({
 									required
 								/>
 								<TextField
-									label="Chat ID"
+									label={t("notifications.chatId")}
 									value={form.chatId}
 									onChange={event => updateForm({ chatId: event.currentTarget.value })}
 									placeholder="-1001234567890"
@@ -970,8 +1019,8 @@ function NotificationEditorDrawer({
 							</>
 						) : form.type === "email" ? (
 							<TextAreaField
-								label="Recipients"
-								helper="Add one or more email addresses. Separate multiple recipients with commas, semicolons, or new lines."
+								label={t("notifications.recipients")}
+								helper={t("notifications.recipientsHelper")}
 								value={form.emailTo}
 								onChange={event => updateForm({ emailTo: event.currentTarget.value })}
 								placeholder="ops@example.com, sre@example.com"
@@ -993,13 +1042,13 @@ function NotificationEditorDrawer({
 								required
 							/>
 						)}
-						<SelectField label="Status" value={form.enabled} options={enabledOptions} onChange={event => updateForm({ enabled: event.currentTarget.value })} />
+						<SelectField label={t("common.status")} value={form.enabled} options={localizedEnabledOptions} onChange={event => updateForm({ enabled: event.currentTarget.value })} />
 					</div>
 				</Panel>
 				{!isEditing ? (
 					<div className={styles.drawerActions}>
 						<Button type="button" variant="ghost" disabled={isPending} onClick={() => setStep("type")}>
-							Change type
+							{t("notifications.changeType")}
 						</Button>
 					</div>
 				) : null}

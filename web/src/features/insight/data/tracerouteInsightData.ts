@@ -1,7 +1,10 @@
-import type { HopDiagnostic, HopTone, TracerouteSummary } from "@/features/insight/insightTypes";
+import type { HopDiagnostic, HopTone } from "@/features/insight/insightTypes";
+import { i18n } from "@/i18n";
 import type { TracerouteHop, TracerouteInsightResponse, TracerouteResult } from "@/shared/api/types";
 import { formatMs, formatPercent, formatShortTime, formatTime } from "@/shared/utils/insightFormatters";
 import type { RunTimelinePoint } from "@/shared/visualizations/RunTimeline";
+
+const insightT = i18n.getFixedT(null, "insight") as (key: string, options?: Record<string, unknown>) => string;
 
 function orderedHops(run: TracerouteResult | null | undefined) {
 	return [...(run?.hops ?? [])].sort((a, b) => a.hopIndex - b.hopIndex);
@@ -11,12 +14,6 @@ function hopNodeId(hop: TracerouteHop) {
 	return hop.address || hop.hostname || `unknown:${hop.hopIndex}`;
 }
 
-function runPathSignature(run: TracerouteResult) {
-	return orderedHops(run)
-		.map(hop => hopNodeId(hop))
-		.join(">");
-}
-
 function lastRespondingHop(run: TracerouteResult | null | undefined) {
 	return orderedHops(run)
 		.reverse()
@@ -24,7 +21,7 @@ function lastRespondingHop(run: TracerouteResult | null | undefined) {
 }
 
 function hopLabel(hop: TracerouteHop) {
-	return hop.hostname || hop.address || `unknown hop ${hop.hopIndex}`;
+	return hop.hostname || hop.address || insightT("traceroute.unknownHop", { index: hop.hopIndex });
 }
 
 function hasMeaningfulRttJump(previousAvg: number | null, currentAvg: number | null) {
@@ -50,20 +47,20 @@ export function buildHopDiagnostics(run: TracerouteResult | null | undefined): H
 		const propagatedLoss = lossPropagatesDownstream || finalHopLoss;
 		const rttJump = hasMeaningfulRttJump(previousRespondingAvg, avgRtt);
 		let tone: HopTone = "success";
-		let state = "Clear";
+		let state = insightT("traceroute.states.clear");
 
 		if (noReply) {
 			tone = "muted";
-			state = "No reply";
+			state = insightT("traceroute.states.noReply");
 		} else if (propagatedLoss) {
 			tone = "critical";
-			state = finalHopLoss ? "Final loss" : "Propagated loss";
+			state = finalHopLoss ? insightT("traceroute.states.finalLoss") : insightT("traceroute.states.propagatedLoss");
 		} else if (rttJump) {
 			tone = "warning";
-			state = "RTT jump";
+			state = insightT("traceroute.states.rttJump");
 		} else if (loss >= 1) {
 			tone = "warning";
-			state = "Router-only loss";
+			state = insightT("traceroute.states.routerOnlyLoss");
 		}
 
 		if (avgRtt !== null) {
@@ -74,7 +71,7 @@ export function buildHopDiagnostics(run: TracerouteResult | null | undefined): H
 			id: `${hop.hopIndex}-${hopNodeId(hop)}`,
 			hopIndex: hop.hopIndex,
 			label: hopLabel(hop),
-			address: hop.address || hop.hostname || "unknown",
+			address: hop.address || hop.hostname || insightT("traceroute.unknown"),
 			sent: hop.sentCount,
 			received: hop.receivedCount,
 			loss,
@@ -92,50 +89,6 @@ export function buildHopDiagnostics(run: TracerouteResult | null | undefined): H
 			error: hop.errorMessage || hop.errorCode || ""
 		};
 	});
-}
-
-export function summarizeTraceroute(runs: TracerouteResult[], selectedRun: TracerouteResult | null): TracerouteSummary {
-	const diagnostics = buildHopDiagnostics(selectedRun);
-	const finalHop = lastRespondingHop(selectedRun);
-	const chronologicalRuns = [...runs].sort((a, b) => Date.parse(a.startedAt) - Date.parse(b.startedAt));
-	let pathChangeCount = 0;
-	let previousSignature = "";
-
-	for (const run of chronologicalRuns) {
-		const signature = runPathSignature(run);
-
-		if (previousSignature && signature && signature !== previousSignature) {
-			pathChangeCount += 1;
-		}
-
-		if (signature) {
-			previousSignature = signature;
-		}
-	}
-
-	if (!selectedRun) {
-		return {
-			statusTone: "muted",
-			statusLabel: "No data",
-			finalRtt: null,
-			finalLoss: null,
-			firstPropagatedLossHop: null,
-			firstRttJumpHop: null,
-			pathChangeCount
-		};
-	}
-
-	const statusTone = selectedRun.status === "successful" && selectedRun.destinationReached ? "success" : selectedRun.status === "error" || selectedRun.status === "timeout" ? "critical" : "warning";
-
-	return {
-		statusTone,
-		statusLabel: selectedRun.destinationReached ? "Reached" : selectedRun.status,
-		finalRtt: finalHop?.rttAvgMs ?? null,
-		finalLoss: finalHop?.lossPercent ?? null,
-		firstPropagatedLossHop: diagnostics.find(hop => hop.propagatedLoss)?.hopIndex ?? null,
-		firstRttJumpHop: diagnostics.find(hop => hop.rttJump)?.hopIndex ?? null,
-		pathChangeCount
-	};
 }
 
 export function runFinalRtt(run: TracerouteResult) {
@@ -170,8 +123,16 @@ export function tracerouteInsightTimelinePoints(data: TracerouteInsightResponse 
 			value,
 			valueLabel: formatMs(value),
 			ariaLabel: isRawRun
-				? `Select traceroute run ${formatTime(point.runStartedAt || labelTime)} final RTT ${formatMs(value)} loss ${formatPercent(point.finalLossPercent)}`
-				: `Narrow traceroute timeline bucket ${formatShortTime(labelTime)} final RTT ${formatMs(value)} loss ${formatPercent(point.finalLossPercent)}`,
+				? insightT("traceroute.selectRunAria", {
+						time: formatTime(point.runStartedAt || labelTime),
+						rtt: formatMs(value),
+						loss: formatPercent(point.finalLossPercent)
+					})
+				: insightT("traceroute.narrowBucketAria", {
+						time: formatShortTime(labelTime),
+						rtt: formatMs(value),
+						loss: formatPercent(point.finalLossPercent)
+					}),
 			tone: runTimelineTone(value, point.hasLoss),
 			hasLoss: point.hasLoss,
 			hasChange: point.hasRouteChange
@@ -182,5 +143,5 @@ export function tracerouteInsightTimelinePoints(data: TracerouteInsightResponse 
 export function selectedTimelineValueLabel(selectedRun: TracerouteResult | null, points: RunTimelinePoint[]) {
 	const selectedValue = selectedRun ? formatMs(runFinalRtt(selectedRun)) : points[points.length - 1]?.valueLabel || "-";
 
-	return `${selectedValue} selected`;
+	return insightT("traceroute.selectedValue", { value: selectedValue });
 }

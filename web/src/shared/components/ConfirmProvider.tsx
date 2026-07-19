@@ -1,5 +1,6 @@
 import { AlertDialogContent, AlertDialogDescription, AlertDialogOverlay, AlertDialogPortal, AlertDialogRoot, AlertDialogTitle, Button, Input } from "@netstamp/ui";
 import { type FormEvent, type ReactNode, useCallback, useEffect, useId, useRef, useState } from "react";
+import { Trans, useTranslation } from "react-i18next";
 import {
 	AlertDialogContext,
 	type AlertDialogFn,
@@ -49,6 +50,7 @@ type DialogState = AlertState | ChoiceState | ConfirmState | PromptState;
 type DialogResult = boolean | string | null | undefined;
 
 export function ConfirmProvider({ children }: { children: ReactNode }) {
+	const { t } = useTranslation("common");
 	const [state, setState] = useState<DialogState | null>(null);
 	const resolverRef = useRef<((result: DialogResult) => void) | null>(null);
 	const resultRef = useRef<DialogResult>(undefined);
@@ -220,8 +222,8 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
 
 	const message = state?.options.message;
 	const tone = state?.options.tone ?? "default";
-	const eyebrow = state ? dialogEyebrow(state) : "";
-	const confirmLabel = state?.kind === "choice" ? undefined : (state?.options.confirmLabel ?? (state?.kind === "alert" ? "OK" : "Confirm"));
+	const eyebrow = state ? t(dialogEyebrowKey(state)) : "";
+	const confirmLabel = state?.kind === "choice" ? undefined : (state?.options.confirmLabel ?? (state?.kind === "alert" ? t("actions.ok") : t("actions.confirm")));
 	const confirmationText = state?.kind === "confirm" ? state.options.confirmationText : undefined;
 	const confirmationRequired = confirmationText !== undefined;
 	const confirmationMatches = !confirmationRequired || (state?.kind === "confirm" && state.inputValue === confirmationText);
@@ -261,14 +263,17 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
 								{state.kind === "confirm" && confirmationText !== undefined ? (
 									<div className={styles.confirmation}>
 										<p id={confirmationPromptId} className={styles.confirmationPrompt}>
-											Type{" "}
-											<button className={styles.confirmationText} type="button" title="Fill the confirmation input" onClick={() => updateConfirmationValue(confirmationText)}>
-												{confirmationText}
-											</button>{" "}
-											to confirm.
+											<Trans
+												ns="common"
+												i18nKey="dialog.typeToConfirm"
+												values={{ value: confirmationText }}
+												components={{
+													confirmation: <button className={styles.confirmationText} type="button" title={t("dialog.fillConfirmation")} onClick={() => updateConfirmationValue(confirmationText)} />
+												}}
+											/>
 										</p>
 										<div className={styles.field}>
-											<label htmlFor={inputId}>{state.options.confirmationLabel ?? "Name"}</label>
+											<label htmlFor={inputId}>{state.options.confirmationLabel ?? t("fields.name")}</label>
 											<Input
 												ref={confirmationInputRef}
 												id={inputId}
@@ -285,7 +290,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
 								) : null}
 								{state.kind === "prompt" ? (
 									<div className={styles.field}>
-										<label htmlFor={inputId}>{state.options.inputLabel ?? "Value"}</label>
+										<label htmlFor={inputId}>{state.options.inputLabel ?? t("fields.value")}</label>
 										<Input
 											id={inputId}
 											type={state.options.inputType ?? "text"}
@@ -315,7 +320,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
 								<div className={styles.actions}>
 									{state.kind !== "alert" ? (
 										<Button type="button" variant="ghost" onClick={cancelDialog} autoFocus={state.kind === "confirm" && !confirmationRequired}>
-											{state.options.cancelLabel ?? "Cancel"}
+											{state.options.cancelLabel ?? t("actions.cancel")}
 										</Button>
 									) : null}
 									{state.kind !== "choice" ? (
@@ -345,17 +350,17 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
 	);
 }
 
-function dialogEyebrow(state: DialogState) {
+const dialogEyebrowKey = (state: DialogState) => {
 	if (state.kind === "alert") {
-		return state.options.tone === "danger" ? "Action required" : "Notice";
+		return state.options.tone === "danger" ? "dialog.actionRequired" : "dialog.alertEyebrow";
 	}
 
 	if (state.kind === "prompt") {
-		return state.options.tone === "danger" ? "Input required" : "Input required";
+		return "dialog.promptEyebrow";
 	}
 	if (state.kind === "choice") {
-		return "Authentication required";
+		return "dialog.authenticationRequired";
 	}
 
-	return state.options.tone === "danger" ? "Destructive action" : "Confirm action";
-}
+	return state.options.tone === "danger" ? "dialog.destructiveAction" : "dialog.confirmAction";
+};

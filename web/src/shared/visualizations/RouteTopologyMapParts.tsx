@@ -1,5 +1,6 @@
 import { classNames } from "@/shared/utils/classNames";
 import type { CSSProperties } from "react";
+import { useTranslation } from "react-i18next";
 import type { TopologyHoverDetail, TopologyRouteEdge, TopologyRouteNode } from "./RouteTopologyMap";
 import styles from "./RouteTopologyMap.module.css";
 
@@ -14,13 +15,14 @@ type TopologyDetailStyle = CSSProperties & {
 };
 
 export function TopologyLegend() {
+	const { t } = useTranslation("insight");
 	return (
 		<div className={styles.topologyLegend} aria-hidden="true">
-			<span data-tone="agent">agent</span>
-			<span data-tone="normal">normal</span>
-			<span data-tone="warning">high rtt</span>
-			<span data-tone="critical">loss</span>
-			<span data-tone="destination">destination</span>
+			<span data-tone="agent">{t("legend.agent")}</span>
+			<span data-tone="normal">{t("legend.normal")}</span>
+			<span data-tone="warning">{t("legend.highRtt")}</span>
+			<span data-tone="critical">{t("legend.loss")}</span>
+			<span data-tone="destination">{t("legend.destination")}</span>
 		</div>
 	);
 }

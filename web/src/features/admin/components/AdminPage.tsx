@@ -1,5 +1,6 @@
 import { useRequireSudo } from "@/features/auth/hooks/useRequireSudo";
 import { useSession } from "@/features/auth/session/SessionContext";
+import { formatDateTime } from "@/i18n/format";
 import {
 	useClearManagedUserPasswordMutation,
 	useExportAdminDataMutation,
@@ -20,6 +21,7 @@ import { Badge, BodyCopy, Button, Checkbox, DataTable, Panel, SelectField, Spinn
 import { useQuery } from "@tanstack/react-query";
 import type { ChangeEvent, FormEvent } from "react";
 import { useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import styles from "./AdminPage.module.css";
 
 interface AdminFormState {
@@ -82,10 +84,10 @@ function formatTimestamp(value: string | undefined) {
 	if (Number.isNaN(date.valueOf())) {
 		return value;
 	}
-	return new Intl.DateTimeFormat(undefined, {
+	return formatDateTime(date, {
 		dateStyle: "medium",
 		timeStyle: "short"
-	}).format(date);
+	});
 }
 
 function isAdminDataExport(value: unknown): value is ApiAdminDataExport {
@@ -108,22 +110,20 @@ function downloadAdminDataExport(data: ApiAdminDataExport) {
 	URL.revokeObjectURL(href);
 }
 
-function managedUserSearchText(user: ApiManagedUser) {
-	const status = user.disabledAt ? "disabled inactive deactivated" : "active enabled";
-	const access = user.isSystemAdmin ? "system admin administrator" : "user member";
-	const verification = user.emailVerified ? "verified" : "unverified";
+function managedUserSearchText(user: ApiManagedUser, labels: string[]) {
+	const [status, access, verification] = labels;
 
 	return [user.displayName, user.email, status, access, verification, formatTimestamp(user.updatedAt), user.disabledAt ? formatTimestamp(user.disabledAt) : ""].join(" ").toLowerCase();
 }
 
-function filterManagedUsers(users: ApiManagedUser[], search: string) {
+function filterManagedUsers(users: ApiManagedUser[], search: string, labels: (user: ApiManagedUser) => string[]) {
 	const needle = search.trim().toLowerCase();
 
 	if (!needle) {
 		return users;
 	}
 
-	return users.filter(user => managedUserSearchText(user).includes(needle));
+	return users.filter(user => managedUserSearchText(user, labels(user)).includes(needle));
 }
 
 function sameValue(left: unknown, right: unknown) {
@@ -131,6 +131,7 @@ function sameValue(left: unknown, right: unknown) {
 }
 
 export function AdminPage() {
+	const { t } = useTranslation("admin");
 	const { session } = useSession();
 	const confirm = useConfirm();
 	const prompt = usePromptDialog();
@@ -156,22 +157,30 @@ export function AdminPage() {
 	const form = editedForm ?? serverForm;
 	const hasAdminSettingsChanges = Boolean(editedForm && !sameValue(editedForm, serverForm));
 	const userRows = useMemo(() => usersQuery.data?.users ?? [], [usersQuery.data?.users]);
-	const filteredUserRows = useMemo(() => filterManagedUsers(userRows, userSearch), [userRows, userSearch]);
-	const userCountLabel = userSearch.trim() ? `${filteredUserRows.length}/${userRows.length} users` : `${userRows.length} users`;
+	const filteredUserRows = useMemo(
+		() =>
+			filterManagedUsers(userRows, userSearch, user => [
+				user.disabledAt ? t("states.disabled") : t("states.active"),
+				user.isSystemAdmin ? t("states.systemAdmin") : t("states.user"),
+				user.emailVerified ? t("states.verified") : t("states.unverified")
+			]),
+		[userRows, userSearch, t]
+	);
+	const userCountLabel = userSearch.trim() ? t("filteredUsersCount", { filtered: filteredUserRows.length, total: userRows.length }) : t("usersCount", { count: userRows.length });
 	const activeAdminCount = userRows.filter(user => user.isSystemAdmin && !user.disabledAt).length;
 
 	const smtpPasswordLabel = useMemo(() => {
 		if (!settingsQuery.data?.settings.smtp.passwordSet) {
-			return "No SMTP password is stored.";
+			return t("smtpPasswordEmpty");
 		}
-		return "A password is stored. Leave blank to keep it unchanged.";
-	}, [settingsQuery.data?.settings.smtp.passwordSet]);
+		return t("smtpPasswordStored");
+	}, [settingsQuery.data?.settings.smtp.passwordSet, t]);
 
 	const userColumns = useMemo<DataColumn<ApiManagedUser>[]>(
 		() => [
 			{
 				key: "user",
-				label: "User",
+				label: t("columns.user"),
 				render: user => (
 					<span className={styles.adminCell}>
 						<strong className={styles.adminName}>{user.displayName}</strong>
@@ -183,10 +192,10 @@ export function AdminPage() {
 			},
 			{
 				key: "status",
-				label: "Status",
+				label: t("columns.status"),
 				render: user => (
 					<span className={styles.adminCell}>
-						<Badge tone={user.disabledAt ? "critical" : "success"}>{user.disabledAt ? "Disabled" : "Active"}</Badge>
+						<Badge tone={user.disabledAt ? "critical" : "success"}>{user.disabledAt ? t("states.disabled") : t("states.active")}</Badge>
 						{user.disabledAt ? <span className={styles.adminMeta}>{formatTimestamp(user.disabledAt)}</span> : null}
 					</span>
 				),
@@ -195,27 +204,27 @@ export function AdminPage() {
 			},
 			{
 				key: "access",
-				label: "Access",
-				render: user => <Badge tone={user.isSystemAdmin ? "accent" : "neutral"}>{user.isSystemAdmin ? "System admin" : "User"}</Badge>,
+				label: t("columns.access"),
+				render: user => <Badge tone={user.isSystemAdmin ? "accent" : "neutral"}>{user.isSystemAdmin ? t("states.systemAdmin") : t("states.user")}</Badge>,
 				sortable: true,
 				sortValue: user => (user.isSystemAdmin ? 1 : 0)
 			},
 			{
 				key: "email",
-				label: "Email",
-				render: user => <Badge tone={user.emailVerified ? "success" : "warning"}>{user.emailVerified ? "Verified" : "Unverified"}</Badge>,
+				label: t("columns.email"),
+				render: user => <Badge tone={user.emailVerified ? "success" : "warning"}>{user.emailVerified ? t("states.verified") : t("states.unverified")}</Badge>,
 				sortable: true,
 				sortValue: user => (user.emailVerified ? 1 : 0)
 			},
 			{
 				key: "updatedAt",
-				label: "Updated",
+				label: t("columns.updated"),
 				render: user => <span className={styles.adminMeta}>{formatTimestamp(user.updatedAt)}</span>,
 				sortable: true,
 				sortValue: user => user.updatedAt
 			}
 		],
-		[]
+		[t]
 	);
 
 	if (!session) {
@@ -225,9 +234,9 @@ export function AdminPage() {
 	if (!session.user.isSystemAdmin) {
 		return (
 			<PageStack>
-				<ScreenHeader title="System Settings" />
-				<Panel tone="deep" title="System administrator access required">
-					<BodyCopy>This page is limited to users with global administrator access.</BodyCopy>
+				<ScreenHeader title={t("title")} />
+				<Panel tone="deep" title={t("accessRequired")}>
+					<BodyCopy>{t("accessRequiredDescription")}</BodyCopy>
 				</Panel>
 			</PageStack>
 		);
@@ -261,10 +270,10 @@ export function AdminPage() {
 				{
 					onSuccess: () => {
 						setEditedForm(null);
-						pushToast({ title: "Admin settings saved", message: "System settings were updated.", tone: "success" });
+						pushToast({ title: t("settings.saved"), message: t("settings.savedDescription"), tone: "success" });
 					},
 					onError: error => {
-						pushToast({ title: "Admin settings failed", message: requestErrorMessage(error, "Could not save admin settings."), tone: "critical" });
+						pushToast({ title: t("settings.saveFailed"), message: requestErrorMessage(error, t("settings.saveError")), tone: "critical" });
 					}
 				}
 			)
@@ -275,9 +284,9 @@ export function AdminPage() {
 		const nextDisabled = !user.disabledAt;
 		if (nextDisabled) {
 			const accepted = await confirm({
-				title: "Disable account",
-				message: `${user.email} will no longer be able to sign in or access protected routes. A system administrator can re-enable this account later.`,
-				confirmLabel: "Disable",
+				title: t("account.disable"),
+				message: t("account.disableDescription", { email: user.email }),
+				confirmLabel: t("account.disableAction"),
 				tone: "danger"
 			});
 			if (!accepted) {
@@ -291,13 +300,13 @@ export function AdminPage() {
 				{
 					onSuccess: data => {
 						pushToast({
-							title: data.user.disabledAt ? "Account disabled" : "Account enabled",
-							message: `${data.user.email} was updated.`,
+							title: data.user.disabledAt ? t("account.disabled") : t("account.enabled"),
+							message: t("account.updated", { email: data.user.email }),
 							tone: "success"
 						});
 					},
 					onError: error => {
-						pushToast({ title: "User update failed", message: requestErrorMessage(error, "Could not update account status."), tone: "critical" });
+						pushToast({ title: t("account.updateFailed"), message: requestErrorMessage(error, t("account.updateError")), tone: "critical" });
 					}
 				}
 			)
@@ -308,9 +317,9 @@ export function AdminPage() {
 		const nextAdmin = !user.isSystemAdmin;
 		if (!nextAdmin) {
 			const accepted = await confirm({
-				title: "Revoke system admin",
-				message: `${user.email} will lose access to instance-level system settings. Project memberships are not changed.`,
-				confirmLabel: "Revoke",
+				title: t("account.revokeAdmin"),
+				message: t("account.revokeAdminDescription", { email: user.email }),
+				confirmLabel: t("account.revoke"),
 				tone: "danger"
 			});
 			if (!accepted) {
@@ -324,13 +333,13 @@ export function AdminPage() {
 				{
 					onSuccess: data => {
 						pushToast({
-							title: data.user.isSystemAdmin ? "System admin granted" : "System admin revoked",
-							message: `${data.user.email} was updated.`,
+							title: data.user.isSystemAdmin ? t("account.adminGranted") : t("account.adminRevoked"),
+							message: t("account.updated", { email: data.user.email }),
 							tone: "success"
 						});
 					},
 					onError: error => {
-						pushToast({ title: "Permission update failed", message: requestErrorMessage(error, "Could not update user permissions."), tone: "critical" });
+						pushToast({ title: t("account.permissionFailed"), message: requestErrorMessage(error, t("account.permissionError")), tone: "critical" });
 					}
 				}
 			)
@@ -339,12 +348,12 @@ export function AdminPage() {
 
 	async function setPassword(user: ApiManagedUser) {
 		const password = await prompt({
-			title: "Set user password",
-			message: `Set a new password for ${user.email}.`,
-			inputLabel: "New password",
+			title: t("account.setPassword"),
+			message: t("account.setPasswordDescription", { email: user.email }),
+			inputLabel: t("account.newPassword"),
 			inputType: "password",
-			confirmLabel: "Set password",
-			validate: value => (value.length < 8 ? "Password must be at least 8 characters." : null)
+			confirmLabel: t("account.setPasswordAction"),
+			validate: value => (value.length < 8 ? t("account.passwordTooShort") : null)
 		});
 		if (!password) {
 			return;
@@ -355,10 +364,10 @@ export function AdminPage() {
 				{ userId: user.id, body: { password } },
 				{
 					onSuccess: data => {
-						pushToast({ title: "Password updated", message: `${data.user.email} can use the new password.`, tone: "success" });
+						pushToast({ title: t("account.passwordUpdated"), message: t("account.passwordUpdatedDescription", { email: data.user.email }), tone: "success" });
 					},
 					onError: error => {
-						pushToast({ title: "Password update failed", message: requestErrorMessage(error, "Could not update user password."), tone: "critical" });
+						pushToast({ title: t("account.passwordUpdateFailed"), message: requestErrorMessage(error, t("account.passwordUpdateError")), tone: "critical" });
 					}
 				}
 			)
@@ -367,9 +376,9 @@ export function AdminPage() {
 
 	async function clearPassword(user: ApiManagedUser) {
 		const accepted = await confirm({
-			title: "Remove user password",
-			message: `${user.email} will only be able to sign in through a linked external identity. This is rejected if password is their last login method.`,
-			confirmLabel: "Remove password",
+			title: t("account.removePassword"),
+			message: t("account.removePasswordDescription", { email: user.email }),
+			confirmLabel: t("account.removePasswordAction"),
 			tone: "danger"
 		});
 		if (!accepted) return;
@@ -377,10 +386,10 @@ export function AdminPage() {
 		await requireSudo(() =>
 			clearManagedUserPasswordMutation.mutate(user.id, {
 				onSuccess: data => {
-					pushToast({ title: "Password removed", message: `${data.user.email} must now use single sign-on.`, tone: "success" });
+					pushToast({ title: t("account.passwordRemoved"), message: t("account.passwordRemovedDescription", { email: data.user.email }), tone: "success" });
 				},
 				onError: error => {
-					pushToast({ title: "Password removal failed", message: requestErrorMessage(error, "Could not remove the user password."), tone: "critical" });
+					pushToast({ title: t("account.passwordRemovalFailed"), message: requestErrorMessage(error, t("account.passwordRemovalError")), tone: "critical" });
 				}
 			})
 		);
@@ -391,10 +400,10 @@ export function AdminPage() {
 			exportDataMutation.mutate(undefined, {
 				onSuccess: data => {
 					downloadAdminDataExport(data);
-					pushToast({ title: "Data exported", message: "A JSON backup was downloaded.", tone: "success" });
+					pushToast({ title: t("data.exported"), message: t("data.exportedDescription"), tone: "success" });
 				},
 				onError: error => {
-					pushToast({ title: "Export failed", message: requestErrorMessage(error, "Could not export admin data."), tone: "critical" });
+					pushToast({ title: t("data.exportFailed"), message: requestErrorMessage(error, t("data.exportError")), tone: "critical" });
 				}
 			})
 		);
@@ -411,18 +420,18 @@ export function AdminPage() {
 		try {
 			parsed = JSON.parse(await file.text());
 		} catch {
-			pushToast({ title: "Import failed", message: "The selected file is not valid JSON.", tone: "critical" });
+			pushToast({ title: t("data.importFailed"), message: t("data.invalidJson"), tone: "critical" });
 			return;
 		}
 		if (!isAdminDataExport(parsed)) {
-			pushToast({ title: "Import failed", message: "The selected file is not a Netstamp data export.", tone: "critical" });
+			pushToast({ title: t("data.importFailed"), message: t("data.invalidExport"), tone: "critical" });
 			return;
 		}
 
 		const accepted = await confirm({
-			title: "Import data",
-			message: "Existing managed data will be replaced by this backup.",
-			confirmLabel: "Import",
+			title: t("data.confirmImport"),
+			message: t("data.confirmImportDescription"),
+			confirmLabel: t("data.confirmImportAction"),
 			tone: "danger"
 		});
 		if (!accepted) {
@@ -432,10 +441,10 @@ export function AdminPage() {
 		await requireSudo(() =>
 			importDataMutation.mutate(parsed, {
 				onSuccess: data => {
-					pushToast({ title: "Data imported", message: `${data.result.importedRows} rows were imported.`, tone: "success" });
+					pushToast({ title: t("data.imported"), message: t("data.importedRows", { count: data.result.importedRows }), tone: "success" });
 				},
 				onError: error => {
-					pushToast({ title: "Import failed", message: requestErrorMessage(error, "Could not import admin data."), tone: "critical" });
+					pushToast({ title: t("data.importFailed"), message: requestErrorMessage(error, t("data.importError")), tone: "critical" });
 				}
 			})
 		);
@@ -451,17 +460,17 @@ export function AdminPage() {
 		return (
 			<div className={styles.userActions}>
 				<Button type="button" size="sm" variant={user.disabledAt ? "outline" : "danger"} disabled={isSelf || lastActiveAdmin || updatingUser} onClick={() => void toggleDisabled(user)}>
-					{user.disabledAt ? "Enable" : "Disable"}
+					{user.disabledAt ? t("account.enable") : t("account.disableAction")}
 				</Button>
 				<Button type="button" size="sm" variant="ghost" disabled={(isSelf && user.isSystemAdmin) || lastActiveAdmin || updatingUser} onClick={() => void toggleSystemAdmin(user)}>
-					{user.isSystemAdmin ? "Revoke admin" : "Grant admin"}
+					{user.isSystemAdmin ? t("account.revokeAdmin") : t("account.grantAdmin")}
 				</Button>
 				<Button type="button" size="sm" variant="outline" disabled={settingPassword} onClick={() => void setPassword(user)}>
-					{settingPassword ? "Setting" : "Set password"}
+					{settingPassword ? t("account.setting") : t("account.setPasswordAction")}
 				</Button>
 				{user.hasPassword ? (
 					<Button type="button" size="sm" variant="danger" disabled={clearingPassword} onClick={() => void clearPassword(user)}>
-						{clearingPassword ? "Removing" : "Remove password"}
+						{clearingPassword ? t("account.removing") : t("account.removePasswordAction")}
 					</Button>
 				) : null}
 			</div>
@@ -470,55 +479,63 @@ export function AdminPage() {
 
 	return (
 		<PageStack>
-			<ScreenHeader title="System Settings" actions={settingsQuery.data?.settings.smtp.configured ? <Badge tone="success">SMTP configured</Badge> : <Badge tone="warning">SMTP disabled</Badge>} />
+			<ScreenHeader
+				title={t("title")}
+				actions={settingsQuery.data?.settings.smtp.configured ? <Badge tone="success">{t("smtpConfigured")}</Badge> : <Badge tone="warning">{t("smtpDisabled")}</Badge>}
+			/>
 
 			{settingsQuery.isLoading ? (
-				<Spinner label="Loading admin settings" layout="panel" size="lg" />
+				<Spinner label={t("loading")} layout="panel" size="lg" />
 			) : settingsQuery.isError ? (
-				<Panel tone="deep" title="Admin settings unavailable">
-					<BodyCopy>{requestErrorMessage(settingsQuery.error, "Could not load admin settings.")}</BodyCopy>
+				<Panel tone="deep" title={t("unavailable")}>
+					<BodyCopy>{requestErrorMessage(settingsQuery.error, t("loadError"))}</BodyCopy>
 				</Panel>
 			) : (
 				<form className={styles.form} onSubmit={handleSubmit}>
 					<div className={styles.grid}>
-						<Panel tone="glass" title="Instance access" bodyClassName={styles.instanceAccessOptions}>
+						<Panel tone="glass" title={t("settings.instanceAccess")} bodyClassName={styles.instanceAccessOptions}>
 							<label className={styles.checkboxRow}>
 								<Checkbox checked={form.registrationEnabled} onChange={event => update("registrationEnabled", event.currentTarget.checked)} />
 								<span>
-									<strong>Allow new registrations</strong>
-									<small>Disable this after bootstrap if accounts should be invite-only or operator-managed.</small>
+									<strong>{t("settings.registration")}</strong>
+									<small>{t("settings.registrationDescription")}</small>
 								</span>
 							</label>
 							<label className={styles.checkboxRow}>
 								<Checkbox checked={form.emailVerificationRequired} onChange={event => update("emailVerificationRequired", event.currentTarget.checked)} />
 								<span>
-									<strong>Require email verification</strong>
-									<small>New non-admin registrations must confirm email before login. The first bootstrap admin is not blocked.</small>
+									<strong>{t("settings.verification")}</strong>
+									<small>{t("settings.verificationDescription")}</small>
 								</span>
 							</label>
 						</Panel>
 
-						<Panel tone="glass" title="Public origins">
+						<Panel tone="glass" title={t("settings.publicOrigins")}>
 							<div className={styles.fieldStack}>
-								<TextField label="Backend base URL" value={form.backendBaseUrl} placeholder="https://app.netstamp.dev" onChange={event => update("backendBaseUrl", event.currentTarget.value)} />
 								<TextField
-									label="Public web base URL"
+									label={t("settings.backendUrl")}
+									value={form.backendBaseUrl}
+									placeholder="https://app.netstamp.dev"
+									onChange={event => update("backendBaseUrl", event.currentTarget.value)}
+								/>
+								<TextField
+									label={t("settings.webUrl")}
 									value={form.publicWebBaseUrl}
 									placeholder="https://app.netstamp.dev"
-									helper="Password reset and email verification links use this origin when set."
+									helper={t("settings.webUrlHelper")}
 									onChange={event => update("publicWebBaseUrl", event.currentTarget.value)}
 								/>
 							</div>
 						</Panel>
 					</div>
 
-					<Panel tone="glass" title="SMTP delivery">
+					<Panel tone="glass" title={t("settings.smtpDelivery")}>
 						<div className={styles.smtpGrid}>
-							<TextField label="Host" value={form.smtpHost} placeholder="smtp.example.com" onChange={event => update("smtpHost", event.currentTarget.value)} />
-							<TextField label="Port" type="number" min={1} max={65535} value={form.smtpPort} onChange={event => update("smtpPort", event.currentTarget.value)} />
-							<TextField label="Username" value={form.smtpUsername} autoComplete="off" onChange={event => update("smtpUsername", event.currentTarget.value)} />
+							<TextField label={t("settings.host")} value={form.smtpHost} placeholder="smtp.example.com" onChange={event => update("smtpHost", event.currentTarget.value)} />
+							<TextField label={t("settings.port")} type="number" min={1} max={65535} value={form.smtpPort} onChange={event => update("smtpPort", event.currentTarget.value)} />
+							<TextField label={t("settings.username")} value={form.smtpUsername} autoComplete="off" onChange={event => update("smtpUsername", event.currentTarget.value)} />
 							<TextField
-								label="Password"
+								label={t("settings.password")}
 								type="password"
 								value={form.smtpPassword}
 								autoComplete="new-password"
@@ -526,18 +543,18 @@ export function AdminPage() {
 								disabled={form.smtpClearPassword}
 								onChange={event => update("smtpPassword", event.currentTarget.value)}
 							/>
-							<TextField label="From" type="email" value={form.smtpFrom} placeholder="alerts@example.com" onChange={event => update("smtpFrom", event.currentTarget.value)} />
+							<TextField label={t("settings.from")} type="email" value={form.smtpFrom} placeholder="alerts@example.com" onChange={event => update("smtpFrom", event.currentTarget.value)} />
 							<SelectField
-								label="TLS mode"
+								label={t("settings.tlsMode")}
 								value={form.smtpTLSMode}
 								options={[
 									{ value: "starttls", label: "STARTTLS" },
-									{ value: "implicit", label: "Implicit TLS" },
-									{ value: "none", label: "None" }
+									{ value: "implicit", label: t("settings.implicitTls") },
+									{ value: "none", label: t("settings.none") }
 								]}
 								onChange={event => update("smtpTLSMode", event.currentTarget.value as AdminFormState["smtpTLSMode"])}
 							/>
-							<TextField label="Timeout seconds" type="number" min={1} value={form.smtpTimeoutSeconds} onChange={event => update("smtpTimeoutSeconds", event.currentTarget.value)} />
+							<TextField label={t("settings.timeout")} type="number" min={1} value={form.smtpTimeoutSeconds} onChange={event => update("smtpTimeoutSeconds", event.currentTarget.value)} />
 						</div>
 						<label className={styles.checkboxRow}>
 							<Checkbox
@@ -550,8 +567,8 @@ export function AdminPage() {
 								}}
 							/>
 							<span>
-								<strong>Clear stored SMTP password</strong>
-								<small>This also overrides an environment fallback with no password.</small>
+								<strong>{t("settings.clearPassword")}</strong>
+								<small>{t("settings.clearPasswordDescription")}</small>
 							</span>
 						</label>
 					</Panel>
@@ -562,47 +579,47 @@ export function AdminPage() {
 
 			<Panel
 				tone="glass"
-				title="Data tools"
+				title={t("data.title")}
 				actions={
 					<div className={styles.toolActions}>
 						<Button type="button" variant="outline" disabled={exportDataMutation.isPending} onClick={exportData}>
-							{exportDataMutation.isPending ? "Exporting" : "Export data"}
+							{exportDataMutation.isPending ? t("data.exporting") : t("data.export")}
 						</Button>
 						<Button type="button" variant="danger" disabled={importDataMutation.isPending} onClick={() => void requireSudo(() => importInputRef.current?.click())}>
-							{importDataMutation.isPending ? "Importing" : "Import data"}
+							{importDataMutation.isPending ? t("data.importing") : t("data.import")}
 						</Button>
 						<input ref={importInputRef} className={styles.fileInput} type="file" accept="application/json,.json" onChange={event => void importData(event)} />
 					</div>
 				}
 			>
-				<BodyCopy>Exports include account, project, probe, check, alert, public status, result, and system setting data. Imported backups replace existing managed data.</BodyCopy>
+				<BodyCopy>{t("data.description")}</BodyCopy>
 			</Panel>
 
 			<Panel
 				tone="glass"
-				title="User management"
-				actions={usersQuery.isFetching ? <Badge tone="neutral">Syncing</Badge> : <Badge tone="neutral">{userCountLabel}</Badge>}
+				title={t("users.title")}
+				actions={usersQuery.isFetching ? <Badge tone="neutral">{t("users.syncing")}</Badge> : <Badge tone="neutral">{userCountLabel}</Badge>}
 				bodySurface="transparent"
 				padded={false}
 			>
 				{usersQuery.isLoading ? (
-					<Spinner label="Loading users" layout="panel" size="lg" />
+					<Spinner label={t("users.loading")} layout="panel" size="lg" />
 				) : usersQuery.isError ? (
 					<div className={styles.tableMessage}>
-						<BodyCopy>{requestErrorMessage(usersQuery.error, "Could not load users.")}</BodyCopy>
+						<BodyCopy>{requestErrorMessage(usersQuery.error, t("users.loadError"))}</BodyCopy>
 					</div>
 				) : (
 					<>
 						<div className={styles.userToolbar}>
-							<TextField label="Search" type="search" placeholder="name, email, status, access" value={userSearch} onChange={event => setUserSearch(event.currentTarget.value)} />
+							<TextField label={t("users.search")} type="search" placeholder={t("users.searchPlaceholder")} value={userSearch} onChange={event => setUserSearch(event.currentTarget.value)} />
 						</div>
 						<DataTable<ApiManagedUser>
-							ariaLabel="Managed users"
+							ariaLabel={t("users.aria")}
 							columns={userColumns}
 							rows={filteredUserRows}
 							density="compact"
 							minWidth="72rem"
-							emptyLabel={userSearch.trim() ? "No users match this search" : "No users"}
+							emptyLabel={userSearch.trim() ? t("users.noMatch") : t("users.empty")}
 							getRowKey={user => user.id}
 							rowActions={userRowActions}
 							rowActionsClassName={styles.userActionsCell}

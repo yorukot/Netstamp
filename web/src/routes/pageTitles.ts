@@ -1,15 +1,19 @@
+import type { AppResources } from "@/i18n/resources";
+
 const APP_TITLE = "Netstamp";
+type PageTitleKey = keyof AppResources["navigation"]["pageTitles"];
+type PageTitleTranslationKey = `pageTitles.${PageTitleKey}`;
 
 interface TitleRouteMatch {
 	handle: unknown;
 }
 
 export interface PageTitleHandle {
-	title: string;
+	titleKey: PageTitleTranslationKey;
 }
 
-export function pageTitleHandle(title: string): PageTitleHandle {
-	return { title };
+export function pageTitleHandle(titleKey: PageTitleTranslationKey): PageTitleHandle {
+	return { titleKey };
 }
 
 export function formatPageTitle(title: string | null | undefined) {
@@ -17,15 +21,15 @@ export function formatPageTitle(title: string | null | undefined) {
 }
 
 function isPageTitleHandle(handle: unknown): handle is PageTitleHandle {
-	return typeof handle === "object" && handle !== null && "title" in handle && typeof handle.title === "string" && handle.title.length > 0;
+	return typeof handle === "object" && handle !== null && "titleKey" in handle && typeof handle.titleKey === "string" && handle.titleKey.length > 0;
 }
 
-export function pageTitleFromMatches(matches: readonly TitleRouteMatch[]) {
+export function pageTitleFromMatches(matches: readonly TitleRouteMatch[], translate: (key: PageTitleTranslationKey) => string) {
 	for (let index = matches.length - 1; index >= 0; index -= 1) {
 		const handle = matches[index]?.handle;
 
 		if (isPageTitleHandle(handle)) {
-			return formatPageTitle(handle.title);
+			return formatPageTitle(translate(handle.titleKey));
 		}
 	}
 

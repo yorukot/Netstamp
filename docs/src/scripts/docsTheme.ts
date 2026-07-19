@@ -45,10 +45,12 @@ function readAppliedTheme(): Theme {
 function syncThemeToggle(themeToggle: HTMLElement, theme: Theme) {
 	const isDark = theme === "dark";
 	const nextTheme = isDark ? "light" : "dark";
-	const label = nextTheme === "light" ? "Switch to light mode" : "Switch to dark mode";
+	const label = nextTheme === "light" ? themeToggle.dataset.themeLightLabel : themeToggle.dataset.themeDarkLabel;
 
-	themeToggle.setAttribute("aria-label", label);
-	themeToggle.setAttribute("title", label);
+	if (label) {
+		themeToggle.setAttribute("aria-label", label);
+		themeToggle.setAttribute("title", label);
+	}
 	themeToggle.setAttribute("aria-pressed", String(isDark));
 
 	if (themeToggle.getAttribute("role") === "switch" || themeToggle.getAttribute("role") === "checkbox") {

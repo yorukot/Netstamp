@@ -1,15 +1,17 @@
 import { formatInterval } from "@/features/checks/api/checkAdapters";
 import type { CheckDefinition } from "@/features/checks/data/checks";
 import type { Probe, ProbeStatus } from "@/features/probes/data/probes";
+import { i18n } from "@/i18n";
 import type { ApiProjectAssignment } from "@/shared/api/types";
-import { formatCount } from "@/shared/utils/insightFormatters";
 import {
 	isRelativeTimeRange as isInsightRelativeRange,
 	parseEpochMs,
 	relativeRangeForTimeWindow as relativeRangeForWindow,
 	timeWindowForRelativeRange as timeWindowForRange
 } from "@/shared/utils/timeRanges";
-import type { AssignmentSelectOption, InsightCheckTypeFilter, InsightGroupBy, InsightPair, InsightRefreshInterval, InsightRelativeRange, InsightTimeMode, ParsedInsightUrlState } from "./insightTypes";
+import type { InsightCheckTypeFilter, InsightGroupBy, InsightPair, InsightRefreshInterval, InsightRelativeRange, InsightTimeMode, ParsedInsightUrlState } from "./insightTypes";
+
+const checkT = i18n.getFixedT(null, "checks") as (key: string) => string;
 
 export const refreshDurations: Partial<Record<InsightRefreshInterval, number>> = {
 	"10s": 10 * 1000,
@@ -17,19 +19,6 @@ export const refreshDurations: Partial<Record<InsightRefreshInterval, number>> =
 	"1m": 60 * 1000,
 	"5m": 5 * 60 * 1000
 };
-
-export const checkTypeOptions: Array<{ value: InsightCheckTypeFilter; label: string }> = [
-	{ value: "all", label: "All" },
-	{ value: "ping", label: "Ping" },
-	{ value: "tcp", label: "TCP" },
-	{ value: "traceroute", label: "Traceroute" },
-	{ value: "http", label: "HTTP / HTTPS" }
-];
-
-export const groupByOptions: Array<{ value: InsightGroupBy; label: string }> = [
-	{ value: "check", label: "By check" },
-	{ value: "probe", label: "By probe" }
-];
 
 function isInsightTimeMode(value: string | null): value is InsightTimeMode {
 	return value === "relative" || value === "absolute";
@@ -170,9 +159,9 @@ function fallbackCheck(assignment: ApiProjectAssignment): CheckDefinition {
 		assigned: 0,
 		description: assignment.check?.description || "",
 		fields: [
-			["Target", target],
-			["Type", type],
-			["Interval", assignment.check ? formatInterval(assignment.check.intervalSeconds) : "-"]
+			[checkT("target"), target],
+			[checkT("type"), type],
+			[checkT("interval"), assignment.check ? formatInterval(assignment.check.intervalSeconds) : "-"]
 		]
 	};
 }
@@ -206,109 +195,6 @@ export function buildInsightPairs(assignments: ApiProjectAssignment[], probes: P
 	return pairs.sort((a, b) => a.check.target.localeCompare(b.check.target) || a.probe.name.localeCompare(b.probe.name));
 }
 
-function normalizeSearch(value: string) {
-	return value.trim().toLowerCase();
-}
-
 export function scopePairs(pairs: InsightPair[], checkType: InsightCheckTypeFilter, probeId: string, checkId: string) {
 	return pairs.filter(pair => matchesCheckType(pair, checkType) && (!probeId || pair.probeId === probeId) && (!checkId || pair.checkId === checkId));
-}
-
-function assignmentLabel(pair: InsightPair) {
-	return `${pair.check.name} / ${pair.probe.name} / ${pair.check.target}`;
-}
-
-function assignmentMeta(pair: InsightPair) {
-	return `${pair.check.type} · ${pair.probe.location}`;
-}
-
-export function assignmentSelectOption(pair: InsightPair): AssignmentSelectOption {
-	const label = assignmentLabel(pair);
-	const meta = assignmentMeta(pair);
-	const searchText = normalizeSearch(
-		[label, meta, pair.probe.name, pair.probe.location, pair.probe.provider, pair.check.name, pair.check.target, pair.check.description, ...pair.probe.labelTokens].join(" ")
-	);
-
-	return {
-		value: pair.key,
-		label,
-		meta,
-		searchText
-	};
-}
-
-export function uniqueProbeOptions(probes: Probe[], pairs: InsightPair[]): AssignmentSelectOption[] {
-	const counts = new Map<string, number>();
-	const options = new Map<string, AssignmentSelectOption>();
-
-	for (const pair of pairs) {
-		counts.set(pair.probeId, (counts.get(pair.probeId) ?? 0) + 1);
-	}
-
-	for (const probe of probes) {
-		options.set(probe.id, {
-			value: probe.id,
-			label: probe.name,
-			meta: probe.location,
-			searchText: normalizeSearch([probe.name, probe.location, probe.provider, ...probe.labelTokens].join(" "))
-		});
-	}
-
-	for (const pair of pairs) {
-		if (options.has(pair.probeId)) {
-			continue;
-		}
-
-		options.set(pair.probeId, {
-			value: pair.probeId,
-			label: pair.probe.name,
-			meta: pair.probe.location,
-			searchText: normalizeSearch([pair.probe.name, pair.probe.location, pair.probe.provider, ...pair.probe.labelTokens].join(" "))
-		});
-	}
-
-	return [...options.values()]
-		.map(option => ({
-			...option,
-			meta: `${option.meta} · ${formatCount(counts.get(option.value) ?? 0)} assignments`
-		}))
-		.sort((a, b) => a.label.localeCompare(b.label));
-}
-
-export function uniqueCheckOptions(checks: CheckDefinition[], pairs: InsightPair[]): AssignmentSelectOption[] {
-	const counts = new Map<string, number>();
-	const options = new Map<string, AssignmentSelectOption>();
-
-	for (const pair of pairs) {
-		counts.set(pair.checkId, (counts.get(pair.checkId) ?? 0) + 1);
-	}
-
-	for (const check of checks) {
-		options.set(check.id, {
-			value: check.id,
-			label: check.target,
-			meta: `${check.name} · ${check.type}`,
-			searchText: normalizeSearch([check.name, check.target, check.description, check.type].join(" "))
-		});
-	}
-
-	for (const pair of pairs) {
-		if (options.has(pair.checkId)) {
-			continue;
-		}
-
-		options.set(pair.checkId, {
-			value: pair.checkId,
-			label: pair.check.target,
-			meta: `${pair.check.name} · ${pair.check.type}`,
-			searchText: normalizeSearch([pair.check.name, pair.check.target, pair.check.description, pair.check.type].join(" "))
-		});
-	}
-
-	return [...options.values()]
-		.map(option => ({
-			...option,
-			meta: `${option.meta} · ${formatCount(counts.get(option.value) ?? 0)} assignments`
-		}))
-		.sort((a, b) => a.label.localeCompare(b.label));
 }

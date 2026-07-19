@@ -1,0 +1,31 @@
+---
+title: UI 系統
+description: 共用 UI primitive 定義了 Docs、Storybook、API reference 與需驗證應用程式所使用的產品語言。
+icon: cube
+head:
+  - tag: title
+    content: UI 系統 | Netstamp 說明文件
+---
+
+## Token
+
+`@netstamp/ui/styles` 定義字型、預設深色 palette、選用淺色 palette、frame border、scrollbar、focus 行為與相容性 utility class。請在每個 app root 或 Astro layout import 一次。
+
+```ts
+import "@netstamp/ui/styles";
+import { Button, Panel, MetricCard } from "@netstamp/ui";
+```
+
+## 元件
+
+此 package 匯出 `Button`、`Badge`、`Surface`、`Panel`、`MetricCard`、`MetricTile`、`SpecCard`、`SpecLabel`、`SelectableRow`、`KeyValueRow`、`CodeBlock`、`Field`、`DataTable`、`SignalAvatar`、`PageShell` 與 `GlobalFooter` 等 primitive。
+
+:::note Astro page 預設維持靜態。只有真正需要 React component 或 landing-page 瀏覽器效果的頁面才會 hydrate React。 :::
+
+## 互動 Frame
+
+互動元件一次只使用一個可見 frame。Hover 與 active state 使用 token border；鍵盤 focus 使用 `--ns-focus-outline`，並在需要時抑制 component border，避免 button、input、tab、searchable select 與 spec row 在選取或 focus 時顯示堆疊邊框。
+
+## Storybook
+
+Component catalog 由 Storybook 建置，並隨 Docs 網站發布至 [`/storybook/`](/storybook/)。內容包含 foundation、component spec、form state、overlay example 與 operational workspace pattern。本機執行指令為 `pnpm --filter @netstamp/ui storybook`。

@@ -1,4 +1,5 @@
 import { useSession } from "@/features/auth/session/SessionContext";
+import { useLocaleFormat } from "@/i18n/format";
 import { useCancelProjectInviteMutation, useCreateProjectInviteMutation, useRemoveProjectMemberMutation, useUpdateProjectMemberRoleMutation } from "@/shared/api/mutations";
 import { projectQueries } from "@/shared/api/queries";
 import type { ApiProjectInvite, ProjectMemberRole } from "@/shared/api/types";
@@ -10,6 +11,7 @@ import { createGravatarUrl } from "@/shared/utils/gravatar";
 import { Badge, Button, DataTable, Panel, SelectField, SignalAvatar, Spinner, TextField, type DataColumn } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import styles from "./MembersPage.module.css";
 import { RoleSelect } from "./RoleSelect";
 
@@ -33,14 +35,6 @@ interface InviteRow {
 	invitedBy: string;
 	createdAt: string;
 	status: string;
-}
-
-function formatDateTime(value: string) {
-	return new Date(value).toLocaleString();
-}
-
-function roleLabel(role: string) {
-	return role.charAt(0).toUpperCase() + role.slice(1);
 }
 
 function roleRank(role: string) {
@@ -85,14 +79,14 @@ function canRemoveMember(actorRole: string | undefined, memberRole: string, isCu
 
 function blockedRemoveLabel(actorRole: string | undefined, memberRole: string) {
 	if (memberRole === "owner") {
-		return "Owner protected";
+		return "ownerProtected" as const;
 	}
 
 	if (actorRole === "admin" && memberRole === "admin") {
-		return "Admin protected";
+		return "adminProtected" as const;
 	}
 
-	return "No access";
+	return "noAccess" as const;
 }
 
 function canUpdateMemberRole(actorRole: string | undefined, memberRole: string) {
@@ -108,6 +102,8 @@ function canUpdateMemberRole(actorRole: string | undefined, memberRole: string) 
 }
 
 export function MembersPage() {
+	const { t } = useTranslation(["project", "common"]);
+	const format = useLocaleFormat();
 	const { projectRef } = useCurrentProject();
 	const { session } = useSession();
 	const createInviteMutation = useCreateProjectInviteMutation(projectRef);
@@ -170,8 +166,8 @@ export function MembersPage() {
 				onSuccess: data => {
 					setMemberEmail("");
 					pushToast({
-						title: "Invite sent",
-						message: `${data.invite.invitedEmail} can now accept access to ${data.invite.project.name}.`,
+						title: t("members.inviteSent"),
+						message: t("members.inviteSentMessage", { email: data.invite.invitedEmail, project: data.invite.project.name }),
 						tone: "success"
 					});
 				}
@@ -183,8 +179,8 @@ export function MembersPage() {
 		cancelInviteMutation.mutate(row.id, {
 			onSuccess: () => {
 				pushToast({
-					title: "Invite canceled",
-					message: `${row.email} no longer has a pending invite.`,
+					title: t("members.inviteCanceled"),
+					message: t("members.inviteCanceledMessage", { email: row.email }),
 					tone: "success"
 				});
 			}
@@ -200,7 +196,7 @@ export function MembersPage() {
 			avatarUrl: memberAvatarUrls[member.user.email],
 			initials: memberInitials(member.user.displayName, member.user.email),
 			role: member.role,
-			lastActive: formatDateTime(member.updatedAt),
+			lastActive: format.dateTime(member.updatedAt),
 			isCurrentUser: member.userId === currentUserId
 		}))
 		.sort((left, right) => {
@@ -218,13 +214,13 @@ export function MembersPage() {
 		email: invite.invitedEmail,
 		role: invite.role,
 		invitedBy: invite.invitedByUser.displayName,
-		createdAt: formatDateTime(invite.createdAt),
+		createdAt: format.dateTime(invite.createdAt),
 		status: invite.status
 	}));
 	const memberColumns: DataColumn<MemberRow>[] = [
 		{
 			key: "name",
-			label: "User ID",
+			label: t("members.userId"),
 			render: row => (
 				<span className={styles.memberCell}>
 					{row.avatarUrl ? (
@@ -238,10 +234,10 @@ export function MembersPage() {
 				</span>
 			)
 		},
-		{ key: "email", label: "Account" },
+		{ key: "email", label: t("members.account") },
 		{
 			key: "role",
-			label: "Role",
+			label: t("members.role"),
 			render: row => (
 				<RoleSelect
 					role={row.role}
@@ -251,17 +247,17 @@ export function MembersPage() {
 				/>
 			)
 		},
-		{ key: "lastActive", label: "Last active" },
+		{ key: "lastActive", label: t("members.lastActive") },
 		{
 			key: "delete",
-			label: "Delete",
+			label: t("members.delete"),
 			render: row => {
 				const canDeleteMember = Boolean(projectRef) && canRemoveMember(currentMemberRole, row.role, row.isCurrentUser);
 
 				if (row.isCurrentUser) {
 					return (
-						<Button variant="outline" size="sm" disabled title="Use Leave project when your role allows it.">
-							Current user
+						<Button variant="outline" size="sm" disabled title={t("members.currentUserHint")}>
+							{t("members.currentUser")}
 						</Button>
 					);
 				}
@@ -269,14 +265,14 @@ export function MembersPage() {
 				if (!canDeleteMember) {
 					return (
 						<Button variant="outline" size="sm" disabled>
-							{blockedRemoveLabel(currentMemberRole, row.role)}
+							{t(`members.${blockedRemoveLabel(currentMemberRole, row.role)}`)}
 						</Button>
 					);
 				}
 
 				return (
 					<Button variant="danger" size="sm" disabled={removeMemberMutation.isPending} onClick={() => removeMemberMutation.mutate(row.userId)}>
-						{removeMemberMutation.isPending ? "Deleting" : "Delete"}
+						{removeMemberMutation.isPending ? t("members.deleting") : t("members.delete")}
 					</Button>
 				);
 			}
@@ -285,7 +281,7 @@ export function MembersPage() {
 	const inviteColumns: DataColumn<InviteRow>[] = [
 		{
 			key: "name",
-			label: "Invited user",
+			label: t("members.invitedUser"),
 			render: row => (
 				<span className={styles.stackedCell}>
 					<strong>{row.name}</strong>
@@ -293,19 +289,19 @@ export function MembersPage() {
 				</span>
 			)
 		},
-		{ key: "role", label: "Role", render: row => <Badge tone="accent">{roleLabel(row.role)}</Badge> },
-		{ key: "invitedBy", label: "Invited by" },
-		{ key: "createdAt", label: "Sent" },
-		{ key: "status", label: "Status", render: row => <Badge tone="warning">{roleLabel(row.status)}</Badge> },
+		{ key: "role", label: t("members.role"), render: row => <Badge tone="accent">{t(`roles.${row.role as ProjectMemberRole}`)}</Badge> },
+		{ key: "invitedBy", label: t("members.invitedBy") },
+		{ key: "createdAt", label: t("members.sent") },
+		{ key: "status", label: t("members.status"), render: row => <Badge tone="warning">{t(`members.statuses.${row.status as "accepted" | "canceled" | "expired" | "pending" | "rejected"}`)}</Badge> },
 		{
 			key: "actions",
-			label: "Actions",
+			label: t("members.actions"),
 			render: row => {
 				const canceling = cancelInviteMutation.isPending && cancelInviteMutation.variables === row.id;
 
 				return (
 					<Button variant="danger" size="sm" disabled={cancelInviteMutation.isPending} onClick={() => cancelInvite(row)}>
-						{canceling ? "Canceling" : "Cancel"}
+						{canceling ? t("members.canceling") : t("members.cancel")}
 					</Button>
 				);
 			}
@@ -314,24 +310,24 @@ export function MembersPage() {
 
 	return (
 		<PageStack>
-			<ScreenHeader title="Members" />
+			<ScreenHeader title={t("members.title")} />
 
 			{canManageMembers ? (
-				<Panel tone="glass" title="Invite Members" summary={`${inviteRows.length} pending invites`}>
+				<Panel tone="glass" title={t("members.invitePanel")} summary={t("members.pendingInvites", { count: inviteRows.length })}>
 					<div className={styles.formGridThree}>
-						<TextField label="Email" value={memberEmail} onChange={event => setMemberEmail(event.currentTarget.value)} />
+						<TextField label={t("members.email")} value={memberEmail} onChange={event => setMemberEmail(event.currentTarget.value)} />
 						<SelectField
-							label="Role"
+							label={t("members.role")}
 							value={memberRole}
 							onChange={event => setMemberRole(event.currentTarget.value as ProjectMemberRole)}
 							options={[
-								{ value: "admin", label: "Admin" },
-								{ value: "editor", label: "Editor" },
-								{ value: "viewer", label: "Viewer" }
+								{ value: "admin", label: t("roles.admin") },
+								{ value: "editor", label: t("roles.editor") },
+								{ value: "viewer", label: t("roles.viewer") }
 							]}
 						/>
 						<Button disabled={!projectRef || !memberEmail || createInviteMutation.isPending} onClick={createCurrentInvite}>
-							{createInviteMutation.isPending ? "Sending" : "Send invite"}
+							{createInviteMutation.isPending ? t("members.sending") : t("members.sendInvite")}
 						</Button>
 					</div>
 					<DataTable
@@ -339,13 +335,13 @@ export function MembersPage() {
 						rows={inviteRows}
 						density="compact"
 						minWidth="46rem"
-						emptyLabel={invitesQuery.isLoading ? <Spinner label="Loading pending invites" layout="compact" size="lg" /> : "No pending invites"}
+						emptyLabel={invitesQuery.isLoading ? <Spinner label={t("members.loadingInvites")} layout="compact" size="lg" /> : t("members.noInvites")}
 						getRowKey={row => row.id}
 					/>
 				</Panel>
 			) : null}
 
-			<Panel tone="glass" title="Member Access" padded={false} bodySurface="transparent">
+			<Panel tone="glass" title={t("members.access")} padded={false} bodySurface="transparent">
 				<DataTable columns={memberColumns} rows={memberRows} getRowKey={row => row.id} />
 			</Panel>
 		</PageStack>

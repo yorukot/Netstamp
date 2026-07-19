@@ -1,6 +1,10 @@
+import { i18n } from "@/i18n";
+import { formatDateTime as formatLocaleDateTime } from "@/i18n/format";
 import type { ApiAlertIncident, ApiAlertRule, ApiNotification, CreateAlertRuleInput, CreateNotificationInput, UpdateAlertRuleInput, UpdateNotificationInput } from "@/shared/api/types";
 import type { BadgeTone } from "@netstamp/ui";
 import type { MouseEvent } from "react";
+
+const alertT = i18n.getFixedT(null, "alerts") as (key: string, options?: Record<string, unknown>) => string;
 
 export type AlertTab = "incidents" | "rules" | "notifications";
 export type IncidentStatusFilter = "open" | "acknowledged" | "resolved" | "all";
@@ -54,12 +58,6 @@ export interface NotificationFormState {
 	enabled: string;
 }
 
-export interface NotificationTypeOption {
-	value: NotificationType;
-	label: string;
-	detail: string;
-}
-
 export interface NumericFieldValidation {
 	value: number;
 	error: string;
@@ -77,108 +75,59 @@ export const emptyRules: ApiAlertRule[] = [];
 export const emptyIncidents: ApiAlertIncident[] = [];
 export const emptyNotifications: ApiNotification[] = [];
 
-export const alertTabs: Array<{ value: AlertTab; label: string }> = [
-	{ value: "incidents", label: "Incidents" },
-	{ value: "rules", label: "Rules" },
-	{ value: "notifications", label: "Notifications" }
+export const alertTabs: Array<{ value: AlertTab }> = [{ value: "incidents" }, { value: "rules" }, { value: "notifications" }];
+
+export const incidentStatusOptions: Array<{ value: IncidentStatusFilter }> = [{ value: "open" }, { value: "acknowledged" }, { value: "resolved" }, { value: "all" }];
+
+export const ruleStatusOptions: Array<{ value: RuleStatusFilter }> = [{ value: "all" }, { value: "enabled" }, { value: "disabled" }];
+
+export const ruleCheckTypeOptions: Array<{ value: RuleCheckTypeFilter }> = [{ value: "all" }, { value: "ping" }, { value: "tcp" }, { value: "traceroute" }, { value: "http" }];
+
+export const notificationStatusOptions: Array<{ value: NotificationStatusFilter }> = [{ value: "all" }, { value: "enabled" }, { value: "disabled" }];
+
+export const notificationFilterTypeOptions: Array<{ value: NotificationTypeFilter }> = [
+	{ value: "all" },
+	{ value: "webhook" },
+	{ value: "slack" },
+	{ value: "discord" },
+	{ value: "telegram" },
+	{ value: "email" }
 ];
 
-export const incidentStatusOptions: Array<{ value: IncidentStatusFilter; label: string }> = [
-	{ value: "open", label: "Open" },
-	{ value: "acknowledged", label: "Acknowledged" },
-	{ value: "resolved", label: "Resolved" },
-	{ value: "all", label: "All" }
-];
+export const checkTypeOptions: Array<{ value: CheckType; disabled?: boolean }> = [{ value: "ping" }, { value: "tcp" }, { value: "traceroute", disabled: true }, { value: "http" }];
 
-export const ruleStatusOptions: Array<{ value: RuleStatusFilter; label: string }> = [
-	{ value: "all", label: "Any status" },
-	{ value: "enabled", label: "Enabled" },
-	{ value: "disabled", label: "Disabled" }
-];
-
-export const ruleCheckTypeOptions: Array<{ value: RuleCheckTypeFilter; label: string }> = [
-	{ value: "all", label: "Any type" },
-	{ value: "ping", label: "Ping" },
-	{ value: "tcp", label: "TCP" },
-	{ value: "traceroute", label: "Traceroute" },
-	{ value: "http", label: "HTTP" }
-];
-
-export const notificationStatusOptions: Array<{ value: NotificationStatusFilter; label: string }> = [
-	{ value: "all", label: "Any status" },
-	{ value: "enabled", label: "Enabled" },
-	{ value: "disabled", label: "Disabled" }
-];
-
-export const notificationFilterTypeOptions: Array<{ value: NotificationTypeFilter; label: string }> = [
-	{ value: "all", label: "Any type" },
-	{ value: "webhook", label: "Webhook" },
-	{ value: "slack", label: "Slack" },
-	{ value: "discord", label: "Discord" },
-	{ value: "telegram", label: "Telegram" },
-	{ value: "email", label: "Email" }
-];
-
-export const checkTypeOptions: Array<{ value: CheckType; label: string; disabled?: boolean }> = [
-	{ value: "ping", label: "Ping" },
-	{ value: "tcp", label: "TCP" },
-	{ value: "traceroute", label: "Traceroute (alerts not available)", disabled: true },
-	{ value: "http", label: "HTTP / HTTPS" }
-];
-
-export const metricOptions: Record<CheckType, Array<{ value: AlertMetric; label: string; unit?: string }>> = {
+export const metricOptions: Record<CheckType, Array<{ value: AlertMetric; unit?: string }>> = {
 	ping: [
-		{ value: "ping.loss_percent", label: "Ping loss percent", unit: "%" },
-		{ value: "ping.average_rtt_ms", label: "Ping average RTT", unit: "ms" },
-		{ value: "ping.max_rtt_ms", label: "Ping max RTT", unit: "ms" },
-		{ value: "ping.success_rate", label: "Ping success rate", unit: "%" }
+		{ value: "ping.loss_percent", unit: "%" },
+		{ value: "ping.average_rtt_ms", unit: "ms" },
+		{ value: "ping.max_rtt_ms", unit: "ms" },
+		{ value: "ping.success_rate", unit: "%" }
 	],
 	tcp: [
-		{ value: "tcp.failure_percent", label: "TCP failure percent", unit: "%" },
-		{ value: "tcp.average_connect_ms", label: "TCP average connect", unit: "ms" },
-		{ value: "tcp.max_connect_ms", label: "TCP max connect", unit: "ms" },
-		{ value: "tcp.success_rate", label: "TCP success rate", unit: "%" }
+		{ value: "tcp.failure_percent", unit: "%" },
+		{ value: "tcp.average_connect_ms", unit: "ms" },
+		{ value: "tcp.max_connect_ms", unit: "ms" },
+		{ value: "tcp.success_rate", unit: "%" }
 	],
 	http: [
-		{ value: "http.failure_percent", label: "HTTP failure percent", unit: "%" },
-		{ value: "http.average_total_ms", label: "HTTP average total", unit: "ms" },
-		{ value: "http.max_total_ms", label: "HTTP max total", unit: "ms" },
-		{ value: "http.average_ttfb_ms", label: "HTTP average TTFB", unit: "ms" },
-		{ value: "http.max_ttfb_ms", label: "HTTP max TTFB", unit: "ms" },
-		{ value: "http.success_rate", label: "HTTP success rate", unit: "%" },
-		{ value: "http.certificate_days_remaining", label: "Certificate days remaining", unit: "days" }
+		{ value: "http.failure_percent", unit: "%" },
+		{ value: "http.average_total_ms", unit: "ms" },
+		{ value: "http.max_total_ms", unit: "ms" },
+		{ value: "http.average_ttfb_ms", unit: "ms" },
+		{ value: "http.max_ttfb_ms", unit: "ms" },
+		{ value: "http.success_rate", unit: "%" },
+		{ value: "http.certificate_days_remaining", unit: "days" }
 	],
 	traceroute: []
 };
 
-export const severityOptions: Array<{ value: AlertSeverity; label: string }> = [
-	{ value: "info", label: "Info" },
-	{ value: "warning", label: "Warning" },
-	{ value: "critical", label: "Critical" }
-];
+export const severityOptions: Array<{ value: AlertSeverity }> = [{ value: "info" }, { value: "warning" }, { value: "critical" }];
 
-export const operatorOptions: Array<{ value: AlertOperator; label: string }> = [
-	{ value: "gt", label: "Greater than" },
-	{ value: "gte", label: "Greater or equal" },
-	{ value: "lt", label: "Less than" },
-	{ value: "lte", label: "Less or equal" },
-	{ value: "eq", label: "Equal" }
-];
+export const operatorOptions: Array<{ value: AlertOperator }> = [{ value: "gt" }, { value: "gte" }, { value: "lt" }, { value: "lte" }, { value: "eq" }];
 
-export const enabledOptions = [
-	{ value: "true", label: "Enabled" },
-	{ value: "false", label: "Disabled" }
-];
+export const enabledOptions = [{ value: "true" }, { value: "false" }];
 
-export const webhookNotificationTypeOption: NotificationTypeOption = { value: "webhook", label: "Webhook", detail: "Send raw alert JSON to any HTTPS endpoint." };
-
-export const notificationTypeOptions: NotificationTypeOption[] = [
-	webhookNotificationTypeOption,
-	{ value: "slack", label: "Slack", detail: "Post alert summaries to a Slack incoming webhook." },
-	{ value: "discord", label: "Discord", detail: "Post alert summaries to a Discord notification webhook." },
-	{ value: "telegram", label: "Telegram", detail: "Send alert summaries through a Telegram bot." },
-	{ value: "email", label: "Email", detail: "Send alert summaries to one or more email recipients." }
-];
+export const notificationTypeOptions: Array<{ value: NotificationType }> = [{ value: "webhook" }, { value: "slack" }, { value: "discord" }, { value: "telegram" }, { value: "email" }];
 
 export const operatorSymbols: Record<AlertOperator, string> = {
 	gt: ">",
@@ -186,14 +135,6 @@ export const operatorSymbols: Record<AlertOperator, string> = {
 	lt: "<",
 	lte: "<=",
 	eq: "="
-};
-
-export const operatorPhrases: Record<AlertOperator, string> = {
-	gt: "is greater than",
-	gte: "is at least",
-	lt: "is less than",
-	lte: "is at most",
-	eq: "equals"
 };
 
 export function formatDateTime(value?: string | null) {
@@ -206,7 +147,7 @@ export function formatDateTime(value?: string | null) {
 		return "-";
 	}
 
-	return date.toLocaleString();
+	return formatLocaleDateTime(date);
 }
 
 export function shortID(value: string) {
@@ -220,20 +161,20 @@ export function formatDuration(seconds: number) {
 
 	if (seconds % 86400 === 0) {
 		const days = seconds / 86400;
-		return `${days} ${days === 1 ? "day" : "days"}`;
+		return alertT("duration.days", { count: days });
 	}
 
 	if (seconds % 3600 === 0) {
 		const hours = seconds / 3600;
-		return `${hours} ${hours === 1 ? "hour" : "hours"}`;
+		return alertT("duration.hours", { count: hours });
 	}
 
 	if (seconds % 60 === 0) {
 		const minutes = seconds / 60;
-		return `${minutes} ${minutes === 1 ? "min" : "min"}`;
+		return alertT("duration.minutes", { count: minutes });
 	}
 
-	return `${seconds} sec`;
+	return alertT("duration.seconds", { count: seconds });
 }
 
 export function severityTone(severity: string): BadgeTone {
@@ -269,7 +210,25 @@ export function metricOption(metric: AlertMetric) {
 }
 
 export function metricLabel(metric: AlertMetric) {
-	return metricOption(metric)?.label ?? metric.replace(/_/g, " ");
+	const keys: Partial<Record<AlertMetric, string>> = {
+		"ping.loss_percent": "pingLoss",
+		"ping.average_rtt_ms": "pingAverageRtt",
+		"ping.max_rtt_ms": "pingMaxRtt",
+		"ping.success_rate": "pingSuccess",
+		"tcp.failure_percent": "tcpFailure",
+		"tcp.average_connect_ms": "tcpAverageConnect",
+		"tcp.max_connect_ms": "tcpMaxConnect",
+		"tcp.success_rate": "tcpSuccess",
+		"http.failure_percent": "httpFailure",
+		"http.average_total_ms": "httpAverageTotal",
+		"http.max_total_ms": "httpMaxTotal",
+		"http.average_ttfb_ms": "httpAverageTtfb",
+		"http.max_ttfb_ms": "httpMaxTtfb",
+		"http.success_rate": "httpSuccess",
+		"http.certificate_days_remaining": "certificateDays"
+	};
+	const key = keys[metric];
+	return key ? alertT(`rules.metrics.${key}`) : metric.replace(/_/g, " ");
 }
 
 export function metricUnit(metric: AlertMetric) {
@@ -283,7 +242,10 @@ export function formatThreshold(metric: AlertMetric, threshold: number | string)
 }
 
 export function formatAlertCondition(condition: ApiAlertRule["condition"]) {
-	return `${metricLabel(condition.metric)} ${operatorSymbols[condition.operator]} ${formatThreshold(condition.metric, condition.threshold)} for ${formatDuration(condition.windowSeconds)}`;
+	return alertT("rules.conditionFor", {
+		condition: `${metricLabel(condition.metric)} ${operatorSymbols[condition.operator]} ${formatThreshold(condition.metric, condition.threshold)}`,
+		duration: formatDuration(condition.windowSeconds)
+	});
 }
 
 export function formatIncidentReason(incident: ApiAlertIncident) {
@@ -298,10 +260,10 @@ export function formatIncidentReason(incident: ApiAlertIncident) {
 export function formatRuleScope(rule: ApiAlertRule) {
 	const parts = [rule.scope.checkType.toUpperCase()];
 	if (rule.scope.probeId) {
-		parts.push(`probe ${shortID(rule.scope.probeId)}`);
+		parts.push(`${alertT("incidents.probe")} ${shortID(rule.scope.probeId)}`);
 	}
 	if (rule.scope.checkId) {
-		parts.push(`check ${shortID(rule.scope.checkId)}`);
+		parts.push(`${alertT("incidents.check")} ${shortID(rule.scope.checkId)}`);
 	}
 	return parts.join(" / ");
 }
@@ -319,7 +281,7 @@ export function incidentCheckTarget(incident: ApiAlertIncident) {
 }
 
 export function incidentTargetTitle(incident: ApiAlertIncident) {
-	return `Probe ${incident.probeId} / Check ${incident.checkId}`;
+	return alertT("incidents.targetTitle", { probeId: incident.probeId, checkId: incident.checkId });
 }
 
 export function formatIncidentProbe(incident: ApiAlertIncident) {
@@ -363,32 +325,36 @@ export function notificationEmails(notification: ApiNotification) {
 export function notificationTypeLabel(notificationType: string) {
 	switch (notificationType) {
 		case "webhook":
-			return "Webhook";
+			return alertT("notifications.types.webhook");
 		case "slack":
-			return "Slack";
+			return alertT("notifications.types.slack");
 		case "discord":
-			return "Discord";
+			return alertT("notifications.types.discord");
 		case "telegram":
-			return "Telegram";
+			return alertT("notifications.types.telegram");
 		case "email":
-			return "Email";
+			return alertT("notifications.types.email");
 		default:
 			return notificationType;
 	}
 }
 
 export function notificationTypeOption(notificationType: NotificationType) {
-	return notificationTypeOptions.find(option => option.value === notificationType) ?? webhookNotificationTypeOption;
+	return {
+		value: notificationType,
+		label: notificationTypeLabel(notificationType),
+		detail: alertT(`notifications.details.${notificationType}`)
+	};
 }
 
 export function notificationWebhookURLLabel(notificationType: NotificationType) {
 	switch (notificationType) {
 		case "slack":
-			return "Slack webhook URL";
+			return alertT("notifications.slackUrl");
 		case "discord":
-			return "Discord webhook URL";
+			return alertT("notifications.discordUrl");
 		default:
-			return "Webhook URL";
+			return alertT("notifications.webhookUrl");
 	}
 }
 
@@ -410,7 +376,7 @@ export function notificationDestination(notification: ApiNotification) {
 		case "webhook":
 			return notificationURL(notification);
 		case "telegram":
-			return notificationChatID(notification) ? `chat ${notificationChatID(notification)}` : "-";
+			return notificationChatID(notification) ? alertT("notifications.chatDestination", { id: notificationChatID(notification) }) : "-";
 		case "email":
 			return notificationEmails(notification).join(", ") || "-";
 		default:
@@ -424,7 +390,7 @@ export function notificationNameByID(notifications: ApiNotification[], notificat
 
 export function notificationLabel(rule: ApiAlertRule, notifications: ApiNotification[]) {
 	if (!rule.notificationIds.length) {
-		return "No notification";
+		return alertT("notifications.none");
 	}
 
 	return rule.notificationIds.map(notificationID => notificationNameByID(notifications, notificationID)).join(", ");
@@ -449,7 +415,7 @@ export function metricOptionsForForm(form: RuleFormState) {
 		return options;
 	}
 
-	return [{ value: form.metric, label: metricLabel(form.metric), unit: metricUnit(form.metric) }];
+	return [{ value: form.metric, unit: metricUnit(form.metric) }];
 }
 
 export function defaultRuleForm(): RuleFormState {
@@ -522,25 +488,25 @@ export function validateNumericField(label: string, value: string, options: { in
 	const trimmed = value.trim();
 
 	if (!trimmed) {
-		return { value: Number.NaN, error: `${label} is required.` };
+		return { value: Number.NaN, error: alertT("rules.validation.required", { label }) };
 	}
 
 	const parsed = Number(trimmed);
 
 	if (!Number.isFinite(parsed)) {
-		return { value: Number.NaN, error: `${label} must be a number.` };
+		return { value: Number.NaN, error: alertT("rules.validation.number", { label }) };
 	}
 
 	if (options.integer && !Number.isInteger(parsed)) {
-		return { value: parsed, error: `${label} must be a whole number.` };
+		return { value: parsed, error: alertT("rules.validation.whole", { label }) };
 	}
 
 	if (typeof options.min === "number" && parsed < options.min) {
-		return { value: parsed, error: `${label} must be at least ${options.min}.` };
+		return { value: parsed, error: alertT("rules.validation.minimum", { label, min: options.min }) };
 	}
 
 	if (typeof options.max === "number" && parsed > options.max) {
-		return { value: parsed, error: `${label} must be at most ${options.max}.` };
+		return { value: parsed, error: alertT("rules.validation.maximum", { label, max: options.max }) };
 	}
 
 	return { value: parsed, error: "" };
@@ -548,11 +514,11 @@ export function validateNumericField(label: string, value: string, options: { in
 
 export function validateRuleNumbers(form: RuleFormState): RuleNumberValidation {
 	return {
-		threshold: validateNumericField("Threshold", form.threshold, { min: 0 }),
-		windowSeconds: validateNumericField("Window seconds", form.windowSeconds, { integer: true, min: 60, max: 86400 }),
-		minSamples: validateNumericField("Min samples", form.minSamples, { integer: true, min: 1, max: 10000 }),
-		triggerAfterMinutes: validateNumericField("Trigger after", form.triggerAfterMinutes, { integer: true, min: 1, max: 1440 }),
-		cooldownSeconds: validateNumericField("Cooldown", form.cooldownSeconds, { integer: true, min: 60, max: 86400 })
+		threshold: validateNumericField(alertT("rules.threshold"), form.threshold, { min: 0 }),
+		windowSeconds: validateNumericField(alertT("rules.windowSeconds"), form.windowSeconds, { integer: true, min: 60, max: 86400 }),
+		minSamples: validateNumericField(alertT("rules.minSamples"), form.minSamples, { integer: true, min: 1, max: 10000 }),
+		triggerAfterMinutes: validateNumericField(alertT("rules.triggerMinutes"), form.triggerAfterMinutes, { integer: true, min: 1, max: 1440 }),
+		cooldownSeconds: validateNumericField(alertT("rules.cooldownSeconds"), form.cooldownSeconds, { integer: true, min: 60, max: 86400 })
 	};
 }
 
@@ -628,11 +594,22 @@ export function notificationEmailRecipients(value: string) {
 }
 
 export function rulePreview(form: RuleFormState, notifications: ApiNotification[], numbers: RuleNumberValidation) {
-	const metric = metricLabel(form.metric).toLowerCase();
+	const metric = metricLabel(form.metric);
 	const threshold = formatThreshold(form.metric, form.threshold || "0");
-	const notification = form.selectedNotificationIds.length ? form.selectedNotificationIds.map(notificationID => notificationNameByID(notifications, notificationID)).join(", ") : "no notification";
+	const notification = form.selectedNotificationIds.length
+		? form.selectedNotificationIds.map(notificationID => notificationNameByID(notifications, notificationID)).join(", ")
+		: alertT("rules.noNotification");
 
-	return `Create a ${form.severity} incident when ${metric} ${operatorPhrases[form.operator]} ${threshold}, evaluated over ${formatDuration(numbers.windowSeconds.value)}, remains firing for ${formatDuration(numbers.triggerAfterMinutes.value * 60)}. Notify ${notification}, then wait ${formatDuration(numbers.cooldownSeconds.value)} before repeating.`;
+	return alertT("rules.preview", {
+		severity: alertT(`rules.severityOptions.${form.severity}`),
+		metric,
+		operator: alertT(`rules.operatorPhrases.${form.operator}`),
+		threshold,
+		window: formatDuration(numbers.windowSeconds.value),
+		trigger: formatDuration(numbers.triggerAfterMinutes.value * 60),
+		notification,
+		cooldown: formatDuration(numbers.cooldownSeconds.value)
+	});
 }
 
 export function stopTableAction(event: MouseEvent<HTMLButtonElement>) {

@@ -1,6 +1,7 @@
 import {
 	coordinateInputError,
 	formatCoordinate,
+	LocationSearchError,
 	parseCoordinateInput,
 	searchNominatimLocation,
 	type CoordinateInputMode,
@@ -17,22 +18,14 @@ import { classNames } from "@/shared/utils/classNames";
 import { Badge, Button, CodeBlock, SegmentedControl, TextField } from "@netstamp/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { LocationPreviewMap } from "./LocationPreviewMap";
 import styles from "./NewProbeDrawer.module.css";
 import { ProbeWizardTimeline } from "./ProbeWizardTimeline";
 
-const createProbeSteps = [
-	{ number: "01", title: "Name", copy: "Probe identity" },
-	{ number: "02", title: "Install", copy: "Run command" }
-];
-
-const coordinateModeOptions: Array<{ value: CoordinateInputMode; label: string }> = [
-	{ value: "search", label: "Search name" },
-	{ value: "manual", label: "Manual coordinates" }
-];
-
 export function NewProbeDrawer() {
+	const { t } = useTranslation(["probes", "common"]);
 	const navigate = useNavigate();
 	const { projectRef } = useCurrentProject();
 	const queryClient = useQueryClient();
@@ -64,17 +57,25 @@ export function NewProbeDrawer() {
 	const heartbeatReceived = Boolean(createdProbeQuery.data?.probe.status?.state === "online" || createdProbeQuery.data?.probe.status?.lastSeenAt);
 	const latitude = parseCoordinateInput(latitudeInput);
 	const longitude = parseCoordinateInput(longitudeInput);
-	const latitudeError = coordinateInputMode === "manual" ? coordinateInputError("Latitude", latitudeInput, -90, 90) : "";
-	const longitudeError = coordinateInputMode === "manual" ? coordinateInputError("Longitude", longitudeInput, -180, 180) : "";
-	const visibleLatitudeError = latitudeInput.trim() ? latitudeError : "";
-	const visibleLongitudeError = longitudeInput.trim() ? longitudeError : "";
+	const latitudeError = coordinateInputMode === "manual" ? coordinateInputError(latitudeInput, -90, 90) : null;
+	const longitudeError = coordinateInputMode === "manual" ? coordinateInputError(longitudeInput, -180, 180) : null;
+	const visibleLatitudeError = latitudeInput.trim() && latitudeError ? t(`location.${latitudeError}`, { label: t("location.latitude"), min: -90, max: 90 }) : "";
+	const visibleLongitudeError = longitudeInput.trim() && longitudeError ? t(`location.${longitudeError}`, { label: t("location.longitude"), min: -180, max: 180 }) : "";
 	const searchCoordinatesReady = coordinateInputMode === "search" && geocodeStatus === "resolved" && latitude !== null && longitude !== null;
 	const manualCoordinatesReady = coordinateInputMode === "manual" && latitude !== null && longitude !== null && !latitudeError && !longitudeError;
 	const coordinatesReady = searchCoordinatesReady || manualCoordinatesReady;
 	const selectedCoordinates: ProbeCoordinates | null = coordinatesReady && latitude !== null && longitude !== null ? { latitude, longitude } : null;
 	const canSearchLocation = coordinateInputMode === "search" && locationSearch.trim().length > 0 && geocodeStatus !== "searching";
 	const canCreate = probeName.trim().length > 0 && Boolean(projectRef) && Boolean(selectedCoordinates);
-	const previewTitle = locationName.trim() || "Manual coordinates";
+	const previewTitle = locationName.trim() || t("location.manual");
+	const createProbeSteps = [
+		{ number: "01", title: t("wizard.nameStep"), copy: t("wizard.nameStepCopy") },
+		{ number: "02", title: t("wizard.installStep"), copy: t("wizard.installStepCopy") }
+	];
+	const coordinateModeOptions: Array<{ value: CoordinateInputMode; label: string }> = [
+		{ value: "search", label: t("location.searchName") },
+		{ value: "manual", label: t("location.manualCoordinates") }
+	];
 	const installerUrl = installAssetUrl(installAssetPaths.agentInstaller);
 	const uninstallerUrl = installAssetUrl(installAssetPaths.agentUninstaller);
 	const binaryUrl = installAssetUrl(installAssetPaths.linuxAmd64Binary);
@@ -178,7 +179,7 @@ export function NewProbeDrawer() {
 			}
 
 			setGeocodeStatus("error");
-			setGeocodeError(error instanceof Error ? error.message : "Location search failed.");
+			setGeocodeError(t(`location.${error instanceof LocationSearchError ? error.code : "searchFailed"}`));
 		} finally {
 			if (geocodeAbortRef.current === abortController) {
 				geocodeAbortRef.current = null;
@@ -206,8 +207,8 @@ export function NewProbeDrawer() {
 	}
 
 	return (
-		<EditorDrawer open title="Create probe" ariaLabel="New probe wizard" contentClassName={styles.drawerContent} onClose={closeDrawer}>
-			<p className={styles.drawerIntro}>Name the probe, install it on a host, then wait for the controller to receive its first heartbeat.</p>
+		<EditorDrawer open title={t("wizard.title")} ariaLabel={t("wizard.aria")} contentClassName={styles.drawerContent} onClose={closeDrawer}>
+			<p className={styles.drawerIntro}>{t("wizard.intro")}</p>
 
 			<ProbeWizardTimeline steps={createProbeSteps} currentStep={currentStep} />
 
@@ -215,17 +216,24 @@ export function NewProbeDrawer() {
 				<div className={styles.workflowTrack} style={{ transform: `translateX(-${currentStep * 100}%)` }}>
 					<form className={classNames("ns-scrollbar", styles.workflowPanel)} aria-hidden={currentStep !== 0} onSubmit={handleNameSubmit}>
 						<div className={styles.stepCopy}>
-							<Badge tone="accent">Step 01</Badge>
-							<h3>Enter probe identity</h3>
-							<p>The probe name and coordinates are stored before the install command is generated.</p>
+							<Badge tone="accent">{t("wizard.step01")}</Badge>
+							<h3>{t("wizard.identityTitle")}</h3>
+							<p>{t("wizard.identityDescription")}</p>
 						</div>
 
-						<TextField label="Probe name" value={probeName} placeholder="taipei-home-01" required disabled={currentStep !== 0} onChange={event => updateProbeName(event.currentTarget.value)} />
+						<TextField
+							label={t("wizard.name")}
+							value={probeName}
+							placeholder={t("wizard.namePlaceholder")}
+							required
+							disabled={currentStep !== 0}
+							onChange={event => updateProbeName(event.currentTarget.value)}
+						/>
 
 						<SegmentedControl
 							className={styles.locationMode}
 							size="sm"
-							ariaLabel="Coordinate input mode"
+							ariaLabel={t("location.coordinateMode")}
 							value={coordinateInputMode}
 							options={coordinateModeOptions.map(option => ({ ...option, disabled: currentStep !== 0 }))}
 							onValueChange={nextMode => updateCoordinateInputMode(nextMode as CoordinateInputMode)}
@@ -234,23 +242,29 @@ export function NewProbeDrawer() {
 						{coordinateInputMode === "search" ? (
 							<div className={styles.locationSearch}>
 								<TextField
-									label="Location search"
+									label={t("location.search")}
 									value={locationSearch}
-									placeholder="Taipei 101"
+									placeholder={t("location.searchPlaceholder")}
 									disabled={currentStep !== 0 || geocodeStatus === "searching"}
 									error={geocodeStatus === "error" ? geocodeError : undefined}
 									onChange={event => updateLocationSearch(event.currentTarget.value)}
 								/>
 								<Button type="button" variant="outline" disabled={currentStep !== 0 || !canSearchLocation} onClick={() => void searchLocation()}>
-									{geocodeStatus === "searching" ? "Searching" : "Search"}
+									{geocodeStatus === "searching" ? t("location.searching") : t("location.searchAction")}
 								</Button>
 							</div>
 						) : (
 							<div className={styles.manualLocationFields}>
-								<TextField label="Location name" value={locationName} placeholder="Taipei, Taiwan" disabled={currentStep !== 0} onChange={event => setLocationName(event.currentTarget.value)} />
+								<TextField
+									label={t("location.name")}
+									value={locationName}
+									placeholder={t("location.namePlaceholder")}
+									disabled={currentStep !== 0}
+									onChange={event => setLocationName(event.currentTarget.value)}
+								/>
 								<div className={styles.coordinateGrid}>
 									<TextField
-										label="Latitude"
+										label={t("location.latitude")}
 										type="number"
 										inputMode="decimal"
 										step="any"
@@ -261,7 +275,7 @@ export function NewProbeDrawer() {
 										onChange={event => setLatitudeInput(event.currentTarget.value)}
 									/>
 									<TextField
-										label="Longitude"
+										label={t("location.longitude")}
 										type="number"
 										inputMode="decimal"
 										step="any"
@@ -279,64 +293,58 @@ export function NewProbeDrawer() {
 							<LocationPreviewMap coordinates={selectedCoordinates} locationName={previewTitle} probeName={probeName.trim() || previewTitle} />
 						) : (
 							<p className={styles.locationStatus} aria-live="polite">
-								{coordinateInputMode === "search" ? "Search for a place before continuing." : "Enter valid decimal coordinates before continuing."}
+								{coordinateInputMode === "search" ? t("location.searchBeforeContinue") : t("location.coordinatesBeforeContinue")}
 							</p>
 						)}
 
 						<div className={styles.actions}>
 							<Button type="submit" disabled={!canCreate || currentStep !== 0 || createProbeMutation.isPending}>
-								{createProbeMutation.isPending ? "Creating probe" : "Continue to install"}
+								{createProbeMutation.isPending ? t("wizard.createPending") : t("wizard.continueInstall")}
 							</Button>
-							<p className={styles.hint}>Use a stable hostname-style label so results are easy to scan later.</p>
+							<p className={styles.hint}>{t("wizard.stableNameHint")}</p>
 						</div>
 					</form>
 
 					<section className={classNames("ns-scrollbar", styles.workflowPanel)} aria-hidden={currentStep !== 1}>
 						<div className={styles.stepCopy}>
-							<Badge tone={heartbeatReceived ? "success" : "warning"}>{heartbeatReceived ? "Probe detected" : "Listening"}</Badge>
-							<h3>Install the probe</h3>
-							<p>Run the controller-served installer on the host. The wizard polls the controller and only completes after the probe heartbeat is recorded by the API.</p>
+							<Badge tone={heartbeatReceived ? "success" : "warning"}>{heartbeatReceived ? t("wizard.detected") : t("wizard.listening")}</Badge>
+							<h3>{t("wizard.installTitle")}</h3>
+							<p>{t("wizard.installDescription")}</p>
 						</div>
 
 						<div className={styles.registrationBlock}>
 							<div className={styles.tokenLine}>
-								<span>Registration token</span>
+								<span>{t("wizard.registrationToken")}</span>
 								<strong>{registrationSecret || "-"}</strong>
 							</div>
-							<CodeBlock title="install command" className={styles.installCommand} copyDisabled={!installCommand}>
+							<CodeBlock title={t("wizard.installCommand")} className={styles.installCommand} copyDisabled={!installCommand}>
 								{installCommand}
 							</CodeBlock>
 							<div className={styles.assetLinks}>
 								<Button asChild variant="outline" size="sm">
-									<a href={installerUrl}>Installer</a>
+									<a href={installerUrl}>{t("wizard.installer")}</a>
 								</Button>
 								<Button asChild variant="outline" size="sm">
-									<a href={binaryUrl}>Linux binary</a>
+									<a href={binaryUrl}>{t("wizard.linuxBinary")}</a>
 								</Button>
 								<Button asChild variant="ghost" size="sm">
-									<a href={uninstallerUrl}>Uninstaller</a>
+									<a href={uninstallerUrl}>{t("wizard.uninstaller")}</a>
 								</Button>
 							</div>
 						</div>
 
 						<div className={styles.detectCard}>
-							<Badge tone={heartbeatReceived ? "success" : "warning"}>{heartbeatReceived ? "Heartbeat received" : "Listening for heartbeat"}</Badge>
-							<strong>{heartbeatReceived ? `${probeName.trim()} is online` : "Waiting for install to finish"}</strong>
-							<p>
-								{heartbeatReceived
-									? "The controller API reports a runtime heartbeat for this probe."
-									: createdProbeQuery.isError
-										? "The controller could not confirm heartbeat status yet. Polling will continue."
-										: "Waiting for the first signed probe heartbeat from the controller API."}
-							</p>
+							<Badge tone={heartbeatReceived ? "success" : "warning"}>{heartbeatReceived ? t("wizard.heartbeatReceived") : t("wizard.listeningHeartbeat")}</Badge>
+							<strong>{heartbeatReceived ? t("wizard.online", { name: probeName.trim() }) : t("wizard.waitingInstall")}</strong>
+							<p>{heartbeatReceived ? t("wizard.heartbeatConfirmed") : createdProbeQuery.isError ? t("wizard.heartbeatError") : t("wizard.heartbeatWaiting")}</p>
 						</div>
 
 						<div className={styles.actions}>
 							<Button type="button" variant="ghost" disabled={currentStep !== 1} onClick={() => setCurrentStep(0)}>
-								Back
+								{t("common:actions.back")}
 							</Button>
 							<Button type="button" disabled={!heartbeatReceived || currentStep !== 1} onClick={closeDrawer}>
-								Finish
+								{t("common:actions.finish")}
 							</Button>
 						</div>
 					</section>

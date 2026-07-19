@@ -1,0 +1,33 @@
+---
+title: 總覽
+description: Netstamp 由靜態說明文件與官網、React 服務應用程式、Go API，以及共用 React UI 套件組成。
+icon: compass
+head:
+  - tag: title
+    content: 總覽 | Netstamp 說明文件
+---
+
+## 工作區概覽
+
+此 repository 將公開網站與產品應用程式分為不同介面。`docs/` 負責公開首頁與說明文件，`web/` 負責需要驗證的 React 服務應用程式，`packages/ui/` 則包含兩個介面共用的 React 元件。
+
+- [在本機啟動](/zh-TW/docs/guides/getting-started/)：安裝相依套件並啟動各工作區服務。
+- [瞭解架構](/zh-TW/docs/reference/architecture/)：查看瀏覽器應用程式、API、資料庫與說明文件之間的關係。
+- [試用 API](/zh-TW/openapi/)：瀏覽產生的 OpenAPI 並從文件介面送出要求。
+
+## 接下來可以做什麼
+
+使用左側導覽切換各說明文件區段；使用搜尋框依標題、關鍵字或簡短說明快速前往頁面；使用右側目錄在本頁各段落間移動。
+
+:::tip 此文件介面直接以 Astro 實作頂端導覽、側邊欄、頁面目錄、搜尋、提示區塊、程式碼醒目提示與編輯連結，並未依賴 Astro Starlight。 :::
+
+## 本機常用指令
+
+以下指令應在根目錄工作區執行。
+
+```bash
+pnpm install
+just docs-dev
+just web-dev
+just backend-test
+```

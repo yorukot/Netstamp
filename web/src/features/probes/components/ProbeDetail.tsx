@@ -2,6 +2,7 @@ import { mapApiProbe } from "@/features/probes/api/probeAdapters";
 import {
 	coordinateInputError,
 	formatCoordinate,
+	LocationSearchError,
 	parseCoordinateInput,
 	searchNominatimLocation,
 	type CoordinateInputMode,
@@ -23,28 +24,12 @@ import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
 import { Badge, Button, Checkbox, CodeBlock, DataTable, FieldLabel, SegmentedControl, Spinner, TextField, type DataColumn } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { LocationPreviewMap } from "./LocationPreviewMap";
 import styles from "./ProbeDetail.module.css";
 import { expandAssignedRows } from "./probeUtils";
 
-const assignedColumns: DataColumn<AssignedRow>[] = [
-	{ key: "check", label: "Assigned check" },
-	{ key: "type", label: "Type", render: row => <Badge tone="neutral">{row.type}</Badge> },
-	{ key: "interval", label: "Interval" },
-	{ key: "latest", label: "Latest" }
-];
-
 type ProbeServiceCommandMode = "reinstall" | "upgrade";
-
-const serviceCommandOptions: Array<{ value: ProbeServiceCommandMode; label: string }> = [
-	{ value: "reinstall", label: "Reinstall" },
-	{ value: "upgrade", label: "Upgrade" }
-];
-
-const coordinateModeOptions: Array<{ value: CoordinateInputMode; label: string }> = [
-	{ value: "search", label: "Search name" },
-	{ value: "manual", label: "Manual coordinates" }
-];
 
 function initialLatitude(probe: Probe) {
 	return probe.coordinates ? formatCoordinate(probe.coordinates[1]) : "";
@@ -99,6 +84,7 @@ function groupProbeLabels(labels: ApiLabel[]): ProbeLabelGroup[] {
 }
 
 function ProbeLabelPicker({ labels, selectedLabelSet, onToggle }: { labels: ApiLabel[]; selectedLabelSet: Set<string>; onToggle: (labelId: string, checked: boolean) => void }) {
+	const { t } = useTranslation("probes");
 	const groups = useMemo(() => groupProbeLabels(labels), [labels]);
 	const [requestedKey, setRequestedKey] = useState(() => groups.find(group => group.labels.some(label => selectedLabelSet.has(label.id)))?.key ?? groups[0]?.key ?? "");
 	const activeGroup = groups.find(group => group.key === requestedKey) ?? groups[0];
@@ -109,10 +95,10 @@ function ProbeLabelPicker({ labels, selectedLabelSet, onToggle }: { labels: ApiL
 
 	return (
 		<div className={styles.labelPicker}>
-			<div className={["ns-scrollbar", styles.labelKeyList].join(" ")} role="group" aria-label="Label keys">
+			<div className={["ns-scrollbar", styles.labelKeyList].join(" ")} role="group" aria-label={t("detail.labelKeys")}>
 				{groups.map(group => {
 					const selectedValues = group.labels.filter(label => selectedLabelSet.has(label.id)).map(label => label.value);
-					const selectedSummary = selectedValues.length ? selectedValues.join(", ") : "No values selected";
+					const selectedSummary = selectedValues.length ? selectedValues.join(", ") : t("detail.noValues");
 					const active = group.key === activeGroup.key;
 
 					return (
@@ -124,8 +110,8 @@ function ProbeLabelPicker({ labels, selectedLabelSet, onToggle }: { labels: ApiL
 				})}
 			</div>
 
-			<section className={styles.labelValuePanel} aria-label={`${activeGroup.key} label values`}>
-				<div className={["ns-scrollbar", styles.labelValueList].join(" ")} role="group" aria-label={`Select ${activeGroup.key} values`}>
+			<section className={styles.labelValuePanel} aria-label={t("detail.labelValues", { key: activeGroup.key })}>
+				<div className={["ns-scrollbar", styles.labelValueList].join(" ")} role="group" aria-label={t("detail.selectValues", { key: activeGroup.key })}>
 					{activeGroup.labels.map(label => {
 						const selected = selectedLabelSet.has(label.id);
 
@@ -185,6 +171,7 @@ interface ProbeDetailContentProps {
 }
 
 function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floating = false, projectRef, onClose, onDeleted }: ProbeDetailContentProps) {
+	const { t } = useTranslation(["probes", "common"]);
 	const confirm = useConfirm();
 	const [probeName, setProbeName] = useState(activeProbe.name);
 	const [coordinateInputMode, setCoordinateInputMode] = useState<CoordinateInputMode>("search");
@@ -213,21 +200,35 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 	const initialLongitudeInput = initialLongitude(activeProbe);
 	const initialLabelIds = useMemo(() => activeApiProbe?.labels.map(label => label.id) ?? [], [activeApiProbe?.labels]);
 	const rotatedSecretCommand = rotatedSecret ? probeSecretUpdateCommand({ probeId: activeProbe.id, probeSecret: rotatedSecret }) : "";
+	const serviceCommandOptions: Array<{ value: ProbeServiceCommandMode; label: string }> = [
+		{ value: "reinstall", label: t("detail.reinstall") },
+		{ value: "upgrade", label: t("detail.upgrade") }
+	];
+	const coordinateModeOptions: Array<{ value: CoordinateInputMode; label: string }> = [
+		{ value: "search", label: t("location.searchName") },
+		{ value: "manual", label: t("location.manualCoordinates") }
+	];
+	const assignedColumns: DataColumn<AssignedRow>[] = [
+		{ key: "check", label: t("detail.assignedCheck") },
+		{ key: "type", label: t("detail.type"), render: row => <Badge tone="neutral">{row.type}</Badge> },
+		{ key: "interval", label: t("detail.interval") },
+		{ key: "latest", label: t("detail.latest") }
+	];
 	const selectedServiceCommand = serviceCommandMode ? serviceCommandOptions.find(option => option.value === serviceCommandMode) : null;
 	const serviceCommand = serviceCommandMode ? probeServiceCommand(serviceCommandMode) : "";
 	const latitude = parseCoordinateInput(latitudeInput);
 	const longitude = parseCoordinateInput(longitudeInput);
-	const latitudeError = coordinateInputMode === "manual" ? coordinateInputError("Latitude", latitudeInput, -90, 90) : "";
-	const longitudeError = coordinateInputMode === "manual" ? coordinateInputError("Longitude", longitudeInput, -180, 180) : "";
-	const visibleLatitudeError = latitudeInput.trim() ? latitudeError : "";
-	const visibleLongitudeError = longitudeInput.trim() ? longitudeError : "";
+	const latitudeError = coordinateInputMode === "manual" ? coordinateInputError(latitudeInput, -90, 90) : null;
+	const longitudeError = coordinateInputMode === "manual" ? coordinateInputError(longitudeInput, -180, 180) : null;
+	const visibleLatitudeError = latitudeInput.trim() && latitudeError ? t(`location.${latitudeError}`, { label: t("location.latitude"), min: -90, max: 90 }) : "";
+	const visibleLongitudeError = longitudeInput.trim() && longitudeError ? t(`location.${longitudeError}`, { label: t("location.longitude"), min: -180, max: 180 }) : "";
 	const searchCoordinatesReady = coordinateInputMode === "search" && latitude !== null && longitude !== null;
 	const manualCoordinatesReady = coordinateInputMode === "manual" && latitude !== null && longitude !== null && !latitudeError && !longitudeError;
 	const coordinatesReady = searchCoordinatesReady || manualCoordinatesReady;
 	const selectedCoordinates: ProbeCoordinates | null = coordinatesReady && latitude !== null && longitude !== null ? { latitude, longitude } : null;
 	const canSearchLocation = coordinateInputMode === "search" && locationSearch.trim().length > 0 && geocodeStatus !== "searching";
 	const locationInputInvalid = coordinateInputMode === "manual" && Boolean(latitudeInput.trim() || longitudeInput.trim()) && !manualCoordinatesReady;
-	const previewLocationName = locationName.trim() || "Manual coordinates";
+	const previewLocationName = locationName.trim() || t("location.manual");
 	const hasProbeChanges = Boolean(
 		activeApiProbe &&
 		(probeName !== activeProbe.name ||
@@ -345,7 +346,7 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 			}
 
 			setGeocodeStatus("error");
-			setGeocodeError(error instanceof Error ? error.message : "Location search failed.");
+			setGeocodeError(t(`location.${error instanceof LocationSearchError ? error.code : "searchFailed"}`));
 		} finally {
 			if (geocodeAbortRef.current === abortController) {
 				geocodeAbortRef.current = null;
@@ -355,11 +356,11 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 
 	async function deleteProbe() {
 		const confirmed = await confirm({
-			title: "Delete this probe?",
-			message: "This removes the probe from the fleet and stops future check assignments for it.",
-			confirmLabel: "Delete probe",
+			title: t("detail.deleteQuestion"),
+			message: t("detail.deleteMessage"),
+			confirmLabel: t("detail.delete"),
 			confirmationText: activeProbe.name,
-			confirmationLabel: "Probe name",
+			confirmationLabel: t("wizard.name"),
 			tone: "danger"
 		});
 
@@ -372,9 +373,9 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 
 	async function rotateSecret() {
 		const confirmed = await confirm({
-			title: `Rotate secret for ${activeProbe.name}?`,
-			message: "This invalidates the current probe credential. Keep the new secret and update the probe service before closing this panel.",
-			confirmLabel: "Rotate secret",
+			title: t("detail.rotateQuestion", { name: activeProbe.name }),
+			message: t("detail.rotateMessage"),
+			confirmLabel: t("detail.rotate"),
 			tone: "danger"
 		});
 
@@ -408,34 +409,34 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 				body
 			});
 		} catch (error) {
-			pushErrorToast(requestErrorMessage(error, "Probe could not be saved."));
+			pushErrorToast(requestErrorMessage(error, t("detail.saveError")));
 		} finally {
 			setSavingProbe(false);
 		}
 	}
 
 	return (
-		<section className={classNames(styles.card, floating && styles.floating)} aria-label="Probe detail">
+		<section className={classNames(styles.card, floating && styles.floating)} aria-label={t("detail.aria")}>
 			<div className={styles.header}>
 				<strong className="ns-title">
 					{activeProbe.name}
-					<small> · uptime {activeProbe.uptime}</small>
+					<small> · {t("detail.uptime", { uptime: activeProbe.uptime })}</small>
 				</strong>
-				{onClose ? <CloseButton ariaLabel="Close probe options" onClick={onClose} /> : null}
+				{onClose ? <CloseButton ariaLabel={t("detail.close")} onClick={onClose} /> : null}
 			</div>
 
 			<div className={styles.fieldGrid}>
-				<TextField className={styles.input} label="Probe name" value={probeName} onChange={event => setProbeName(event.currentTarget.value)} />
+				<TextField className={styles.input} label={t("wizard.name")} value={probeName} onChange={event => setProbeName(event.currentTarget.value)} />
 			</div>
 
 			<div className={styles.labelEditor}>
-				<FieldLabel>Labels</FieldLabel>
+				<FieldLabel>{t("detail.labels")}</FieldLabel>
 				{labelOptions.length ? (
 					<ProbeLabelPicker labels={labelOptions} selectedLabelSet={selectedLabelSet} onToggle={toggleLabel} />
 				) : labelsQuery.isLoading ? (
-					<Spinner label="Loading labels" layout="compact" size="md" />
+					<Spinner label={t("detail.loadingLabels")} layout="compact" size="md" />
 				) : (
-					<p className={styles.labelNotice}>No project labels available.</p>
+					<p className={styles.labelNotice}>{t("detail.noLabels")}</p>
 				)}
 			</div>
 
@@ -443,7 +444,7 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 				<SegmentedControl
 					className={styles.locationMode}
 					size="sm"
-					ariaLabel="Coordinate input mode"
+					ariaLabel={t("location.coordinateMode")}
 					value={coordinateInputMode}
 					options={coordinateModeOptions}
 					onValueChange={nextMode => updateCoordinateInputMode(nextMode as CoordinateInputMode)}
@@ -455,24 +456,30 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 							<div className={styles.locationSearch}>
 								<TextField
 									className={styles.input}
-									label="Location search"
+									label={t("location.search")}
 									value={locationSearch}
-									placeholder="Taipei, Taiwan"
+									placeholder={t("probes:location.namePlaceholder")}
 									disabled={geocodeStatus === "searching"}
 									error={geocodeStatus === "error" ? geocodeError : undefined}
 									onChange={event => updateLocationSearch(event.currentTarget.value)}
 								/>
 								<Button type="button" variant="outline" size="sm" disabled={!canSearchLocation} onClick={() => void searchLocation()}>
-									{geocodeStatus === "searching" ? "Searching" : "Search"}
+									{geocodeStatus === "searching" ? t("location.searching") : t("location.searchAction")}
 								</Button>
 							</div>
 						) : (
 							<div className={styles.manualLocationFields}>
-								<TextField className={styles.input} label="Location name" value={locationName} placeholder="Taipei, Taiwan" onChange={event => setLocationName(event.currentTarget.value)} />
+								<TextField
+									className={styles.input}
+									label={t("location.name")}
+									value={locationName}
+									placeholder={t("location.namePlaceholder")}
+									onChange={event => setLocationName(event.currentTarget.value)}
+								/>
 								<div className={styles.coordinateGrid}>
 									<TextField
 										className={styles.input}
-										label="Latitude"
+										label={t("location.latitude")}
 										type="number"
 										inputMode="decimal"
 										step="any"
@@ -483,7 +490,7 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 									/>
 									<TextField
 										className={styles.input}
-										label="Longitude"
+										label={t("location.longitude")}
 										type="number"
 										inputMode="decimal"
 										step="any"
@@ -498,7 +505,7 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 
 						{selectedCoordinates ? null : (
 							<p className={styles.locationStatus} aria-live="polite">
-								{coordinateInputMode === "search" ? "Search for a place to update this probe location." : "Enter valid decimal coordinates to preview this probe location."}
+								{coordinateInputMode === "search" ? t("location.searchToUpdate") : t("location.coordinatesToPreview")}
 							</p>
 						)}
 					</div>
@@ -519,24 +526,24 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 
 			<div className={styles.actions}>
 				<Button variant="outline" disabled={!projectRef || rotateSecretMutation.isPending} onClick={() => void rotateSecret()}>
-					{rotateSecretMutation.isPending ? "Rotating" : "Rotate secret"}
+					{rotateSecretMutation.isPending ? t("detail.rotating") : t("detail.rotate")}
 				</Button>
 				<SegmentedControl
 					className={styles.serviceCommandMode}
-					ariaLabel="Probe service command"
+					ariaLabel={t("detail.serviceCommand")}
 					value={serviceCommandMode ?? ""}
 					options={serviceCommandOptions}
 					onValueChange={nextMode => updateServiceCommandMode(nextMode as ProbeServiceCommandMode)}
 				/>
 				<Button variant="danger" disabled={!projectRef || deleteProbeMutation.isPending} onClick={() => void deleteProbe()}>
-					{deleteProbeMutation.isPending ? "Deleting" : "Delete probe"}
+					{deleteProbeMutation.isPending ? t("detail.deleting") : t("detail.delete")}
 				</Button>
 			</div>
 
 			{serviceCommandMode && selectedServiceCommand ? (
 				<div className={styles.serviceCommandPanel}>
-					<span>Probe service command</span>
-					<CodeBlock title={`${selectedServiceCommand.label.toLowerCase()} command`} copyDisabled={!serviceCommand}>
+					<span>{t("detail.serviceCommand")}</span>
+					<CodeBlock title={t("detail.commandTitle", { action: selectedServiceCommand.label })} copyDisabled={!serviceCommand}>
 						{serviceCommand}
 					</CodeBlock>
 				</div>
@@ -544,17 +551,17 @@ function ProbeDetailContent({ activeProbe, activeApiProbe, assignedRows, floatin
 
 			{rotatedSecret ? (
 				<div className={styles.secretPanel}>
-					<span>New probe secret</span>
+					<span>{t("detail.newSecret")}</span>
 					<code>{rotatedSecret}</code>
-					<p>Rewrite the systemd service environment with the rotated credential.</p>
-					<CodeBlock title="update command" copyDisabled={!rotatedSecretCommand}>
+					<p>{t("detail.secretDescription")}</p>
+					<CodeBlock title={t("detail.updateCommand")} copyDisabled={!rotatedSecretCommand}>
 						{rotatedSecretCommand}
 					</CodeBlock>
 				</div>
 			) : null}
 
 			<DataTable
-				ariaLabel="Assigned checks"
+				ariaLabel={t("detail.assignedChecks")}
 				columns={assignedColumns}
 				rows={detailRows}
 				density="compact"

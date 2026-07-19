@@ -1,28 +1,39 @@
 ---
 import netstampLogoLight from "@netstamp/brand/assets/netstamp-logo-light.svg?url";
+import { localeMetadata, stripLocalePrefix, type SupportedLocale } from "@netstamp/i18n";
 import { Button } from "@netstamp/ui";
+import { interpolate, localeFromAstro, pathForLocale, uiForLocale } from "../../i18n/ui";
 import { appUrl } from "../../lib/publicUrls";
 
-const pathname = Astro.url.pathname;
+interface Props {
+	pathname?: string;
+}
+
+const locale = localeFromAstro(Astro.currentLocale);
+const ui = uiForLocale(locale);
+const pathname = stripLocalePrefix(Astro.props.pathname ?? Astro.url.pathname);
 const isHome = pathname === "/";
 const isDocs = pathname.startsWith("/docs");
 const isOpenAPI = pathname.startsWith("/openapi");
+const alternateLocale: SupportedLocale = locale === "en" ? "zh-TW" : "en";
+const alternatePath = pathForLocale(pathname, alternateLocale);
+const languageLabel = interpolate(ui.common.switchLanguage, { language: localeMetadata[alternateLocale].label });
 const demoHref = "https://demo.netstamp.dev";
 const discordHref = "https://discord.gg/9mdkf6dyTy";
 ---
 
-<nav class="siteNav" aria-label="Primary navigation">
+<nav class="siteNav" aria-label={ui.nav.primary}>
 	<div class="siteNavPrimary">
-		<a class="siteBrand" href="/" aria-label="Netstamp home">
+		<a class="siteBrand" href={pathForLocale("/", locale)} aria-label={ui.nav.home}>
 			<img class="siteBrandLogo siteBrandLogoLight" src={netstampLogoLight} alt="" aria-hidden="true" />
 		</a>
 	</div>
-	<div class="siteNavLinks" aria-label="Docs sections">
-		<a href="/docs/" class:list={["siteNavTextLink", isDocs && "active"]}>
-			<span>Docs</span>
+	<div class="siteNavLinks" aria-label={ui.nav.sections}>
+		<a href={pathForLocale("/docs/", locale)} class:list={["siteNavTextLink", isDocs && "active"]}>
+			<span>{ui.nav.docs}</span>
 		</a>
-		<a href="/openapi/" class:list={["siteNavTextLink", isOpenAPI && "active"]}>
-			<span>API</span>
+		<a href={pathForLocale("/openapi/", locale)} class:list={["siteNavTextLink", isOpenAPI && "active"]}>
+			<span>{ui.nav.api}</span>
 		</a>
 		<a href="https://github.com/yorukot/netstamp" class="siteNavTextLink" target="_blank" rel="noreferrer">
 			<span>GitHub</span>
@@ -34,13 +45,27 @@ const discordHref = "https://discord.gg/9mdkf6dyTy";
 	<div class="siteNavActions">
 		{
 			!isHome ? (
-				<Button className="siteThemeToggle" variant="outline" size="sm" type="button" data-theme-toggle aria-label="Switch color mode" title="Switch color mode">
+				<Button
+					className="siteThemeToggle"
+					variant="outline"
+					size="sm"
+					type="button"
+					data-theme-toggle
+					data-theme-light-label={ui.nav.switchToLight}
+					data-theme-dark-label={ui.nav.switchToDark}
+					aria-label={ui.nav.switchColor}
+					title={ui.nav.switchColor}
+				>
 					<ph-sun class="themeIcon themeIconSun" size="16" weight="bold" aria-hidden="true" focusable="false" />
 					<ph-moon-stars class="themeIcon themeIconMoon" size="16" weight="bold" aria-hidden="true" focusable="false" />
 				</Button>
 			) : null
 		}
-		<a class="siteNavLogin" href={demoHref}>View Demo</a>
+		<a class="siteLanguageSwitch" href={alternatePath} lang={localeMetadata[alternateLocale].htmlLang} hreflang={alternateLocale} aria-label={languageLabel} title={languageLabel}>
+			<ph-translate size="16" weight="bold" aria-hidden="true" focusable="false"></ph-translate>
+			<span>{localeMetadata[alternateLocale].label}</span>
+		</a>
+		<a class="siteNavLogin" href={demoHref}>{ui.nav.viewDemo}</a>
 	</div>
 </nav>
 
@@ -140,8 +165,29 @@ const discordHref = "https://discord.gg/9mdkf6dyTy";
 	}
 
 	.siteNavLogin,
+	.siteLanguageSwitch,
 	:global(.siteThemeToggle) {
 		justify-content: center;
+	}
+
+	.siteLanguageSwitch {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		min-height: 2.25rem;
+		padding: 0.4rem 0.6rem;
+		color: var(--ns-chrome-text);
+		font-size: 0.78rem;
+		text-decoration: none;
+	}
+
+	.siteLanguageSwitch:hover {
+		color: var(--ns-primary-hover);
+	}
+
+	.siteLanguageSwitch:focus-visible {
+		outline: var(--ns-focus-outline);
+		outline-offset: 0.25rem;
 	}
 
 	:global(.siteThemeToggle) {

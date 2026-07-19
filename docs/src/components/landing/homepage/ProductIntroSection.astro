@@ -1,26 +1,32 @@
-<section id="product-intro" class="intro" data-scroll-progress="intro" aria-label="Netstamp product introduction">
+---
+import { uiForLocale } from "../../../i18n/ui";
+
+const ui = uiForLocale(Astro.currentLocale);
+---
+
+<section id="product-intro" class="intro" data-scroll-progress="intro" aria-label={ui.home.introAria}>
 	<p class="intro-copy">
-		Netstamp is an open-source, self-hosted network observability app that helps measure
+		{ui.home.introBefore}{" "}
 		<span class="intro-mark" data-intro-highlight>
-			<span class="intro-mark-base">latency</span>
-			<span class="intro-mark-fill" aria-hidden="true"><span class="intro-icon"><ph-pulse weight="regular" focusable="false"></ph-pulse></span><span>latency</span></span>
+			<span class="intro-mark-base">{ui.home.latency}</span>
+			<span class="intro-mark-fill" aria-hidden="true"><span class="intro-icon"><ph-pulse weight="regular" focusable="false"></ph-pulse></span><span>{ui.home.latency}</span></span>
 		</span>,{" "}
 		<span class="intro-mark" data-intro-highlight>
-			<span class="intro-mark-base">packet loss</span>
-			<span class="intro-mark-fill" aria-hidden="true"><span class="intro-icon"><ph-warning weight="regular" focusable="false"></ph-warning></span><span>packet loss</span></span>
+			<span class="intro-mark-base">{ui.home.packetLoss}</span>
+			<span class="intro-mark-fill" aria-hidden="true"><span class="intro-icon"><ph-warning weight="regular" focusable="false"></ph-warning></span><span>{ui.home.packetLoss}</span></span>
 		</span>,{" "}
 		<span class="intro-mark" data-intro-highlight>
-			<span class="intro-mark-base">routes</span>
-			<span class="intro-mark-fill" aria-hidden="true"><span class="intro-icon"><ph-git-branch weight="regular" focusable="false"></ph-git-branch></span><span>routes</span></span>
+			<span class="intro-mark-base">{ui.home.routes}</span>
+			<span class="intro-mark-fill" aria-hidden="true"><span class="intro-icon"><ph-git-branch weight="regular" focusable="false"></ph-git-branch></span><span>{ui.home.routes}</span></span>
 		</span>,{" "}
 		<span class="intro-mark" data-intro-highlight>
-			<span class="intro-mark-base">uptime</span>
-			<span class="intro-mark-fill" aria-hidden="true"><span class="intro-icon"><ph-check-circle weight="regular" focusable="false"></ph-check-circle></span><span>uptime</span></span>
+			<span class="intro-mark-base">{ui.home.uptime}</span>
+			<span class="intro-mark-fill" aria-hidden="true"><span class="intro-icon"><ph-check-circle weight="regular" focusable="false"></ph-check-circle></span><span>{ui.home.uptime}</span></span>
 		</span>,{" "}
 		<span class="intro-mark" data-intro-highlight>
-			<span class="intro-mark-base">certificates</span>
-			<span class="intro-mark-fill" aria-hidden="true"><span class="intro-icon"><ph-shield-check weight="regular" focusable="false"></ph-shield-check></span><span>certificates</span></span>
-		</span>,{" "}and incidents from the viewpoints that matter.
+			<span class="intro-mark-base">{ui.home.certificates}</span>
+			<span class="intro-mark-fill" aria-hidden="true"><span class="intro-icon"><ph-shield-check weight="regular" focusable="false"></ph-shield-check></span><span>{ui.home.certificates}</span></span>
+		</span>,{" "}{ui.home.introAfter}
 	</p>
 </section>
 

@@ -4,8 +4,8 @@
 	"type": "module",
 	"scripts": {
 		"astro": "astro",
-		"build": "pnpm -C .. --filter @netstamp/ui build && pnpm -C .. --filter @netstamp/ui build:storybook -o ../../docs/public/storybook && astro build",
-		"predev": "pnpm -C .. --filter @netstamp/ui build",
+		"build": "pnpm -C .. --filter @netstamp/i18n build && pnpm -C .. --filter @netstamp/ui build && pnpm -C .. --filter @netstamp/ui build:storybook -o ../../docs/public/storybook && astro build",
+		"predev": "pnpm -C .. --filter @netstamp/i18n build && pnpm -C .. --filter @netstamp/ui build",
 		"dev": "astro dev",
 		"preview": "astro preview"
 	},
@@ -14,6 +14,7 @@
 		"@astrojs/mdx": "^7.0.0",
 		"@astrojs/react": "^6.0.0",
 		"@netstamp/brand": "workspace:*",
+		"@netstamp/i18n": "workspace:*",
 		"@netstamp/ui": "workspace:*",
 		"@phosphor-icons/webcomponents": "^2.1.5",
 		"@scalar/astro": "^0.4.5",

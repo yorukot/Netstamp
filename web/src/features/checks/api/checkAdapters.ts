@@ -1,6 +1,9 @@
 import { checkConfigSummaryFields } from "@/features/checks/data/checkConfig";
 import type { CheckDefinition, CheckType } from "@/features/checks/data/checks";
+import { i18n } from "@/i18n";
 import type { ApiCheck, ApiProjectAssignment } from "@/shared/api/types";
+
+const checkT = i18n.getFixedT(null, "checks") as (key: string) => string;
 
 function mapCheckType(type: string): CheckType {
 	switch (type.toLowerCase()) {
@@ -29,21 +32,21 @@ export function validateIntervalSeconds(value: string): IntervalValidation {
 	const normalized = trimmed.endsWith("s") ? trimmed.slice(0, -1) : trimmed;
 
 	if (!normalized) {
-		return { value: Number.NaN, error: "Interval is required." };
+		return { value: Number.NaN, error: checkT("config.intervalRequired") };
 	}
 
 	if (!/^\d+$/.test(normalized)) {
-		return { value: Number.NaN, error: "Interval must be whole seconds, for example 30s." };
+		return { value: Number.NaN, error: checkT("config.intervalWhole") };
 	}
 
 	const parsed = Number.parseInt(normalized, 10);
 
 	if (!Number.isFinite(parsed) || parsed < 1) {
-		return { value: parsed, error: "Interval must be at least 1 second." };
+		return { value: parsed, error: checkT("config.intervalMinimum") };
 	}
 
 	if (parsed > 86400) {
-		return { value: parsed, error: "Interval must be at most 86400 seconds." };
+		return { value: parsed, error: checkT("config.intervalMaximum") };
 	}
 
 	return { value: parsed, error: "" };
@@ -71,7 +74,13 @@ export function mapApiCheck(check: ApiCheck, assigned = 0): CheckDefinition {
 		latest: "-",
 		assigned,
 		description: check.description || "",
-		fields: [["Target", check.target], ["Type", type], ["Interval", formatInterval(check.intervalSeconds)], ["Labels", String(check.labels?.length ?? 0)], ...checkConfigSummaryFields(check)]
+		fields: [
+			[checkT("target"), check.target],
+			[checkT("type"), type],
+			[checkT("interval"), formatInterval(check.intervalSeconds)],
+			[checkT("summary.labels"), String(check.labels?.length ?? 0)],
+			...checkConfigSummaryFields(check)
+		]
 	};
 }
 

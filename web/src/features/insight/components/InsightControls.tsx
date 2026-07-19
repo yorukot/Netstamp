@@ -2,6 +2,7 @@ import type { CheckDefinition, CheckType } from "@/features/checks/data/checks";
 import { displayInsightTimeRange } from "@/features/insight/insightTime";
 import type { InsightRefreshInterval, InsightRelativeRange, InsightTimeMode, TimeWindow } from "@/features/insight/insightTypes";
 import type { Probe } from "@/features/probes/data/probes";
+import { formatNumber } from "@/i18n/format";
 import { classNames } from "@/shared/utils/classNames";
 import { relativeTimeOptions, relativeTimeRangeDurations } from "@/shared/utils/timeRanges";
 import { Button, Checkbox, PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger, SelectField, TextField } from "@netstamp/ui";
@@ -9,6 +10,7 @@ import { ArrowClockwiseIcon } from "@phosphor-icons/react/dist/csr/ArrowClockwis
 import { CaretDownIcon } from "@phosphor-icons/react/dist/csr/CaretDown";
 import { MagnifyingGlassIcon } from "@phosphor-icons/react/dist/csr/MagnifyingGlass";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import styles from "./InsightControls.module.css";
 
 interface SelectionItem {
@@ -28,7 +30,6 @@ interface SelectionCategory {
 interface CategorizedMultiSelectProps {
 	label: string;
 	placeholder: string;
-	singularNoun: string;
 	pluralNoun: string;
 	categories: SelectionCategory[];
 	selectedValues: string[];
@@ -36,31 +37,18 @@ interface CategorizedMultiSelectProps {
 	onChange: (values: string[]) => void;
 }
 
-const timeOptions: Array<{ value: InsightRelativeRange; label: string }> = relativeTimeOptions;
 const timeRangeDurations: Record<InsightRelativeRange, number> = relativeTimeRangeDurations;
-
-const refreshOptions: Array<{ value: InsightRefreshInterval; label: string }> = [
-	{ value: "off", label: "Off" },
-	{ value: "10s", label: "10s" },
-	{ value: "30s", label: "30s" },
-	{ value: "1m", label: "1m" },
-	{ value: "5m", label: "5m" }
-];
-
-const checkTypeCategories: Array<{ value: string; label: string; type?: CheckType }> = [
-	{ value: "all", label: "All types" },
-	{ value: "ping", label: "Ping", type: "Ping" },
-	{ value: "tcp", label: "TCP", type: "TCP" },
-	{ value: "traceroute", label: "Traceroute", type: "Traceroute" },
-	{ value: "http", label: "HTTP / HTTPS", type: "HTTP" }
-];
+const relativeTimeKeys = {
+	"15m": "controls.last15m",
+	"1h": "controls.last1h",
+	"6h": "controls.last6h",
+	"24h": "controls.last24h",
+	"7d": "controls.last7d",
+	"30d": "controls.last30d"
+} as const;
 
 function normalizeSearch(values: string[]) {
 	return values.join(" ").toLocaleLowerCase();
-}
-
-function formatSelectionCount(count: number, singular: string, plural: string) {
-	return `${count.toLocaleString()} ${count === 1 ? singular : plural}`;
 }
 
 function uniqueValues(values: string[]) {
@@ -79,7 +67,8 @@ function SelectionCheckbox({ checked, mixed, label, onChange }: { checked: boole
 	return <Checkbox ref={ref} checked={checked} aria-checked={mixed ? "mixed" : checked} aria-label={label} onChange={onChange} />;
 }
 
-function CategorizedMultiSelect({ label, placeholder, singularNoun, pluralNoun, categories, selectedValues, disabled, onChange }: CategorizedMultiSelectProps) {
+function CategorizedMultiSelect({ label, placeholder, pluralNoun, categories, selectedValues, disabled, onChange }: CategorizedMultiSelectProps) {
+	const { t } = useTranslation("insight");
 	const [open, setOpen] = useState(false);
 	const [query, setQuery] = useState("");
 	const [requestedCategory, setRequestedCategory] = useState(categories[0]?.value ?? "");
@@ -95,7 +84,7 @@ function CategorizedMultiSelect({ label, placeholder, singularNoun, pluralNoun, 
 	const allVisibleSelected = visibleSelectionValues.length > 0 && visibleSelectionValues.every(value => selectedSet.has(value));
 	const primaryItems = categories[0]?.items ?? [];
 	const selectedItem = selectedValues.length === 1 ? primaryItems.find(item => item.selectionValues.length === 1 && item.selectionValues[0] === selectedValues[0]) : undefined;
-	const summary = selectedItem?.label ?? (selectedValues.length ? `${formatSelectionCount(selectedValues.length, singularNoun, pluralNoun)} selected` : placeholder);
+	const summary = selectedItem?.label ?? (selectedValues.length ? t("controls.selected", { count: selectedValues.length }) : placeholder);
 
 	function setPickerOpen(nextOpen: boolean) {
 		if (disabled) {
@@ -148,7 +137,7 @@ function CategorizedMultiSelect({ label, placeholder, singularNoun, pluralNoun, 
 					<PopoverContent
 						className={styles.scopePopover}
 						role="dialog"
-						aria-label={`${label} options`}
+						aria-label={t("controls.options", { label })}
 						align="start"
 						sideOffset={8}
 						collisionPadding={8}
@@ -164,14 +153,21 @@ function CategorizedMultiSelect({ label, placeholder, singularNoun, pluralNoun, 
 						<div className={styles.scopePopoverHeader}>
 							<label className={styles.scopeSearch}>
 								<MagnifyingGlassIcon size="1rem" aria-hidden="true" focusable="false" />
-								<input ref={searchRef} type="search" value={query} placeholder={`Search ${pluralNoun}`} aria-label={`Search ${pluralNoun}`} onChange={event => setQuery(event.currentTarget.value)} />
+								<input
+									ref={searchRef}
+									type="search"
+									value={query}
+									placeholder={t("controls.search", { items: pluralNoun })}
+									aria-label={t("controls.search", { items: pluralNoun })}
+									onChange={event => setQuery(event.currentTarget.value)}
+								/>
 							</label>
 							<Button type="button" variant="ghost" size="sm" disabled={!visibleSelectionValues.length} onClick={toggleVisibleItems}>
-								{allVisibleSelected ? "Clear visible" : "Select all"}
+								{allVisibleSelected ? t("controls.clearVisible") : t("controls.selectAll")}
 							</Button>
 						</div>
 						<div className={styles.scopePopoverBody}>
-							<div className={styles.scopeCategories} role="tablist" aria-label={`${label} grouping`}>
+							<div className={styles.scopeCategories} role="tablist" aria-label={t("controls.grouping", { label })}>
 								{categories.map(category => {
 									const selected = category.value === activeCategory?.value;
 
@@ -190,7 +186,7 @@ function CategorizedMultiSelect({ label, placeholder, singularNoun, pluralNoun, 
 											key={category.value}
 										>
 											<span>{category.label}</span>
-											<small>{category.items.length.toLocaleString()}</small>
+											<small>{formatNumber(category.items.length)}</small>
 										</button>
 									);
 								})}
@@ -205,7 +201,7 @@ function CategorizedMultiSelect({ label, placeholder, singularNoun, pluralNoun, 
 
 											return (
 												<label className={styles.scopeOption} data-selected={checked || mixed || undefined} key={item.value}>
-													<SelectionCheckbox checked={checked} mixed={mixed} label={`Select ${item.label}`} onChange={() => toggleItem(item)} />
+													<SelectionCheckbox checked={checked} mixed={mixed} label={t("controls.selectItem", { item: item.label })} onChange={() => toggleItem(item)} />
 													<span>
 														<strong>{item.label}</strong>
 														<small>{item.meta}</small>
@@ -214,7 +210,7 @@ function CategorizedMultiSelect({ label, placeholder, singularNoun, pluralNoun, 
 											);
 										})
 									) : (
-										<div className={styles.scopeEmpty}>No {pluralNoun} match this view.</div>
+										<div className={styles.scopeEmpty}>{t("controls.noMatch", { items: pluralNoun })}</div>
 									)}
 								</div>
 							</div>
@@ -227,11 +223,12 @@ function CategorizedMultiSelect({ label, placeholder, singularNoun, pluralNoun, 
 }
 
 export function ProbeScopeSelect({ probes, selectedValues, disabled, onChange }: { probes: Probe[]; selectedValues: string[]; disabled?: boolean; onChange: (values: string[]) => void }) {
+	const { t } = useTranslation(["insight", "probes"]);
 	const categories = useMemo<SelectionCategory[]>(() => {
 		const probeItems = probes.map(probe => ({
 			value: probe.id,
 			label: probe.name,
-			meta: `${probe.location} · ${probe.status}`,
+			meta: `${probe.location} · ${t(`probes:status.${probe.status.toLowerCase() as "online" | "draining" | "offline"}`)}`,
 			searchText: normalizeSearch([probe.name, probe.location, probe.status, probe.provider, ...probe.labelTokens]),
 			selectionValues: [probe.id]
 		}));
@@ -248,23 +245,22 @@ export function ProbeScopeSelect({ probes, selectedValues, disabled, onChange }:
 		const labelItems = Array.from(probesByLabel, ([label, probeIdSet]) => ({
 			value: label,
 			label,
-			meta: formatSelectionCount(probeIdSet.size, "probe", "probes"),
+			meta: t("controls.probeCount", { count: probeIdSet.size }),
 			searchText: label.toLocaleLowerCase(),
 			selectionValues: Array.from(probeIdSet)
 		})).sort((a, b) => a.label.localeCompare(b.label));
 
 		return [
-			{ value: "probe", label: "By Probe", items: probeItems },
-			{ value: "label", label: "By Label", items: labelItems }
+			{ value: "probe", label: t("controls.byProbe"), items: probeItems },
+			{ value: "label", label: t("controls.byLabel"), items: labelItems }
 		];
-	}, [probes]);
+	}, [probes, t]);
 
 	return (
 		<CategorizedMultiSelect
-			label="Select Probe"
-			placeholder="Select probes"
-			singularNoun="probe"
-			pluralNoun="probes"
+			label={t("controls.selectProbe")}
+			placeholder={t("controls.selectProbes")}
+			pluralNoun={t("controls.probesNoun")}
 			categories={categories}
 			selectedValues={selectedValues}
 			disabled={disabled}
@@ -274,7 +270,15 @@ export function ProbeScopeSelect({ probes, selectedValues, disabled, onChange }:
 }
 
 export function CheckScopeSelect({ checks, selectedValues, disabled, onChange }: { checks: CheckDefinition[]; selectedValues: string[]; disabled?: boolean; onChange: (values: string[]) => void }) {
+	const { t } = useTranslation("insight");
 	const categories = useMemo<SelectionCategory[]>(() => {
+		const checkTypeCategories: Array<{ value: string; label: string; type?: CheckType }> = [
+			{ value: "all", label: t("controls.allTypes") },
+			{ value: "ping", label: "Ping", type: "Ping" },
+			{ value: "tcp", label: "TCP", type: "TCP" },
+			{ value: "traceroute", label: "Traceroute", type: "Traceroute" },
+			{ value: "http", label: "HTTP / HTTPS", type: "HTTP" }
+		];
 		const checkItems = checks.map(check => ({
 			value: check.id,
 			label: check.name,
@@ -289,14 +293,13 @@ export function CheckScopeSelect({ checks, selectedValues, disabled, onChange }:
 			label: category.label,
 			items: category.type ? checkItems.filter(item => item.type === category.type) : checkItems
 		}));
-	}, [checks]);
+	}, [checks, t]);
 
 	return (
 		<CategorizedMultiSelect
-			label="Select Check"
-			placeholder="Select checks"
-			singularNoun="check"
-			pluralNoun="checks"
+			label={t("controls.selectCheck")}
+			placeholder={t("controls.selectChecks")}
+			pluralNoun={t("controls.checksNoun")}
 			categories={categories}
 			selectedValues={selectedValues}
 			disabled={disabled}
@@ -339,6 +342,15 @@ export function InsightTimeControl({
 	onRefresh: () => void;
 	onRefreshChange: (refresh: InsightRefreshInterval) => void;
 }) {
+	const { t } = useTranslation("insight");
+	const timeOptions: Array<{ value: InsightRelativeRange; label: string }> = relativeTimeOptions.map(option => ({ value: option.value, label: t(relativeTimeKeys[option.value]) }));
+	const refreshOptions: Array<{ value: InsightRefreshInterval; label: string }> = [
+		{ value: "off", label: t("controls.off") },
+		{ value: "10s", label: "10s" },
+		{ value: "30s", label: "30s" },
+		{ value: "1m", label: "1m" },
+		{ value: "5m", label: "5m" }
+	];
 	const [open, setOpen] = useState(false);
 	const timeWindowKey = `${timeWindow.from}:${timeWindow.to}`;
 	const initialAbsoluteDraft = {
@@ -378,7 +390,7 @@ export function InsightTimeControl({
 		<div className={classNames(styles.timeControlRoot, className)}>
 			<PopoverRoot open={open} onOpenChange={setOpen}>
 				<div className={styles.timeField}>
-					<span className={styles.controlLabel}>Time</span>
+					<span className={styles.controlLabel}>{t("controls.time")}</span>
 					<PopoverTrigger asChild>
 						<button id={timeButtonId} type="button" className={styles.timeTrigger} aria-controls={`${timeButtonId}-panel`}>
 							<span>{displayInsightTimeRange(timeMode, timeRange, timeWindow)}</span>
@@ -397,7 +409,7 @@ export function InsightTimeControl({
 						collisionPadding={8}
 					>
 						<section className={styles.timeSection}>
-							<h4>Relative time</h4>
+							<h4>{t("controls.relative")}</h4>
 							<div className={styles.timePresetGrid}>
 								{timeOptions.map(option => (
 									<button
@@ -416,22 +428,22 @@ export function InsightTimeControl({
 							</div>
 						</section>
 						<section className={styles.timeSection}>
-							<h4>Absolute time</h4>
+							<h4>{t("controls.absolute")}</h4>
 							<div className={styles.absoluteGrid}>
-								<TextField label="From" type="datetime-local" value={absoluteFrom} onChange={event => updateAbsoluteDraft("from", event.currentTarget.value)} />
-								<TextField label="To" type="datetime-local" value={absoluteTo} onChange={event => updateAbsoluteDraft("to", event.currentTarget.value)} />
+								<TextField label={t("controls.from")} type="datetime-local" value={absoluteFrom} onChange={event => updateAbsoluteDraft("from", event.currentTarget.value)} />
+								<TextField label={t("controls.to")} type="datetime-local" value={absoluteTo} onChange={event => updateAbsoluteDraft("to", event.currentTarget.value)} />
 							</div>
 							<div className={styles.timeActions}>
 								<Button type="button" variant="outline" size="sm" onClick={applyNow}>
-									Now
+									{t("controls.now")}
 								</Button>
 							</div>
 						</section>
 					</PopoverContent>
 				</PopoverPortal>
 			</PopoverRoot>
-			<SelectField label="Refresh" value={refresh} options={refreshOptions} onChange={event => onRefreshChange(event.currentTarget.value as InsightRefreshInterval)} />
-			<Button type="button" variant="outline" className={styles.refreshButton} aria-label="Refresh insight" title="Refresh insight" onClick={onRefresh}>
+			<SelectField label={t("controls.refresh")} value={refresh} options={refreshOptions} onChange={event => onRefreshChange(event.currentTarget.value as InsightRefreshInterval)} />
+			<Button type="button" variant="outline" className={styles.refreshButton} aria-label={t("controls.refreshInsight")} title={t("controls.refreshInsight")} onClick={onRefresh}>
 				<ArrowClockwiseIcon size="1rem" weight="bold" aria-hidden="true" focusable="false" />
 			</Button>
 		</div>

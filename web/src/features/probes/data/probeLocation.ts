@@ -1,5 +1,7 @@
 export type CoordinateInputMode = "search" | "manual";
 export type GeocodeStatus = "idle" | "searching" | "resolved" | "error";
+export type CoordinateInputErrorCode = "required" | "number" | "range";
+export type LocationSearchErrorCode = "searchFailed" | "noResult" | "outsideRange";
 
 export interface ProbeCoordinates {
 	latitude: number;
@@ -13,6 +15,13 @@ interface NominatimSearchResult {
 
 const nominatimSearchEndpoint = "https://nominatim.openstreetmap.org/search";
 
+export class LocationSearchError extends Error {
+	constructor(public readonly code: LocationSearchErrorCode) {
+		super(code);
+		this.name = "LocationSearchError";
+	}
+}
+
 export function parseCoordinateInput(value: string) {
 	const trimmed = value.trim();
 
@@ -24,22 +33,22 @@ export function parseCoordinateInput(value: string) {
 	return Number.isFinite(coordinate) ? coordinate : null;
 }
 
-export function coordinateInputError(label: string, value: string, min: number, max: number) {
+export function coordinateInputError(value: string, min: number, max: number): CoordinateInputErrorCode | null {
 	if (!value.trim()) {
-		return `${label} is required.`;
+		return "required";
 	}
 
 	const coordinate = parseCoordinateInput(value);
 
 	if (coordinate === null) {
-		return `${label} must be a number.`;
+		return "number";
 	}
 
 	if (coordinate < min || coordinate > max) {
-		return `${label} must be between ${min} and ${max}.`;
+		return "range";
 	}
 
-	return "";
+	return null;
 }
 
 export function formatCoordinate(value: number) {
@@ -57,7 +66,7 @@ export async function searchNominatimLocation(query: string, signal?: AbortSigna
 		format: "jsonv2",
 		limit: "1"
 	});
-	const language = navigator.language || navigator.languages?.[0];
+	const language = document.documentElement.lang || navigator.language || navigator.languages?.[0];
 
 	if (language) {
 		searchParams.set("accept-language", language);
@@ -69,7 +78,7 @@ export async function searchNominatimLocation(query: string, signal?: AbortSigna
 	});
 
 	if (!response.ok) {
-		throw new Error("Location search failed. Try again later.");
+		throw new LocationSearchError("searchFailed");
 	}
 
 	const results = (await response.json()) as NominatimSearchResult[];
@@ -78,11 +87,11 @@ export async function searchNominatimLocation(query: string, signal?: AbortSigna
 	const longitude = result ? Number(result.lon) : Number.NaN;
 
 	if (!result || !Number.isFinite(latitude) || !Number.isFinite(longitude)) {
-		throw new Error("No usable location result was found.");
+		throw new LocationSearchError("noResult");
 	}
 
 	if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
-		throw new Error("The returned coordinates are outside valid ranges.");
+		throw new LocationSearchError("outsideRange");
 	}
 
 	return {

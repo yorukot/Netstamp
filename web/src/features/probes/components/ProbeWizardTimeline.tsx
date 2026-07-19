@@ -1,4 +1,5 @@
 import { classNames } from "@/shared/utils/classNames";
+import { useTranslation } from "react-i18next";
 import styles from "./NewProbeDrawer.module.css";
 
 interface ProbeWizardStep {
@@ -13,8 +14,9 @@ interface ProbeWizardTimelineProps {
 }
 
 export function ProbeWizardTimeline({ steps, currentStep }: ProbeWizardTimelineProps) {
+	const { t } = useTranslation("probes");
 	return (
-		<ol className={styles.stepTimeline} aria-label="Create probe progress">
+		<ol className={styles.stepTimeline} aria-label={t("progressAria")}>
 			{steps.map((step, index) => (
 				<li className={classNames(styles.stepItem, index === currentStep && styles.stepActive, index < currentStep && styles.stepComplete)} key={step.number}>
 					<span>{step.number}</span>

@@ -1,18 +1,21 @@
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { Spinner } from "@netstamp/ui";
+import { useTranslation } from "react-i18next";
 import { Navigate as RouterNavigate, useParams } from "react-router-dom";
 import { pathForCheckDetail, pathForLabelDetail, pathForProbeDetail, pathForRoute, pathForStatusPageEditor } from "./routePaths";
 import type { ProjectAppRoute } from "./routeTypes";
 
-function redirectSpinner() {
-	return <Spinner label="Loading project" layout="page" size="lg" />;
-}
+const RedirectSpinner = () => {
+	const { t } = useTranslation("navigation");
+
+	return <Spinner label={t("loadingProject")} layout="page" size="lg" />;
+};
 
 export function DefaultProjectRedirect({ route = "dashboard" }: { route?: ProjectAppRoute }) {
 	const { projectRef, projectsQuery } = useCurrentProject();
 
 	if (projectsQuery.isPending) {
-		return redirectSpinner();
+		return <RedirectSpinner />;
 	}
 
 	if (!projectRef) {
@@ -27,7 +30,7 @@ export function LegacyProbeDetailRedirect() {
 	const { projectRef, projectsQuery } = useCurrentProject();
 
 	if (projectsQuery.isPending) {
-		return redirectSpinner();
+		return <RedirectSpinner />;
 	}
 
 	if (!projectRef) {
@@ -42,7 +45,7 @@ export function LegacyLabelDetailRedirect() {
 	const { projectRef, projectsQuery } = useCurrentProject();
 
 	if (projectsQuery.isPending) {
-		return redirectSpinner();
+		return <RedirectSpinner />;
 	}
 
 	if (!projectRef) {
@@ -57,7 +60,7 @@ export function LegacyCheckDetailRedirect() {
 	const { projectRef, projectsQuery } = useCurrentProject();
 
 	if (projectsQuery.isPending) {
-		return redirectSpinner();
+		return <RedirectSpinner />;
 	}
 
 	if (!projectRef) {
@@ -72,7 +75,7 @@ export function LegacyStatusPageEditorRedirect() {
 	const { projectRef, projectsQuery } = useCurrentProject();
 
 	if (projectsQuery.isPending) {
-		return redirectSpinner();
+		return <RedirectSpinner />;
 	}
 
 	if (!projectRef) {

@@ -7,6 +7,7 @@ import { Select } from "@netstamp/ui";
 import { FolderOpenIcon } from "@phosphor-icons/react/dist/csr/FolderOpen";
 import { FolderPlusIcon } from "@phosphor-icons/react/dist/csr/FolderPlus";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 import styles from "./ProjectSwitcher.module.css";
 
@@ -17,25 +18,26 @@ interface ProjectSwitcherProps {
 	variant?: "sidebar" | "drawer";
 }
 
-function createProjectOptionLabel() {
+const createProjectOptionLabel = (label: string) => {
 	return (
 		<span className={styles.projectCreateOption}>
 			<FolderPlusIcon size={17} weight="bold" aria-hidden="true" focusable="false" />
-			<span>Create new project</span>
+			<span>{label}</span>
 		</span>
 	);
-}
+};
 
-function projectOptionLabel(name: string) {
+const projectOptionLabel = (name: string) => {
 	return (
 		<span className={styles.projectOptionLabel}>
 			<FolderOpenIcon className={styles.projectOptionIcon} size={18} weight="bold" aria-hidden="true" focusable="false" />
 			<span className={styles.projectOptionName}>{name}</span>
 		</span>
 	);
-}
+};
 
 export function ProjectSwitcher({ collapsed = false, variant = "sidebar" }: ProjectSwitcherProps) {
+	const { t } = useTranslation("project");
 	const { projectRef, projectsQuery, setSelectedProjectRef } = useCurrentProject();
 	const location = useLocation();
 	const navigate = useNavigate();
@@ -70,7 +72,7 @@ export function ProjectSwitcher({ collapsed = false, variant = "sidebar" }: Proj
 				<div className={styles.projectSelect}>
 					<div className={styles.projectSelectField}>
 						<Select
-							aria-label="Select project"
+							aria-label={t("switcher.select")}
 							variant="compact"
 							frameClassName={styles.projectFrame}
 							menuClassName={classNames("ns-theme-dark", styles.projectMenu)}
@@ -85,9 +87,9 @@ export function ProjectSwitcher({ collapsed = false, variant = "sidebar" }: Proj
 									</option>
 								))
 							) : (
-								<option value="">{projectOptionLabel("No project")}</option>
+								<option value="">{projectOptionLabel(t("switcher.noProject"))}</option>
 							)}
-							{appFeatures.projectCreation ? <option value={CREATE_PROJECT_VALUE}>{createProjectOptionLabel()}</option> : null}
+							{appFeatures.projectCreation ? <option value={CREATE_PROJECT_VALUE}>{createProjectOptionLabel(t("switcher.createNew"))}</option> : null}
 						</Select>
 					</div>
 				</div>

@@ -1,0 +1,146 @@
+---
+title: 設定
+description: Docs、Web、後端、共用 UI、格式化與產生的 API 資產在工作區中的設定位置。
+icon: wrench
+head:
+  - tag: title
+    content: 設定 | Netstamp 說明文件
+---
+
+## 工作區檔案
+
+根目錄的 `package.json`、`pnpm-workspace.yaml` 與 `Justfile` 定義共用 entry point。變更跨越 package 邊界時，優先使用這些指令。
+
+```bash
+pnpm install
+just lint
+just test
+just build
+```
+
+## Docs 設定
+
+Docs app 位於 `docs/`。Astro 設定在 `docs/astro.config.mjs`，shell 與 prose style 與 `docs/src/layouts/DocLayout.astro` 放在一起；component style 則與擁有該 markup 的 component 放在一起。
+
+說明文件頁面是 `docs/src/content/docs/` 下的 MDX 檔案。左側 sidebar 與 search index 會自動從 frontmatter 掃描這些檔案。
+
+## Web 與 Docs 追蹤工具
+
+Web app 與 Docs 網站可在 build time 載入選用的瀏覽器追蹤工具。`web/` 使用 `VITE_NETSTAMP_*` prefix，`docs/` 使用 `PUBLIC_NETSTAMP_*` prefix。
+
+| Suffix                       | 用途                                                | 預設值                              |
+| ---------------------------- | --------------------------------------------------- | ----------------------------------- |
+| `GA_MEASUREMENT_ID`          | Google Analytics GA4 measurement ID                 | 空白                                |
+| `GOOGLE_TAG_ID`              | 通用 Google tag ID，優先於 `GA_MEASUREMENT_ID` 使用 | 空白                                |
+| `CLARITY_PROJECT_ID`         | Microsoft Clarity project ID                        | 空白                                |
+| `META_PIXEL_ID`              | Meta Pixel ID                                       | 空白                                |
+| `POSTHOG_KEY`                | PostHog project API key                             | 空白                                |
+| `POSTHOG_HOST`               | PostHog API host                                    | `https://us.i.posthog.com`          |
+| `PLAUSIBLE_DOMAIN`           | Plausible site domain                               | 空白                                |
+| `PLAUSIBLE_SCRIPT_URL`       | 雲端或自行託管 deployment 的 Plausible script URL   | `https://plausible.io/js/script.js` |
+| `UMAMI_WEBSITE_ID`           | Umami website ID                                    | 空白                                |
+| `UMAMI_SCRIPT_URL`           | 雲端或自行託管 deployment 的 Umami script URL       | `https://cloud.umami.is/script.js`  |
+| `TRACKING_CONSENT_MODE`      | `regional`、`always` 或 `never` 的 consent gating   | `regional`                          |
+| `TRACKING_CONSENT_COUNTRIES` | 需要 consent 的 ISO 國家代碼，以半形逗號分隔        | EEA、英國與瑞士                     |
+
+設定任一 tracker ID 後，`regional` mode 只會在指定國家要求同意。如果無法判斷訪客國家，系統會先顯示 banner，再載入 tracker。國家判定依序檢查 `window.NETSTAMP_VISITOR_COUNTRY`、`<html data-netstamp-country>`、`<meta name="netstamp-visitor-country">`，最後是 Cloudflare `/cdn-cgi/trace`。既有 deployment 若使用 Facebook 命名，也可以用 `FACEBOOK_PIXEL_ID` 作為 `META_PIXEL_ID` 的 alias。
+
+## Demo 存取控制
+
+自行託管的 demo deployment 可以重用真實資料，同時阻擋寫入。以下後端設定會在 runtime 強制執行：
+
+| Variable                    | 用途                                           | 預設值               |
+| --------------------------- | ---------------------------------------------- | -------------------- |
+| `DEMO_MODE`                 | 除 login 與 logout 外，阻擋不安全的 API method | `false`              |
+| `AUTH_REGISTRATION_ENABLED` | Demo mode 未啟用時，允許 `POST /auth/register` | `true`               |
+| `AUTH_API_TOKEN_HASH_KEY`   | Personal access token hash 使用的 HMAC key     | 僅供本機開發使用的值 |
+
+公開 demo instance 請設定 `DEMO_MODE=true`。`AUTH_REGISTRATION_ENABLED=false` 仍可清楚表達意圖，但 demo mode 會在 request 到達 feature handler 前阻擋註冊與所有其他不安全 API request。如果維運人員仍需要完整存取，請保留一個指向相同資料庫的獨立正常 deployment。
+
+Observability Docker Compose 檔會啟動鎖定的 demo controller 與靜態 Web bundle，並與相同 PostgreSQL 資料庫及 observability service 連線：
+
+```bash
+docker compose -f deployments/docker/compose.observability.yaml up -d --build
+```
+
+Web app 具有對應的 build-time flag，用來隱藏已停用的 UI control：
+
+| Variable                                        | 用途                        | 預設值  |
+| ----------------------------------------------- | --------------------------- | ------- |
+| `VITE_NETSTAMP_REGISTRATION_ENABLED`            | 顯示註冊 route 與 link      | `true`  |
+| `VITE_NETSTAMP_PROJECT_CREATION_ENABLED`        | 顯示建立專案 control        | `true`  |
+| `VITE_NETSTAMP_USER_CREDENTIAL_CHANGES_ENABLED` | 顯示 email 與 password form | `true`  |
+| `VITE_NETSTAMP_DEMO_MODE`                       | 顯示 demo mode 唯讀 UI      | `false` |
+| `VITE_NETSTAMP_DEMO_EMAIL`                      | 顯示 demo login email       | 空白    |
+| `VITE_NETSTAMP_DEMO_PASSWORD`                   | 顯示 demo login password    | 空白    |
+
+設定 `VITE_NETSTAMP_DEMO_MODE=true` 並同時提供兩個 demo credential 後，login page 會顯示該帳號與自動填入 login form 的 button。Demo mode 必須明確啟用；只停用註冊不會顯示 demo banner。後端 runtime setting 才是 source of truth，Vite flag 只控制該 deployment 的靜態 frontend bundle。
+
+## Observability Host
+
+Observability compose stack 會在獨立 host 提供 Grafana。
+
+| Variable           | 用途                                    | 預設值                          |
+| ------------------ | --------------------------------------- | ------------------------------- |
+| `BACKEND_BASE_URL` | 產生 URL 時使用的公開 controller origin | `https://app.netstamp.dev`      |
+| `GRAFANA_DOMAIN`   | Grafana 公開 domain                     | `grafana.netstamp.dev`          |
+| `GRAFANA_ROOT_URL` | Grafana 公開 root URL                   | `https://grafana.netstamp.dev/` |
+
+## 後端與 API 資產
+
+後端 source 位於 `server/`。Docs API explorer 讀取 `docs/public/openapi.json`，API 行為變更時應從 TypeSpec 合約重新產生。Controller 環境也會在 `/api/v1/docs` 提供 Scalar docs，schema 則位於 `/api/v1/openapi.json`。
+
+請將 `AUTH_API_TOKEN_HASH_KEY` 保持為機密，並確保重啟與 restore 後維持不變。變更此值會刻意使所有既有 personal access token 失效。Data backup 可以包含 hashed token row，但 restore 後的 token 只有在 controller 使用相同 hash key 時才有效。
+
+### 驗證與 SSO
+
+密碼是選用的帳號 credential。Password hash 與 user 分開儲存；external identity 則使用 provider、issuer 與穩定 subject tuple。相同 email address 不會自動合併帳號；已登入的使用者必須從帳號設定明確連結其他 identity。
+
+| Variable                               | 用途                                                   | 預設值           |
+| -------------------------------------- | ------------------------------------------------------ | ---------------- |
+| `AUTH_SUDO_TTL`                        | 敏感操作的 recent-authentication window                | `5m`             |
+| `AUTH_EXTERNAL_FLOW_TTL`               | 單次使用 provider authorization flow 的生命週期        | `10m`            |
+| `AUTH_GOOGLE_ENABLED`                  | 啟用 Google OpenID Connect                             | `false`          |
+| `AUTH_GOOGLE_CLIENT_ID`                | Google OAuth web client ID                             | 空白             |
+| `AUTH_GOOGLE_CLIENT_SECRET`            | Google OAuth web client secret                         | 空白             |
+| `AUTH_GOOGLE_DISPLAY_NAME`             | UI 顯示的 Google provider label                        | `Google`         |
+| `AUTH_GOOGLE_JIT_PROVISIONING_ENABLED` | 從已驗證的 Google email claim 建立 user                | `false`          |
+| `AUTH_GOOGLE_ALLOWED_HOSTED_DOMAINS`   | 選用，以半形逗號分隔的 Google Workspace `hd` allowlist | 空白             |
+| `AUTH_GITHUB_ENABLED`                  | 啟用 GitHub OAuth login                                | `false`          |
+| `AUTH_GITHUB_CLIENT_ID`                | GitHub OAuth App client ID                             | 空白             |
+| `AUTH_GITHUB_CLIENT_SECRET`            | GitHub OAuth App client secret                         | 空白             |
+| `AUTH_GITHUB_DISPLAY_NAME`             | UI 顯示的 GitHub provider label                        | `GitHub`         |
+| `AUTH_GITHUB_JIT_PROVISIONING_ENABLED` | 從主要且已驗證的 GitHub email 建立 user                | `false`          |
+| `AUTH_GITHUB_ALLOW_SIGNUP`             | 允許從 authorization screen 建立 GitHub account        | `true`           |
+| `AUTH_OIDC_ENABLED`                    | 啟用通用 OpenID Connect provider                       | `false`          |
+| `AUTH_OIDC_ISSUER_URL`                 | Discovery 與 token verification 使用的通用 OIDC issuer | 空白             |
+| `AUTH_OIDC_CLIENT_ID`                  | 通用 OIDC client ID                                    | 空白             |
+| `AUTH_OIDC_CLIENT_SECRET`              | 通用 OIDC client secret                                | 空白             |
+| `AUTH_OIDC_DISPLAY_NAME`               | 通用 OIDC provider label                               | `Single sign-on` |
+| `AUTH_OIDC_JIT_PROVISIONING_ENABLED`   | 通用 OIDC login 驗證 email 後建立 user                 | `false`          |
+
+任何啟用的 external provider 都需要將 `BACKEND_BASE_URL` 設為公開 controller origin。請向對應 provider 註冊以下完整 callback URL：
+
+- Google：`${BACKEND_BASE_URL}/api/${API_VERSION}/auth/external/google/callback`
+- GitHub：`${BACKEND_BASE_URL}/api/${API_VERSION}/auth/external/github/callback`
+- 通用 OIDC：`${BACKEND_BASE_URL}/api/${API_VERSION}/auth/external/oidc/callback`
+
+建立 application type 為 **Web application** 的 Google OAuth client，並將 Google callback 加入 authorized redirect URI。`AUTH_GOOGLE_ALLOWED_HOSTED_DOMAINS` 會對已簽署的 `hd` claim 執行限制，而不是檢查 email suffix。Google sudo request 會要求 `auth_time`，只有當 provider timestamp 在 `AUTH_SUDO_TTL` 所設定的近期範圍內才會接受。
+
+建立 GitHub **OAuth App**，並將 authorization callback URL 設為上述 GitHub callback。Netstamp 只要求 profile 與 email scope，使用 GitHub numeric user ID 作為穩定 subject，選擇主要且已驗證的 email 進行 JIT provisioning，並在讀取 `/user` 與 `/user/emails` 後丟棄 callback access token。GitHub OAuth 沒有可信任的 `auth_time` 對應值；需要 recent authentication 時，Netstamp 會要求完成一個綁定目前 Netstamp session、全新且生命週期短的 OAuth flow，之後才開啟設定的 sudo window。Google 與通用 OIDC claim 若提供近期 provider authentication time 就會加以檢查，否則使用相同的 session-bound flow completion policy。
+
+所有 external flow 都使用 state、PKCE S256、綁定瀏覽器的 HTTP-only cookie、單次使用的 database record，以及設定的 flow expiry。OIDC provider 另外使用 nonce 與經驗證的 ID token。Provider code、access token、refresh token 與 client secret 絕不會儲存在 auth session 或 identity record。
+
+## 資料庫 Image
+
+Docker Compose 使用 `TIMESCALEDB_IMAGE` 作為 PostgreSQL/TimescaleDB service，預設為輕量的 `timescale/timescaledb:latest-pg16` image。
+
+目前 migration 只會啟用 TimescaleDB 核心功能。Result series downsampling 使用 `time_bucket`，因此不需要 TimescaleDB Toolkit 或資料庫端的 `lttb`。如果未來 schema 新增其他 extension，所選 image 必須先包含對應 extension package，Goose 才能啟用它們。
+
+## 共用 UI
+
+可重用的 React primitive 位於 `packages/ui/`，由 service app 與 Docs 共用。這些 component 的靜態說明文件會透過 Storybook build 發布至 `/storybook/`。
+
+## 更新規則
+
+設定變更若影響本機指令、專案結構或說明文件行為，請在同一個變更中更新最接近的 `AGENTS.md` 指南。

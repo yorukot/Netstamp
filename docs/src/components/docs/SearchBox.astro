@@ -1,52 +1,54 @@
 ---
-import { docsSearchIndex } from "../../data/docs";
+import { getDocsSearchIndex } from "../../data/docs";
+import { uiForLocale } from "../../i18n/ui";
 import { Button, Input, Panel } from "@netstamp/ui";
 import Icon from "../icons/Icon.astro";
 
-const dataJson = JSON.stringify(docsSearchIndex);
+const ui = uiForLocale(Astro.currentLocale);
+const dataJson = JSON.stringify(await getDocsSearchIndex(Astro.currentLocale));
 ---
 
-<div class="docsSearch" data-docs-search data-search-index={dataJson}>
+<div class="docsSearch" data-docs-search data-search-index={dataJson} data-search-empty={ui.search.noResults}>
 	<Button
 		className="docsSearchTrigger"
 		variant="outline"
 		size="sm"
 		type="button"
 		data-search-open
-		aria-label="Search documentation"
+		aria-label={ui.search.open}
 		aria-haspopup="dialog"
 		aria-expanded="false"
 		aria-controls="docs-search-dialog"
 	>
 		<span class="docsSearchTriggerLabel">
 			<Icon name="search" size={16} />
-			<span>Search</span>
+			<span>{ui.search.label}</span>
 		</span>
 		<span class="docsSearchShortcut">Cmd K</span>
 	</Button>
 
 	<div class="docsSearchOverlay" id="docs-search-dialog" data-search-dialog hidden>
-		<Button className="docsSearchScrim" variant="plain" type="button" aria-label="Close search" tabIndex={-1} data-search-close />
+		<Button className="docsSearchScrim" variant="plain" type="button" aria-label={ui.search.close} tabIndex={-1} data-search-close />
 		<Panel as="div" tone="glass" padded={false} className="docsSearchPanel" role="dialog" aria-modal="true" aria-labelledby="docs-search-title">
 			<header class="docsSearchHeader">
 				<h2 class="docsSearchTitle" id="docs-search-title">
 					<Icon name="search" size={16} />
-					<span>Search docs</span>
+					<span>{ui.search.title}</span>
 				</h2>
-				<Button className="docsSearchClose" variant="ghost" size="sm" type="button" data-search-close>Close</Button>
+				<Button className="docsSearchClose" variant="ghost" size="sm" type="button" data-search-close>{ui.search.closeAction}</Button>
 			</header>
-			<label class="docsSearchInputLabel" for="docs-search-input">Search query</label>
+			<label class="docsSearchInputLabel" for="docs-search-input">{ui.search.query}</label>
 			<Input
 				id="docs-search-input"
 				type="search"
 				autoComplete="off"
-				placeholder="Search documentation…"
+				placeholder={ui.search.placeholder}
 				aria-controls="docs-search-results"
 				data-search-input
 				frameClassName="docsSearchInputFrame"
 				className="docsSearchInput"
 			/>
-			<div class="docsSearchResults" id="docs-search-results" aria-label="Search results" data-search-results hidden></div>
+			<div class="docsSearchResults" id="docs-search-results" aria-label={ui.search.results} data-search-results hidden></div>
 		</Panel>
 	</div>
 </div>

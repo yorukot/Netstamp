@@ -1,0 +1,109 @@
+{
+	"actions": {
+		"add": "新增",
+		"apply": "套用",
+		"back": "返回",
+		"cancel": "取消",
+		"clear": "清除",
+		"close": "關閉",
+		"confirm": "確認",
+		"continue": "繼續",
+		"copy": "複製",
+		"create": "建立",
+		"delete": "刪除",
+		"disable": "停用",
+		"done": "完成",
+		"download": "下載",
+		"edit": "編輯",
+		"enable": "啟用",
+		"finish": "完成",
+		"import": "匯入",
+		"next": "下一步",
+		"ok": "確定",
+		"open": "開啟",
+		"remove": "移除",
+		"reset": "重設",
+		"retry": "重試",
+		"revoke": "撤銷",
+		"save": "儲存",
+		"saveChanges": "儲存變更",
+		"saving": "儲存中",
+		"search": "搜尋",
+		"test": "測試",
+		"update": "更新",
+		"upload": "上傳"
+	},
+	"a11y": {
+		"closePanel": "關閉面板",
+		"closeDialog": "關閉對話框",
+		"closeNotification": "關閉通知",
+		"loading": "載入中",
+		"primaryNavigation": "主要應用程式導覽",
+		"primaryNavigationMenu": "主要導覽選單"
+	},
+	"dialog": {
+		"actionRequired": "需要處理",
+		"alertEyebrow": "注意",
+		"authenticationRequired": "需要驗證身分",
+		"choiceEyebrow": "選擇一個選項",
+		"confirmAction": "確認操作",
+		"confirmEyebrow": "需要確認",
+		"destructiveAction": "破壞性操作",
+		"fillConfirmation": "填入確認欄位",
+		"promptEyebrow": "需要輸入",
+		"typeToConfirm": "輸入 <confirmation>{{value}}</confirmation> 以確認。"
+	},
+	"demo": {
+		"description": "目前為唯讀存取。所有變更資料的要求都會被阻擋，你只能檢視專案資料。",
+		"title": "示範模式"
+	},
+	"fields": {
+		"name": "名稱",
+		"value": "值"
+	},
+	"language": {
+		"label": "語言",
+		"switchTo": "切換語言為{{language}}"
+	},
+	"loading": {
+		"default": "載入中…",
+		"route": "正在載入頁面…"
+	},
+	"map": {
+		"loading": "正在載入地圖",
+		"selectProbe": "選擇探測器 {{name}}"
+	},
+	"skipToContent": "跳至主要內容",
+	"states": {
+		"disabled": "已停用",
+		"enabled": "已啟用",
+		"error": "錯誤",
+		"loading": "載入中",
+		"never": "從未",
+		"no": "否",
+		"none": "無",
+		"offline": "離線",
+		"online": "上線",
+		"unknown": "未知",
+		"yes": "是"
+	},
+	"toast": {
+		"requestFailed": "要求失敗"
+	},
+	"tracking": {
+		"accept": "接受",
+		"ariaLabel": "分析資料同意設定",
+		"decline": "拒絕",
+		"description": "Netstamp 可以載入選用的分析工具，以瞭解產品與文件的使用情形。拒絕後，這些追蹤工具會在此瀏覽器中維持停用。",
+		"title": "分析資料同意設定"
+	},
+	"theme": {
+		"darkMode": "深色模式",
+		"lightMode": "淺色模式",
+		"switchToDark": "切換為深色模式",
+		"switchToLight": "切換為淺色模式"
+	},
+	"unsaved": {
+		"message": "請注意，您有尚未儲存的變更。"
+	}
+}

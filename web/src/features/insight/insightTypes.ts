@@ -23,13 +23,6 @@ export interface InsightPair {
 	check: CheckDefinition;
 }
 
-export interface AssignmentSelectOption {
-	value: string;
-	label: string;
-	meta: string;
-	searchText: string;
-}
-
 export interface HopDiagnostic {
 	id: string;
 	hopIndex: number;
@@ -50,16 +43,6 @@ export interface HopDiagnostic {
 	rttJump: boolean;
 	noReply: boolean;
 	error: string;
-}
-
-export interface TracerouteSummary {
-	statusTone: BadgeTone;
-	statusLabel: string;
-	finalRtt: number | null;
-	finalLoss: number | null;
-	firstPropagatedLossHop: number | null;
-	firstRttJumpHop: number | null;
-	pathChangeCount: number;
 }
 
 export type TimeWindow = SharedTimeWindow;

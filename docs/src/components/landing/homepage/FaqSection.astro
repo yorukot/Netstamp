@@ -1,40 +1,12 @@
 ---
-const faqs = [
-	{
-		question: "Is Netstamp just another uptime monitor?",
-		answer:
-			"No. Uptime is only one layer. Netstamp combines real-world probes, ping, TCP reachability, traceroute, HTTP uptime, TLS certificate checks, packet loss, latency, probe health, incidents, dashboards, and historical measurements so you can understand how a service behaves from different networks."
-	},
-	{
-		question: "Why do I need probes I control?",
-		answer:
-			"Because third-party cloud checks cannot see every network that matters to you. A service may be reachable from a public monitoring region but degraded from your office, lab, ISP, edge node, private network, or user-facing environment. Netstamp gives you visibility from those real viewpoints."
-	},
-	{
-		question: "Can I self-host Netstamp?",
-		answer:
-			"Yes. Netstamp is open-source and designed for self-hosted deployments with a controller, lightweight probes, PostgreSQL, TimescaleDB, health checks, metrics, OpenAPI, and production deployment documentation."
-	},
-	{
-		question: "What can Netstamp monitor?",
-		answer:
-			"Netstamp supports real-world network checks such as ping, TCP, traceroute, HTTP uptime, API payload checks, and TLS/SSL certificate monitoring. It also tracks probe health, latest measurements, incidents, dashboards, and historical trends."
-	},
-	{
-		question: "Who is Netstamp for?",
-		answer:
-			"Netstamp is for developers, infrastructure teams, homelab users, SREs, network operators, researchers, and teams that need to observe services from machines, regions, ISPs, labs, edge nodes, private infrastructure, or real user-facing networks they control."
-	},
-	{
-		question: "How does Netstamp help with debugging?",
-		answer:
-			"Netstamp helps you separate global outages from regional, provider-specific, probe-specific, target-specific, and route-specific problems. Historical measurements make it easier to see what changed, where it changed, and when it started."
-	}
-];
+import { uiForLocale } from "../../../i18n/ui";
+
+const ui = uiForLocale(Astro.currentLocale);
+const faqs = ui.home.faqs.map(([question, answer]) => ({ question, answer }));
 ---
 
 <section id="faq" class="faq" aria-labelledby="faq-title">
-	<h2 id="faq-title">FAQ</h2>
+	<h2 id="faq-title">{ui.home.faqTitle}</h2>
 	<div class="faq-list">
 		{
 			faqs.map((faq, index) => (

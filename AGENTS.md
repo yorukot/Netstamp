@@ -32,7 +32,7 @@ Only proceed from root guidance when the task is clearly limited to workspace me
 - `pnpm check:frontend-style` or `just frontend-style-check`: enforce frontend token, focus-visible, and px-unit guardrails for docs, web, and shared UI.
 - `pnpm generate:openapi`: regenerate `docs/public/openapi.json` from TypeSpec, copy the backend embedded OpenAPI artifact, and refresh `web/src/shared/api/openapi.d.ts` from that contract.
 - `just build`: build backend, web, and docs.
-- `just test`: run available tests, currently backend tests.
+- `just test`: run shared localization validation, React tests, and backend tests.
 - `just lint`: run web ESLint and backend linting.
 - `pnpm format` or `just format`: format repository files with Prettier.
 

@@ -1,0 +1,46 @@
+---
+title: 開始使用
+description: 設定工作區、在本機啟動各個介面，並重新產生說明文件使用的 API 合約。
+icon: bolt
+head:
+  - tag: title
+    content: 開始使用 | Netstamp 說明文件
+---
+
+## 安裝
+
+Netstamp 的 JavaScript 套件採用 pnpm workspace，後端則使用 Go module。根目錄的 `preinstall` script 會強制使用 pnpm。
+
+```bash
+pnpm install
+```
+
+## 啟動
+
+說明文件網站、React 應用程式與後端刻意設計為不同程序。
+
+```bash
+just docs-dev
+just web-dev
+just backend-dev
+```
+
+:::note 公開首頁與說明文件會建置成 `docs/dist` 下的靜態檔案，因此 GitHub Pages 部署仍維持相同的輸出結構。 :::
+
+## 建置
+
+執行根目錄的 Justfile 指令完成全套驗證；開發期間也可以只執行特定工作區的指令。
+
+```bash
+just build
+just lint
+just test
+```
+
+### OpenAPI
+
+Docs API explorer 會讀取 `docs/public/openapi.json`。HTTP operation 變更時，請從 TypeSpec API 合約重新產生檔案。
+
+```bash
+just api-openapi
+```

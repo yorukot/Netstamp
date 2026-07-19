@@ -11,6 +11,7 @@ interface PageSeoOptions {
 	imageUrl: string;
 	ogType?: "article" | "website";
 	noindex?: boolean;
+	locale?: SupportedLocale;
 }
 
 interface SchemaGraphOptions {
@@ -44,7 +45,7 @@ export function absoluteUrl(pathOrUrl: string, siteUrl = fallbackSiteUrl) {
 	return new URL(relativePath, baseUrl).toString();
 }
 
-export function createPageSeoHead({ title, description, canonicalUrl, imageUrl, ogType = "website", noindex = false }: PageSeoOptions): HeadEntry[] {
+export function createPageSeoHead({ title, description, canonicalUrl, imageUrl, ogType = "website", noindex = false, locale = "en" }: PageSeoOptions): HeadEntry[] {
 	const robots = noindex ? "noindex,nofollow,noarchive" : "index,follow,max-image-preview:large";
 
 	return [
@@ -62,13 +63,14 @@ export function createPageSeoHead({ title, description, canonicalUrl, imageUrl, 
 		{ tag: "meta", attrs: { property: "og:image:type", content: "image/png" } },
 		{ tag: "meta", attrs: { property: "og:image:width", content: "1200" } },
 		{ tag: "meta", attrs: { property: "og:image:height", content: "600" } },
-		{ tag: "meta", attrs: { property: "og:image:alt", content: "Netstamp network observability map preview" } },
-		{ tag: "meta", attrs: { property: "og:locale", content: "en_US" } },
+		{ tag: "meta", attrs: { property: "og:image:alt", content: locale === "zh-TW" ? "Netstamp 網路可觀測性地圖預覽" : "Netstamp network observability map preview" } },
+		{ tag: "meta", attrs: { property: "og:locale", content: locale === "zh-TW" ? "zh_TW" : "en_US" } },
+		{ tag: "meta", attrs: { property: "og:locale:alternate", content: locale === "zh-TW" ? "en_US" : "zh_TW" } },
 		{ tag: "meta", attrs: { name: "twitter:card", content: "summary_large_image" } },
 		{ tag: "meta", attrs: { name: "twitter:title", content: title } },
 		{ tag: "meta", attrs: { name: "twitter:description", content: description } },
 		{ tag: "meta", attrs: { name: "twitter:image", content: imageUrl } },
-		{ tag: "meta", attrs: { name: "twitter:image:alt", content: "Netstamp network observability map preview" } }
+		{ tag: "meta", attrs: { name: "twitter:image:alt", content: locale === "zh-TW" ? "Netstamp 網路可觀測性地圖預覽" : "Netstamp network observability map preview" } }
 	];
 }
 
@@ -84,14 +86,14 @@ export function createBreadcrumbSchema(items: BreadcrumbItem[]) {
 	};
 }
 
-export function createSoftwareApplicationSchema(siteUrl: string, imageUrl: string) {
+export function createSoftwareApplicationSchema(siteUrl: string, imageUrl: string, description: string) {
 	return {
 		"@type": "SoftwareApplication",
 		"@id": `${siteUrl}/#software`,
 		name: "Netstamp",
 		applicationCategory: "DeveloperApplication",
 		operatingSystem: "Web, Linux",
-		description: "Open-source network observability from probes you control. Measure latency, packet loss, DNS, and routes.",
+		description,
 		url: siteUrl,
 		image: imageUrl,
 		isAccessibleForFree: true,
@@ -199,3 +201,4 @@ export function createSchemaGraph({ title, description, pageUrl, siteUrl, logoUr
 		]
 	};
 }
+import type { SupportedLocale } from "@netstamp/i18n";

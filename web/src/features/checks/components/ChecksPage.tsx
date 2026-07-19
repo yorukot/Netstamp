@@ -47,6 +47,7 @@ import { ActionRow, Badge, Button, Checkbox, FieldLabel, FilterGrid, IconButton,
 import { TrashIcon } from "@phosphor-icons/react/dist/csr/Trash";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { CheckConfigFields } from "./CheckConfigFields";
 import { checkTypeFromApi, duplicateCheckInput, isCheckTypeFilter, pathWithSearch } from "./checkPageHelpers";
@@ -58,8 +59,6 @@ import {
 	createSelectorRule,
 	probeMatchesSelector,
 	selectorLabelOptions,
-	selectorModeOptions,
-	selectorOpOptions,
 	selectorStateFromApi,
 	selectorValuesForKey,
 	type SelectorLabelOp,
@@ -87,6 +86,7 @@ function sameValue(left: unknown, right: unknown) {
 }
 
 export function ChecksPage() {
+	const { t } = useTranslation("checks");
 	const { projectRef } = useCurrentProject();
 	const { checkId = "" } = useParams();
 	const [searchParams, setSearchParams] = useSearchParams();
@@ -202,6 +202,17 @@ export function ChecksPage() {
 		activeSelectorState.mode === "advanced" ? assignedProbeNames : probes.filter(probe => probeMatchesSelector(probe.labelTokens, activeSelectorState)).map(probe => probe.name);
 	const activeSelectedProbes = (isCreating || hasSelectedDraft) && selectedProbes.length ? selectedProbes : locallyMatchedProbeNames;
 	const selectorOptions = selectorLabelOptions(labelsQuery.data?.labels ?? []);
+	const localizedSelectorModeOptions: Array<{ value: SelectorMode; label: string }> = [
+		{ value: "all-probes", label: t("selector.allProbes") },
+		{ value: "all", label: t("selector.allLabels") },
+		{ value: "any", label: t("selector.anyLabel") },
+		{ value: "advanced", label: t("selector.advanced") }
+	];
+	const localizedSelectorOpOptions: Array<{ value: SelectorLabelOp; label: string }> = [
+		{ value: "eq", label: t("selector.equals") },
+		{ value: "in", label: t("selector.inValues") },
+		{ value: "exists", label: t("selector.exists") }
+	];
 	const saveCheckMutation = isCreating ? createCheckMutation : updateCheckMutation;
 	const checkActionPending = createCheckMutation.isPending || deleteCheckMutation.isPending || batchDeleteCheckMutation.isPending;
 	const isEditorOpen = isCreating || Boolean(selectedCheck);
@@ -395,7 +406,7 @@ export function ChecksPage() {
 			prepareSelectedCheckEdit();
 			selector = buildSelector(activeSelectorState);
 		} catch (error) {
-			pushErrorToast(error instanceof Error ? error.message : "Selector JSON is invalid.");
+			pushErrorToast(error instanceof Error ? error.message : t("selector.invalid"));
 			return;
 		}
 
@@ -457,7 +468,7 @@ export function ChecksPage() {
 	function duplicateCheck(check: CheckDefinition) {
 		const apiCheck = apiCheckFor(check.id);
 		if (!apiCheck) {
-			pushErrorToast("Check details are still loading.");
+			pushErrorToast(t("detailsLoading"));
 			return;
 		}
 
@@ -486,9 +497,9 @@ export function ChecksPage() {
 
 	async function deleteCheck(check: CheckDefinition) {
 		const confirmed = await confirm({
-			title: `Delete ${check.name}?`,
-			message: "This removes the check definition and stops future assignments for matching probes.",
-			confirmLabel: "Delete check",
+			title: t("deleteQuestion", { name: check.name }),
+			message: t("deleteMessage"),
+			confirmLabel: t("delete"),
 			tone: "danger"
 		});
 
@@ -521,9 +532,9 @@ export function ChecksPage() {
 			.join(", ");
 		const hiddenCount = selectedCheckRows.length - 4;
 		const confirmed = await confirm({
-			title: `Delete ${selectedCheckRows.length} checks?`,
-			message: hiddenCount > 0 ? `${previewNames}, and ${hiddenCount} more will be removed.` : `${previewNames} will be removed.`,
-			confirmLabel: "Delete checks",
+			title: t("deleteManyQuestion", { count: selectedCheckRows.length }),
+			message: hiddenCount > 0 ? t("deleteManyPreview", { names: previewNames, count: hiddenCount }) : t("deleteManyPreviewExact", { names: previewNames }),
+			confirmLabel: t("deleteMany"),
 			tone: "danger"
 		});
 
@@ -537,8 +548,8 @@ export function ChecksPage() {
 				clearDeletedSelection(data.succeededIds);
 				closeEditorIfActiveDeleted(data.succeededIds);
 				pushToast({
-					message: `${data.succeededIds.length} checks removed.`,
-					title: "Checks deleted",
+					message: t("deletedCount", { count: data.succeededIds.length }),
+					title: t("deletedTitle"),
 					tone: "success"
 				});
 			},
@@ -546,11 +557,13 @@ export function ChecksPage() {
 				if (error instanceof BatchCheckDeleteError) {
 					clearDeletedSelection(error.succeededIds);
 					closeEditorIfActiveDeleted(error.succeededIds);
-					pushErrorToast(error.succeededIds.length ? `${error.succeededIds.length} checks were deleted, ${error.failedIds.length} failed.` : `${error.failedIds.length} checks failed to delete.`);
+					pushErrorToast(
+						error.succeededIds.length ? t("partialDelete", { succeeded: error.succeededIds.length, failed: error.failedIds.length }) : t("failedDelete", { count: error.failedIds.length })
+					);
 					return;
 				}
 
-				pushErrorToast("Selected checks failed to delete.");
+				pushErrorToast(t("selectedDeleteFailed"));
 			}
 		});
 	}
@@ -587,7 +600,7 @@ export function ChecksPage() {
 
 			selector = buildSelector(activeSelectorState);
 		} catch (error) {
-			pushErrorToast(error instanceof Error ? error.message : "Check form is invalid.");
+			pushErrorToast(error instanceof Error ? error.message : t("formInvalid"));
 			return;
 		}
 
@@ -621,7 +634,7 @@ export function ChecksPage() {
 				body.pingConfig = buildPingConfigPayload(activePingConfig);
 			}
 		} catch (error) {
-			pushErrorToast(error instanceof Error ? error.message : "Check form is invalid.");
+			pushErrorToast(error instanceof Error ? error.message : t("formInvalid"));
 			return;
 		}
 
@@ -638,10 +651,10 @@ export function ChecksPage() {
 	return (
 		<PageStack>
 			<ScreenHeader
-				title="Checks"
+				title={t("title")}
 				actions={
 					<Button disabled={!canManageChecks} onClick={startNewCheck}>
-						New check
+						{t("new")}
 					</Button>
 				}
 			/>
@@ -649,17 +662,17 @@ export function ChecksPage() {
 			<div className={styles.checkEditorGrid}>
 				<div className={styles.checkListStack}>
 					<FilterGrid className={styles.checkListFilters}>
-						<TextField label="Search" placeholder="check name, target, description" value={checkSearch} onChange={event => updateCheckSearchParam("q", event.currentTarget.value)} />
+						<TextField label={t("search")} placeholder={t("searchPlaceholder")} value={checkSearch} onChange={event => updateCheckSearchParam("q", event.currentTarget.value)} />
 						<SelectField
-							label="Type"
+							label={t("type")}
 							value={checkTypeFilter}
 							onChange={event => updateCheckSearchParam("type", event.currentTarget.value)}
 							options={[
-								{ value: "all", label: "All types" },
-								{ value: "ping", label: "Ping" },
-								{ value: "tcp", label: "TCP" },
-								{ value: "traceroute", label: "Traceroute" },
-								{ value: "http", label: "HTTP / HTTPS" }
+								{ value: "all", label: t("allTypes") },
+								{ value: "ping", label: t("types.ping") },
+								{ value: "tcp", label: t("types.tcp") },
+								{ value: "traceroute", label: t("types.traceroute") },
+								{ value: "http", label: t("types.http") }
 							]}
 						/>
 					</FilterGrid>
@@ -678,7 +691,7 @@ export function ChecksPage() {
 						selectedKey={isCreating ? "__new__" : selectedId}
 						selectedSummary={
 							<>
-								<strong>{selectedCheckRows.length} selected</strong>
+								<strong>{t("selected", { count: selectedCheckRows.length })}</strong>
 								<span>{selectedCheckSummary()}</span>
 							</>
 						}
@@ -687,11 +700,11 @@ export function ChecksPage() {
 				</div>
 
 				{isEditorOpen ? (
-					<EditorDrawer open title={isCreating ? "New check" : selectedCheck?.name || "Check"} ariaLabel="Check editor" onClose={closeEditor}>
+					<EditorDrawer open title={isCreating ? t("new") : selectedCheck?.name || t("check")} ariaLabel={t("editorAria")} onClose={closeEditor}>
 						<div className={classNames("ns-scrollbar", styles.checkEditorStack)}>
 							<div className={styles.checkEditForm}>
 								<TextField
-									label="Check name"
+									label={t("name")}
 									value={activeCheckName}
 									disabled={!canManageChecks || (!selectedCheck && !isCreating)}
 									onChange={event => {
@@ -700,7 +713,7 @@ export function ChecksPage() {
 									}}
 								/>
 								<TextField
-									label="Target"
+									label={t("target")}
 									value={activeTarget}
 									disabled={!canManageChecks || (!selectedCheck && !isCreating)}
 									onChange={event => {
@@ -709,23 +722,23 @@ export function ChecksPage() {
 									}}
 								/>
 								<SelectField
-									label="Check type"
+									label={t("checkType")}
 									value={activeCheckType}
 									disabled={!canManageChecks || !isCreating}
 									onChange={event => setCheckType(event.currentTarget.value as CheckType)}
 									options={[
-										{ value: "Ping", label: "Ping" },
-										{ value: "TCP", label: "TCP" },
-										{ value: "Traceroute", label: "Traceroute" },
-										{ value: "HTTP", label: "HTTP / HTTPS" }
+										{ value: "Ping", label: t("types.ping") },
+										{ value: "TCP", label: t("types.tcp") },
+										{ value: "Traceroute", label: t("types.traceroute") },
+										{ value: "HTTP", label: t("types.http") }
 									]}
 								/>
 								<TextField
-									label="Interval"
+									label={t("interval")}
 									value={activeInterval}
 									inputMode="numeric"
 									disabled={!canManageChecks || (!selectedCheck && !isCreating)}
-									helper="Whole seconds, for example 30s."
+									helper={t("intervalHelper")}
 									error={activeIntervalValidation.error || undefined}
 									onChange={event => {
 										prepareSelectedCheckEdit();
@@ -751,7 +764,7 @@ export function ChecksPage() {
 								onHTTPConfigChange={updateHTTPConfig}
 							/>
 							<TextAreaField
-								label="Description"
+								label={t("description")}
 								rows={4}
 								maxLength={1024}
 								className={styles.descriptionArea}
@@ -764,18 +777,18 @@ export function ChecksPage() {
 							/>
 
 							<div className={styles.probeMultiSelect}>
-								<FieldLabel>Probe selector</FieldLabel>
+								<FieldLabel>{t("selector.title")}</FieldLabel>
 								<div className={styles.selectorBuilder}>
 									<SelectField
-										label="Match mode"
+										label={t("selector.mode")}
 										value={activeSelectorState.mode}
 										disabled={!canManageChecks}
 										onChange={event => setSelectorMode(event.currentTarget.value as SelectorMode)}
-										options={selectorModeOptions}
+										options={localizedSelectorModeOptions}
 									/>
 									{activeSelectorState.mode === "advanced" ? (
 										<TextAreaField
-											label="Selector JSON"
+											label={t("selector.json")}
 											rows={8}
 											value={activeSelectorState.advancedText}
 											disabled={!canManageChecks}
@@ -792,38 +805,43 @@ export function ChecksPage() {
 													<div className={styles.selectorRule} key={rule.id}>
 														<label className={styles.selectorNegation}>
 															<Checkbox checked={rule.negated} disabled={!canManageChecks} onChange={event => updateSelectorRule(rule.id, { negated: event.currentTarget.checked })} />
-															<span>not</span>
+															<span>{t("selector.not")}</span>
 														</label>
 														<TextField
-															label={`Rule ${index + 1} key`}
+															label={t("selector.ruleKey", { number: index + 1 })}
 															value={rule.key}
 															disabled={!canManageChecks}
 															onChange={event => updateSelectorRuleKey(rule.id, event.currentTarget.value)}
 															autoComplete="off"
 														/>
 														<SelectField
-															label="Operator"
+															label={t("selector.operator")}
 															value={rule.op}
 															disabled={!canManageChecks}
 															onChange={event => updateSelectorRule(rule.id, { op: event.currentTarget.value as SelectorLabelOp })}
-															options={selectorOpOptions}
+															options={localizedSelectorOpOptions}
 														/>
 														{rule.op === "eq" ? (
-															<TextField label="Value" value={rule.value} disabled={!canManageChecks} onChange={event => updateSelectorRule(rule.id, { value: event.currentTarget.value })} />
+															<TextField
+																label={t("selector.value")}
+																value={rule.value}
+																disabled={!canManageChecks}
+																onChange={event => updateSelectorRule(rule.id, { value: event.currentTarget.value })}
+															/>
 														) : null}
 														{rule.op === "in" ? (
 															<TextField
-																label="Values"
+																label={t("selector.values")}
 																value={rule.values}
 																disabled={!canManageChecks}
 																helper={valuesForKey.length ? valuesForKey.join(", ") : undefined}
 																onChange={event => updateSelectorRule(rule.id, { values: event.currentTarget.value })}
 															/>
 														) : null}
-														{rule.op === "exists" ? <div className={styles.selectorExistsValue}>any value</div> : null}
+														{rule.op === "exists" ? <div className={styles.selectorExistsValue}>{t("selector.anyValue")}</div> : null}
 														<IconButton
 															className={classNames(styles.iconAction, styles.iconActionDanger, styles.selectorRuleRemove)}
-															aria-label={`Remove selector rule ${index + 1}`}
+															aria-label={t("selector.removeRule", { number: index + 1 })}
 															danger
 															disabled={!canManageChecks}
 															onClick={() => removeSelectorRule(rule.id)}
@@ -835,20 +853,20 @@ export function ChecksPage() {
 											})}
 										</div>
 									) : null}
-									{activeSelectorState.mode === "all-probes" ? <p className={styles.selectorNotice}>Matches every active probe.</p> : null}
+									{activeSelectorState.mode === "all-probes" ? <p className={styles.selectorNotice}>{t("selector.matchesAll")}</p> : null}
 									{activeSelectorState.mode !== "advanced" ? (
 										<ActionRow>
 											<Button type="button" variant="secondary" disabled={!canManageChecks} onClick={addSelectorRule}>
-												Add rule
+												{t("selector.addRule")}
 											</Button>
 										</ActionRow>
 									) : null}
 								</div>
 								<ActionRow>
 									<Button type="button" variant="secondary" disabled={!canManageChecks || !projectRef || selectorPreviewMutation.isPending} onClick={previewSelector}>
-										{selectorPreviewMutation.isPending ? "Previewing" : "Preview selector"}
+										{selectorPreviewMutation.isPending ? t("selector.previewing") : t("selector.preview")}
 									</Button>
-									<Badge tone="accent">{activeSelectedProbes.length} matched</Badge>
+									<Badge tone="accent">{t("selector.matched", { count: activeSelectedProbes.length })}</Badge>
 								</ActionRow>
 								<div className={styles.probeSummary}>{displayProbeSelection(activeSelectedProbes)}</div>
 								<div className={styles.capabilityPills}>
@@ -863,7 +881,7 @@ export function ChecksPage() {
 							{isCreating ? (
 								<ActionRow>
 									<Button disabled={!canSaveActiveCheck || saveCheckMutation.isPending} onClick={saveSelectedCheck}>
-										{saveCheckMutation.isPending ? "Saving" : "Create check"}
+										{saveCheckMutation.isPending ? t("saving") : t("create")}
 									</Button>
 								</ActionRow>
 							) : (
@@ -871,7 +889,7 @@ export function ChecksPage() {
 							)}
 							<ActionRow>
 								<Button variant="danger" disabled={!canManageChecks || !selectedCheck || checkActionPending} onClick={() => void deleteSelectedCheck()}>
-									{deleteCheckMutation.isPending ? "Deleting" : "Delete check"}
+									{deleteCheckMutation.isPending ? t("deleting") : t("delete")}
 								</Button>
 							</ActionRow>
 						</div>

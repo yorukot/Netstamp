@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import styles from "./RunTimeline.module.css";
 
 export interface RunTimelinePoint {
@@ -42,11 +43,12 @@ function clamp(value: number, min: number, max: number) {
 }
 
 export function RunTimeline({ points, selectedPointId, selectedValueLabel, emptyState, timeRangeBounds, minTimeRangeMs = 1000, onSelectPoint, onSelectTimeRange }: RunTimelineProps) {
+	const { t } = useTranslation("insight");
 	const chartRef = useRef<HTMLDivElement | null>(null);
 	const [selection, setSelection] = useState<{ anchorMs: number; focusMs: number } | null>(null);
 	const selectionRef = useRef(selection);
 	const sortedPoints = useMemo(() => [...points].sort((a, b) => a.timestampMs - b.timestampMs), [points]);
-	const fallbackPoint: RunTimelinePoint = { id: "empty", timestampMs: timeRangeBounds?.from ?? 0, label: "-", value: null, valueLabel: "-", ariaLabel: "No timeline points" };
+	const fallbackPoint: RunTimelinePoint = { id: "empty", timestampMs: timeRangeBounds?.from ?? 0, label: "-", value: null, valueLabel: "-", ariaLabel: t("legend.noTimelinePoints") };
 	const firstPoint = sortedPoints[0] ?? fallbackPoint;
 	const lastPoint = sortedPoints[sortedPoints.length - 1] ?? fallbackPoint;
 	const firstTime = timeRangeBounds?.from ?? firstPoint.timestampMs;
@@ -57,7 +59,7 @@ export function RunTimeline({ points, selectedPointId, selectedValueLabel, empty
 	const maxValue = values.length ? Math.max(...values) : 1;
 	const valueSpan = Math.max(1, maxValue - minValue);
 	const selectedPoint = sortedPoints.find(point => point.id === selectedPointId);
-	const axisSelectedValue = selectedValueLabel || `${selectedPoint?.valueLabel || lastPoint.valueLabel} selected`;
+	const axisSelectedValue = selectedValueLabel || t("legend.selected", { value: selectedPoint?.valueLabel || lastPoint.valueLabel });
 	const viewPoints = sortedPoints.map(point => {
 		const x = 6 + ((point.timestampMs - firstTime) / timeSpan) * 88;
 		const y = typeof point.value === "number" ? (maxValue === minValue ? 49 : 78 - ((point.value - minValue) / valueSpan) * 58) : 82;
@@ -198,11 +200,11 @@ export function RunTimeline({ points, selectedPointId, selectedValueLabel, empty
 				</div>
 			</div>
 			<div className={styles.timelineLegend}>
-				<span data-tone="normal">Normal</span>
-				<span data-tone="warning">High RTT</span>
-				<span data-tone="critical">Loss</span>
-				<span data-tone="changed">Route change</span>
-				<span data-tone="selected">Selected run</span>
+				<span data-tone="normal">{t("legend.normal")}</span>
+				<span data-tone="warning">{t("legend.highRtt")}</span>
+				<span data-tone="critical">{t("legend.loss")}</span>
+				<span data-tone="changed">{t("legend.routeChange")}</span>
+				<span data-tone="selected">{t("legend.selectedRun")}</span>
 			</div>
 		</div>
 	);

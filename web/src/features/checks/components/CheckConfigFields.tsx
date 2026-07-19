@@ -13,13 +13,8 @@ import {
 } from "@/features/checks/data/checkConfig";
 import type { CheckType } from "@/features/checks/data/checks";
 import { ActionRow, Button, Checkbox, FieldLabel, SelectField, TextAreaField, TextField } from "@netstamp/ui";
+import { useTranslation } from "react-i18next";
 import styles from "./CheckConfigFields.module.css";
-
-const ipFamilyOptions: Array<{ value: IPFamilyFormValue; label: string }> = [
-	{ value: "", label: "Auto" },
-	{ value: "inet", label: "IPv4" },
-	{ value: "inet6", label: "IPv6" }
-];
 
 const tracerouteProtocolOptions: Array<{ value: TracerouteProtocolFormValue; label: string }> = [
 	{ value: "icmp", label: "ICMP" },
@@ -59,17 +54,23 @@ export function CheckConfigFields({
 	onTracerouteConfigChange,
 	onHTTPConfigChange
 }: CheckConfigFieldsProps) {
+	const { t } = useTranslation("checks");
 	const statusClasses: HTTPStatusClass[] = ["1xx", "2xx", "3xx", "4xx", "5xx"];
+	const ipFamilyOptions: Array<{ value: IPFamilyFormValue; label: string }> = [
+		{ value: "", label: t("config.auto") },
+		{ value: "inet", label: "IPv4" },
+		{ value: "inet6", label: "IPv6" }
+	];
 	function toggleStatusClass(value: HTTPStatusClass, checked: boolean) {
 		onHTTPConfigChange({ statusClasses: checked ? [...httpConfig.statusClasses, value] : httpConfig.statusClasses.filter(item => item !== value) });
 	}
 	return (
 		<div className={styles.checkConfigSection}>
-			<FieldLabel>{checkType} config</FieldLabel>
+			<FieldLabel>{t("config.title", { type: checkType })}</FieldLabel>
 			{checkType === "HTTP" ? (
 				<div className={styles.checkConfigGrid}>
 					<SelectField
-						label="Method"
+						label={t("config.method")}
 						value={httpConfig.method}
 						disabled={disabled}
 						onChange={event =>
@@ -78,7 +79,7 @@ export function CheckConfigFields({
 						options={["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"].map(value => ({ value, label: value }))}
 					/>
 					<TextField
-						label="Timeout ms"
+						label={t("config.timeoutMs")}
 						type="number"
 						min={1}
 						max={60000}
@@ -88,14 +89,14 @@ export function CheckConfigFields({
 						onChange={event => onHTTPConfigChange({ timeoutMs: event.currentTarget.value })}
 					/>
 					<SelectField
-						label="IP family"
+						label={t("config.ipFamily")}
 						value={httpConfig.ipFamily}
 						disabled={disabled}
 						onChange={event => onHTTPConfigChange({ ipFamily: event.currentTarget.value as IPFamilyFormValue })}
 						options={ipFamilyOptions}
 					/>
 					<div>
-						<FieldLabel>Expected status classes</FieldLabel>
+						<FieldLabel>{t("config.expectedStatusClasses")}</FieldLabel>
 						<div className={styles.statusClassGrid}>
 							{statusClasses.map(value => (
 								<label key={value} className={styles.checkboxLabel}>
@@ -106,7 +107,7 @@ export function CheckConfigFields({
 						</div>
 					</div>
 					<TextField
-						label="Exact status codes"
+						label={t("config.exactStatusCodes")}
 						value={httpConfig.statusCodes}
 						disabled={disabled}
 						placeholder="200, 202, 404"
@@ -114,7 +115,7 @@ export function CheckConfigFields({
 						onChange={event => onHTTPConfigChange({ statusCodes: event.currentTarget.value })}
 					/>
 					<TextField
-						label="Response contains"
+						label={t("config.responseContains")}
 						value={httpConfig.bodyContains}
 						disabled={disabled}
 						maxLength={1024}
@@ -122,33 +123,33 @@ export function CheckConfigFields({
 					/>
 					<label className={styles.checkboxLabel}>
 						<Checkbox checked={httpConfig.followRedirects} disabled={disabled} onChange={event => onHTTPConfigChange({ followRedirects: event.currentTarget.checked })} />
-						<span>Follow redirects</span>
+						<span>{t("config.followRedirects")}</span>
 					</label>
 					<label className={styles.checkboxLabel}>
 						<Checkbox checked={httpConfig.skipTlsVerify} disabled={disabled} onChange={event => onHTTPConfigChange({ skipTlsVerify: event.currentTarget.checked })} />
-						<span>Skip TLS verification</span>
+						<span>{t("config.skipTls")}</span>
 					</label>
 					<div className={styles.fullWidth}>
-						<FieldLabel>Request headers</FieldLabel>
+						<FieldLabel>{t("config.requestHeaders")}</FieldLabel>
 						<div className={styles.headerList}>
 							{httpConfig.headers.map(header => (
 								<div className={styles.headerRow} key={header.id}>
 									<TextField
-										label="Header name"
-										aria-label="Header name"
+										label={t("config.headerName")}
+										aria-label={t("config.headerName")}
 										value={header.name}
 										disabled={disabled}
 										onChange={event => onHTTPConfigChange({ headers: httpConfig.headers.map(item => (item.id === header.id ? { ...item, name: event.currentTarget.value } : item)) })}
 									/>
 									<TextField
-										label="Header value"
-										aria-label="Header value"
+										label={t("config.headerValue")}
+										aria-label={t("config.headerValue")}
 										value={header.value}
 										disabled={disabled}
 										onChange={event => onHTTPConfigChange({ headers: httpConfig.headers.map(item => (item.id === header.id ? { ...item, value: event.currentTarget.value } : item)) })}
 									/>
 									<Button type="button" variant="secondary" disabled={disabled} onClick={() => onHTTPConfigChange({ headers: httpConfig.headers.filter(item => item.id !== header.id) })}>
-										Remove
+										{t("config.remove")}
 									</Button>
 								</div>
 							))}
@@ -160,14 +161,14 @@ export function CheckConfigFields({
 								disabled={disabled || httpConfig.headers.length >= 50}
 								onClick={() => onHTTPConfigChange({ headers: [...httpConfig.headers, { id: crypto.randomUUID(), name: "", value: "" }] })}
 							>
-								Add header
+								{t("config.addHeader")}
 							</Button>
 						</ActionRow>
 					</div>
 					{httpConfig.method !== "GET" && httpConfig.method !== "HEAD" ? (
 						<TextAreaField
 							className={styles.fullWidth}
-							label="Request body"
+							label={t("config.requestBody")}
 							rows={6}
 							value={httpConfig.body}
 							disabled={disabled}
@@ -180,14 +181,14 @@ export function CheckConfigFields({
 			) : checkType === "Traceroute" ? (
 				<div className={styles.checkConfigGrid}>
 					<SelectField
-						label="Protocol"
+						label={t("config.protocol")}
 						value={tracerouteConfig.protocol}
 						disabled={disabled}
 						onChange={event => onTracerouteConfigChange({ protocol: event.currentTarget.value as TracerouteProtocolFormValue })}
 						options={tracerouteProtocolOptions}
 					/>
 					<TextField
-						label="Max hops"
+						label={t("config.maxHops")}
 						type="number"
 						min={1}
 						max={64}
@@ -199,7 +200,7 @@ export function CheckConfigFields({
 						onChange={event => onTracerouteConfigChange({ maxHops: event.currentTarget.value })}
 					/>
 					<TextField
-						label="Timeout ms"
+						label={t("config.timeoutMs")}
 						type="number"
 						min={1}
 						max={60000}
@@ -211,7 +212,7 @@ export function CheckConfigFields({
 						onChange={event => onTracerouteConfigChange({ timeoutMs: event.currentTarget.value })}
 					/>
 					<TextField
-						label="Queries per hop"
+						label={t("config.queriesPerHop")}
 						type="number"
 						min={1}
 						max={10}
@@ -223,7 +224,7 @@ export function CheckConfigFields({
 						onChange={event => onTracerouteConfigChange({ queriesPerHop: event.currentTarget.value })}
 					/>
 					<TextField
-						label="Packet size bytes"
+						label={t("config.packetSizeBytes")}
 						type="number"
 						min={1}
 						max={65507}
@@ -236,7 +237,7 @@ export function CheckConfigFields({
 					/>
 					{tracerouteConfig.protocol === "udp" ? (
 						<TextField
-							label="Port"
+							label={t("config.port")}
 							type="number"
 							min={1}
 							max={65535}
@@ -249,7 +250,7 @@ export function CheckConfigFields({
 						/>
 					) : null}
 					<SelectField
-						label="IP family"
+						label={t("config.ipFamily")}
 						value={tracerouteConfig.ipFamily}
 						disabled={disabled}
 						onChange={event => onTracerouteConfigChange({ ipFamily: event.currentTarget.value as IPFamilyFormValue })}
@@ -259,7 +260,7 @@ export function CheckConfigFields({
 			) : checkType === "TCP" ? (
 				<div className={styles.checkConfigGrid}>
 					<TextField
-						label="Port"
+						label={t("config.port")}
 						type="number"
 						min={1}
 						max={65535}
@@ -271,7 +272,7 @@ export function CheckConfigFields({
 						onChange={event => onTCPConfigChange({ port: event.currentTarget.value })}
 					/>
 					<TextField
-						label="Timeout ms"
+						label={t("config.timeoutMs")}
 						type="number"
 						min={1}
 						step={1}
@@ -282,7 +283,7 @@ export function CheckConfigFields({
 						onChange={event => onTCPConfigChange({ timeoutMs: event.currentTarget.value })}
 					/>
 					<SelectField
-						label="IP family"
+						label={t("config.ipFamily")}
 						value={tcpConfig.ipFamily}
 						disabled={disabled}
 						onChange={event => onTCPConfigChange({ ipFamily: event.currentTarget.value as IPFamilyFormValue })}
@@ -292,7 +293,7 @@ export function CheckConfigFields({
 			) : (
 				<div className={styles.checkConfigGrid}>
 					<TextField
-						label="Packet count"
+						label={t("config.packetCount")}
 						type="number"
 						min={1}
 						step={1}
@@ -303,7 +304,7 @@ export function CheckConfigFields({
 						onChange={event => onPingConfigChange({ packetCount: event.currentTarget.value })}
 					/>
 					<TextField
-						label="Packet size bytes"
+						label={t("config.packetSizeBytes")}
 						type="number"
 						min={1}
 						max={65507}
@@ -315,7 +316,7 @@ export function CheckConfigFields({
 						onChange={event => onPingConfigChange({ packetSizeBytes: event.currentTarget.value })}
 					/>
 					<TextField
-						label="Timeout ms"
+						label={t("config.timeoutMs")}
 						type="number"
 						min={1}
 						step={1}
@@ -326,7 +327,7 @@ export function CheckConfigFields({
 						onChange={event => onPingConfigChange({ timeoutMs: event.currentTarget.value })}
 					/>
 					<SelectField
-						label="IP family"
+						label={t("config.ipFamily")}
 						value={pingConfig.ipFamily}
 						disabled={disabled}
 						onChange={event => onPingConfigChange({ ipFamily: event.currentTarget.value as IPFamilyFormValue })}

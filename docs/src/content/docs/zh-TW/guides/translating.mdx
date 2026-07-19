@@ -1,0 +1,90 @@
+---
+title: 翻譯 Netstamp
+description: 在 Crowdin 貢獻翻譯、保護技術內容，並在發布前驗證本地化資源。
+icon: users
+navOrder: 35
+head:
+  - tag: title
+    content: 翻譯 Netstamp | Netstamp 說明文件
+---
+
+Netstamp 以英文作為 source language，目前提供台灣繁體中文 `zh-TW`。即使不設定開發環境、沒有 Crowdin token，也可以直接參與翻譯。
+
+## 不寫程式碼也能參與翻譯
+
+1. 開啟 [Crowdin 上的 Netstamp 專案](https://crowdin.com/project/netstamp)。
+2. 選擇 **Chinese Traditional (`zh-TW`)**。
+3. 選擇仍有未翻譯內容，或需要參考 context 的檔案。
+4. 翻譯前先閱讀英文原文、前後字串、檔案路徑與 translation memory 建議。
+5. 輸入自然的台灣繁體中文、執行 Crowdin QA 檢查，然後保存翻譯。
+6. 如果原文語意不明，或正確譯法取決於產品行為，請在 Crowdin 留言詢問。
+
+維護者會在 Crowdin 審閱翻譯，再將接受的內容同步回 repository。單純參與翻譯不需要 `CROWDIN_PROJECT_ID`、`CROWDIN_PERSONAL_TOKEN` 或 repository 寫入權限。
+
+## 應該翻譯的內容
+
+請翻譯使用者看得到的敘述與介面文字，包括：
+
+- 導覽、標題、說明、按鈕、表單標籤、placeholder、tooltip、empty state、錯誤與 accessibility label；
+- 說明文件標題、frontmatter description、段落、清單、提示區塊文字與連結標籤；
+- localized page title、metadata 與圖片替代文字。
+
+請使用自然的台灣用語。依照實際語意，優先使用「設定」、「檔案」、「連線」、「使用者」、「資訊」、「程式碼」與「伺服器」。
+
+## 必須保留的內容
+
+除非英文 source 明確提供 localized product term，否則下列內容必須保持原樣：
+
+- `Netstamp`、API 名稱、protocol 名稱，以及 `HTTP`、`TLS`、`DNS`、`ICMP`、`OpenAPI` 等識別名稱；
+- code block、inline code、command、檔案路徑、URL、電子郵件地址、JSON key 與環境變數名稱；
+- `{{name}}` 等 interpolation variable、plural suffix、placeholder、MDX import、component tag 與 frontmatter 結構；
+- anchor 與連結目的地。
+
+:::warning 絕對不要翻譯或移除 interpolation variable。如果英文是 `Welcome, {{name}}`，翻譯中必須保留完全相同的 `{{name}}` token。 :::
+
+## 翻譯工作流程
+
+英文 source file 會從下列路徑上傳：
+
+```text
+web/src/i18n/locales/en/*.json
+docs/src/i18n/locales/en/ui.json
+docs/src/content/docs/en/**/*.mdx
+```
+
+Crowdin 會將翻譯輸出至對應的 `zh-TW` 路徑。除非相同修正已經套用至 Crowdin，否則不要建立只修改 Crowdin-managed `zh-TW` 檔案的 pull request；下一次下載翻譯時，這類本機變更可能會被覆蓋。
+
+新增英文內容後，localized screen 可能會因為尚未完成翻譯而暫時顯示英文。這是正常的英文 fallback 行為，不應阻擋其他部分都正確的 source pull request。
+
+## 新增 source text
+
+新增使用者可見文字的開發者應該：
+
+1. 在適合的英文 namespace 加入 semantic key，不要直接使用完整英文句子作為 key。
+2. 使用既有 i18n helper 或 `useTranslation("namespace")`；結構化 React 內容請使用 `<Trans>`。
+3. 將英文說明文件放在 `docs/src/content/docs/en/`，並保留 code、import、component tag、anchor 與檔案路徑。
+4. 執行 localization validation 與受影響的測試。
+5. 只將英文 source 上傳至 Crowdin，不要將 `zh-TW` 當作 source language 上傳。
+
+```bash
+pnpm check:i18n
+pnpm test:i18n
+pnpm test:web
+pnpm test:docs:i18n
+```
+
+具有 Crowdin credential 的維護者可以執行：
+
+```bash
+pnpm crowdin:upload
+pnpm crowdin:download
+pnpm check:i18n
+```
+
+Credential 必須放在 shell、本機已忽略的 `.env`，或 CI secret store 中。絕對不要提交 Crowdin token 或已填入 credential 的檔案。
+
+## 審閱與疑難排解
+
+翻譯發布前，請確認 Crowdin QA 沒有尚未處理的 variable 或 tag mismatch、localized route 可以 build、internal link 維持所選語言，而且 code sample 完全沒有改變。有效台灣繁體中文造成的標點或大小寫 warning，可以審閱後忽略；遺失的 placeholder、tag、數字或 code 則必須修正。
+
+Locale 架構、新增語言、檔案所有權與 CLI 疑難排解，請閱讀 repository 的 [localization 維護指南](https://github.com/yorukot/netstamp/blob/main/docs/localization.md)。

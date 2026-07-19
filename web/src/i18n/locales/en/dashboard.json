@@ -1,0 +1,26 @@
+{
+	"title": "Overview",
+	"fleet": "Fleet",
+	"networkMap": "Network map",
+	"probeRegistry": "Probe registry",
+	"selectedProbe": "Selected probe",
+	"noProbe": "No probe",
+	"coordinatesUnavailable": "Coordinates unavailable",
+	"emptyTitle": "No probes registered",
+	"emptyDescription": "Create a probe to start collecting fleet telemetry.",
+	"metrics": {
+		"probesOnline": "Probes online",
+		"online": "Online",
+		"offlineCount_one": "{{count}} offline",
+		"offlineCount_other": "{{count}} offline",
+		"mapCoverage": "Map coverage",
+		"coverage": "Coverage",
+		"locatedCount_one": "{{count}} located",
+		"locatedCount_other": "{{count}} located",
+		"activeChecks": "Active checks",
+		"checks": "Checks",
+		"none": "None",
+		"draining": "Draining",
+		"maintenance": "Maintenance"
+	}
+}

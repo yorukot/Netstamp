@@ -1,0 +1,14 @@
+---
+import DocPage from "../../../components/docs/DocPage.astro";
+import { getDocsPages } from "../../../data/docs";
+
+export function getStaticPaths() {
+	return getDocsPages("zh-TW")
+		.filter(page => page.contentId !== "index")
+		.map(page => ({ params: { slug: page.contentId }, props: { contentId: page.contentId } }));
+}
+
+const { contentId } = Astro.props;
+---
+
+<DocPage contentId={contentId} />

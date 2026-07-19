@@ -1,4 +1,8 @@
+import { i18n } from "@/i18n";
+import { formatDateTime } from "@/i18n/format";
 import { chartAxisLabel, chartMutedTextStyle, chartTheme, chartTooltipTextStyle, type ChartTheme } from "./chartTheme";
+
+const insightT = i18n.getFixedT(null, "insight") as (key: string) => string;
 
 export type ChartOption = Record<string, unknown>;
 export { barChartOption, lineChartOption } from "./basicChartOptions";
@@ -50,7 +54,7 @@ interface CustomRenderParams {
 }
 
 function timestampLabel(value: number) {
-	return new Date(value).toLocaleString([], {
+	return formatDateTime(value, {
 		month: "short",
 		day: "2-digit",
 		hour: "2-digit",
@@ -119,6 +123,7 @@ function tooltipValue(value: unknown) {
 }
 
 function pingTooltipFormatter(params: unknown) {
+	const lossLabel = insightT("panel.loss");
 	const items = (Array.isArray(params) ? params : [params]) as TooltipParam[];
 	const firstValue = tooltipValue(items[0]?.value);
 	const timestamp = Array.isArray(items[0]?.value) && typeof items[0]?.value?.[0] === "number" ? items[0].value[0] : null;
@@ -130,7 +135,7 @@ function pingTooltipFormatter(params: unknown) {
 			continue;
 		}
 
-		const suffix = item.seriesName === "loss" ? "%" : "ms";
+		const suffix = item.seriesName === lossLabel ? "%" : "ms";
 		lines.push(`${item.marker || ""}${item.seriesName}: ${parsed.metric.toFixed(1)}${suffix}`);
 	}
 
@@ -142,6 +147,7 @@ function pingTooltipFormatter(params: unknown) {
 }
 
 function tcpTooltipFormatter(params: unknown) {
+	const failureLabel = insightT("panel.failure");
 	const items = (Array.isArray(params) ? params : [params]) as TooltipParam[];
 	const firstValue = tooltipValue(items[0]?.value);
 	const timestamp = Array.isArray(items[0]?.value) && typeof items[0]?.value?.[0] === "number" ? items[0].value[0] : null;
@@ -153,7 +159,7 @@ function tcpTooltipFormatter(params: unknown) {
 			continue;
 		}
 
-		const suffix = item.seriesName === "failure" ? "%" : "ms";
+		const suffix = item.seriesName === failureLabel ? "%" : "ms";
 		lines.push(`${item.marker || ""}${item.seriesName}: ${parsed.metric.toFixed(1)}${suffix}`);
 	}
 
@@ -421,19 +427,21 @@ export function insightSeriesColor(index: number) {
 }
 
 export function multiPingInsightChartOption(lines: InsightMultiSeriesLine[]): ChartOption {
-	return multiSeriesChartOption(lines, "RTT ms", "ms");
+	return multiSeriesChartOption(lines, insightT("chart.rttAxis"), "ms");
 }
 
 export function multiTcpInsightChartOption(lines: InsightMultiSeriesLine[]): ChartOption {
-	return multiSeriesChartOption(lines, "connect ms", "ms");
+	return multiSeriesChartOption(lines, insightT("chart.connectAxis"), "ms");
 }
 
 export function multiHttpInsightChartOption(lines: InsightMultiSeriesLine[]): ChartOption {
-	return multiSeriesChartOption(lines, "total ms", "ms");
+	return multiSeriesChartOption(lines, insightT("chart.totalAxis"), "ms");
 }
 
 export function pingInsightChartOption(data: PingSeriesChartData): ChartOption {
 	const theme = chartTheme();
+	const averageLabel = insightT("panel.average");
+	const lossLabel = insightT("panel.loss");
 	const splitLine = { lineStyle: { color: theme.splitLine } };
 	const lossBands = lossBandData(data.lossPercent);
 	const rttAxisBounds = pingRttAxisBounds(data);
@@ -451,7 +459,7 @@ export function pingInsightChartOption(data: PingSeriesChartData): ChartOption {
 		legend: {
 			top: 0,
 			right: 0,
-			data: ["avg", "loss"],
+			data: [averageLabel, lossLabel],
 			textStyle: chartMutedTextStyle(),
 			itemWidth: 12,
 			itemHeight: 6
@@ -471,7 +479,7 @@ export function pingInsightChartOption(data: PingSeriesChartData): ChartOption {
 		yAxis: [
 			{
 				type: "value",
-				name: "RTT ms",
+				name: insightT("chart.rttAxis"),
 				nameTextStyle: chartMutedTextStyle(),
 				axisLabel: chartAxisLabel(),
 				splitLine,
@@ -482,7 +490,7 @@ export function pingInsightChartOption(data: PingSeriesChartData): ChartOption {
 		],
 		series: [
 			{
-				name: "loss",
+				name: lossLabel,
 				type: "custom",
 				coordinateSystem: "cartesian2d",
 				renderItem: lossBandRenderItem(theme),
@@ -512,7 +520,7 @@ export function pingInsightChartOption(data: PingSeriesChartData): ChartOption {
 				silent: true
 			},
 			{
-				name: "avg",
+				name: averageLabel,
 				type: "line",
 				data: pingSeriesData(data.latencyAvg),
 				showSymbol: false,
@@ -526,6 +534,8 @@ export function pingInsightChartOption(data: PingSeriesChartData): ChartOption {
 
 export function tcpInsightChartOption(data: TcpSeriesChartData): ChartOption {
 	const theme = chartTheme();
+	const averageLabel = insightT("panel.average");
+	const failureLabel = insightT("panel.failure");
 	const splitLine = { lineStyle: { color: theme.splitLine } };
 	const failureBands = lossBandData(data.failurePercent);
 	const connectAxisBounds = tcpConnectAxisBounds(data);
@@ -543,7 +553,7 @@ export function tcpInsightChartOption(data: TcpSeriesChartData): ChartOption {
 		legend: {
 			top: 0,
 			right: 0,
-			data: ["avg", "failure"],
+			data: [averageLabel, failureLabel],
 			textStyle: chartMutedTextStyle(),
 			itemWidth: 12,
 			itemHeight: 6
@@ -562,7 +572,7 @@ export function tcpInsightChartOption(data: TcpSeriesChartData): ChartOption {
 		yAxis: [
 			{
 				type: "value",
-				name: "connect ms",
+				name: insightT("chart.connectAxis"),
 				nameTextStyle: chartMutedTextStyle(),
 				axisLabel: chartAxisLabel(),
 				splitLine,
@@ -573,7 +583,7 @@ export function tcpInsightChartOption(data: TcpSeriesChartData): ChartOption {
 		],
 		series: [
 			{
-				name: "failure",
+				name: failureLabel,
 				type: "custom",
 				coordinateSystem: "cartesian2d",
 				renderItem: lossBandRenderItem(theme),
@@ -603,7 +613,7 @@ export function tcpInsightChartOption(data: TcpSeriesChartData): ChartOption {
 				silent: true
 			},
 			{
-				name: "avg",
+				name: averageLabel,
 				type: "line",
 				data: pingSeriesData(data.connectAvg),
 				showSymbol: false,

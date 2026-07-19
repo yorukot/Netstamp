@@ -10,6 +10,7 @@ import { Badge, Button, DataTable, Spinner, type DataColumn } from "@netstamp/ui
 import { CopyIcon } from "@phosphor-icons/react/dist/csr/Copy";
 import { PlusIcon } from "@phosphor-icons/react/dist/csr/Plus";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import styles from "./StatusPagesPage.module.css";
 
@@ -20,6 +21,7 @@ function absolutePublicStatusURL(slug: string) {
 }
 
 export function StatusPagesPage() {
+	const { t } = useTranslation("status");
 	const { projectRef } = useCurrentProject();
 	const pagesQuery = useQuery({
 		...projectQueries.statusPages(projectRef || ""),
@@ -30,37 +32,37 @@ export function StatusPagesPage() {
 	async function copyPageLink(page: ApiPublicStatusPage) {
 		try {
 			await navigator.clipboard.writeText(absolutePublicStatusURL(page.slug));
-			pushToast({ title: "Link copied", message: page.title, tone: "success" });
+			pushToast({ title: t("list.copied"), message: page.title, tone: "success" });
 		} catch {
-			pushErrorToast("The status page link could not be copied.");
+			pushErrorToast(t("list.copyError"));
 		}
 	}
 
 	const columns: DataColumn<ApiPublicStatusPage>[] = [
 		{
 			key: "title",
-			label: "Title",
+			label: t("list.pageTitle"),
 			sortable: true,
 			sortValue: row => row.title,
 			render: row => <strong className={styles.titleCell}>{row.title}</strong>
 		},
 		{
 			key: "slug",
-			label: "Slug",
+			label: t("list.slug"),
 			sortable: true,
 			sortValue: row => row.slug,
 			render: row => <span className={styles.slugCell}>/status/{row.slug}</span>
 		},
 		{
 			key: "visibility",
-			label: "Status",
+			label: t("list.status"),
 			sortable: true,
 			sortValue: row => (row.enabled ? 1 : 0),
-			render: row => <Badge tone={row.enabled ? "success" : "neutral"}>{row.enabled ? "Public" : "Private"}</Badge>
+			render: row => <Badge tone={row.enabled ? "success" : "neutral"}>{row.enabled ? t("list.public") : t("list.private")}</Badge>
 		},
 		{
 			key: "updatedAt",
-			label: "Last modified",
+			label: t("list.modified"),
 			sortable: true,
 			sortValue: row => Date.parse(row.updatedAt),
 			render: row => <time className={styles.timeCell}>{formatDateTime(row.updatedAt)}</time>
@@ -70,40 +72,40 @@ export function StatusPagesPage() {
 	return (
 		<PageStack>
 			<ScreenHeader
-				title="Status Pages"
+				title={t("list.title")}
 				actions={
 					<Button asChild>
 						<Link to={pathForStatusPageEditor(projectRef)}>
 							<PlusIcon aria-hidden="true" focusable="false" />
-							New Page
+							{t("list.new")}
 						</Link>
 					</Button>
 				}
 			/>
 
 			{pagesQuery.isPending ? (
-				<Spinner label="Loading status pages" layout="panel" size="lg" />
+				<Spinner label={t("list.loading")} layout="panel" size="lg" />
 			) : (
 				<DataTable
 					columns={columns}
 					rows={pages}
 					density="compact"
 					minWidth="52rem"
-					ariaLabel="Project status pages"
+					ariaLabel={t("list.aria")}
 					getRowKey={row => row.id}
-					emptyLabel="No status pages yet. Create a page to share service health."
+					emptyLabel={t("list.empty")}
 					rowActions={page => (
 						<div className={styles.rowActions}>
 							<Button asChild variant="outline" size="sm">
-								<Link to={pathForStatusPageEditor(projectRef, page.id)}>Edit</Link>
+								<Link to={pathForStatusPageEditor(projectRef, page.id)}>{t("list.edit")}</Link>
 							</Button>
 							<Button type="button" variant="ghost" size="sm" onClick={() => void copyPageLink(page)}>
 								<CopyIcon aria-hidden="true" focusable="false" />
-								Copy Link
+								{t("list.copy")}
 							</Button>
 							<Button asChild variant="secondary" size="sm">
 								<a href={publicStatusPath(page.slug)} target="_blank" rel="noreferrer">
-									View
+									{t("list.view")}
 								</a>
 							</Button>
 						</div>

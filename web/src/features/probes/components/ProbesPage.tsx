@@ -10,6 +10,7 @@ import { classNames } from "@/shared/utils/classNames";
 import { NetworkMap } from "@/shared/visualizations/NetworkMap";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Outlet, useNavigate, useParams } from "react-router-dom";
 import { ProbeDetail } from "./ProbeDetail";
 import { ProbeList } from "./ProbeList";
@@ -19,6 +20,7 @@ import { filterProbes } from "./probeUtils";
 import type { ProbeView } from "./types";
 
 export function ProbesPage() {
+	const { t } = useTranslation("probes");
 	const { projectRef } = useCurrentProject();
 	const { probeId = "" } = useParams();
 	const navigate = useNavigate();
@@ -82,12 +84,12 @@ export function ProbesPage() {
 				</>
 			) : (
 				<div className={styles.mapView}>
-					<NetworkMap probes={probes} selectedId={selectedProbeId} onSelect={selectProbe} mode="fleet" isLoading={probesQuery.isPending} loadingLabel="Loading probes" className={styles.fullMap} />
+					<NetworkMap probes={probes} selectedId={selectedProbeId} onSelect={selectProbe} mode="fleet" isLoading={probesQuery.isPending} loadingLabel={t("loading")} className={styles.fullMap} />
 					<ProbePageHeader view={view} projectRef={projectRef} onViewChange={setView} overlay />
 				</div>
 			)}
 
-			<EditorDrawer open={Boolean(selectedProbe)} title={selectedProbe?.name || "Probe"} ariaLabel="Probe detail" onClose={closeProbeDetail}>
+			<EditorDrawer open={Boolean(selectedProbe)} title={selectedProbe?.name || t("probe")} ariaLabel={t("detailAria")} onClose={closeProbeDetail}>
 				{selectedProbe ? <ProbeDetail key={selectedProbe.id} probe={selectedProbe} assignedRows={assignedRows} projectRef={projectRef} onDeleted={closeProbeDetail} /> : null}
 			</EditorDrawer>
 

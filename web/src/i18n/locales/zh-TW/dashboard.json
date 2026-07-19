@@ -1,0 +1,26 @@
+{
+	"title": "總覽",
+	"fleet": "探測器群組",
+	"networkMap": "網路地圖",
+	"probeRegistry": "探測器清單",
+	"selectedProbe": "已選探測器",
+	"noProbe": "沒有探測器",
+	"coordinatesUnavailable": "無座標資訊",
+	"emptyTitle": "尚未註冊探測器",
+	"emptyDescription": "建立探測器以開始收集群組遙測資料。",
+	"metrics": {
+		"probesOnline": "上線探測器",
+		"online": "上線",
+		"offlineCount_one": "{{count}} 個離線",
+		"offlineCount_other": "{{count}} 個離線",
+		"mapCoverage": "地圖涵蓋率",
+		"coverage": "涵蓋率",
+		"locatedCount_one": "{{count}} 個有位置資訊",
+		"locatedCount_other": "{{count}} 個有位置資訊",
+		"activeChecks": "啟用中的檢查",
+		"checks": "檢查",
+		"none": "無",
+		"draining": "停止接收中",
+		"maintenance": "維護中"
+	}
+}

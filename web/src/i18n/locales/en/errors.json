@@ -1,0 +1,8 @@
+{
+	"generic": "Something went wrong. Please try again.",
+	"network": "Unable to reach the Netstamp controller.",
+	"notFound": "The requested resource was not found.",
+	"server": "The Netstamp controller returned a server error.",
+	"unauthorized": "Your session is no longer authorized. Please sign in again.",
+	"validation": "Check the highlighted fields and try again."
+}
