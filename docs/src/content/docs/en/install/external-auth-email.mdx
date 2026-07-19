@@ -1,0 +1,99 @@
+---
+title: External authentication and email
+description: Configure generic OIDC, Google, GitHub, SMTP, password reset, and email verification for Netstamp.
+icon: key
+navSection: install
+navOrder: 20
+---
+
+Netstamp supports local passwords plus generic OpenID Connect, Google OpenID Connect, and GitHub OAuth. Providers can be used for sign-in, recent-authentication confirmation, and linking an identity to an existing account.
+
+## Public origin first
+
+Set a valid HTTPS origin before enabling a provider:
+
+```dotenv
+BACKEND_BASE_URL=https://netstamp.example.com
+PUBLIC_WEB_BASE_URL=https://netstamp.example.com
+```
+
+Register the matching callback with the identity provider:
+
+| Provider     | Callback URL                                                        |
+| ------------ | ------------------------------------------------------------------- |
+| Generic OIDC | `https://netstamp.example.com/api/v1/auth/external/oidc/callback`   |
+| Google       | `https://netstamp.example.com/api/v1/auth/external/google/callback` |
+| GitHub       | `https://netstamp.example.com/api/v1/auth/external/github/callback` |
+
+## Generic OIDC
+
+```dotenv
+AUTH_OIDC_ENABLED=true
+AUTH_OIDC_ISSUER_URL=https://id.example.com
+AUTH_OIDC_CLIENT_ID=netstamp
+AUTH_OIDC_CLIENT_SECRET=<client secret>
+AUTH_OIDC_DISPLAY_NAME=Company SSO
+AUTH_OIDC_JIT_PROVISIONING_ENABLED=false
+```
+
+The issuer must provide valid OIDC discovery metadata. Enable just-in-time provisioning only when any identity accepted by that provider should be allowed to create a Netstamp account.
+
+## Google
+
+```dotenv
+AUTH_GOOGLE_ENABLED=true
+AUTH_GOOGLE_CLIENT_ID=<client id>
+AUTH_GOOGLE_CLIENT_SECRET=<client secret>
+AUTH_GOOGLE_DISPLAY_NAME=Google
+AUTH_GOOGLE_JIT_PROVISIONING_ENABLED=false
+AUTH_GOOGLE_ALLOWED_HOSTED_DOMAINS=example.com,subsidiary.example
+```
+
+`AUTH_GOOGLE_ALLOWED_HOSTED_DOMAINS` is a comma-separated allowlist for hosted-domain claims. Leave it empty only when consumer and all Workspace accounts accepted by the Google application are allowed.
+
+## GitHub
+
+```dotenv
+AUTH_GITHUB_ENABLED=true
+AUTH_GITHUB_CLIENT_ID=<client id>
+AUTH_GITHUB_CLIENT_SECRET=<client secret>
+AUTH_GITHUB_DISPLAY_NAME=GitHub
+AUTH_GITHUB_JIT_PROVISIONING_ENABLED=false
+AUTH_GITHUB_ALLOW_SIGNUP=true
+```
+
+`AUTH_GITHUB_ALLOW_SIGNUP` controls whether GitHub's authorization flow may request account signup at GitHub. Netstamp account creation is governed separately by JIT provisioning and the instance registration policy.
+
+## Existing users and JIT provisioning
+
+Keep JIT provisioning disabled during initial setup. Sign in with the bootstrap administrator, open **Account settings → Login methods**, and link the external identity. Test sign-in in a private browser window before changing local password or registration policy.
+
+When JIT is disabled, an unknown external identity cannot create an account. It may still sign in after being linked to an existing user.
+
+## SMTP
+
+Email notifications, password reset, and email verification require SMTP. Configure it in **Admin → System settings** or with environment fallbacks:
+
+```dotenv
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USERNAME=netstamp
+SMTP_PASSWORD=<smtp password>
+SMTP_FROM=netstamp@example.com
+SMTP_TLS_MODE=starttls
+SMTP_TIMEOUT=10s
+```
+
+Supported TLS modes are `starttls`, `implicit`, and `none`. Use `none` only on a trusted private connection that is already protected by another transport layer.
+
+The Admin UI stores settings in the database and encrypts secret values with `SYSTEM_SETTINGS_ENCRYPTION_KEY`. Stored settings override environment fallbacks. Keep the encryption key stable and backed up securely.
+
+## Test the complete flow
+
+1. Save SMTP settings in **Admin**.
+2. Create an Email notification under **Alerts → Notifications** and send a test.
+3. Request a password-reset email from a disposable user.
+4. If email verification is required, register a disposable account and follow the verification link.
+5. Test every external provider in a signed-out private window.
+
+Do not disable the last working administrator authentication method until an independent recovery path has been verified.

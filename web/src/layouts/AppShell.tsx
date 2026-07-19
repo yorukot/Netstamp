@@ -3,6 +3,7 @@ import { demoMode } from "@/shared/config/features";
 import { classNames } from "@/shared/utils/classNames";
 import { GlobalFooter } from "@netstamp/ui";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Outlet } from "react-router-dom";
 import styles from "./AppShell.module.css";
 import { Sidebar } from "./components/Sidebar";
@@ -10,6 +11,7 @@ import { Sidebar } from "./components/Sidebar";
 const sidebarCollapsedStorageKey = "netstamp:sidebar-collapsed";
 
 export function AppShell() {
+	const { t } = useTranslation("common");
 	const { session, logout } = useSession();
 	const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
 		if (typeof window === "undefined") {
@@ -38,7 +40,7 @@ export function AppShell() {
 	return (
 		<div className={classNames(styles.shell, sidebarCollapsed && styles.shellCollapsed)}>
 			<a className={styles.skipLink} href="#app-content">
-				Skip to content
+				{t("skipToContent")}
 			</a>
 			<Sidebar user={session.user} collapsed={sidebarCollapsed} onToggleCollapsed={() => setSidebarCollapsed(collapsed => !collapsed)} onLogout={logout} />
 
@@ -47,8 +49,8 @@ export function AppShell() {
 					<div className={styles.contentBody}>
 						{demoMode ? (
 							<div className={styles.demoBanner} role="status">
-								<strong>Demo mode</strong>
-								<span>Read-only access. Mutating requests are blocked; you can only view project data.</span>
+								<strong>{t("demo.title")}</strong>
+								<span>{t("demo.description")}</span>
 							</div>
 						) : null}
 						<Outlet />

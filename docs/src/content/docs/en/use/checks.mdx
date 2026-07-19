@@ -1,0 +1,88 @@
+---
+title: Checks
+description: Configure Ping, TCP, HTTP/HTTPS, and Traceroute checks with intervals, assertions, IP families, and probe selectors.
+icon: activity
+navSection: use
+navOrder: 40
+---
+
+A check defines one measurement and the probes that should execute it. All checks have a name, type, target, interval, optional description and labels, and an optional probe selector.
+
+## Common fields
+
+- **Name** — a stable name shown throughout results, alerts, and status pages.
+- **Target** — a hostname, address, or URL appropriate for the selected type.
+- **Interval** — seconds between scheduled executions.
+- **Selector** — the label expression that chooses probes. Empty matches all enabled probes.
+- **Labels** — metadata attached to the check for organization; these are not the probe selector.
+
+Preview selector matches before saving. A valid check with zero matching probes produces no assignments and no measurements.
+
+## Ping
+
+Ping uses ICMP and records loss and round-trip-time distributions.
+
+| Setting      | Meaning                                     |
+| ------------ | ------------------------------------------- |
+| Packet count | ICMP requests per execution; minimum 1      |
+| Packet size  | Payload bytes, from 1 to 65,507             |
+| Timeout      | Execution timeout in milliseconds           |
+| IP family    | Automatic, IPv4 (`inet`), or IPv6 (`inet6`) |
+
+Raw ICMP may require Linux capabilities granted by the installed service. A successful DNS lookup does not guarantee that the target or network permits ICMP.
+
+## TCP
+
+TCP measures whether a connection can be established and how long the connect phase takes.
+
+| Setting   | Meaning                           |
+| --------- | --------------------------------- |
+| Port      | Destination port from 1 to 65,535 |
+| Timeout   | Connect timeout in milliseconds   |
+| IP family | Automatic, IPv4, or IPv6          |
+
+Use TCP when an application protocol is not HTTP or when transport reachability is the signal you need.
+
+## HTTP/HTTPS
+
+HTTP checks can model an endpoint rather than only fetch a page.
+
+| Setting           | Behavior                                                                         |
+| ----------------- | -------------------------------------------------------------------------------- |
+| Method            | `GET`, `HEAD`, `POST`, `PUT`, `PATCH`, `DELETE`, or `OPTIONS`                    |
+| Headers           | Up to 50 request headers                                                         |
+| Body              | Optional request body, up to 65,536 characters; not used by GET or HEAD          |
+| Timeout           | 1 to 60,000 milliseconds                                                         |
+| Redirects         | Follow redirects when enabled                                                    |
+| TLS verification  | Verify by default; skipping verification should be a temporary diagnostic choice |
+| Expected statuses | One or more exact codes or status classes (`1xx` through `5xx`)                  |
+| Body contains     | Optional response substring assertion, up to 1,024 characters                    |
+| IP family         | Automatic, IPv4, or IPv6                                                         |
+
+Results can include DNS, connect, TLS, time-to-first-byte, and total timing; resolved address; status and final URL; redirects; response size; body match; TLS version and cipher; and certificate validity dates.
+
+Request headers, bodies, URL query values, and body assertions can contain secrets. Netstamp redacts sensitive check fields for users who cannot manage checks, but operators should still use the least-privileged credentials possible.
+
+## Traceroute
+
+Traceroute records the path and per-hop timing/loss.
+
+| Setting         | Range or values                  |
+| --------------- | -------------------------------- |
+| Protocol        | ICMP or UDP                      |
+| Max hops        | 1–64                             |
+| Timeout         | 1–60,000 milliseconds            |
+| Queries per hop | 1–10                             |
+| Packet size     | 1–65,507 bytes                   |
+| Port            | 1–65,535; relevant to UDP probes |
+| IP family       | Automatic, IPv4, or IPv6         |
+
+A partial result can be useful: intermediate hops may respond even when the destination is not reached. Some routers intentionally do not answer traceroute probes, so an empty hop is not automatically a forwarding failure.
+
+## Editing and assignment refresh
+
+Changing a check updates its version and causes assignment refresh. Agents poll assignments periodically, so a save is not necessarily visible on every probe at the same instant. Use [Labels and assignments](/docs/use/labels-assignments/) when a check does not run from the expected viewpoints.
+
+## Choosing an interval
+
+Short intervals improve detection speed but increase network traffic, stored results, alert evaluations, and probe work. Start with the slowest interval that meets your operational objective, then shorten only the checks that need faster feedback.

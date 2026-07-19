@@ -2,7 +2,8 @@
 import Icon from "../components/icons/Icon.astro";
 import PageActions from "../components/docs/PageActions.astro";
 import SearchBox from "../components/docs/SearchBox.astro";
-import { docsNav, docsPages, githubBaseUrl } from "../data/docs";
+import { getDocsNav, getDocsPages, githubBaseUrl } from "../data/docs";
+import { localeFromAstro, pathForLocale, uiForLocale } from "../i18n/ui";
 import { absoluteUrl, createBreadcrumbSchema, createTechArticleSchema, resolveSiteUrl, type HeadEntry } from "../lib/seo";
 import BaseLayout from "./BaseLayout.astro";
 import { Button } from "@netstamp/ui";
@@ -25,17 +26,23 @@ interface Props {
 		editPath?: string;
 		head?: HeadEntry[];
 	};
+	fallback?: boolean;
 }
 
+const locale = localeFromAstro(Astro.currentLocale);
+const ui = uiForLocale(locale);
 const frontmatter = Astro.props.frontmatter ?? {};
-const title = Astro.props.title ?? frontmatter.title ?? "Docs";
-const description = Astro.props.description ?? frontmatter.description ?? "Netstamp documentation.";
+const title = Astro.props.title ?? frontmatter.title ?? ui.nav.docs;
+const description = Astro.props.description ?? frontmatter.description ?? ui.meta.docsDescription;
+const fallback = Astro.props.fallback ?? false;
 const head = Astro.props.head ?? frontmatter.head ?? [];
-const browserTitle = head.find(entry => entry.tag === "title")?.content ?? `${title} - Netstamp Docs`;
+const browserTitle = head.find(entry => entry.tag === "title")?.content ?? `${title} - Netstamp ${ui.nav.docs}`;
 const extraHead = head.filter(entry => entry.tag !== "title");
 const markdownHeadings = Astro.props.headings?.filter((heading): heading is Heading => heading.depth === 2 || heading.depth === 3) ?? [];
 const headings = markdownHeadings;
 const pathname = Astro.url.pathname.endsWith("/") ? Astro.url.pathname : `${Astro.url.pathname}/`;
+const docsPages = getDocsPages(locale);
+const docsNav = getDocsNav(locale);
 const currentPageIndex = docsPages.findIndex(page => page.href === pathname);
 const currentPage = currentPageIndex >= 0 ? docsPages[currentPageIndex] : undefined;
 const previousPage = currentPageIndex > 0 ? docsPages[currentPageIndex - 1] : undefined;
@@ -48,27 +55,26 @@ const breadcrumbs =
 	pathname === "/docs/"
 		? [
 				{ name: "Netstamp", url: siteUrl },
-				{ name: "Docs", url: pageUrl }
+				{ name: ui.nav.docs, url: pageUrl }
 			]
 		: [
 				{ name: "Netstamp", url: siteUrl },
-				{ name: "Docs", url: absoluteUrl("/docs/", siteUrl) },
+				{ name: ui.nav.docs, url: absoluteUrl(pathForLocale("/docs/", locale), siteUrl) },
 				{ name: title, url: pageUrl }
 			];
 const schema = [createBreadcrumbSchema(breadcrumbs), createTechArticleSchema(siteUrl, pageUrl, title, description)];
-const pageAssistantPrompt = `Please read and explain this documentation page: ${pageUrl}
-
-Please provide a clear summary and help me understand the key concepts covered in this documentation.`;
+const pageAssistantPrompt =
+	locale === "zh-TW"
+		? `請閱讀並解釋這個說明文件頁面：${pageUrl}\n\n請提供清楚的繁體中文摘要，並協助我理解本頁涵蓋的核心概念。`
+		: `Please read and explain this documentation page: ${pageUrl}\n\nPlease provide a clear summary and help me understand the key concepts covered in this documentation.`;
 const chatGptUrl = `https://chatgpt.com/?q=${encodeURIComponent(pageAssistantPrompt)}`;
 const claudeUrl = `https://claude.ai/new?q=${encodeURIComponent(pageAssistantPrompt)}`;
 
-function isActiveNavItem(href: string) {
-	return pathname === href || (href !== "/docs/" && pathname.startsWith(href));
-}
+const isActiveNavItem = (href: string) => pathname === href || (href !== "/docs/" && pathname.startsWith(href));
 
 const navGroups = docsNav.map(group => ({
 	...group,
-	id: group.title.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+	id: group.key,
 	active: group.items.some(item => isActiveNavItem(item.href)),
 	items: group.items.map(item => ({
 		...item,
@@ -77,28 +83,28 @@ const navGroups = docsNav.map(group => ({
 	}))
 }));
 const externalLinks = [
-	{ title: "OpenAPI", href: "/openapi/" },
+	{ title: "OpenAPI", href: pathForLocale("/openapi/", locale) },
 	{ title: "Storybook", href: "/storybook/", reload: true }
 ];
 const currentGroup = navGroups.find(group => group.active);
 const visibleBreadcrumbs =
 	pathname === "/docs/"
-		? [{ name: "Docs home", href: "/docs/", current: true, icon: "home" as const }]
+		? [{ name: ui.docs.home, href: pathForLocale("/docs/", locale), current: true, icon: "home" as const }]
 		: [
-				{ name: "Docs home", href: "/docs/", current: false, icon: "home" as const },
-				currentGroup ? { name: currentGroup.title, href: currentGroup.items[0]?.href ?? "/docs/", current: false } : undefined,
+				{ name: ui.docs.home, href: pathForLocale("/docs/", locale), current: false, icon: "home" as const },
+				currentGroup ? { name: currentGroup.title, href: currentGroup.items[0]?.href ?? pathForLocale("/docs/", locale), current: false } : undefined,
 				{ name: title, href: pathname, current: true }
 			].filter((item): item is { name: string; href: string; current: boolean; icon?: "home" } => Boolean(item));
 ---
 
 <BaseLayout title={browserTitle} description={description} head={extraHead} canonicalPath={pathname} ogType="article" schema={schema}>
 	<div class="docsShell" data-docs-shell>
-		<aside class="docsSidebar" aria-label="Documentation navigation">
+		<aside class="docsSidebar" aria-label={ui.docs.navigation}>
 			<SearchBox />
 			<Button className="docsMobileNavToggle" variant="outline" size="sm" type="button" data-docs-mobile-nav-toggle aria-expanded="false" aria-controls="docs-nav-tree">
 				<span>
 					<Icon name="toc" size={16} />
-					Navigation
+					{ui.docs.mobileNavigation}
 				</span>
 				<Icon name="caret" size={12} />
 			</Button>
@@ -118,7 +124,7 @@ const visibleBreadcrumbs =
 					))
 				}
 				<section class="docsNavSection docsExternalLinks" aria-labelledby="docs-nav-section-external">
-					<h2 class="docsNavSectionTitle" id="docs-nav-section-external">External links</h2>
+					<h2 class="docsNavSectionTitle" id="docs-nav-section-external">{ui.docs.externalLinks}</h2>
 					{
 						externalLinks.map(link => (
 							<a href={link.href} class="docsExternalLink" data-astro-reload={link.reload ? true : undefined}>
@@ -132,7 +138,7 @@ const visibleBreadcrumbs =
 		</aside>
 
 		<main id="content" class="docContent">
-			<nav class="docBreadcrumb" aria-label="Breadcrumb">
+			<nav class="docBreadcrumb" aria-label={ui.docs.breadcrumb}>
 				<ol>
 					{
 						visibleBreadcrumbs.map((item, index) => (
@@ -158,21 +164,29 @@ const visibleBreadcrumbs =
 			</nav>
 			<h1 class="docTitle">{title}</h1>
 			<p class="docDescription">{description}</p>
+			{
+				fallback ? (
+					<aside class="translationFallback" role="note">
+						<span>{ui.docs.fallbackNotice}</span>
+						<a href={pathForLocale(Astro.url.pathname, "en")}>{ui.docs.fallbackLink}</a>
+					</aside>
+				) : null
+			}
 			<article class="docProse">
 				<slot />
 			</article>
 			<footer class="docFooter">
 				<a class="editLink" href={editUrl} target="_blank" rel="noreferrer">
 					<Icon name="edit" size={16} />
-					Edit on GitHub
+					{ui.docs.edit}
 				</a>
-				<nav class="docPager" aria-label="Documentation pagination">
+				<nav class="docPager" aria-label={ui.docs.pagination}>
 					{
 						previousPage ? (
 							<a class="docPagerLink previous" href={previousPage.href}>
 								<Icon name="arrowLeft" size={18} />
 								<span>
-									<small>Previous</small>
+									<small>{ui.docs.previous}</small>
 									<strong>{previousPage.title}</strong>
 								</span>
 							</a>
@@ -180,8 +194,8 @@ const visibleBreadcrumbs =
 							<span class="docPagerLink previous disabled" aria-disabled="true">
 								<Icon name="arrowLeft" size={18} />
 								<span>
-									<small>Previous</small>
-									<strong>No previous page</strong>
+									<small>{ui.docs.previous}</small>
+									<strong>{ui.docs.noPrevious}</strong>
 								</span>
 							</span>
 						)
@@ -190,7 +204,7 @@ const visibleBreadcrumbs =
 						nextPage ? (
 							<a class="docPagerLink next" href={nextPage.href}>
 								<span>
-									<small>Next</small>
+									<small>{ui.docs.next}</small>
 									<strong>{nextPage.title}</strong>
 								</span>
 								<Icon name="arrowRight" size={18} />
@@ -198,8 +212,8 @@ const visibleBreadcrumbs =
 						) : (
 							<span class="docPagerLink next disabled" aria-disabled="true">
 								<span>
-									<small>Next</small>
-									<strong>No next page</strong>
+									<small>{ui.docs.next}</small>
+									<strong>{ui.docs.noNext}</strong>
 								</span>
 								<Icon name="arrowRight" size={18} />
 							</span>
@@ -209,7 +223,7 @@ const visibleBreadcrumbs =
 			</footer>
 		</main>
 
-		<aside class="docsToc" aria-label="On this page">
+		<aside class="docsToc" aria-label={ui.docs.onThisPage}>
 			<div class="docsTocInner">
 				<PageActions chatGptUrl={chatGptUrl} claudeUrl={claudeUrl} />
 				{
@@ -222,7 +236,7 @@ const visibleBreadcrumbs =
 							))}
 						</nav>
 					) : (
-						<p>No headings</p>
+						<p>{ui.docs.noHeadings}</p>
 					)
 				}
 			</div>

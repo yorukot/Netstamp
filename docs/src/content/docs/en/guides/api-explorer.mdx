@@ -1,0 +1,108 @@
+---
+title: API and automation
+description: Use Netstamp's versioned HTTP API, OpenAPI contract, session or bearer authentication, health endpoints, and problem responses.
+icon: api
+navSection: api
+navOrder: 0
+---
+
+Netstamp exposes the same project, probe, check, assignment, result, alert, status-page, account, and administration capabilities used by the web application.
+
+## Endpoints
+
+For a controller at `https://netstamp.example.com`:
+
+| Resource                  | URL                                                |
+| ------------------------- | -------------------------------------------------- |
+| API base                  | `https://netstamp.example.com/api/v1`              |
+| OpenAPI JSON              | `https://netstamp.example.com/api/v1/openapi.json` |
+| Controller API docs       | `https://netstamp.example.com/api/v1/docs`         |
+| Project docs API explorer | [OpenAPI explorer](/openapi/)                      |
+| API health                | `https://netstamp.example.com/api/v1/healthz`      |
+| Combined-container health | `https://netstamp.example.com/healthz`             |
+| Prometheus metrics        | `https://netstamp.example.com/metrics`             |
+
+The exact TypeSpec-generated OpenAPI document is the contract source of truth. Use it to generate clients or inspect request, response, security, and error schemas.
+
+## Authentication modes
+
+### Browser session
+
+The web app uses an opaque, HTTP-only session cookie. State-changing cookie requests require the CSRF flow exposed by `/auth/csrf`. Session authentication is required for account, membership, invite, API-token management, and system administration operations.
+
+### Personal API token
+
+Project resource endpoints accept:
+
+```http
+Authorization: Bearer nst_pat_<secret>
+```
+
+The token must have the operation's scope, and its owner must still have a sufficient current project role. See [API tokens](/docs/guides/api-tokens/).
+
+### Probe credential
+
+Probe runtime endpoints use a separate credential:
+
+```http
+Authorization: Probe <probe secret>
+```
+
+Do not use probe credentials in human API clients or personal tokens in the probe service.
+
+## First request
+
+```bash
+export NETSTAMP_URL=https://netstamp.example.com
+export NETSTAMP_TOKEN=nst_pat_replace_me
+
+curl --fail --silent --show-error \
+  --header "Authorization: Bearer $NETSTAMP_TOKEN" \
+  "$NETSTAMP_URL/api/v1/projects"
+```
+
+List checks for a project:
+
+```bash
+curl --fail --silent --show-error \
+  --header "Authorization: Bearer $NETSTAMP_TOKEN" \
+  "$NETSTAMP_URL/api/v1/projects/home-lab/checks"
+```
+
+Query latest results:
+
+```bash
+curl --fail --silent --show-error \
+  --header "Authorization: Bearer $NETSTAMP_TOKEN" \
+  "$NETSTAMP_URL/api/v1/projects/home-lab/results/latest"
+```
+
+## Problem responses
+
+Non-success responses use a structured problem body with a stable Netstamp error code where the operation defines one. Clients should branch on the HTTP status and problem code, not on human-readable detail text.
+
+Common classes include:
+
+- `400` invalid input;
+- `401` missing, expired, or invalid credentials;
+- `403` insufficient token scope, recent authentication, or project permission;
+- `404` resource not found within the authorized scope;
+- `409` duplicate slug, label, invite, or other state conflict;
+- `429` rate-limited authentication flow;
+- `503` unavailable dependency or delivery path.
+
+## Automation practices
+
+- Give each integration its own named token and minimum scopes.
+- Set a practical expiration and rotate before it expires.
+- Resolve projects by stable slug, but account for slug changes.
+- Use request timeouts and bounded retries for idempotent reads.
+- Do not automatically retry validation, authorization, or conflict responses.
+- Record the OpenAPI revision used to generate a client.
+- Never log full bearer tokens, probe secrets, session cookies, webhook URLs, or request bodies containing credentials.
+
+## API surface
+
+The OpenAPI explorer groups operations under System, Admin, Auth, API Tokens, Users, Projects, Project Members, Project Invites, Labels, Checks, Assignments, Probes, Results, Alerts, Public Status Pages, Probe Runtime, and Install.
+
+Use the explorer rather than copying an old payload example: request and response models evolve with the contract.

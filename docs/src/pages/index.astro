@@ -1,13 +1,15 @@
 ---
 import HomepageRedesign from "../components/landing/HomepageRedesign.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
+import { uiForLocale } from "../i18n/ui";
 import { absoluteUrl, createBreadcrumbSchema, createSoftwareApplicationSchema, resolveSiteUrl } from "../lib/seo";
 
 const siteUrl = resolveSiteUrl(Astro.site);
+const ui = uiForLocale(Astro.currentLocale);
 const imageUrl = absoluteUrl("/og.png", siteUrl);
-const schema = [createBreadcrumbSchema([{ name: "Netstamp", url: siteUrl }]), createSoftwareApplicationSchema(siteUrl, imageUrl)];
+const schema = [createBreadcrumbSchema([{ name: "Netstamp", url: siteUrl }]), createSoftwareApplicationSchema(siteUrl, imageUrl, ui.meta.description)];
 ---
 
-<BaseLayout title="Netstamp - Trace every path" description="Open-source network observability from probes you control." canonicalPath="/" schema={schema} fixedTheme="dark">
+<BaseLayout title={ui.meta.homeTitle} description={ui.meta.description} canonicalPath="/" schema={schema} fixedTheme="dark">
 	<HomepageRedesign />
 </BaseLayout>

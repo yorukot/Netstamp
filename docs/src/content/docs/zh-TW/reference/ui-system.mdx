@@ -1,0 +1,33 @@
+---
+title: UI 設計系統
+description: 共用 UI 基礎元件為說明文件、Storybook、API 參考資料與需登入的應用程式建立一致的 Netstamp 產品語言。
+icon: cube
+navSection: development
+navOrder: 20
+head:
+  - tag: title
+    content: UI 設計系統 | Netstamp 說明文件
+---
+
+## 設計權杖
+
+`@netstamp/ui/styles` 定義字型、預設深色配色、選用的淺色配色、外框、捲動列、焦點行為與相容性工具類別。每個應用程式的根元件或 Astro 版面配置只需匯入一次。
+
+```ts
+import "@netstamp/ui/styles";
+import { Button, Panel, MetricCard } from "@netstamp/ui";
+```
+
+## 元件
+
+這個套件匯出 `Button`、`Badge`、`Surface`、`Panel`、`MetricCard`、`MetricTile`、`SpecCard`、`SpecLabel`、`SelectableRow`、`KeyValueRow`、`CodeBlock`、`Field`、`DataTable`、`SignalAvatar`、`PageShell` 與 `GlobalFooter` 等基礎元件。
+
+:::note Astro 頁面預設保持靜態。只有真的需要 React 元件或著陸頁瀏覽器效果的頁面，才會載入 React。 :::
+
+## 互動外框
+
+互動元件一次只顯示一層清楚的外框。游標懸停與啟用狀態使用設計權杖所定義的邊框；鍵盤焦點則使用 `--ns-focus-outline`，並在需要時隱藏元件本身的邊框，避免按鈕、輸入框、分頁標籤、可搜尋選單與規格列在選取或聚焦時出現重疊外框。
+
+## Storybook
+
+元件目錄使用 Storybook 建置，並隨說明文件網站發布至 [`/storybook/`](/storybook/)。內容涵蓋設計基礎、元件規格、表單狀態、覆蓋層範例與操作工作區模式。本機可執行 `pnpm --filter @netstamp/ui storybook` 啟動。

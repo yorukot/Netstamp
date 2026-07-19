@@ -1,5 +1,6 @@
 import { useRequireSudo } from "@/features/auth/hooks/useRequireSudo";
 import { useSession } from "@/features/auth/session/SessionContext";
+import { useLocaleFormat } from "@/i18n/format";
 import { pathForRoute } from "@/routes/routePaths";
 import { absoluteExternalAuthStartUrl, clearCSRFToken } from "@/shared/api/client";
 import {
@@ -16,7 +17,7 @@ import {
 } from "@/shared/api/mutations";
 import { authQueries, projectQueries } from "@/shared/api/queries";
 import { apiQueryKeys } from "@/shared/api/queryKeys";
-import type { ApiAuthSession, ApiProjectInvite } from "@/shared/api/types";
+import type { ApiAuthSession, ApiProjectInvite, ProjectMemberRole } from "@/shared/api/types";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
@@ -52,6 +53,7 @@ import { SignOutIcon } from "@phosphor-icons/react/dist/csr/SignOut";
 import { UserMinusIcon } from "@phosphor-icons/react/dist/csr/UserMinus";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useId, useRef, useState, type AnimationEvent, type FormEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { APITokensPanel } from "./APITokensPanel";
 import styles from "./SettingsPage.module.css";
@@ -101,28 +103,20 @@ const emptyPasswordForm: PasswordFormState = {
 
 const passwordReauthReturnTo = "/settings?reauth=set-password";
 
-function formatDateTime(value: string) {
-	return new Date(value).toLocaleString();
-}
-
 function effectiveSessionExpiry(authSession: ApiAuthSession) {
 	const idleExpiry = new Date(authSession.idleExpiresAt).valueOf();
 	const absoluteExpiry = new Date(authSession.absoluteExpiresAt).valueOf();
 	return new Date(Math.min(idleExpiry, absoluteExpiry)).toISOString();
 }
 
-function roleLabel(role: string) {
-	return role.charAt(0).toUpperCase() + role.slice(1);
-}
-
-function externalAuthenticationErrorMessage(code: string) {
+function externalAuthenticationErrorKey(code: string) {
 	switch (code) {
 		case "identity_conflict":
-			return "The external identity does not belong to this Netstamp account.";
+			return "identityConflict" as const;
 		case "sudo_expired":
-			return "The verification attempt expired. Please try again.";
+			return "sudoExpired" as const;
 		default:
-			return "External authentication could not be completed. Please try again.";
+			return "default" as const;
 	}
 }
 
@@ -139,6 +133,8 @@ function AuthenticationProviderIcon({ provider }: { provider: string }) {
 }
 
 export function SettingsPage() {
+	const { t } = useTranslation(["settings", "common", "project"]);
+	const format = useLocaleFormat();
 	const { session } = useSession();
 	const queryClient = useQueryClient();
 	const { setSelectedProjectRef } = useCurrentProject();
@@ -178,8 +174,8 @@ export function SettingsPage() {
 
 		if (authCallbackError) {
 			pushToast({
-				title: "Authentication failed",
-				message: externalAuthenticationErrorMessage(authCallbackError),
+				title: t("account.authenticationFailed"),
+				message: t(`account.authErrors.${externalAuthenticationErrorKey(authCallbackError)}`),
 				tone: "critical"
 			});
 		}
@@ -194,7 +190,7 @@ export function SettingsPage() {
 			},
 			{ replace: true }
 		);
-	}, [authCallbackError, resumeAction, setSearchParams]);
+	}, [authCallbackError, resumeAction, setSearchParams, t]);
 
 	if (!session) {
 		return null;
@@ -210,7 +206,7 @@ export function SettingsPage() {
 	const canChangeEmail = Boolean(activeEmailForm.newEmail.trim() && !changeEmailMutation.isPending);
 	const canChangePassword = Boolean(activePasswordForm.newPassword.trim() && activePasswordForm.confirmPassword.trim() && !changePasswordMutation.isPending);
 	const hasPassword = authenticationMethodsQuery.data?.hasPassword ?? user.hasPassword;
-	const passwordActionLabel = hasPassword ? "Change Password" : "Set Password";
+	const passwordActionLabel = hasPassword ? t("account.changePassword") : t("account.setPassword");
 
 	function handleIdentitySubmit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
@@ -237,7 +233,7 @@ export function SettingsPage() {
 			{
 				onSuccess: () => {
 					setIsCredentialDialogDismissed(true);
-					pushToast({ title: "Email changed", message: "Your sign-in email and Gravatar source have been updated.", tone: "success" });
+					pushToast({ title: t("account.emailChanged"), message: t("account.emailChangedMessage"), tone: "success" });
 				}
 			}
 		);
@@ -252,7 +248,7 @@ export function SettingsPage() {
 		const newPassword = activePasswordForm.newPassword.trim();
 
 		if (newPassword !== activePasswordForm.confirmPassword.trim()) {
-			pushToast({ title: "Password mismatch", message: "New passwords do not match.", tone: "critical" });
+			pushToast({ title: t("account.passwordMismatch"), message: t("account.passwordMismatchMessage"), tone: "critical" });
 			return;
 		}
 
@@ -263,7 +259,7 @@ export function SettingsPage() {
 			{
 				onSuccess: () => {
 					setIsCredentialDialogDismissed(true);
-					pushToast({ title: "Password changed", message: "Your new password is ready for future sign-ins.", tone: "success" });
+					pushToast({ title: t("account.passwordChanged"), message: t("account.passwordChangedMessage"), tone: "success" });
 				}
 			}
 		);
@@ -319,8 +315,8 @@ export function SettingsPage() {
 				const projectRef = data.invite.project.slug || data.invite.project.id;
 				setSelectedProjectRef(projectRef);
 				pushToast({
-					title: "Invite accepted",
-					message: `Switched to ${data.invite.project.name}.`,
+					title: t("account.invites.accepted"),
+					message: t("account.invites.acceptedMessage", { project: data.invite.project.name }),
 					tone: "success"
 				});
 				navigate(pathForRoute("dashboard", { projectRef }));
@@ -332,8 +328,8 @@ export function SettingsPage() {
 		rejectInviteMutation.mutate(invite.id, {
 			onSuccess: data => {
 				pushToast({
-					title: "Invite rejected",
-					message: `${data.invite.project.name} was removed from pending invitations.`,
+					title: t("account.invites.rejected"),
+					message: t("account.invites.rejectedMessage", { project: data.invite.project.name }),
 					tone: "success"
 				});
 			}
@@ -346,11 +342,11 @@ export function SettingsPage() {
 		}
 
 		const accepted = await confirm({
-			title: "Deactivate this account?",
-			message: "Your account will be disabled and you will not be able to sign in until a system administrator re-enables it.",
-			confirmLabel: "Deactivate",
+			title: t("account.danger.question"),
+			message: t("account.danger.message"),
+			confirmLabel: t("account.danger.deactivate"),
 			confirmationText: user.email,
-			confirmationLabel: "Account email",
+			confirmationLabel: t("account.danger.confirmationLabel"),
 			tone: "danger"
 		});
 		if (!accepted) {
@@ -359,11 +355,11 @@ export function SettingsPage() {
 
 		deactivateUserMutation.mutate(undefined, {
 			onSuccess: () => {
-				pushToast({ title: "Account deactivated", message: "A system administrator can re-enable it later.", tone: "success" });
+				pushToast({ title: t("account.danger.deactivated"), message: t("account.danger.deactivatedMessage"), tone: "success" });
 				navigate(pathForRoute("login"));
 			},
 			onError: error => {
-				pushToast({ title: "Deactivation failed", message: requestErrorMessage(error, "Could not deactivate your account."), tone: "critical" });
+				pushToast({ title: t("account.danger.failed"), message: requestErrorMessage(error, t("account.danger.error")), tone: "critical" });
 			}
 		});
 	}
@@ -374,9 +370,9 @@ export function SettingsPage() {
 		}
 
 		const accepted = await confirm({
-			title: authSession.isCurrent ? "Sign out this session" : "Revoke session",
-			message: authSession.isCurrent ? "This is your current session. You will be signed out on this device." : "This device will lose access immediately. Other active sessions will stay signed in.",
-			confirmLabel: authSession.isCurrent ? "Sign out" : "Revoke",
+			title: authSession.isCurrent ? t("account.sessions.signOutQuestion") : t("account.sessions.revokeQuestion"),
+			message: authSession.isCurrent ? t("account.sessions.currentMessage") : t("account.sessions.revokeMessage"),
+			confirmLabel: authSession.isCurrent ? t("account.sessions.signOut") : t("account.sessions.revoke"),
 			tone: "danger"
 		});
 		if (!accepted) {
@@ -389,14 +385,14 @@ export function SettingsPage() {
 					clearCSRFToken();
 					queryClient.removeQueries({ queryKey: apiQueryKeys.auth.all });
 					queryClient.removeQueries({ queryKey: apiQueryKeys.projects.all });
-					pushToast({ title: "Signed out", message: "The current session was revoked.", tone: "success" });
+					pushToast({ title: t("account.sessions.signedOut"), message: t("account.sessions.signedOutMessage"), tone: "success" });
 					navigate(pathForRoute("login"));
 					return;
 				}
-				pushToast({ title: "Session revoked", message: "The selected session can no longer access Netstamp.", tone: "success" });
+				pushToast({ title: t("account.sessions.revoked"), message: t("account.sessions.revokedMessage"), tone: "success" });
 			},
 			onError: error => {
-				pushToast({ title: "Revoke failed", message: requestErrorMessage(error, "Could not revoke the selected session."), tone: "critical" });
+				pushToast({ title: t("account.sessions.revokeFailed"), message: requestErrorMessage(error, t("account.sessions.revokeError")), tone: "critical" });
 			}
 		});
 	}
@@ -407,9 +403,9 @@ export function SettingsPage() {
 		}
 
 		const accepted = await confirm({
-			title: "Log out all sessions?",
-			message: "Every device signed in to this account, including this one, will lose access immediately.",
-			confirmLabel: "Log out all",
+			title: t("account.sessions.logOutAllQuestion"),
+			message: t("account.sessions.logOutAllMessage"),
+			confirmLabel: t("account.sessions.logOutAll"),
 			tone: "danger"
 		});
 		if (!accepted) {
@@ -418,10 +414,10 @@ export function SettingsPage() {
 
 		revokeAllSessionsMutation.mutate(undefined, {
 			onSuccess: () => {
-				pushToast({ title: "Logged out everywhere", message: "All sessions for this account have been revoked.", tone: "success" });
+				pushToast({ title: t("account.sessions.loggedOutEverywhere"), message: t("account.sessions.loggedOutEverywhereMessage"), tone: "success" });
 			},
 			onError: error => {
-				pushToast({ title: "Log out failed", message: requestErrorMessage(error, "Could not revoke all sessions."), tone: "critical" });
+				pushToast({ title: t("account.sessions.logOutFailed"), message: requestErrorMessage(error, t("account.sessions.logOutError")), tone: "critical" });
 			}
 		});
 	}
@@ -431,24 +427,24 @@ export function SettingsPage() {
 		project: invite.project.name,
 		role: invite.role,
 		invitedBy: invite.invitedByUser.displayName,
-		createdAt: formatDateTime(invite.createdAt),
+		createdAt: format.dateTime(invite.createdAt),
 		source: invite
 	}));
 	const inviteColumns: DataColumn<InviteRow>[] = [
 		{
 			key: "project",
-			label: "Project",
+			label: t("account.invites.project"),
 			render: row => <strong>{row.project}</strong>
 		},
-		{ key: "role", label: "Role", render: row => <Badge tone="accent">{roleLabel(row.role)}</Badge> },
-		{ key: "invitedBy", label: "Invited by" },
-		{ key: "createdAt", label: "Sent" },
+		{ key: "role", label: t("account.invites.role"), render: row => <Badge tone="accent">{t(`project:roles.${row.role as ProjectMemberRole}`)}</Badge> },
+		{ key: "invitedBy", label: t("account.invites.invitedBy") },
+		{ key: "createdAt", label: t("account.invites.sent") },
 		{
 			key: "actions",
-			label: "Actions",
+			label: t("account.invites.actions"),
 			render: row => {
 				if (demoMode) {
-					return <Badge tone="muted">View only</Badge>;
+					return <Badge tone="muted">{t("account.invites.viewOnly")}</Badge>;
 				}
 
 				const accepting = acceptInviteMutation.isPending && acceptInviteMutation.variables === row.id;
@@ -457,10 +453,10 @@ export function SettingsPage() {
 				return (
 					<div className={styles.inviteActions}>
 						<Button size="sm" disabled={acceptInviteMutation.isPending || rejectInviteMutation.isPending} onClick={() => acceptInvite(row.source)}>
-							{accepting ? "Accepting" : "Accept"}
+							{accepting ? t("account.invites.accepting") : t("account.invites.accept")}
 						</Button>
 						<Button variant="ghost" size="sm" disabled={acceptInviteMutation.isPending || rejectInviteMutation.isPending} onClick={() => rejectInvite(row.source)}>
-							{rejecting ? "Rejecting" : "Reject"}
+							{rejecting ? t("account.invites.rejecting") : t("account.invites.reject")}
 						</Button>
 					</div>
 				);
@@ -473,38 +469,38 @@ export function SettingsPage() {
 	const sessionColumns: DataColumn<ApiAuthSession>[] = [
 		{
 			key: "client",
-			label: "Client",
+			label: t("account.sessions.client"),
 			render: authSession => (
 				<div className={styles.sessionClient}>
 					<div className={styles.sessionState}>
-						<strong>{authSession.isCurrent ? "Current session" : "Authenticated session"}</strong>
-						{authSession.isCurrent ? <Badge tone="success">Current</Badge> : null}
+						<strong>{authSession.isCurrent ? t("account.sessions.currentSession") : t("account.sessions.authenticatedSession")}</strong>
+						{authSession.isCurrent ? <Badge tone="success">{t("account.sessions.current")}</Badge> : null}
 					</div>
-					<span className={styles.sessionAgent}>{authSession.userAgent || "User-Agent unavailable for this session"}</span>
+					<span className={styles.sessionAgent}>{authSession.userAgent || t("account.sessions.userAgentUnavailable")}</span>
 				</div>
 			)
 		},
-		{ key: "lastUsedAt", label: "Last active", render: authSession => <span className={styles.sessionTime}>{formatDateTime(authSession.lastUsedAt)}</span> },
-		{ key: "createdAt", label: "Signed in", render: authSession => <span className={styles.sessionTime}>{formatDateTime(authSession.createdAt)}</span> },
-		{ key: "absoluteExpiresAt", label: "Expires", render: authSession => <span className={styles.sessionTime}>{formatDateTime(effectiveSessionExpiry(authSession))}</span> }
+		{ key: "lastUsedAt", label: t("account.sessions.lastActive"), render: authSession => <span className={styles.sessionTime}>{format.dateTime(authSession.lastUsedAt)}</span> },
+		{ key: "createdAt", label: t("account.sessions.signedIn"), render: authSession => <span className={styles.sessionTime}>{format.dateTime(authSession.createdAt)}</span> },
+		{ key: "absoluteExpiresAt", label: t("account.sessions.expires"), render: authSession => <span className={styles.sessionTime}>{format.dateTime(effectiveSessionExpiry(authSession))}</span> }
 	];
 
 	return (
 		<PageStack>
-			<ScreenHeader title="Account" />
+			<ScreenHeader title={t("account.title")} />
 
-			<Panel tone="glass" title="Pending invites" padded={false} bodySurface="transparent">
+			<Panel tone="glass" title={t("account.invites.title")} padded={false} bodySurface="transparent">
 				<DataTable
 					columns={inviteColumns}
 					rows={inviteRows}
 					density="compact"
 					minWidth="46rem"
-					emptyLabel={invitesQuery.isLoading ? <Spinner label="Loading project invitations" layout="compact" size="lg" /> : "No pending project invitations"}
+					emptyLabel={invitesQuery.isLoading ? <Spinner label={t("account.invites.loading")} layout="compact" size="lg" /> : t("account.invites.empty")}
 					getRowKey={row => row.id}
 				/>
 			</Panel>
 
-			<Panel tone="glass" title="Profile">
+			<Panel tone="glass" title={t("account.profile.title")}>
 				<div className={styles.profileLayout}>
 					<div className={styles.profileIdentity}>
 						<SignalAvatar size="lg" src={user.gravatarUrl} referrerPolicy="no-referrer" aria-hidden="true" />
@@ -516,26 +512,26 @@ export function SettingsPage() {
 
 					<form id="identity-settings" className={styles.settingsForm} onSubmit={handleIdentitySubmit}>
 						<TextField
-							label="Display Name"
+							label={t("account.profile.displayName")}
 							name="name"
 							value={activeIdentityForm.displayName}
 							disabled={demoMode}
 							onChange={event => setIdentityForm({ userId: user.id, displayName: event.currentTarget.value })}
 						/>
 						{demoMode ? (
-							<BodyCopy>Profile changes are disabled for demo access.</BodyCopy>
+							<BodyCopy>{t("account.profile.demoDisabled")}</BodyCopy>
 						) : (
 							<UnsavedChangesBar show={hasIdentityChanges} saveType="submit" saving={updateUserMutation.isPending} onReset={() => setIdentityForm({ userId: user.id, displayName: user.name })} />
 						)}
 					</form>
 
-					<BodyCopy>Your avatar comes from Gravatar and is generated from your account email.</BodyCopy>
+					<BodyCopy>{t("account.profile.avatarDescription")}</BodyCopy>
 
 					{appFeatures.userCredentialChanges ? (
 						<div className={styles.credentialActions}>
 							<Button type="button" variant="outline" disabled={demoMode} onClick={() => void requireSudo(() => openCredentialDialog("email"))}>
 								<EnvelopeSimpleIcon size="1rem" weight="bold" aria-hidden="true" focusable="false" />
-								Change Email
+								{t("account.changeEmail")}
 							</Button>
 							<Button type="button" variant="outline" disabled={demoMode} onClick={() => void requireSudo(() => openCredentialDialog("password"), { returnTo: passwordReauthReturnTo })}>
 								<KeyIcon size="1rem" weight="bold" aria-hidden="true" focusable="false" />
@@ -548,12 +544,12 @@ export function SettingsPage() {
 
 			<Panel
 				tone="glass"
-				title="Active sessions"
-				summary="Review the clients authenticated with your account and revoke access you no longer recognize."
+				title={t("account.sessions.title")}
+				summary={t("account.sessions.summary")}
 				actions={
 					<Button type="button" variant="danger" size="sm" disabled={demoMode || revokeAllSessionsMutation.isPending} onClick={() => void revokeAllSessions()}>
 						<SignOutIcon aria-hidden="true" focusable="false" />
-						{revokeAllSessionsMutation.isPending ? "Logging out" : "Log out all"}
+						{revokeAllSessionsMutation.isPending ? t("account.sessions.loggingOut") : t("account.sessions.logOutAll")}
 					</Button>
 				}
 				padded={false}
@@ -564,10 +560,16 @@ export function SettingsPage() {
 					rows={activeSessions}
 					density="compact"
 					minWidth="64rem"
-					ariaLabel="Active auth sessions"
+					ariaLabel={t("account.sessions.aria")}
 					getRowKey={authSession => authSession.id}
 					emptyLabel={
-						sessionsQuery.isLoading ? <Spinner label="Loading active sessions" layout="compact" size="lg" /> : sessionsQuery.isError ? "Active sessions could not be loaded" : "No active sessions"
+						sessionsQuery.isLoading ? (
+							<Spinner label={t("account.sessions.loading")} layout="compact" size="lg" />
+						) : sessionsQuery.isError ? (
+							t("account.sessions.loadError")
+						) : (
+							t("account.sessions.empty")
+						)
 					}
 					rowActions={authSession => {
 						const revoking = revokeSessionMutation.isPending && revokeSessionMutation.variables === authSession.id;
@@ -577,18 +579,18 @@ export function SettingsPage() {
 								variant="danger"
 								size="sm"
 								disabled={demoMode || revokeSessionMutation.isPending}
-								aria-label={authSession.isCurrent ? "Revoke current session" : `Revoke session signed in ${formatDateTime(authSession.createdAt)}`}
+								aria-label={authSession.isCurrent ? t("account.sessions.revokeCurrentAria") : t("account.sessions.revokeAria", { date: format.dateTime(authSession.createdAt) })}
 								onClick={() => void revokeSession(authSession)}
 							>
 								<SignOutIcon aria-hidden="true" focusable="false" />
-								{revoking ? "Revoking" : authSession.isCurrent ? "Sign out" : "Revoke"}
+								{revoking ? t("account.sessions.revoking") : authSession.isCurrent ? t("account.sessions.signOut") : t("account.sessions.revoke")}
 							</Button>
 						);
 					}}
 				/>
 			</Panel>
 
-			<Panel tone="glass" title="Login methods" summary="Manage the credentials and external identities that can access this account." padded={false} bodySurface="transparent">
+			<Panel tone="glass" title={t("account.loginMethods.title")} summary={t("account.loginMethods.summary")} padded={false} bodySurface="transparent">
 				<div className={styles.loginMethodList}>
 					<article className={styles.loginMethodRow}>
 						<div className={styles.loginMethodMain}>
@@ -597,19 +599,19 @@ export function SettingsPage() {
 							</div>
 							<div className={styles.loginMethodCopy}>
 								<div className={styles.loginMethodHeading}>
-									<h3>Password</h3>
-									<Badge tone={hasPassword ? "success" : "muted"}>{hasPassword ? "Configured" : "Not configured"}</Badge>
+									<h3>{t("account.loginMethods.password")}</h3>
+									<Badge tone={hasPassword ? "success" : "muted"}>{hasPassword ? t("account.loginMethods.configured") : t("account.loginMethods.notConfigured")}</Badge>
 								</div>
-								<p>{hasPassword ? "Use your account email and password to sign in." : "Add a password as a fallback sign-in method."}</p>
+								<p>{hasPassword ? t("account.loginMethods.passwordDescription") : t("account.loginMethods.passwordFallback")}</p>
 							</div>
 						</div>
 						<div className={styles.loginMethodControls}>
 							<Button type="button" size="sm" variant="outline" disabled={demoMode} onClick={() => void requireSudo(() => openCredentialDialog("password"), { returnTo: passwordReauthReturnTo })}>
-								{hasPassword ? "Change password" : "Set password"}
+								{hasPassword ? t("account.changePassword") : t("account.setPassword")}
 							</Button>
 							{hasPassword && authenticationMethodsQuery.data?.identities.length ? (
 								<Button type="button" size="sm" variant="danger" disabled={demoMode || removePasswordMutation.isPending} onClick={() => void requireSudo(() => removePasswordMutation.mutate())}>
-									{removePasswordMutation.isPending ? "Removing" : "Remove password"}
+									{removePasswordMutation.isPending ? t("account.loginMethods.removing") : t("account.loginMethods.removePassword")}
 								</Button>
 							) : null}
 						</div>
@@ -623,10 +625,10 @@ export function SettingsPage() {
 								<div className={styles.loginMethodCopy}>
 									<div className={styles.loginMethodHeading}>
 										<h3>{configuredProviders.find(provider => provider.id === identity.provider)?.displayName || identity.provider}</h3>
-										<Badge tone="success">Connected</Badge>
+										<Badge tone="success">{t("account.loginMethods.connected")}</Badge>
 									</div>
 									<p className={styles.loginMethodIdentifier}>
-										{identity.displayName || "External identity"}
+										{identity.displayName || t("account.loginMethods.externalIdentity")}
 										<span aria-hidden="true"> · </span>
 										{identity.username ? `@${identity.username}` : identity.email || identity.issuer}
 									</p>
@@ -638,10 +640,10 @@ export function SettingsPage() {
 									size="sm"
 									variant="danger"
 									disabled={demoMode || removeIdentityMutation.isPending}
-									aria-label={`Disconnect ${configuredProviders.find(provider => provider.id === identity.provider)?.displayName || identity.provider}`}
+									aria-label={t("account.loginMethods.disconnectAria", { provider: configuredProviders.find(provider => provider.id === identity.provider)?.displayName || identity.provider })}
 									onClick={() => void requireSudo(() => removeIdentityMutation.mutate(identity.id))}
 								>
-									{removeIdentityMutation.isPending && removeIdentityMutation.variables === identity.id ? "Disconnecting" : "Disconnect"}
+									{removeIdentityMutation.isPending && removeIdentityMutation.variables === identity.id ? t("account.loginMethods.disconnecting") : t("account.loginMethods.disconnect")}
 								</Button>
 							</div>
 						</article>
@@ -657,9 +659,9 @@ export function SettingsPage() {
 									<div className={styles.loginMethodCopy}>
 										<div className={styles.loginMethodHeading}>
 											<h3>{provider.displayName}</h3>
-											<Badge tone="muted">Not connected</Badge>
+											<Badge tone="muted">{t("account.loginMethods.notConnected")}</Badge>
 										</div>
-										<p>Connect this provider as another way to sign in.</p>
+										<p>{t("account.loginMethods.connectDescription")}</p>
 									</div>
 								</div>
 								<div className={styles.loginMethodControls}>
@@ -677,7 +679,7 @@ export function SettingsPage() {
 											})
 										}
 									>
-										Connect {provider.displayName}
+										{t("account.loginMethods.connect", { provider: provider.displayName })}
 									</Button>
 								</div>
 							</article>
@@ -687,10 +689,10 @@ export function SettingsPage() {
 
 			<APITokensPanel requireSudo={action => void requireSudo(action)} />
 
-			<Panel tone="deep" title="Dangerous account actions" padded={false} bodySurface="transparent">
+			<Panel tone="deep" title={t("account.danger.title")} padded={false} bodySurface="transparent">
 				<DangerAction
-					title="Deactivate account"
-					description="Disable sign-in and protected route access until a system administrator re-enables the account."
+					title={t("account.danger.deactivate")}
+					description={t("account.danger.description")}
 					descriptionId="deactivate-account-description"
 					action={
 						<Button
@@ -701,7 +703,7 @@ export function SettingsPage() {
 							onClick={() => void requireSudo(() => void deactivateAccount())}
 						>
 							<UserMinusIcon size="1rem" weight="bold" aria-hidden="true" focusable="false" />
-							{deactivateUserMutation.isPending ? "Deactivating" : "Deactivate account"}
+							{deactivateUserMutation.isPending ? t("account.danger.deactivating") : t("account.danger.deactivate")}
 						</Button>
 					}
 				/>
@@ -726,26 +728,26 @@ export function SettingsPage() {
 									onAnimationEnd={finishCredentialDialogClose}
 								>
 									<div className={styles.dialogHeader}>
-										<span>Account credentials</span>
+										<span>{t("account.credentialDialog.eyebrow")}</span>
 										<DialogTitle asChild>
-											<strong>{credentialDialog === "email" ? "Change Email" : passwordActionLabel}</strong>
+											<strong>{credentialDialog === "email" ? t("account.changeEmail") : passwordActionLabel}</strong>
 										</DialogTitle>
 										<DialogDescription asChild>
 											<p id={credentialDialogDescriptionId}>
 												{credentialDialog === "email"
-													? "Update the email used to sign in and generate your Gravatar."
+													? t("account.credentialDialog.emailDescription")
 													: hasPassword
-														? "Replace the password used to sign in to your account."
-														: "Add a local password so this account can confirm sensitive changes."}
+														? t("account.credentialDialog.changePasswordDescription")
+														: t("account.credentialDialog.setPasswordDescription")}
 											</p>
 										</DialogDescription>
 									</div>
 
 									{credentialDialog === "email" ? (
 										<>
-											<TextField label="Current Email" name="current-email" type="email" value={user.email} disabled />
+											<TextField label={t("account.credentialDialog.currentEmail")} name="current-email" type="email" value={user.email} disabled />
 											<TextField
-												label="New Email"
+												label={t("account.credentialDialog.newEmail")}
 												name="new-email"
 												type="email"
 												placeholder="operator@example.com"
@@ -759,7 +761,7 @@ export function SettingsPage() {
 									) : (
 										<>
 											<TextField
-												label="New Password"
+												label={t("account.credentialDialog.newPassword")}
 												name="new-password"
 												type="password"
 												autoComplete="new-password"
@@ -770,11 +772,11 @@ export function SettingsPage() {
 												required
 											/>
 											<TextField
-												label="Confirm New Password"
+												label={t("account.credentialDialog.confirmPassword")}
 												name="confirm-password"
 												type="password"
 												autoComplete="new-password"
-												helper="Use at least 12 characters for production accounts."
+												helper={t("account.credentialDialog.passwordHelper")}
 												value={activePasswordForm.confirmPassword}
 												disabled={changePasswordMutation.isPending}
 												onChange={event => updatePasswordForm("confirmPassword", event.currentTarget.value)}
@@ -785,10 +787,16 @@ export function SettingsPage() {
 
 									<div className={styles.dialogActions}>
 										<Button type="button" variant="ghost" disabled={isCredentialMutationPending} onClick={closeCredentialDialog}>
-											Cancel
+											{t("common:actions.cancel")}
 										</Button>
 										<Button type="submit" disabled={credentialDialog === "email" ? !canChangeEmail : !canChangePassword}>
-											{credentialDialog === "email" ? (changeEmailMutation.isPending ? "Updating" : "Change Email") : changePasswordMutation.isPending ? "Saving" : passwordActionLabel}
+											{credentialDialog === "email"
+												? changeEmailMutation.isPending
+													? t("account.credentialDialog.updating")
+													: t("account.changeEmail")
+												: changePasswordMutation.isPending
+													? t("common:actions.saving")
+													: passwordActionLabel}
 										</Button>
 									</div>
 								</form>

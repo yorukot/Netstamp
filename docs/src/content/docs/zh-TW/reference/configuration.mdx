@@ -1,0 +1,223 @@
+---
+title: 設定參考
+description: 控制器、Docker Compose、探測器 agent、Web 建置與說明文件建置所使用的完整環境變數參考。
+icon: wrench
+navSection: install
+navOrder: 30
+---
+
+控制器會讀取環境變數，也可以讀取工作目錄或 `server/` 下的 `.env`。Docker Compose 則讀取該專案的 `.env`，並將支援的值傳入容器。
+
+時間長度使用 Go 語法，例如 `250ms`、`5s`、`30m` 或 `168h`。布林值使用 `true` 或 `false`。機密值必須保持穩定、彼此不同，而且不能放進版本控制。
+
+## Compose 部署變數
+
+這些值用來選擇映像檔與主機對外開放方式，不會直接設定控制器。
+
+| 變數                | 預設值                              | 用途                                     |
+| ------------------- | ----------------------------------- | ---------------------------------------- |
+| `NETSTAMP_IMAGE`    | `yorukot/netstamp`                  | 控制器映像檔儲存庫                       |
+| `NETSTAMP_VERSION`  | `latest`                            | 控制器與遷移映像檔的標籤                 |
+| `TIMESCALEDB_IMAGE` | `timescale/timescaledb:latest-pg16` | 資料庫映像檔                             |
+| `NETSTAMP_PORT`     | `3000`                              | 對外映射至控制器 8080 連接埠的主機連接埠 |
+
+正式環境應固定映像檔版本。Compose volume 的邏輯名稱是 `netstamp-postgres`；Docker 通常會在實際名稱前加上 Compose 專案名稱。
+
+## 控制器核心設定
+
+| 變數                             | 預設值                  | 用途                                                           |
+| -------------------------------- | ----------------------- | -------------------------------------------------------------- |
+| `APP_ENV`                        | `local`                 | 執行環境；不是 `local` 時會啟用安全工作階段 cookie 行為        |
+| `DEMO_MODE`                      | `false`                 | 啟用後端示範模式限制                                           |
+| `SERVICE_NAME`                   | `controller`            | 日誌與遙測使用的服務識別名稱                                   |
+| `APP_VERSION`                    | `0.1.0`                 | 回報的應用程式版本；Compose 會將 `NETSTAMP_VERSION` 對應到這裡 |
+| `API_VERSION`                    | `v1`                    | 掛載在 `/api/<version>` 下的版本路徑                           |
+| `LOG_LEVEL`                      | `info`                  | `debug`、`info`、`warn`、`error`、`dpanic`、`panic` 或 `fatal` |
+| `LOG_PSEUDONYM_KEY`              | development placeholder | 將敏感日誌識別資訊去識別化時使用的穩定金鑰                     |
+| `SYSTEM_SETTINGS_ENCRYPTION_KEY` | development placeholder | 加密系統管理機密設定時使用的穩定金鑰                           |
+| `SHUTDOWN_TIMEOUT`               | `10s`                   | 控制器正常關閉的期限                                           |
+
+所有非本機部署都必須更換這兩個開發用預留金鑰。變更設定加密金鑰可能使已儲存的 SMTP 機密值無法解密。
+
+## HTTP 與公開來源網址
+
+| 變數                       | 預設值  | 用途                                                   |
+| -------------------------- | ------- | ------------------------------------------------------ |
+| `BACKEND_BASE_URL`         | empty   | 回呼、電子郵件與探測器安裝網址使用的公開控制器來源網址 |
+| `PUBLIC_WEB_BASE_URL`      | empty   | 使用者連結使用的公開瀏覽器來源網址                     |
+| `HTTP_ADDR`                | `:8080` | 控制器監聽位址                                         |
+| `WEB_DIR`                  | empty   | 建置後的前端目錄；正式映像檔設為 `/app/web`            |
+| `REQUEST_TIMEOUT`          | `10s`   | 請求內容的逾時時間                                     |
+| `HTTP_READ_HEADER_TIMEOUT` | `5s`    | 讀取標頭的逾時時間                                     |
+| `HTTP_READ_TIMEOUT`        | `15s`   | 讀取請求的逾時時間                                     |
+| `HTTP_WRITE_TIMEOUT`       | `15s`   | 寫入回應的逾時時間                                     |
+| `HTTP_IDLE_TIMEOUT`        | `60s`   | keep-alive 連線閒置逾時時間                            |
+| `HTTP_TRUSTED_PROXIES`     | empty   | 以逗號分隔的 Proxy IP 位址或 CIDR 前綴                 |
+
+來源網址只能包含 `http` 或 `https` 通訊協定與主機名稱。啟用外部驗證時，`BACKEND_BASE_URL` 不可為空。
+
+## 資料庫
+
+| 變數                    | 預設值      | 用途                                     |
+| ----------------------- | ----------- | ---------------------------------------- |
+| `DATABASE_HOST`         | `localhost` | PostgreSQL 主機；Compose 使用 `postgres` |
+| `DATABASE_PORT`         | `5432`      | PostgreSQL 連接埠                        |
+| `DATABASE_USER`         | `netstamp`  | 資料庫使用者                             |
+| `DATABASE_PASSWORD`     | `netstamp`  | 資料庫密碼                               |
+| `DATABASE_NAME`         | `netstamp`  | 資料庫名稱                               |
+| `DATABASE_SSLMODE`      | `disable`   | PostgreSQL SSL 模式                      |
+| `DB_MAX_CONNS`          | `10`        | 連線池上限                               |
+| `DB_MIN_CONNS`          | `0`         | 連線池最少閒置連線數量                   |
+| `DB_MAX_CONN_LIFETIME`  | `1h`        | 連線池中連線的最長存活時間               |
+| `DB_MAX_CONN_IDLE_TIME` | `30m`       | 連線池中連線的最長閒置時間               |
+
+資料庫連線若會通過不受信任的網路，請啟用 TLS 驗證。標準 Compose 環境會將資料庫流量留在私有網路內。
+
+## 工作階段、密碼與權杖
+
+| 變數                                    | 預設值                  | 用途                                     |
+| --------------------------------------- | ----------------------- | ---------------------------------------- |
+| `AUTH_SESSION_HASH_KEY`                 | development placeholder | 不透明工作階段權杖使用的 HMAC/雜湊金鑰   |
+| `AUTH_API_TOKEN_HASH_KEY`               | development placeholder | 個人 API 權杖使用的 HMAC/雜湊金鑰        |
+| `AUTH_SESSION_IDLE_TTL`                 | `24h`                   | 工作階段閒置期限                         |
+| `AUTH_SESSION_ABSOLUTE_TTL`             | `168h`                  | 工作階段最長存活時間                     |
+| `AUTH_SESSION_TOUCH_INTERVAL`           | `5m`                    | 兩次寫入工作階段活動狀態的最短間隔       |
+| `AUTH_SUDO_TTL`                         | `5m`                    | 敏感操作所需的近期驗證有效時間           |
+| `AUTH_REGISTRATION_ENABLED`             | `true`                  | 本機帳號註冊政策的環境變數備援值         |
+| `AUTH_EXTERNAL_FLOW_TTL`                | `10m`                   | OAuth/OIDC 驗證流程存活時間              |
+| `AUTH_PASSWORD_RESET_TOKEN_TTL`         | `30m`                   | 密碼重設連結有效時間                     |
+| `AUTH_PASSWORD_RESET_RATE_LIMIT_WINDOW` | `1h`                    | 密碼重設速率限制的時間範圍               |
+| `AUTH_PASSWORD_RESET_IP_LIMIT`          | `10`                    | 時間範圍內每個 IP 可發出的請求數         |
+| `AUTH_PASSWORD_RESET_EMAIL_LIMIT`       | `3`                     | 時間範圍內每個電子郵件地址可發出的請求數 |
+| `AUTH_ARGON2ID_MEMORY_KIB`              | `65536`                 | Argon2id 記憶體成本                      |
+| `AUTH_ARGON2ID_ITERATIONS`              | `3`                     | Argon2id 迭代成本                        |
+| `AUTH_ARGON2ID_PARALLELISM`             | `4`                     | Argon2id 平行處理數                      |
+
+系統管理介面中儲存的設定可以覆蓋註冊政策。變更雜湊金鑰會使受該金鑰保護的既有憑證失效。
+
+## 通用 OIDC
+
+| 變數                                 | 預設值           | 用途                                 |
+| ------------------------------------ | ---------------- | ------------------------------------ |
+| `AUTH_OIDC_ENABLED`                  | `false`          | 啟用通用 OIDC                        |
+| `AUTH_OIDC_ISSUER_URL`               | empty            | OIDC 簽發者與探索服務來源網址        |
+| `AUTH_OIDC_CLIENT_ID`                | empty            | 用戶端 ID                            |
+| `AUTH_OIDC_CLIENT_SECRET`            | empty            | 用戶端密鑰                           |
+| `AUTH_OIDC_DISPLAY_NAME`             | `Single sign-on` | 登入按鈕標籤                         |
+| `AUTH_OIDC_JIT_PROVISIONING_ENABLED` | `false`          | 為身分有效但尚未存在的使用者建立帳號 |
+
+## Google 驗證
+
+| 變數                                   | 預設值   | 用途                                    |
+| -------------------------------------- | -------- | --------------------------------------- |
+| `AUTH_GOOGLE_ENABLED`                  | `false`  | 啟用 Google OpenID Connect              |
+| `AUTH_GOOGLE_CLIENT_ID`                | empty    | Google 用戶端 ID                        |
+| `AUTH_GOOGLE_CLIENT_SECRET`            | empty    | Google 用戶端密鑰                       |
+| `AUTH_GOOGLE_DISPLAY_NAME`             | `Google` | 登入按鈕標籤                            |
+| `AUTH_GOOGLE_JIT_PROVISIONING_ENABLED` | `false`  | 為接受的 Google 身分建立新使用者        |
+| `AUTH_GOOGLE_ALLOWED_HOSTED_DOMAINS`   | empty    | 以逗號分隔的 Workspace 託管網域允許清單 |
+
+## GitHub 驗證
+
+| 變數                                   | 預設值   | 用途                                       |
+| -------------------------------------- | -------- | ------------------------------------------ |
+| `AUTH_GITHUB_ENABLED`                  | `false`  | 啟用 GitHub OAuth                          |
+| `AUTH_GITHUB_CLIENT_ID`                | empty    | GitHub OAuth 用戶端 ID                     |
+| `AUTH_GITHUB_CLIENT_SECRET`            | empty    | GitHub OAuth 用戶端密鑰                    |
+| `AUTH_GITHUB_DISPLAY_NAME`             | `GitHub` | 登入按鈕標籤                               |
+| `AUTH_GITHUB_JIT_PROVISIONING_ENABLED` | `false`  | 為接受的 GitHub 身分建立新使用者           |
+| `AUTH_GITHUB_ALLOW_SIGNUP`             | `true`   | 允許透過 GitHub OAuth 流程註冊 GitHub 帳號 |
+
+## 指派、警示與通知背景工作
+
+| 變數                                      | 預設值 | 用途                                             |
+| ----------------------------------------- | ------ | ------------------------------------------------ |
+| `ASSIGNMENT_REFRESH_WORKER_ENABLED`       | `true` | 重試已排入佇列的指派更新工作                     |
+| `ASSIGNMENT_REFRESH_WORKER_INTERVAL`      | `5s`   | 指派更新背景工作的輪詢間隔                       |
+| `ASSIGNMENT_REFRESH_WORKER_BATCH_SIZE`    | `25`   | 每次更新週期取得的工作數量                       |
+| `ASSIGNMENT_REFRESH_WORKER_STALE_TIMEOUT` | `1m`   | 中斷的更新工作可被重新取得前的逾時時間           |
+| `ALERT_EVALUATION_ENABLED`                | `true` | 執行指標門檻警示評估                             |
+| `NOTIFICATION_WORKER_ENABLED`             | `true` | 傳送已排入佇列的事件通知                         |
+| `NOTIFICATION_WORKER_INTERVAL`            | `5s`   | 通知寄件匣的輪詢間隔                             |
+| `NOTIFICATION_WORKER_BATCH_SIZE`          | `25`   | 每次週期取得的通知傳送工作數量                   |
+| `NOTIFICATION_WORKER_STALE_TIMEOUT`       | `1m`   | 中斷的傳送工作可被重新取得前的逾時時間           |
+| `NOTIFICATION_HTTP_TIMEOUT`               | `10s`  | Webhook、Slack、Discord 與 Telegram 的 HTTP 逾時 |
+
+停用背景工作只會暫停處理，不會刪除設定或已排入佇列的工作。
+
+## SMTP
+
+| 變數            | 預設值     | 用途                                                    |
+| --------------- | ---------- | ------------------------------------------------------- |
+| `SMTP_HOST`     | empty      | SMTP 主機；主機或寄件者為空時，電子郵件功能視為尚未設定 |
+| `SMTP_PORT`     | `587`      | SMTP 連接埠                                             |
+| `SMTP_USERNAME` | empty      | 選用的 SMTP AUTH 使用者名稱                             |
+| `SMTP_PASSWORD` | empty      | 選用的 SMTP AUTH 密碼                                   |
+| `SMTP_FROM`     | empty      | 信封寄件者地址                                          |
+| `SMTP_TLS_MODE` | `starttls` | `starttls`、`implicit` 或 `none`                        |
+| `SMTP_TIMEOUT`  | `10s`      | 連線與寄送逾時時間                                      |
+
+儲存在系統管理介面中的 SMTP 設定會覆蓋這些環境變數備援值。
+
+## Tracing
+
+| 變數                                 | 預設值 | 用途                        |
+| ------------------------------------ | ------ | --------------------------- |
+| `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` | empty  | 接收 OTLP HTTP trace 的端點 |
+
+程式碼儲存庫提供的可觀測性 Compose 環境會將這個值指向 VictoriaTraces。保留空值即可停用匯出。
+
+## 探測器 agent
+
+Systemd 安裝程式會寫入前三個值，其餘都是本機執行參數的覆寫值。
+
+| 變數                                      | 預設值   | 用途                                              |
+| ----------------------------------------- | -------- | ------------------------------------------------- |
+| `NETSTAMP_PROBE_CONTROLLER_URL`           | required | 控制器來源網址，不含 `/api/v1`                    |
+| `NETSTAMP_PROBE_ID`                       | required | 探測器 UUID                                       |
+| `NETSTAMP_PROBE_SECRET`                   | required | 探測器執行階段金鑰                                |
+| `NETSTAMP_PROBE_HTTP_TIMEOUT`             | `10s`    | 執行階段 API 請求逾時時間                         |
+| `NETSTAMP_PROBE_MAX_WORKERS`              | `128`    | 同時執行的背景工作數量上限                        |
+| `NETSTAMP_PROBE_RESULT_QUEUE_SIZE`        | `10000`  | 可暫存的結果數量                                  |
+| `NETSTAMP_PROBE_RESULT_BATCH_SIZE`        | `100`    | 單次提交的批次上限                                |
+| `NETSTAMP_PROBE_RESULT_FLUSH_INTERVAL`    | `5s`     | 提交未滿批次前的最長等待時間                      |
+| `NETSTAMP_PROBE_ASSIGNMENT_TTL`           | `10m`    | 本機指派資料的有效期限                            |
+| `NETSTAMP_PROBE_SHUTDOWN_TIMEOUT`         | `10s`    | Agent 正常關閉的期限                              |
+| `NETSTAMP_PROBE_HEARTBEAT_INTERVAL`       | `30s`    | 心跳訊號間隔                                      |
+| `NETSTAMP_PROBE_ASSIGNMENT_POLL_INTERVAL` | `30s`    | 指派輪詢間隔                                      |
+| `NETSTAMP_PROBE_INITIAL_BACKOFF`          | `1s`     | 執行階段重試的初始延遲                            |
+| `NETSTAMP_PROBE_MAX_BACKOFF`              | `30s`    | 執行階段重試的最長延遲                            |
+| `NETSTAMP_PROBE_MAX_ATTEMPTS`             | `5`      | 目前重試週期判定失敗前的嘗試次數                  |
+| `NETSTAMP_PROBE_METRICS_ADDR`             | empty    | 選用的 Prometheus 監聽位址，例如 `127.0.0.1:9091` |
+| `NETSTAMP_PROBE_PPROF_ADDR`               | empty    | 選用的 pprof 監聽位址，例如 `127.0.0.1:6060`      |
+| `NETSTAMP_PROBE_LOG_LEVEL`                | `info`   | `debug`、`info`、`warn` 或 `error`                |
+
+所有數值容量與時間長度都必須大於零。最大退避時間不得小於初始退避時間。
+
+## Web 應用程式建置變數
+
+這些值會編譯進靜態前端。容器啟動後再變更執行環境，不會修改已建置的程式套件。
+
+| 變數                                            | 預設值                  | 用途                      |
+| ----------------------------------------------- | ----------------------- | ------------------------- |
+| `VITE_NETSTAMP_API_BASE_URL`                    | `/api/v1`               | 瀏覽器 API 基底網址       |
+| `VITE_NETSTAMP_API_PROXY_TARGET`                | `http://localhost:8080` | Vite 開發用反向代理目標   |
+| `VITE_NETSTAMP_REGISTRATION_ENABLED`            | `true`                  | 後端政策允許時顯示註冊 UI |
+| `VITE_NETSTAMP_PROJECT_CREATION_ENABLED`        | `true`                  | 顯示建立專案 UI           |
+| `VITE_NETSTAMP_USER_CREDENTIAL_CHANGES_ENABLED` | `true`                  | 顯示憑證管理介面          |
+| `VITE_NETSTAMP_DEMO_MODE`                       | `false`                 | 啟用唯讀示範模式          |
+| `VITE_NETSTAMP_DEMO_EMAIL`                      | empty                   | 選用的示範帳號電子郵件    |
+| `VITE_NETSTAMP_DEMO_PASSWORD`                   | empty                   | 選用的示範帳號密碼        |
+
+分析服務整合都是選用功能：`VITE_NETSTAMP_GA_MEASUREMENT_ID`、`VITE_NETSTAMP_GOOGLE_TAG_ID`、`VITE_NETSTAMP_CLARITY_PROJECT_ID`、`VITE_NETSTAMP_META_PIXEL_ID` 或其 `FACEBOOK` 別名、`VITE_NETSTAMP_POSTHOG_KEY` 與主機、`VITE_NETSTAMP_PLAUSIBLE_DOMAIN` 與指令碼 URL，以及 `VITE_NETSTAMP_UMAMI_WEBSITE_ID` 與指令碼 URL。
+
+`VITE_NETSTAMP_TRACKING_CONSENT_MODE` 接受 `regional`、`always` 或 `never`；`VITE_NETSTAMP_TRACKING_CONSENT_COUNTRIES` 則是區域適用國家清單。
+
+## 說明文件建置變數
+
+| 變數                           | 預設值                     | 用途                           |
+| ------------------------------ | -------------------------- | ------------------------------ |
+| `PUBLIC_SITE_URL`              | `https://netstamp.dev`     | 說明文件的標準來源網址         |
+| `PUBLIC_NETSTAMP_APP_BASE_URL` | `https://app.netstamp.dev` | 說明文件連往產品應用程式的 URL |
+
+說明文件支援相同的選用追蹤服務與同意控制，但前綴使用 `PUBLIC_NETSTAMP_*`，而不是 `VITE_NETSTAMP_*`。

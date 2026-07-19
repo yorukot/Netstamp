@@ -1,4 +1,7 @@
+import { i18n } from "@/i18n";
 import type { ApiLabel, ApiSelector } from "@/shared/api/types";
+
+const checkT = i18n.getFixedT(null, "checks") as (key: string) => string;
 
 export type SelectorMode = "all-probes" | "all" | "any" | "advanced";
 export type SelectorLabelOp = NonNullable<ApiSelector["label"]>["op"];
@@ -23,19 +26,6 @@ export interface SelectorRule {
 	values: string;
 	negated: boolean;
 }
-
-export const selectorModeOptions: Array<{ value: SelectorMode; label: string }> = [
-	{ value: "all-probes", label: "All probes" },
-	{ value: "all", label: "Match all labels" },
-	{ value: "any", label: "Match any label" },
-	{ value: "advanced", label: "Advanced JSON" }
-];
-
-export const selectorOpOptions: Array<{ value: SelectorLabelOp; label: string }> = [
-	{ value: "eq", label: "equals" },
-	{ value: "in", label: "in values" },
-	{ value: "exists", label: "exists" }
-];
 
 function selectorLabelId(key: string, value: string) {
 	return `${key}\u0000${value}`;
@@ -116,7 +106,7 @@ function parseAdvancedSelector(value: string): ApiSelector {
 
 	const parsed: unknown = JSON.parse(trimmed);
 	if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-		throw new Error("Selector JSON must be an object.");
+		throw new Error(checkT("selector.object"));
 	}
 
 	return parsed as ApiSelector;

@@ -1,0 +1,115 @@
+---
+title: 參與貢獻
+description: 準備範圍明確的 Netstamp 修改、遵循程式碼儲存庫規範、完成驗證，並送出方便審閱的 pull request。
+icon: users
+navSection: development
+navOrder: 40
+head:
+  - tag: title
+    content: 參與貢獻 | Netstamp 說明文件
+---
+
+Netstamp 歡迎產品、後端、前端、說明文件、本地化、測試與維運方面的貢獻。程式碼儲存庫中的 [`CONTRIBUTING.md`](https://github.com/yorukot/netstamp/blob/main/CONTRIBUTING.md) 是完整規範；本頁整理主要流程，並協助不同類型的貢獻找到正確的主要依據。
+
+## 開始之前
+
+1. 搜尋 [GitHub Issues](https://github.com/yorukot/netstamp/issues) 與已開啟的 pull request，確認是否已有重複工作。
+2. 閱讀根目錄的 `AGENTS.md` 與距離修改範圍最近的區域指南。
+3. 會改變產品或說明文件畫面時，請閱讀 `design.md`。
+4. 若修改範圍較大，請先建立 issue 或在既有 issue 留言，讓維護者確認範圍與產品方向。
+5. 依照[本機開發](/zh-TW/docs/development/local-development/)安裝相依套件，並啟動受影響的應用程式。
+
+## 找到正確的主要依據
+
+不同檔案各自負責不同的行為：
+
+- `api/` 負責 TypeSpec 合約。產生的 OpenAPI JSON 與 Web 型別都是輸出結果。
+- `server/db/migrations/` 與 `server/db/query/` 負責資料庫結構與 SQL 修改；產生的 sqlc 程式碼是輸出結果。
+- `packages/ui/` 負責可重用的產品基礎元件與設計權杖。
+- `web/src/i18n/locales/en/`、`docs/src/i18n/locales/en/` 與 `docs/src/content/docs/en/` 下的英文檔案是本地化來源。
+- 繁體中文翻譯資源由 Crowdin 同步，不應視為獨立的來源檔案樹。
+
+只在真正擁有該行為的來源檔修改，才能避免下一次產生檔案或同步翻譯時覆寫成果。
+
+## 建立分支
+
+從最新的 `main` 分支開始：
+
+```bash
+git switch main
+git pull --ff-only
+git switch -c feat/example-change
+```
+
+分支名稱使用 `<type>/<short-kebab-case-description>`。允許的前綴包括 `feat/`、`fix/`、`ui/`、`refactor/`、`docs/`、`test/`、`chore/` 與 `release/`。
+
+執行以下指令驗證目前名稱：
+
+```bash
+pnpm check:branch-name
+```
+
+## 讓修改保持聚焦
+
+- 避免無關的格式化、更名、相依套件升級或產生檔案變更。
+- 除非修改明確包含資料庫遷移，否則應保留既有 URL 與相容性。
+- 為改變的行為新增或更新測試。
+- 如果主要工作流程有變動，請同步更新說明文件與相關的 `AGENTS.md`。
+- 絕對不要提交密碼、權杖、探測器金鑰、OAuth 用戶端密鑰、已填入內容的環境檔或正式環境資料。
+
+## Commit 格式
+
+Commit 主旨以程式碼儲存庫區域或子系統為前綴：
+
+```text
+area: concise patch summary
+sub/sys: concise patch summary
+```
+
+例如：
+
+```text
+docs: clarify probe installation
+web/alerts: localize notification errors
+server/auth: validate session cookie
+```
+
+摘要應使用祈使語氣、具體說明修改內容；冒號後的第一個字除非是專有名詞，否則使用小寫，句尾不加句點。
+
+## 驗證修改
+
+請執行與修改範圍相符的檢查。整個程式碼儲存庫的共用入口如下：
+
+```bash
+pnpm check:branch-name
+pnpm check:frontend-style
+just lint
+just test
+just build
+```
+
+開發期間可以先執行範圍較小的驗證，但 pull request 必須列出實際執行過的每一條指令，以及未能完成的檢查。
+
+API 有變更時，請執行 `pnpm generate:openapi`，並提交預期中產生的檔案。修改使用者看得到的文字時，也要執行[翻譯 Netstamp](/zh-TW/docs/guides/translating/)列出的本地化檢查。
+
+## 送出 pull request
+
+Pull request 以 `main` 為目標分支，內容應包括：
+
+- 要解決的問題與改變後的行為；
+- 重要的實作或相容性決策；
+- 驗證指令與人工檢查結果；
+- 相關 issue，視情況使用 `Closes`、`Fixes` 或 `Refs`；
+- 可見 UI 修改的桌面版與行動版截圖。
+
+供審閱使用的暫時截圖請上傳至 pull request 說明或留言，不要放入應用程式原始碼目錄。
+
+專案採用 squash merge；合併前必須完成審閱、解決所有審閱討論串，並讓檢查通過。
+
+## 貢獻翻譯
+
+只參與翻譯的人不需要本機開發環境、程式碼儲存庫寫入權限，也不需要 Crowdin API 權杖。請直接到 [Netstamp Crowdin 專案](https://crowdin.com/project/netstamp)翻譯，並依照[翻譯 Netstamp](/zh-TW/docs/guides/translating/)中的台灣用語、預留位置安全、技術內容與審閱指引操作。
+
+## 尋求協助
+
+如果不確定修改應該放在哪裡，請在 [GitHub issue](https://github.com/yorukot/netstamp/issues)說明預期的使用者行為，或到 [Netstamp Discord 社群](https://discord.gg/9mdkf6dyTy)詢問。涉及敏感安全性問題時，請依照[安全維運](/zh-TW/docs/operate/security/)回報，不要建立公開 issue。

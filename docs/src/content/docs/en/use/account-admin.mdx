@@ -1,0 +1,63 @@
+---
+title: Account and administration
+description: Manage user identity, sessions and API tokens, plus instance registration, SMTP, users, administrators, and data transfer.
+icon: shield
+navSection: use
+navOrder: 80
+---
+
+Account settings belong to the signed-in user. Administration settings affect the entire Netstamp instance and require system administrator access.
+
+## Account settings
+
+Open the user menu and select **Account** to manage:
+
+- display name;
+- email address and verification;
+- local password;
+- linked OIDC, Google, or GitHub identities;
+- active browser sessions and their user agents;
+- personal API tokens;
+- account deactivation.
+
+Sensitive changes require recent authentication. Netstamp may ask for the current password or redirect through a linked provider before continuing.
+
+Do not remove the last authentication method from an account. Before changing an external provider or email domain, add and test a fallback method.
+
+## Sessions
+
+Sessions are server-side and backed by an opaque HTTP-only cookie. Account settings list active sessions. Revoke an unfamiliar session immediately, or revoke all sessions after a suspected account compromise.
+
+The default idle lifetime is 24 hours and the absolute lifetime is 7 days; operators can change both with controller configuration.
+
+## System administrator bootstrap
+
+The first successfully registered account becomes a system administrator. Netstamp prevents removal of the last active system administrator.
+
+System administrators can:
+
+- change registration, email-verification, public-origin, and SMTP settings;
+- list, disable, or re-enable users;
+- set or clear a user's local password;
+- grant or revoke system administrator access;
+- export and import an administrative JSON data package.
+
+System administrator access does not grant project membership.
+
+## Instance settings
+
+Stored Admin settings override environment fallbacks. Secret settings are encrypted with `SYSTEM_SETTINGS_ENCRYPTION_KEY`. After changing SMTP or origins, test email links, external login callbacks, and probe installer output.
+
+Disabling registration blocks new local registrations. JIT provisioning at an external provider is a separate policy and should be reviewed at the same time.
+
+## User recovery
+
+An administrator may set a temporary local password for an existing user or clear a compromised password. Deliver temporary credentials through a secure channel and require the user to replace them after sign-in.
+
+Disabling a user prevents sign-in and protected API access. It does not delete project history or monitoring data.
+
+## Data export and import
+
+The Admin data package is useful for application-level transfer. Imports are privileged and can modify many tables. Take a PostgreSQL backup first, validate the package source and format, and perform a test restore before importing into production.
+
+See [Upgrade, backup, and restore](/docs/install/upgrade-backup/) for the disaster-recovery workflow.

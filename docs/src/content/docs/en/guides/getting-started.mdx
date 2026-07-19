@@ -1,0 +1,88 @@
+---
+title: Quick start
+description: Run Netstamp locally with Docker Compose and collect the first measurement from a Linux probe.
+icon: bolt
+navSection: start
+navOrder: 0
+---
+
+This path starts the controller and TimescaleDB-backed PostgreSQL database, creates the first administrator, installs a Linux probe, and creates a check.
+
+## Requirements
+
+- Docker Engine with the Compose plugin
+- A browser
+- A Linux amd64 or arm64 machine for the probe
+- `curl` or `wget` on the probe host
+- Permission to install a systemd service on the probe host
+
+The controller and the probe may run on the same Linux machine for evaluation. A separate probe host gives you a more useful network viewpoint.
+
+## 1. Download the deployment files
+
+```bash
+mkdir netstamp
+cd netstamp
+curl -fsSLO https://raw.githubusercontent.com/yorukot/netstamp/main/deployments/docker/compose.yaml
+curl -fsSLO https://raw.githubusercontent.com/yorukot/netstamp/main/deployments/docker/example.env
+cp example.env .env
+```
+
+For a local evaluation, the placeholder secrets in `.env` will start the stack. Do not reuse them on an internet-accessible installation.
+
+## 2. Start Netstamp
+
+```bash
+docker compose up -d
+docker compose ps
+```
+
+The `migrate` service waits for PostgreSQL, applies every database migration, and exits. The `netstamp` service starts only after migration succeeds.
+
+Check the application and API:
+
+```bash
+curl http://localhost:3000/healthz
+curl http://localhost:3000/api/v1/healthz
+```
+
+[Open Netstamp](http://localhost:3000) in a browser.
+
+## 3. Create the first account and project
+
+1. Select **Sign up** and create an account.
+2. The first account is granted instance-level system administrator access automatically.
+3. Complete onboarding and create a project with a human-readable name and a lowercase slug, such as `home-lab`.
+
+Project slugs may contain lowercase letters, digits, and hyphens. They become part of project URLs and API references.
+
+## 4. Register a probe
+
+1. Open **Probes** and select **New probe**.
+2. Enter a stable name such as `taipei-home-01`.
+3. Search for a location or enter latitude and longitude manually.
+4. Continue to the install step.
+5. Copy both commands shown by the wizard and run them on the Linux probe host.
+
+The first command downloads the architecture-matched binary from your controller. The second command stores the one-time probe credentials in a root-owned environment file and installs a systemd service.
+
+Wait until the wizard reports **Heartbeat received**, then finish.
+
+:::warning The probe secret is shown only when a probe is created or its secret is rotated. Treat it like a password. If it is exposed, rotate it from the probe detail view and immediately reinstall the service credentials. :::
+
+## 5. Create a check
+
+1. Open **Checks** and select **New check**.
+2. Choose **Ping**, **TCP**, **HTTP**, or **Traceroute**.
+3. Enter a target, interval, and check-specific settings.
+4. Leave the probe selector empty to assign the check to every enabled probe, or choose labels to narrow the assignment.
+5. Save the check.
+
+Open **Overview** for fleet health and **Insight** for time-series and topology analysis. Results appear after the probe receives its assignment and completes the first interval.
+
+## Next steps
+
+- Understand the object model in [Core concepts](/docs/start/concepts/).
+- Replace the evaluation settings using the [Production checklist](/docs/install/production/).
+- Learn every check field in [Checks](/docs/use/checks/).
+- Configure [Alerts and notifications](/docs/use/alerts-notifications/).

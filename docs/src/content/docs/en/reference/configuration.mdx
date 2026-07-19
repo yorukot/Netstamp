@@ -1,0 +1,223 @@
+---
+title: Configuration reference
+description: Complete controller, Docker Compose, probe agent, web build, and docs build environment-variable reference.
+icon: wrench
+navSection: install
+navOrder: 30
+---
+
+The controller reads environment variables and an optional `.env` file from the working directory or `server/`. Docker Compose reads its project `.env` and forwards supported values into the container.
+
+Durations use Go syntax such as `250ms`, `5s`, `30m`, or `168h`. Boolean values use `true` or `false`. Keep secrets stable, unique, and outside version control.
+
+## Compose deployment variables
+
+These values select images and host exposure rather than configuring the controller directly.
+
+| Variable            | Default                             | Purpose                                     |
+| ------------------- | ----------------------------------- | ------------------------------------------- |
+| `NETSTAMP_IMAGE`    | `yorukot/netstamp`                  | Controller image repository                 |
+| `NETSTAMP_VERSION`  | `latest`                            | Controller and migration image tag          |
+| `TIMESCALEDB_IMAGE` | `timescale/timescaledb:latest-pg16` | Database image                              |
+| `NETSTAMP_PORT`     | `3000`                              | Host port published to controller port 8080 |
+
+Pin the image values for production. The logical Compose volume is `netstamp-postgres`; Docker normally prefixes its actual name with the Compose project name.
+
+## Controller core
+
+| Variable                         | Default                 | Purpose                                                               |
+| -------------------------------- | ----------------------- | --------------------------------------------------------------------- |
+| `APP_ENV`                        | `local`                 | Runtime environment; non-local enables secure session-cookie behavior |
+| `DEMO_MODE`                      | `false`                 | Enables backend demo restrictions                                     |
+| `SERVICE_NAME`                   | `controller`            | Service identity used by logs and telemetry                           |
+| `APP_VERSION`                    | `0.1.0`                 | Reported application version; Compose maps `NETSTAMP_VERSION` here    |
+| `API_VERSION`                    | `v1`                    | Version segment mounted under `/api/<version>`                        |
+| `LOG_LEVEL`                      | `info`                  | `debug`, `info`, `warn`, `error`, `dpanic`, `panic`, or `fatal`       |
+| `LOG_PSEUDONYM_KEY`              | development placeholder | Stable key used to pseudonymize sensitive log identifiers             |
+| `SYSTEM_SETTINGS_ENCRYPTION_KEY` | development placeholder | Stable key used to encrypt stored administrative secret settings      |
+| `SHUTDOWN_TIMEOUT`               | `10s`                   | Graceful controller shutdown deadline                                 |
+
+Replace both placeholder keys in every non-local deployment. Changing the settings key can make stored SMTP secrets unreadable.
+
+## HTTP and public origins
+
+| Variable                   | Default | Purpose                                                                 |
+| -------------------------- | ------- | ----------------------------------------------------------------------- |
+| `BACKEND_BASE_URL`         | empty   | Public controller origin for callbacks, email, and probe installer URLs |
+| `PUBLIC_WEB_BASE_URL`      | empty   | Public browser origin for user-facing links                             |
+| `HTTP_ADDR`                | `:8080` | Controller listen address                                               |
+| `WEB_DIR`                  | empty   | Built frontend directory; production image sets `/app/web`              |
+| `REQUEST_TIMEOUT`          | `10s`   | Request context timeout                                                 |
+| `HTTP_READ_HEADER_TIMEOUT` | `5s`    | Header read timeout                                                     |
+| `HTTP_READ_TIMEOUT`        | `15s`   | Request read timeout                                                    |
+| `HTTP_WRITE_TIMEOUT`       | `15s`   | Response write timeout                                                  |
+| `HTTP_IDLE_TIMEOUT`        | `60s`   | Keep-alive idle timeout                                                 |
+| `HTTP_TRUSTED_PROXIES`     | empty   | Comma-separated proxy IP addresses or CIDR prefixes                     |
+
+Origins must contain only `http` or `https` scheme and host. External authentication requires a non-empty `BACKEND_BASE_URL`.
+
+## Database
+
+| Variable                | Default     | Purpose                                  |
+| ----------------------- | ----------- | ---------------------------------------- |
+| `DATABASE_HOST`         | `localhost` | PostgreSQL host; Compose uses `postgres` |
+| `DATABASE_PORT`         | `5432`      | PostgreSQL port                          |
+| `DATABASE_USER`         | `netstamp`  | Database user                            |
+| `DATABASE_PASSWORD`     | `netstamp`  | Database password                        |
+| `DATABASE_NAME`         | `netstamp`  | Database name                            |
+| `DATABASE_SSLMODE`      | `disable`   | PostgreSQL SSL mode                      |
+| `DB_MAX_CONNS`          | `10`        | Maximum connection-pool size             |
+| `DB_MIN_CONNS`          | `0`         | Minimum idle connection-pool size        |
+| `DB_MAX_CONN_LIFETIME`  | `1h`        | Maximum lifetime of a pooled connection  |
+| `DB_MAX_CONN_IDLE_TIME` | `30m`       | Maximum idle time of a pooled connection |
+
+Use TLS verification when the database connection crosses an untrusted network. The standard Compose stack keeps database traffic on its private network.
+
+## Sessions, passwords, and tokens
+
+| Variable                                | Default                 | Purpose                                              |
+| --------------------------------------- | ----------------------- | ---------------------------------------------------- |
+| `AUTH_SESSION_HASH_KEY`                 | development placeholder | HMAC/hash key for opaque session tokens              |
+| `AUTH_API_TOKEN_HASH_KEY`               | development placeholder | HMAC/hash key for personal API tokens                |
+| `AUTH_SESSION_IDLE_TTL`                 | `24h`                   | Session inactivity limit                             |
+| `AUTH_SESSION_ABSOLUTE_TTL`             | `168h`                  | Maximum session lifetime                             |
+| `AUTH_SESSION_TOUCH_INTERVAL`           | `5m`                    | Minimum interval between session activity writes     |
+| `AUTH_SUDO_TTL`                         | `5m`                    | Recent-authentication validity for sensitive actions |
+| `AUTH_REGISTRATION_ENABLED`             | `true`                  | Environment fallback for local account registration  |
+| `AUTH_EXTERNAL_FLOW_TTL`                | `10m`                   | OAuth/OIDC flow lifetime                             |
+| `AUTH_PASSWORD_RESET_TOKEN_TTL`         | `30m`                   | Password-reset link lifetime                         |
+| `AUTH_PASSWORD_RESET_RATE_LIMIT_WINDOW` | `1h`                    | Password-reset rate-limit window                     |
+| `AUTH_PASSWORD_RESET_IP_LIMIT`          | `10`                    | Requests per IP in the window                        |
+| `AUTH_PASSWORD_RESET_EMAIL_LIMIT`       | `3`                     | Requests per email in the window                     |
+| `AUTH_ARGON2ID_MEMORY_KIB`              | `65536`                 | Argon2id memory cost                                 |
+| `AUTH_ARGON2ID_ITERATIONS`              | `3`                     | Argon2id iteration cost                              |
+| `AUTH_ARGON2ID_PARALLELISM`             | `4`                     | Argon2id parallelism                                 |
+
+Stored Admin settings can override registration policy. Changing a hash key invalidates existing credentials protected by that key.
+
+## Generic OIDC
+
+| Variable                             | Default          | Purpose                                               |
+| ------------------------------------ | ---------------- | ----------------------------------------------------- |
+| `AUTH_OIDC_ENABLED`                  | `false`          | Enable generic OIDC                                   |
+| `AUTH_OIDC_ISSUER_URL`               | empty            | OIDC issuer and discovery origin                      |
+| `AUTH_OIDC_CLIENT_ID`                | empty            | Client ID                                             |
+| `AUTH_OIDC_CLIENT_SECRET`            | empty            | Client secret                                         |
+| `AUTH_OIDC_DISPLAY_NAME`             | `Single sign-on` | Login-button label                                    |
+| `AUTH_OIDC_JIT_PROVISIONING_ENABLED` | `false`          | Create users from previously unknown valid identities |
+
+## Google authentication
+
+| Variable                               | Default  | Purpose                                           |
+| -------------------------------------- | -------- | ------------------------------------------------- |
+| `AUTH_GOOGLE_ENABLED`                  | `false`  | Enable Google OpenID Connect                      |
+| `AUTH_GOOGLE_CLIENT_ID`                | empty    | Google client ID                                  |
+| `AUTH_GOOGLE_CLIENT_SECRET`            | empty    | Google client secret                              |
+| `AUTH_GOOGLE_DISPLAY_NAME`             | `Google` | Login-button label                                |
+| `AUTH_GOOGLE_JIT_PROVISIONING_ENABLED` | `false`  | Create users from accepted Google identities      |
+| `AUTH_GOOGLE_ALLOWED_HOSTED_DOMAINS`   | empty    | Comma-separated Workspace hosted-domain allowlist |
+
+## GitHub authentication
+
+| Variable                               | Default  | Purpose                                                   |
+| -------------------------------------- | -------- | --------------------------------------------------------- |
+| `AUTH_GITHUB_ENABLED`                  | `false`  | Enable GitHub OAuth                                       |
+| `AUTH_GITHUB_CLIENT_ID`                | empty    | GitHub OAuth client ID                                    |
+| `AUTH_GITHUB_CLIENT_SECRET`            | empty    | GitHub OAuth client secret                                |
+| `AUTH_GITHUB_DISPLAY_NAME`             | `GitHub` | Login-button label                                        |
+| `AUTH_GITHUB_JIT_PROVISIONING_ENABLED` | `false`  | Create users from accepted GitHub identities              |
+| `AUTH_GITHUB_ALLOW_SIGNUP`             | `true`   | Permit GitHub's OAuth flow to offer GitHub account signup |
+
+## Assignment, alert, and notification workers
+
+| Variable                                  | Default | Purpose                                            |
+| ----------------------------------------- | ------- | -------------------------------------------------- |
+| `ASSIGNMENT_REFRESH_WORKER_ENABLED`       | `true`  | Retry queued assignment refresh jobs               |
+| `ASSIGNMENT_REFRESH_WORKER_INTERVAL`      | `5s`    | Refresh worker polling interval                    |
+| `ASSIGNMENT_REFRESH_WORKER_BATCH_SIZE`    | `25`    | Jobs claimed per refresh cycle                     |
+| `ASSIGNMENT_REFRESH_WORKER_STALE_TIMEOUT` | `1m`    | Reclaim timeout for interrupted refresh work       |
+| `ALERT_EVALUATION_ENABLED`                | `true`  | Run metric-threshold alert evaluation              |
+| `NOTIFICATION_WORKER_ENABLED`             | `true`  | Deliver queued incident notifications              |
+| `NOTIFICATION_WORKER_INTERVAL`            | `5s`    | Notification outbox polling interval               |
+| `NOTIFICATION_WORKER_BATCH_SIZE`          | `25`    | Deliveries claimed per cycle                       |
+| `NOTIFICATION_WORKER_STALE_TIMEOUT`       | `1m`    | Reclaim timeout for interrupted delivery work      |
+| `NOTIFICATION_HTTP_TIMEOUT`               | `10s`   | Webhook, Slack, Discord, and Telegram HTTP timeout |
+
+Disabling a worker pauses its work; it does not delete configuration or already queued jobs.
+
+## SMTP
+
+| Variable        | Default    | Purpose                                                       |
+| --------------- | ---------- | ------------------------------------------------------------- |
+| `SMTP_HOST`     | empty      | SMTP host; email is unconfigured when host or sender is empty |
+| `SMTP_PORT`     | `587`      | SMTP port                                                     |
+| `SMTP_USERNAME` | empty      | Optional SMTP AUTH user                                       |
+| `SMTP_PASSWORD` | empty      | Optional SMTP AUTH password                                   |
+| `SMTP_FROM`     | empty      | Envelope sender address                                       |
+| `SMTP_TLS_MODE` | `starttls` | `starttls`, `implicit`, or `none`                             |
+| `SMTP_TIMEOUT`  | `10s`      | Connect and delivery timeout                                  |
+
+Admin-stored SMTP values override these environment fallbacks.
+
+## Tracing
+
+| Variable                             | Default | Purpose                         |
+| ------------------------------------ | ------- | ------------------------------- |
+| `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` | empty   | OTLP HTTP trace-ingest endpoint |
+
+The repository's observability Compose stack points this at VictoriaTraces. Leave empty to disable export.
+
+## Probe agent
+
+The systemd installer writes the first three values. All other values are local tuning overrides.
+
+| Variable                                  | Default  | Purpose                                                    |
+| ----------------------------------------- | -------- | ---------------------------------------------------------- |
+| `NETSTAMP_PROBE_CONTROLLER_URL`           | required | Controller origin, without `/api/v1`                       |
+| `NETSTAMP_PROBE_ID`                       | required | Probe UUID                                                 |
+| `NETSTAMP_PROBE_SECRET`                   | required | Probe runtime secret                                       |
+| `NETSTAMP_PROBE_HTTP_TIMEOUT`             | `10s`    | Runtime API request timeout                                |
+| `NETSTAMP_PROBE_MAX_WORKERS`              | `128`    | Concurrent execution worker limit                          |
+| `NETSTAMP_PROBE_RESULT_QUEUE_SIZE`        | `10000`  | Buffered result capacity                                   |
+| `NETSTAMP_PROBE_RESULT_BATCH_SIZE`        | `100`    | Maximum submission batch size                              |
+| `NETSTAMP_PROBE_RESULT_FLUSH_INTERVAL`    | `5s`     | Maximum wait before submitting a partial batch             |
+| `NETSTAMP_PROBE_ASSIGNMENT_TTL`           | `10m`    | Local assignment freshness limit                           |
+| `NETSTAMP_PROBE_SHUTDOWN_TIMEOUT`         | `10s`    | Graceful agent shutdown deadline                           |
+| `NETSTAMP_PROBE_HEARTBEAT_INTERVAL`       | `30s`    | Heartbeat cadence                                          |
+| `NETSTAMP_PROBE_ASSIGNMENT_POLL_INTERVAL` | `30s`    | Assignment polling cadence                                 |
+| `NETSTAMP_PROBE_INITIAL_BACKOFF`          | `1s`     | Initial runtime retry delay                                |
+| `NETSTAMP_PROBE_MAX_BACKOFF`              | `30s`    | Maximum runtime retry delay                                |
+| `NETSTAMP_PROBE_MAX_ATTEMPTS`             | `5`      | Attempts before the current retry cycle fails              |
+| `NETSTAMP_PROBE_METRICS_ADDR`             | empty    | Optional Prometheus listener, for example `127.0.0.1:9091` |
+| `NETSTAMP_PROBE_PPROF_ADDR`               | empty    | Optional pprof listener, for example `127.0.0.1:6060`      |
+| `NETSTAMP_PROBE_LOG_LEVEL`                | `info`   | `debug`, `info`, `warn`, or `error`                        |
+
+All numeric capacities and durations must be greater than zero. Maximum backoff must be at least the initial backoff.
+
+## Web application build variables
+
+These are compiled into the static frontend. Runtime container environment changes do not modify an already-built bundle.
+
+| Variable                                        | Default                 | Purpose                                                  |
+| ----------------------------------------------- | ----------------------- | -------------------------------------------------------- |
+| `VITE_NETSTAMP_API_BASE_URL`                    | `/api/v1`               | Browser API base URL                                     |
+| `VITE_NETSTAMP_API_PROXY_TARGET`                | `http://localhost:8080` | Vite development proxy target                            |
+| `VITE_NETSTAMP_REGISTRATION_ENABLED`            | `true`                  | Show registration UI when backend policy also permits it |
+| `VITE_NETSTAMP_PROJECT_CREATION_ENABLED`        | `true`                  | Show project-creation UI                                 |
+| `VITE_NETSTAMP_USER_CREDENTIAL_CHANGES_ENABLED` | `true`                  | Show credential-management UI                            |
+| `VITE_NETSTAMP_DEMO_MODE`                       | `false`                 | Enable read-only demo presentation                       |
+| `VITE_NETSTAMP_DEMO_EMAIL`                      | empty                   | Optional demo login email                                |
+| `VITE_NETSTAMP_DEMO_PASSWORD`                   | empty                   | Optional demo login password                             |
+
+Analytics integrations are optional: `VITE_NETSTAMP_GA_MEASUREMENT_ID`, `VITE_NETSTAMP_GOOGLE_TAG_ID`, `VITE_NETSTAMP_CLARITY_PROJECT_ID`, `VITE_NETSTAMP_META_PIXEL_ID` or its `FACEBOOK` alias, `VITE_NETSTAMP_POSTHOG_KEY` and host, `VITE_NETSTAMP_PLAUSIBLE_DOMAIN` and script URL, and `VITE_NETSTAMP_UMAMI_WEBSITE_ID` and script URL.
+
+`VITE_NETSTAMP_TRACKING_CONSENT_MODE` accepts `regional`, `always`, or `never`; `VITE_NETSTAMP_TRACKING_CONSENT_COUNTRIES` is the regional country list.
+
+## Documentation build variables
+
+| Variable                       | Default                    | Purpose                             |
+| ------------------------------ | -------------------------- | ----------------------------------- |
+| `PUBLIC_SITE_URL`              | `https://netstamp.dev`     | Canonical docs origin               |
+| `PUBLIC_NETSTAMP_APP_BASE_URL` | `https://app.netstamp.dev` | Product application links from docs |
+
+Docs supports the same optional trackers and consent controls with the `PUBLIC_NETSTAMP_*` prefix instead of `VITE_NETSTAMP_*`.

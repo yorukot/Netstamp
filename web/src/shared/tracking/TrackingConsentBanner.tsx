@@ -1,11 +1,13 @@
 import { Button } from "@netstamp/ui";
 import { hasEnabledTrackers, loadConfiguredTrackers, readTrackingConsent, shouldRequestTrackingConsent, trackConfiguredPageView, writeTrackingConsent } from "@netstamp/ui/tracking";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation } from "react-router-dom";
 import styles from "./TrackingConsentBanner.module.css";
 import { trackerConfig } from "./trackerConfig";
 
 export function TrackingConsentBanner() {
+	const { t } = useTranslation("common");
 	const location = useLocation();
 	const [visible, setVisible] = useState(false);
 	const [trackingReady, setTrackingReady] = useState(false);
@@ -84,17 +86,17 @@ export function TrackingConsentBanner() {
 	}
 
 	return (
-		<section className={styles.banner} aria-label="Analytics consent">
+		<section className={styles.banner} aria-label={t("tracking.ariaLabel")}>
 			<div className={styles.copy}>
-				<strong>Analytics consent</strong>
-				<p>Netstamp can load optional analytics to understand product and docs usage. Declining keeps those trackers disabled in this browser.</p>
+				<strong>{t("tracking.title")}</strong>
+				<p>{t("tracking.description")}</p>
 			</div>
 			<div className={styles.actions}>
 				<Button type="button" variant="secondary" size="sm" onClick={declineTracking}>
-					Decline
+					{t("tracking.decline")}
 				</Button>
 				<Button type="button" size="sm" onClick={() => void acceptTracking()}>
-					Accept
+					{t("tracking.accept")}
 				</Button>
 			</div>
 		</section>

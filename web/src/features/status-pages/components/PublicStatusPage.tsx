@@ -1,5 +1,6 @@
 import { useSession } from "@/features/auth/session/SessionContext";
 import { checkTypeLabel, formatDateTime, formatMetric, publicStatusChartOption, severityTone, statusLabel, statusTone } from "@/features/status-pages/api/statusPageAdapters";
+import { currentLocale } from "@/i18n";
 import { pathForRoute, pathForStatusPageEditor } from "@/routes/routePaths";
 import { hasApiProblemCode } from "@/shared/api/client";
 import { publicStatusQueries } from "@/shared/api/queries";
@@ -18,7 +19,9 @@ import netstampLogoLight from "@netstamp/brand/assets/netstamp-logo-light.svg";
 import { Badge, Button, Spinner, type BadgeTone } from "@netstamp/ui";
 import { CaretDownIcon } from "@phosphor-icons/react/dist/csr/CaretDown";
 import { useQuery } from "@tanstack/react-query";
+import type { TFunction } from "i18next";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router-dom";
 import styles from "./PublicStatusPage.module.css";
 
@@ -26,10 +29,12 @@ type PublicIncident = ApiPublicStatusIncidentsResponse["incidents"]["active"][nu
 type PublicAssignment = NonNullable<ApiPublicStatusPublicElement["assignments"]>[number];
 type DailyStatusDay = ApiPublicStatusElementDailyStatusResponse["days"][number];
 type PublicPageTheme = ApiPublicStatusSummaryResponse["page"]["theme"];
+type StatusT = TFunction<"status">;
 
 const NetworkMap = lazy(() => import("@/shared/visualizations/NetworkMap").then(module => ({ default: module.NetworkMap })));
 
 export function PublicStatusPage() {
+	const { t } = useTranslation("status");
 	const { slug = "" } = useParams();
 	const { session } = useSession();
 	const editorContextQuery = useQuery({
@@ -59,7 +64,7 @@ export function PublicStatusPage() {
 		return (
 			<main className={styles.page}>
 				<div className={styles.shell}>
-					<Spinner label="Loading status page" layout="panel" size="lg" />
+					<Spinner label={t("public.loading")} layout="panel" size="lg" />
 				</div>
 			</main>
 		);
@@ -71,8 +76,8 @@ export function PublicStatusPage() {
 			<main className={styles.page}>
 				<div className={styles.shell}>
 					<section className={styles.messageSurface}>
-						<h1>{notFound ? "Status page not found" : "Status page unavailable"}</h1>
-						<p className={styles.muted}>{notFound ? "This public status page is disabled or does not exist." : "The controller could not return this status page right now."}</p>
+						<h1>{notFound ? t("public.notFound") : t("public.unavailable")}</h1>
+						<p className={styles.muted}>{notFound ? t("public.notFoundDescription") : t("public.unavailableDescription")}</p>
 					</section>
 				</div>
 			</main>
@@ -82,7 +87,7 @@ export function PublicStatusPage() {
 	const summary = summaryQuery.data;
 	const activeIncidents = incidentsQuery.data?.incidents.active ?? [];
 	const resolvedIncidents = summary.page.showIncidentHistory ? (incidentsQuery.data?.incidents.recentResolved ?? []) : [];
-	const defaultFooter = "Measurements are collected by configured Netstamp probes.";
+	const defaultFooter = t("public.defaultFooter");
 
 	return (
 		<main className={`${styles.page} ns-status-page`} data-status={summary.page.status}>
@@ -96,7 +101,7 @@ export function PublicStatusPage() {
 				<div className={styles.heroBody}>
 					<div className={styles.brandRow}>
 						<img src={mapTheme === "dark" ? netstampLogoLight : netstampLogoDark} alt="Netstamp" />
-						<span>Public status</span>
+						<span>{t("public.publicStatus")}</span>
 					</div>
 					<div className={styles.titleRow}>
 						<div className={styles.headerCopy}>
@@ -107,22 +112,22 @@ export function PublicStatusPage() {
 							<div className={styles.heroActions}>
 								{summary.page.showGeneratedAt ? (
 									<div className={styles.generated}>
-										<span>Last checked</span>
+										<span>{t("public.lastChecked")}</span>
 										<strong>{formatDateTime(summary.generatedAt)}</strong>
 									</div>
 								) : null}
 								{session ? (
 									<div className={styles.sessionActions}>
 										<Button asChild variant="ghost" size="sm">
-											<Link to={pathForRoute("dashboard", { projectRef: editorContext?.projectRef })}>Go to dashboard</Link>
+											<Link to={pathForRoute("dashboard", { projectRef: editorContext?.projectRef })}>{t("public.dashboard")}</Link>
 										</Button>
 										{editorContext ? (
 											<Button asChild size="sm">
-												<Link to={pathForStatusPageEditor(editorContext.projectRef, editorContext.pageId)}>Edit Page</Link>
+												<Link to={pathForStatusPageEditor(editorContext.projectRef, editorContext.pageId)}>{t("public.edit")}</Link>
 											</Button>
 										) : editorContextQuery.isPending ? (
 											<Button type="button" variant="outline" size="sm" disabled>
-												Checking edit access
+												{t("public.checkingEditAccess")}
 											</Button>
 										) : null}
 									</div>
@@ -134,11 +139,11 @@ export function PublicStatusPage() {
 			</header>
 
 			<div className={styles.shell}>
-				<section className={`${styles.overallStatus} ns-status-overall`} aria-label="Current overall status">
+				<section className={`${styles.overallStatus} ns-status-overall`} aria-label={t("public.overallAria")}>
 					<span className={styles.statusMarker} aria-hidden="true" />
 					<div>
-						<strong>{overallStatusTitle(summary.page.status)}</strong>
-						<span>{overallStatusSummary(summary.page.status, activeIncidents.length)}</span>
+						<strong>{overallStatusTitle(summary.page.status, t)}</strong>
+						<span>{overallStatusSummary(summary.page.status, activeIncidents.length, t)}</span>
 					</div>
 					<Badge tone={statusTone(summary.page.status)}>{statusLabel(summary.page.status)}</Badge>
 				</section>
@@ -148,31 +153,31 @@ export function PublicStatusPage() {
 
 				<footer className={`${styles.footer} ns-status-footer`}>
 					<p>{summary.page.footerText || defaultFooter}</p>
-					{summary.page.showGeneratedAt ? <span>Updated {formatDateTime(summary.generatedAt)}</span> : null}
+					{summary.page.showGeneratedAt ? <span>{t("public.updated", { date: formatDateTime(summary.generatedAt) })}</span> : null}
 				</footer>
 			</div>
 		</main>
 	);
 }
 
-function overallStatusTitle(status: ApiPublicStatusSummaryResponse["page"]["status"]) {
+function overallStatusTitle(status: ApiPublicStatusSummaryResponse["page"]["status"], t: StatusT) {
 	switch (status) {
 		case "operational":
-			return "All systems operational";
+			return t("public.overall.operational");
 		case "degraded":
-			return "Some systems are degraded";
+			return t("public.overall.degraded");
 		case "down":
-			return "Service interruption detected";
+			return t("public.overall.down");
 		default:
-			return "Status is being evaluated";
+			return t("public.overall.unknown");
 	}
 }
 
-function overallStatusSummary(status: ApiPublicStatusSummaryResponse["page"]["status"], activeIncidentCount: number) {
+function overallStatusSummary(status: ApiPublicStatusSummaryResponse["page"]["status"], activeIncidentCount: number, t: StatusT) {
 	if (activeIncidentCount > 0) {
-		return `${activeIncidentCount} active ${activeIncidentCount === 1 ? "incident" : "incidents"}`;
+		return t("public.overall.activeIncidents", { count: activeIncidentCount });
 	}
-	return status === "operational" ? "No active incidents reported" : "Live measurements are shown below";
+	return status === "operational" ? t("public.overall.none") : t("public.overall.live");
 }
 
 function IncidentSection({
@@ -186,12 +191,13 @@ function IncidentSection({
 	isLoading: boolean;
 	hasError: boolean;
 }) {
+	const { t } = useTranslation("status");
 	if (isLoading) {
 		return (
-			<section className={styles.incidents} aria-label="Incidents">
+			<section className={styles.incidents} aria-label={t("public.incidents")}>
 				<div className={styles.incidentPanel}>
-					<h2>Open incidents</h2>
-					<Spinner label="Loading incidents" layout="compact" size="lg" />
+					<h2>{t("public.openIncidents")}</h2>
+					<Spinner label={t("public.loadingIncidents")} layout="compact" size="lg" />
 				</div>
 			</section>
 		);
@@ -199,10 +205,10 @@ function IncidentSection({
 
 	if (hasError) {
 		return (
-			<section className={styles.incidents} aria-label="Incidents">
+			<section className={styles.incidents} aria-label={t("public.incidents")}>
 				<div className={styles.incidentPanel}>
-					<h2>Open incidents</h2>
-					<p className={styles.muted}>Incidents are unavailable right now.</p>
+					<h2>{t("public.openIncidents")}</h2>
+					<p className={styles.muted}>{t("public.incidentsUnavailable")}</p>
 				</div>
 			</section>
 		);
@@ -213,12 +219,12 @@ function IncidentSection({
 	}
 
 	return (
-		<section className={styles.incidents} aria-label="Incidents">
+		<section className={styles.incidents} aria-label={t("public.incidents")}>
 			{activeIncidents.length ? (
 				<div className={styles.incidentPanel}>
 					<div className={styles.incidentHeading}>
-						<h2>Active incidents</h2>
-						<p>Current service interruptions and ongoing investigation updates.</p>
+						<h2>{t("public.activeIncidents")}</h2>
+						<p>{t("public.activeDescription")}</p>
 					</div>
 					<div className={styles.incidentList}>
 						{activeIncidents.map(incident => (
@@ -230,7 +236,7 @@ function IncidentSection({
 			{resolvedIncidents.length ? (
 				<details className={styles.resolvedIncidents}>
 					<summary>
-						<span>Resolved incident history</span>
+						<span>{t("public.resolvedHistory")}</span>
 						<Badge tone="neutral">{resolvedIncidents.length}</Badge>
 					</summary>
 					<div className={styles.incidentList}>
@@ -245,6 +251,7 @@ function IncidentSection({
 }
 
 function IncidentRow({ incident }: { incident: PublicIncident }) {
+	const { t } = useTranslation("status");
 	return (
 		<div className={styles.incidentRow}>
 			<div>
@@ -254,8 +261,8 @@ function IncidentRow({ incident }: { incident: PublicIncident }) {
 				</div>
 				<div className={styles.incidentMeta}>
 					<span>{incident.status}</span>
-					<span>Opened {formatDateTime(incident.openedAt)}</span>
-					{incident.resolvedAt ? <span>Resolved {formatDateTime(incident.resolvedAt)}</span> : null}
+					<span>{t("public.opened", { date: formatDateTime(incident.openedAt) })}</span>
+					{incident.resolvedAt ? <span>{t("public.resolvedAt", { date: formatDateTime(incident.resolvedAt) })}</span> : null}
 				</div>
 			</div>
 			{incident.summary ? (
@@ -281,32 +288,29 @@ function ElementSection({
 	hasError: boolean;
 	mapTheme: "light" | "dark";
 }) {
+	const { t } = useTranslation("status");
 	if (isLoading) {
 		return (
-			<section className={styles.elements} aria-label="Status checks">
-				<Spinner label="Loading status checks" layout="panel" size="lg" />
+			<section className={styles.elements} aria-label={t("public.checksAria")}>
+				<Spinner label={t("public.loadingChecks")} layout="panel" size="lg" />
 			</section>
 		);
 	}
 
 	if (hasError) {
 		return (
-			<section className={styles.elements} aria-label="Status checks">
+			<section className={styles.elements} aria-label={t("public.checksAria")}>
 				<div className={styles.messageSurface}>
-					<h2>Status checks unavailable</h2>
-					<p className={styles.muted}>The current status checks could not be loaded.</p>
+					<h2>{t("public.checksUnavailable")}</h2>
+					<p className={styles.muted}>{t("public.checksUnavailableDescription")}</p>
 				</div>
 			</section>
 		);
 	}
 
 	return (
-		<section className={styles.elements} aria-label="Status checks">
-			{elements.length ? (
-				elements.map(element => <PublicElement key={element.id} slug={slug} element={element} mapTheme={mapTheme} />)
-			) : (
-				<div className={styles.empty}>No public status elements are configured.</div>
-			)}
+		<section className={styles.elements} aria-label={t("public.checksAria")}>
+			{elements.length ? elements.map(element => <PublicElement key={element.id} slug={slug} element={element} mapTheme={mapTheme} />) : <div className={styles.empty}>{t("public.noElements")}</div>}
 		</section>
 	);
 }
@@ -335,6 +339,7 @@ function PublicElement({ slug, element, mapTheme }: { slug: string; element: Api
 }
 
 function ExpandableStatusRow({ slug, element, mapTheme }: { slug: string; element: ApiPublicStatusPublicElement; mapTheme: "light" | "dark" }) {
+	const { t } = useTranslation("status");
 	const [expanded, setExpanded] = useState(false);
 	const showChart = element.displayMode === "latency" || element.chartMode === "compact";
 
@@ -347,9 +352,9 @@ function ExpandableStatusRow({ slug, element, mapTheme }: { slug: string; elemen
 						<div className={styles.checkCopy}>
 							<h3>{element.title}</h3>
 							<div className={styles.checkMeta}>
-								{element.type ? <span>{checkTypeLabel(element.type)}</span> : <span>{element.assignmentCount ?? element.assignments?.length ?? 0} viewpoints</span>}
-								<span>{displayModeLabel(element.displayMode)}</span>
-								{element.latestStartedAt ? <span>Checked {formatDateTime(element.latestStartedAt)}</span> : null}
+								{element.type ? <span>{checkTypeLabel(element.type)}</span> : <span>{t("public.viewpointCount", { count: element.assignmentCount ?? element.assignments?.length ?? 0 })}</span>}
+								<span>{displayModeLabel(element.displayMode, t)}</span>
+								{element.latestStartedAt ? <span>{t("public.checked", { date: formatDateTime(element.latestStartedAt) })}</span> : null}
 							</div>
 						</div>
 					</div>
@@ -365,9 +370,9 @@ function ExpandableStatusRow({ slug, element, mapTheme }: { slug: string; elemen
 					<div className={styles.checkDetails}>
 						{element.description ? <p className={styles.checkDescription}>{element.description}</p> : null}
 						<div className={styles.assignmentStats}>
-							<span>{element.successfulAssignments ?? 0} operational</span>
-							<span>{element.failingAssignments ?? 0} failing</span>
-							<span>{element.staleAssignments ?? 0} stale</span>
+							<span>{t("public.operationalCount", { count: element.successfulAssignments ?? 0 })}</span>
+							<span>{t("public.failingCount", { count: element.failingAssignments ?? 0 })}</span>
+							<span>{t("public.staleCount", { count: element.staleAssignments ?? 0 })}</span>
 						</div>
 						<Metrics element={element} />
 						<AssignmentRows assignments={element.assignments ?? []} />
@@ -395,6 +400,7 @@ function serviceStateClass(status: ApiPublicStatusPublicElement["status"]) {
 }
 
 function LazyPublicElementDailyStatus({ slug, element }: { slug: string; element: ApiPublicStatusPublicElement }) {
+	const { t } = useTranslation("status");
 	const { ref, inView } = useInView<HTMLDivElement>("200px");
 	const filters = { range: "30d" as const };
 	const dailyStatusQuery = useQuery({
@@ -408,15 +414,15 @@ function LazyPublicElementDailyStatus({ slug, element }: { slug: string; element
 		<div ref={ref} className={styles.dailyStatus}>
 			{dailyStatusQuery.isPending || (dailyStatusQuery.isFetching && !dailyStatusQuery.data) ? (
 				<div className={styles.dailyStatusPlaceholder}>
-					<Spinner label="Loading 30 days" size="sm" />
+					<Spinner label={t("public.loadingDays")} size="sm" />
 				</div>
 			) : null}
-			{dailyStatusQuery.error ? <div className={styles.dailyStatusPlaceholder}>Daily status unavailable</div> : null}
+			{dailyStatusQuery.error ? <div className={styles.dailyStatusPlaceholder}>{t("public.dailyUnavailable")}</div> : null}
 			{days.length ? (
 				<>
-					<div className={styles.dailyStatusBars} aria-label={`${element.title} 30 day status`}>
+					<div className={styles.dailyStatusBars} aria-label={t("public.dailyAria", { title: element.title })}>
 						{days.map(day => (
-							<span key={day.date} className={`${styles.dailyStatusBar} ${dailyStatusBarClass(day.status)}`} title={dailyStatusTitle(day)} />
+							<span key={day.date} className={`${styles.dailyStatusBar} ${dailyStatusBarClass(day.status)}`} title={dailyStatusTitle(day, t)} />
 						))}
 					</div>
 					<div className={styles.dailyStatusMeta}>
@@ -430,6 +436,7 @@ function LazyPublicElementDailyStatus({ slug, element }: { slug: string; element
 }
 
 function LazyPublicElementChart({ slug, element }: { slug: string; element: ApiPublicStatusPublicElement }) {
+	const { t } = useTranslation("status");
 	const { ref, inView } = useInView<HTMLDivElement>("200px");
 	const filters = element.chartRange ? { range: element.chartRange } : {};
 	const chartQuery = useQuery({
@@ -443,10 +450,10 @@ function LazyPublicElementChart({ slug, element }: { slug: string; element: ApiP
 		<div ref={ref} className={styles.chartSlot}>
 			{chartQuery.isPending || (chartQuery.isFetching && !chartQuery.data) ? (
 				<div className={styles.chartPlaceholder}>
-					<Spinner label="Loading chart" size="lg" />
+					<Spinner label={t("public.loadingChart")} size="lg" />
 				</div>
 			) : null}
-			{chartQuery.error ? <div className={styles.chartPlaceholder}>Chart unavailable</div> : null}
+			{chartQuery.error ? <div className={styles.chartPlaceholder}>{t("public.chartUnavailable")}</div> : null}
 			{chart?.series.length ? <ChartPanel className={styles.chart} option={publicStatusChartOption({ ...element, chart })} height="12rem" /> : null}
 		</div>
 	);
@@ -490,8 +497,8 @@ function dailyStatusBarClass(status: DailyStatusDay["status"]) {
 	}
 }
 
-function dailyStatusTitle(day: DailyStatusDay) {
-	const incidentText = day.incidentCount === 1 ? "1 incident" : `${day.incidentCount} incidents`;
+function dailyStatusTitle(day: DailyStatusDay, t: StatusT) {
+	const incidentText = t("public.incidentCount", { count: day.incidentCount });
 	return `${formatDateLabel(day.date)} / ${statusLabel(day.status)} / ${incidentText}`;
 }
 
@@ -503,10 +510,11 @@ function formatDateLabel(value: string | undefined) {
 	if (Number.isNaN(date.getTime())) {
 		return value;
 	}
-	return date.toLocaleDateString([], { month: "short", day: "2-digit", timeZone: "UTC" });
+	return date.toLocaleDateString(currentLocale(), { month: "short", day: "2-digit", timeZone: "UTC" });
 }
 
 function AssignmentRows({ assignments }: { assignments: PublicAssignment[] }) {
+	const { t } = useTranslation("status");
 	if (!assignments.length) {
 		return null;
 	}
@@ -520,10 +528,10 @@ function AssignmentRows({ assignments }: { assignments: PublicAssignment[] }) {
 						<div className={styles.publicAssignmentCopy}>
 							<strong>{assignment.checkTitle}</strong>
 							{context.length ? <span>{context.join(" / ")}</span> : null}
-							{assignment.latestStartedAt ? <span>Latest {formatDateTime(assignment.latestStartedAt)}</span> : null}
+							{assignment.latestStartedAt ? <span>{t("public.latest", { date: formatDateTime(assignment.latestStartedAt) })}</span> : null}
 						</div>
 						<div className={styles.publicAssignmentStatus}>
-							<Badge tone={latestStatusTone(assignment.latestStatus)}>{latestStatusLabel(assignment.latestStatus)}</Badge>
+							<Badge tone={latestStatusTone(assignment.latestStatus)}>{latestStatusLabel(assignment.latestStatus, t)}</Badge>
 							<AssignmentMetrics assignment={assignment} />
 						</div>
 					</div>
@@ -534,6 +542,7 @@ function AssignmentRows({ assignments }: { assignments: PublicAssignment[] }) {
 }
 
 function AssignmentMap({ assignments, theme }: { assignments: PublicAssignment[]; theme: "light" | "dark" }) {
+	const { t } = useTranslation("status");
 	const markers = useMemo(
 		() =>
 			assignments.flatMap((assignment, index) => {
@@ -543,36 +552,36 @@ function AssignmentMap({ assignments, theme }: { assignments: PublicAssignment[]
 				return [
 					{
 						id: `public-probe-${index}`,
-						name: assignment.probeName ?? assignment.probeLocationName ?? `Viewpoint ${index + 1}`,
+						name: assignment.probeName ?? assignment.probeLocationName ?? t("public.viewpoint", { number: index + 1 }),
 						coordinates: [assignment.longitude, assignment.latitude] as [number, number],
 						status: assignment.latestStatus === "error" || assignment.latestStatus === "timeout" ? "offline" : "online"
 					}
 				];
 			}),
-		[assignments]
+		[assignments, t]
 	);
 
 	if (!markers.length) {
-		return <div className={styles.mapUnavailable}>No public probe locations are available for this block.</div>;
+		return <div className={styles.mapUnavailable}>{t("public.noLocations")}</div>;
 	}
 
 	return (
-		<Suspense fallback={<Spinner label="Loading probe map" layout="panel" size="lg" />}>
+		<Suspense fallback={<Spinner label={t("public.loadingMap")} layout="panel" size="lg" />}>
 			<NetworkMap className={styles.probeMap} probes={markers} selectedId="" mode="fleet" theme={theme} />
 		</Suspense>
 	);
 }
 
-function displayModeLabel(mode: ApiPublicStatusPublicElement["displayMode"]) {
+function displayModeLabel(mode: ApiPublicStatusPublicElement["displayMode"], t: StatusT) {
 	switch (mode) {
 		case "history":
-			return "30-day history";
+			return t("public.display.history");
 		case "latency":
-			return "Latency";
+			return t("public.display.latency");
 		case "map":
-			return "Probe map";
+			return t("public.display.map");
 		default:
-			return "Live status";
+			return t("public.display.status");
 	}
 }
 
@@ -626,36 +635,37 @@ function latestStatusTone(status: string | undefined): BadgeTone {
 	}
 }
 
-function latestStatusLabel(status: string | undefined) {
+function latestStatusLabel(status: string | undefined, t: StatusT) {
 	switch (status) {
 		case "successful":
-			return "Ok";
+			return t("public.results.successful");
 		case "partial":
-			return "Partial";
+			return t("public.results.partial");
 		case "timeout":
-			return "Timeout";
+			return t("public.results.timeout");
 		case "error":
-			return "Error";
+			return t("public.results.error");
 		default:
-			return "No result";
+			return t("public.results.none");
 	}
 }
 
 function AssignmentMetrics({ assignment }: { assignment: PublicAssignment }) {
+	const { t } = useTranslation("status");
 	const metrics =
 		assignment.type === "ping"
 			? [
-					{ label: "Latency", value: formatMetric(assignment.metrics?.latencyAvgMs, "ms") },
-					{ label: "Loss", value: formatMetric(assignment.metrics?.lossPercent, "%") }
+					{ label: t("public.metrics.latency"), value: formatMetric(assignment.metrics?.latencyAvgMs, "ms") },
+					{ label: t("public.metrics.loss"), value: formatMetric(assignment.metrics?.lossPercent, "%") }
 				]
 			: assignment.type === "http"
 				? [
-						{ label: "Total", value: formatMetric(assignment.metrics?.latencyAvgMs, "ms") },
-						{ label: "Failure", value: formatMetric(assignment.metrics?.failurePercent, "%") }
+						{ label: t("public.metrics.total"), value: formatMetric(assignment.metrics?.latencyAvgMs, "ms") },
+						{ label: t("public.metrics.failure"), value: formatMetric(assignment.metrics?.failurePercent, "%") }
 					]
 				: [
-						{ label: "Connect", value: formatMetric(assignment.metrics?.connectAvgMs, "ms") },
-						{ label: "Failure", value: formatMetric(assignment.metrics?.failurePercent, "%") }
+						{ label: t("public.metrics.connect"), value: formatMetric(assignment.metrics?.connectAvgMs, "ms") },
+						{ label: t("public.metrics.failure"), value: formatMetric(assignment.metrics?.failurePercent, "%") }
 					];
 
 	return (
@@ -670,11 +680,12 @@ function AssignmentMetrics({ assignment }: { assignment: PublicAssignment }) {
 }
 
 function Metrics({ element }: { element: ApiPublicStatusPublicElement }) {
+	const { t } = useTranslation("status");
 	const metrics = [
-		{ label: element.type === "http" ? "Total" : "Latency", value: formatMetric(element.metrics?.latencyAvgMs, "ms") },
-		{ label: "Loss", value: formatMetric(element.metrics?.lossPercent, "%") },
-		{ label: "Connect", value: formatMetric(element.metrics?.connectAvgMs, "ms") },
-		{ label: "Failure", value: formatMetric(element.metrics?.failurePercent, "%") }
+		{ label: element.type === "http" ? t("public.metrics.total") : t("public.metrics.latency"), value: formatMetric(element.metrics?.latencyAvgMs, "ms") },
+		{ label: t("public.metrics.loss"), value: formatMetric(element.metrics?.lossPercent, "%") },
+		{ label: t("public.metrics.connect"), value: formatMetric(element.metrics?.connectAvgMs, "ms") },
+		{ label: t("public.metrics.failure"), value: formatMetric(element.metrics?.failurePercent, "%") }
 	].filter(metric => metric.value !== "-");
 
 	if (!metrics.length) {

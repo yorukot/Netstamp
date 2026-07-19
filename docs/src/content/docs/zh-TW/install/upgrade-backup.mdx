@@ -1,0 +1,84 @@
+---
+title: 升級、備份與還原
+description: 安全升級 Netstamp、備份及還原 PostgreSQL，並了解系統管理 JSON 匯出功能的用途。
+icon: database
+navSection: install
+navOrder: 40
+---
+
+Netstamp 會在控制器啟動前套用向前的資料庫遷移，因此應將應用程式映像檔與資料庫 schema 視為同一個 release unit。
+
+## 升級前
+
+1. 記錄目前的 `NETSTAMP_VERSION` 與 `TIMESCALEDB_IMAGE`。
+2. 閱讀目前版本與目標版本之間的變更。
+3. 建立 PostgreSQL 備份。
+4. 確認備份檔可正常讀取。
+5. 若這次變更可能影響服務，安排維護時段。
+
+## 建立資料庫備份
+
+使用 PostgreSQL 的 custom archive format：
+
+```bash
+backup_file="netstamp-$(date -u +%Y%m%dT%H%M%SZ).dump"
+docker compose exec -T postgres \
+  pg_dump -U netstamp -d netstamp --format=custom > "$backup_file"
+pg_restore --list "$backup_file" >/dev/null
+```
+
+請將 dump 與 Compose 檔案、沒有秘密值的版本設定，以及解讀既有憑證與加密設定所需的穩定密鑰一起保存；密鑰備份本身必須加密。
+
+## 升級
+
+編輯 `.env`，指定已測試的目標版本，再執行：
+
+```bash
+docker compose pull
+docker compose up -d
+docker compose ps
+docker compose logs migrate
+docker compose logs --tail=200 netstamp
+```
+
+遷移 container 必須成功結束，控制器才可啟動。接著驗證健康檢查、登入、一筆結果查詢、一部探測器的心跳，以及一個公開狀態頁。
+
+:::caution 將 container 映像檔切回舊版，不代表資料庫遷移也會自動還原。除非目標 release 明確支援 schema downgrade，否則應還原升級前建立的資料庫備份。 :::
+
+## 還原備份
+
+請盡量先還原到新資料庫或可拋棄的測試環境。若必須直接在原環境還原：
+
+```bash
+docker compose stop netstamp
+docker compose exec -T postgres \
+  pg_restore -U netstamp -d netstamp --clean --if-exists --no-owner < netstamp-backup.dump
+docker compose run --rm migrate
+docker compose up -d netstamp
+```
+
+接著確認：
+
+```bash
+docker compose ps
+curl --fail http://127.0.0.1:3000/api/v1/healthz
+```
+
+若備份來自另一套安裝環境，請一併還原對應的 `SYSTEM_SETTINGS_ENCRYPTION_KEY`。如果希望既有 session 與 API token 繼續有效，也必須沿用原本的 hash key。
+
+## 系統管理 JSON 匯出與匯入
+
+系統管理員可從**系統管理 → 資料工具**下載或匯入 Netstamp JSON 資料套件。它適合應用程式層級的資料移轉，以及受控的管理作業。
+
+JSON 套件不會保留資料庫層級的中繼資料、擴充套件與擁有者資訊，也不代表精確的時間點復原，因此不能取代 PostgreSQL 備份。災難復原仍應使用 `pg_dump`；若移轉流程包含系統管理資料套件，也要另外測試該流程。
+
+## 資料庫 volume 安全
+
+下列命令的效果不同：
+
+```bash
+docker compose down        # removes containers and network; keeps the database volume
+docker compose down -v     # also deletes the database volume
+```
+
+日常停止、重新啟動或升級時，絕對不要加上 `-v`。

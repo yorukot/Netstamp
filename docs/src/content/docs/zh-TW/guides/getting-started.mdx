@@ -1,0 +1,88 @@
+---
+title: 快速開始
+description: 使用 Docker Compose 在本機啟動 Netstamp，並透過 Linux 探測器取得第一筆量測結果。
+icon: bolt
+navSection: start
+navOrder: 0
+---
+
+本指南會啟動控制器與採用 TimescaleDB 的 PostgreSQL 資料庫、建立第一位系統管理員、安裝一部 Linux 探測器，最後新增一項檢查。
+
+## 事前準備
+
+- 已安裝 Compose plugin 的 Docker Engine
+- 一套瀏覽器
+- 一部供探測器使用的 Linux amd64 或 arm64 主機
+- 探測器主機上可使用 `curl` 或 `wget`
+- 可在探測器主機上安裝 systemd 服務的權限
+
+如果只是試用，控制器與探測器可以裝在同一部 Linux 主機；使用另一部主機，才能提供更有意義的不同網路觀測位置。
+
+## 1. 下載部署檔案
+
+```bash
+mkdir netstamp
+cd netstamp
+curl -fsSLO https://raw.githubusercontent.com/yorukot/netstamp/main/deployments/docker/compose.yaml
+curl -fsSLO https://raw.githubusercontent.com/yorukot/netstamp/main/deployments/docker/example.env
+cp example.env .env
+```
+
+本機試用時，`.env` 裡的預留密鑰可以直接啟動服務。若要讓執行個體連上網際網路，請務必全部換成獨立產生的密鑰，絕對不要沿用範例值。
+
+## 2. 啟動 Netstamp
+
+```bash
+docker compose up -d
+docker compose ps
+```
+
+`migrate` 服務會先等待 PostgreSQL 就緒，套用所有資料庫遷移後結束。只有遷移成功，`netstamp` 服務才會啟動。
+
+確認應用程式與 API 都可連線：
+
+```bash
+curl http://localhost:3000/healthz
+curl http://localhost:3000/api/v1/healthz
+```
+
+接著在瀏覽器中[開啟 Netstamp](http://localhost:3000)。
+
+## 3. 建立第一個帳號與專案
+
+1. 選擇 **註冊**並建立帳號。
+2. 系統會自動將第一個帳號設為執行個體層級的系統管理員。
+3. 完成開始使用流程，並建立一個名稱清楚、slug 為小寫的專案，例如 `home-lab`。
+
+專案 slug 只能包含小寫英文字母、數字與連字號，並會成為專案網址及 API 參照的一部分。
+
+## 4. 註冊探測器
+
+1. 開啟 **探測器**，選擇 **新增探測器**。
+2. 輸入不會輕易變動的名稱，例如 `taipei-home-01`。
+3. 搜尋地點，或手動輸入經緯度。
+4. 繼續進入安裝步驟。
+5. 複製精靈顯示的兩道命令，並在 Linux 探測器主機上執行。
+
+第一道命令會從你的控制器下載符合主機架構的執行檔；第二道命令會將一次性探測器憑證寫入只有 root 能讀取的環境檔，並安裝 systemd 服務。
+
+等到精靈顯示**已收到心跳**後，再完成流程。
+
+:::warning 探測器密鑰只會在建立探測器或輪替密鑰時顯示。請比照密碼保管；若密鑰可能外洩，請立即從探測器詳細資料輪替密鑰，並重新安裝服務憑證。 :::
+
+## 5. 建立檢查
+
+1. 開啟 **檢查**，選擇 **新增檢查**。
+2. 選擇 **Ping**、**TCP**、**HTTP** 或 **Traceroute**。
+3. 輸入目標、執行間隔，以及該檢查類型需要的設定。
+4. 若要指派給所有已啟用的探測器，將探測器選取條件留空；也可以用標籤縮小指派範圍。
+5. 儲存檢查。
+
+前往**總覽**查看探測器群組的健康狀態，或在**分析**檢視時間序列與路由拓樸。探測器收到指派並完成第一個執行週期後，結果才會出現。
+
+## 接下來
+
+- 到[核心概念](/zh-TW/docs/start/concepts/)了解各項資源之間的關係。
+- 依照[正式環境部署](/zh-TW/docs/install/production/)換掉所有試用設定。
+- 在[檢查](/zh-TW/docs/use/checks/)查看每一種檢查的完整欄位。
+- 設定[警示與通知](/zh-TW/docs/use/alerts-notifications/)。

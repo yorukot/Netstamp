@@ -12,6 +12,7 @@ import { SignOutIcon } from "@phosphor-icons/react/dist/csr/SignOut";
 import { TrashIcon } from "@phosphor-icons/react/dist/csr/Trash";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import styles from "./ProjectPage.module.css";
 
@@ -22,6 +23,7 @@ interface ProjectDraft {
 }
 
 export function ProjectPage() {
+	const { t } = useTranslation("project");
 	const { project, projectRef, setSelectedProjectRef } = useCurrentProject();
 	const { session } = useSession();
 	const confirm = useConfirm();
@@ -89,11 +91,11 @@ export function ProjectPage() {
 		}
 
 		const confirmed = await confirm({
-			title: "Delete this project?",
-			message: "This deletes the project, disables future assignments, and revokes all probe registration tokens.",
-			confirmLabel: "Delete project",
+			title: t("settings.deleteQuestion"),
+			message: t("settings.deleteMessage"),
+			confirmLabel: t("settings.delete"),
 			confirmationText: project.name,
-			confirmationLabel: "Project name",
+			confirmationLabel: t("settings.name"),
 			tone: "danger"
 		});
 
@@ -115,9 +117,9 @@ export function ProjectPage() {
 		}
 
 		const confirmed = await confirm({
-			title: `Leave ${project?.name ?? "project"}?`,
-			message: "This removes your access to the project's probes, checks, alerts, and measurements.",
-			confirmLabel: "Leave project",
+			title: t("settings.leaveQuestion", { name: project?.name ?? t("settings.projectFallback") }),
+			message: t("settings.leaveMessage"),
+			confirmLabel: t("settings.leave"),
 			tone: "danger"
 		});
 
@@ -135,39 +137,37 @@ export function ProjectPage() {
 
 	return (
 		<PageStack>
-			<ScreenHeader title="Settings" />
+			<ScreenHeader title={t("settings.title")} />
 
-			<Panel tone="glass" title="Project info">
+			<Panel tone="glass" title={t("settings.info")}>
 				<div className={styles.projectInfoGrid}>
-					<TextField label="Project name" value={activeProjectName} disabled={!projectRef} onChange={event => updateProjectNameDraft(event.currentTarget.value)} />
-					<TextField label="Slug" value={activeProjectSlug} disabled={!projectRef} onChange={event => updateProjectSlugDraft(event.currentTarget.value)} />
+					<TextField label={t("settings.name")} value={activeProjectName} disabled={!projectRef} onChange={event => updateProjectNameDraft(event.currentTarget.value)} />
+					<TextField label={t("settings.slug")} value={activeProjectSlug} disabled={!projectRef} onChange={event => updateProjectSlugDraft(event.currentTarget.value)} />
 				</div>
 				<UnsavedChangesBar show={hasProjectChanges} saving={updateProjectMutation.isPending} disabled={!projectRef} onReset={resetProjectDraft} onSave={saveProjectSettings} />
 			</Panel>
 
-			<Panel tone="deep" title="Dangerous project actions" padded={false} bodySurface="transparent">
+			<Panel tone="deep" title={t("settings.dangerous")} padded={false} bodySurface="transparent">
 				<div className={styles.dangerActionList}>
 					<DangerAction
-						title="Delete project"
-						description="Delete this project, disable future assignments, and revoke all probe registration tokens."
+						title={t("settings.delete")}
+						description={t("settings.deleteDescription")}
 						descriptionId="delete-project-description"
 						action={
 							<Button variant="danger" disabled={!projectRef || deleteProjectMutation.isPending} aria-describedby="delete-project-description" onClick={() => void deleteCurrentProject()}>
 								<TrashIcon size="1rem" weight="bold" aria-hidden="true" focusable="false" />
-								{deleteProjectMutation.isPending ? "Deleting" : "Delete project"}
+								{deleteProjectMutation.isPending ? t("settings.deleting") : t("settings.delete")}
 							</Button>
 						}
 					/>
 					<DangerAction
-						title="Leave project"
-						description={
-							isCurrentOwner ? "Owners cannot leave a project while they hold the owner role." : "Leave this project and remove your access to its probes, checks, alerts, and measurements."
-						}
+						title={t("settings.leave")}
+						description={isCurrentOwner ? t("settings.ownerCannotLeave") : t("settings.leaveDescription")}
 						descriptionId="leave-project-description"
 						action={
 							<Button variant="danger" disabled={!canLeaveProject} aria-describedby="leave-project-description" onClick={() => void leaveCurrentProject()}>
 								<SignOutIcon size="1rem" weight="bold" aria-hidden="true" focusable="false" />
-								{removeMemberMutation.isPending ? "Leaving" : "Leave project"}
+								{removeMemberMutation.isPending ? t("settings.leaving") : t("settings.leave")}
 							</Button>
 						}
 					/>

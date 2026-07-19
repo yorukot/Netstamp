@@ -1,12 +1,19 @@
-<section id="final-cta" class="final-cta" data-scroll-progress="cta" aria-label="Get started with Netstamp">
-	<h2>Start observing from the networks you control.</h2>
+---
+import { localeFromAstro, pathForLocale, uiForLocale } from "../../../i18n/ui";
+
+const locale = localeFromAstro(Astro.currentLocale);
+const ui = uiForLocale(locale);
+---
+
+<section id="final-cta" class="final-cta" data-scroll-progress="cta" aria-label={ui.home.finalAria}>
+	<h2>{ui.home.finalTitle}</h2>
 	<svg class="cta-network" viewBox="0 0 1200 520" aria-hidden="true">
 		<path class="route route-dim" d="M82 360 C214 126 360 406 498 226 S790 88 1110 238"></path>
 		<path class="route route-hot" d="M82 360 C214 126 360 406 498 226 S790 88 1110 238"></path>
 	</svg>
 	<div class="cta-row">
-		<a href="/docs/guides/getting-started/" class="btn btn-primary">Get Started</a>
-		<a href="https://github.com/yorukot/netstamp" class="btn btn-outline" target="_blank" rel="noreferrer">View on GitHub</a>
+		<a href={pathForLocale("/docs/guides/getting-started/", locale)} class="btn btn-primary">{ui.home.getStarted}</a>
+		<a href="https://github.com/yorukot/netstamp" class="btn btn-outline" target="_blank" rel="noreferrer">{ui.home.viewGithub}</a>
 	</div>
 </section>
 

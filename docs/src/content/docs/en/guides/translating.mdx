@@ -1,0 +1,93 @@
+---
+title: Translating Netstamp
+description: Contribute translations in Crowdin, preserve technical content, and validate localized resources before they ship.
+icon: users
+navSection: development
+navOrder: 30
+head:
+  - tag: title
+    content: Translating Netstamp | Netstamp Docs
+---
+
+Netstamp uses English as the source language and currently publishes Traditional Chinese for Taiwan as `zh-TW`. You can contribute translations without setting up the codebase or receiving a Crowdin token.
+
+## Translate Without Writing Code
+
+1. Open the [Netstamp project in Crowdin](https://crowdin.com/project/netstamp), then sign in or create a free account.
+2. Choose **Chinese Traditional (`zh-TW`)** and open the file you want to translate. Crowdin's filters can show only untranslated or unapproved strings.
+3. Before translating a string, read its English source, neighboring text, source-file path, and contributor comments. Translation-memory suggestions are references, not automatically correct answers.
+4. Write complete, natural Taiwanese Traditional Chinese. Search the project for existing translations of the same product term when you need to confirm consistency.
+5. Resolve Crowdin's QA warnings before saving, especially mismatched variables, tags, numbers, punctuation, and whitespace.
+6. When English is ambiguous or the right translation depends on product behavior, leave a comment on the string and mention a maintainer instead of guessing.
+
+Maintainers review the translation in Crowdin and synchronize accepted output back to the repository. Translation contributors do not need `CROWDIN_PROJECT_ID`, `CROWDIN_PERSONAL_TOKEN`, or repository write access.
+
+## What To Translate
+
+Translate user-facing prose and interface text, including:
+
+- navigation, headings, descriptions, buttons, form labels, placeholders, tooltips, empty states, errors, and accessibility labels;
+- documentation titles, frontmatter descriptions, paragraphs, lists, callout prose, and link labels;
+- localized page titles, metadata, and image alternative text.
+
+Use natural terminology for Taiwan. Prefer「設定」、「檔案」、「連線」、「使用者」、「資訊」、「程式碼」與「伺服器」when those meanings apply.
+
+Keep Netstamp terminology consistent as well. For example, ordinary prose uses「探測器」for Probe,「控制器」for Controller,「檢查」for check,「指派」for assignment, and「權杖」for token when the context calls for it. Type names, fields, and component identifiers in code remain unchanged.
+
+## What To Preserve
+
+Keep the following content exactly as written unless the source explicitly provides a localized product term:
+
+- `Netstamp`, API names, protocol names, and identifiers such as `HTTP`, `TLS`, `DNS`, `ICMP`, and `OpenAPI`;
+- code blocks, inline code, commands, file paths, URLs, email addresses, JSON keys, and environment-variable names;
+- interpolation variables such as `{{name}}`, plural suffixes, placeholders, MDX imports, component tags, and frontmatter structure;
+- anchors and link destinations.
+
+:::warning Never translate or remove an interpolation variable. If English contains `Welcome, {{name}}`, the translation must contain the exact `{{name}}` token. :::
+
+## Translation Workflow
+
+English source files are uploaded from these paths:
+
+```text
+web/src/i18n/locales/en/*.json
+docs/src/i18n/locales/en/ui.json
+docs/src/content/docs/en/**/*.mdx
+```
+
+Crowdin writes translated output to the matching `zh-TW` paths. Do not open a pull request that edits only Crowdin-managed `zh-TW` files unless the same correction has already been made in Crowdin; otherwise the next download can overwrite the change.
+
+New English text may temporarily appear in a localized screen because English is the fallback language. That is expected while a translation is pending and should not block an otherwise valid source pull request.
+
+## Adding Source Text
+
+Developers adding user-visible text should:
+
+1. Add a semantic key to the appropriate English namespace instead of using the English sentence as the key.
+2. Use the existing i18n helper or `useTranslation("namespace")`; use `<Trans>` for structured React content.
+3. Add English documentation below `docs/src/content/docs/en/` and preserve code, imports, component tags, anchors, and file paths.
+4. Run localization validation and the affected tests.
+5. Upload the English source to Crowdin; do not upload `zh-TW` as a source language.
+
+```bash
+pnpm check:i18n
+pnpm test:i18n
+pnpm test:web
+pnpm test:docs:i18n
+```
+
+Maintainers with Crowdin credentials can synchronize files with:
+
+```bash
+pnpm crowdin:upload
+pnpm crowdin:download
+pnpm check:i18n
+```
+
+Keep credentials in the shell, a local ignored `.env`, or the CI secret store. Never commit a Crowdin token or populated credential file.
+
+## Review And Troubleshooting
+
+Before a translation ships, confirm that Crowdin QA has no unresolved variable or tag mismatch, the localized route builds, internal links stay in the selected language, and code samples remain unchanged. Punctuation or capitalization warnings caused by valid Taiwanese text can be reviewed and dismissed; missing placeholders, tags, numbers, or code must be fixed.
+
+For locale architecture, adding another language, file ownership, and CLI troubleshooting, read the repository's [localization maintenance guide](https://github.com/yorukot/netstamp/blob/main/docs/localization.md).

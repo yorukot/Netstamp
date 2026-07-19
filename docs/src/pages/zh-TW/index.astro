@@ -1,0 +1,15 @@
+---
+import HomepageRedesign from "../../components/landing/HomepageRedesign.astro";
+import { uiForLocale } from "../../i18n/ui";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { absoluteUrl, createBreadcrumbSchema, createSoftwareApplicationSchema, resolveSiteUrl } from "../../lib/seo";
+
+const siteUrl = resolveSiteUrl(Astro.site);
+const imageUrl = absoluteUrl("/og.png", siteUrl);
+const ui = uiForLocale(Astro.currentLocale);
+const schema = [createBreadcrumbSchema([{ name: "Netstamp", url: siteUrl }]), createSoftwareApplicationSchema(siteUrl, imageUrl, ui.meta.description)];
+---
+
+<BaseLayout title={ui.meta.homeTitle} description={ui.meta.description} canonicalPath="/" schema={schema} fixedTheme="dark">
+	<HomepageRedesign />
+</BaseLayout>

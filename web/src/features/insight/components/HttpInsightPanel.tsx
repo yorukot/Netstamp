@@ -1,13 +1,17 @@
 import type { CheckDefinition } from "@/features/checks/data/checks";
 import { HttpLatestResultPanel } from "@/features/insight/components/HttpLatestResultPanel";
 import type { Probe } from "@/features/probes/data/probes";
+import { i18n } from "@/i18n";
 import type { HttpInsightResponse, HttpSeriesKey, HttpSeriesResponse, LatestHttpResult } from "@/shared/api/types";
-import { formatCount, formatMs, formatPercent } from "@/shared/utils/insightFormatters";
+import { formatMs, formatPercent } from "@/shared/utils/insightFormatters";
 import type { ChartOption } from "@/shared/visualizations/chartOptions";
 import { ChartPanel } from "@/shared/visualizations/ChartPanel";
 import { chartAxisLabel, chartTheme, chartTooltipTextStyle } from "@/shared/visualizations/chartTheme";
 import { BodyCopy, Panel, Spinner } from "@netstamp/ui";
+import { useTranslation } from "react-i18next";
 import styles from "./PingInsightPanel.module.css";
+
+const insightT = i18n.getFixedT(null, "insight") as (key: string) => string;
 
 function points(data: HttpSeriesResponse | undefined, key: HttpSeriesKey) {
 	return data?.series[key]?.points ?? [];
@@ -15,10 +19,10 @@ function points(data: HttpSeriesResponse | undefined, key: HttpSeriesKey) {
 function chartOption(data: HttpSeriesResponse | undefined): ChartOption {
 	const theme = chartTheme();
 	const metrics: Array<[HttpSeriesKey, string]> = [
-		["total_avg", "Total"],
+		["total_avg", insightT("http.total")],
 		["ttfb_avg", "TTFB"],
 		["dns_avg", "DNS"],
-		["connect_avg", "Connect"],
+		["connect_avg", insightT("http.connect")],
 		["tls_avg", "TLS"]
 	];
 	return {
@@ -47,27 +51,32 @@ interface Props {
 	onSelectTimeWindow: (value: { from: number; to: number }) => void;
 }
 export function HttpInsightPanel({ selectedProbe, selectedTarget, insightData, seriesData, latestResult, nowMs, isLoading, isLatestLoading, isFetching, onSelectTimeWindow }: Props) {
+	const { t } = useTranslation("insight");
 	if (!selectedProbe || !selectedTarget)
 		return (
-			<Panel tone="deep" title="No HTTP target selected">
-				<BodyCopy>Select a probe and HTTP target.</BodyCopy>
+			<Panel tone="deep" title={t("panel.noHttpTitle")}>
+				<BodyCopy>{t("panel.noHttpDescription")}</BodyCopy>
 			</Panel>
 		);
 	if (isLoading && !insightData && !seriesData)
 		return (
-			<Panel tone="deep" title="HTTP insight">
-				<Spinner label="Loading HTTP insight" layout="panel" size="lg" />
+			<Panel tone="deep" title={t("panel.httpTitle")}>
+				<Spinner label={t("panel.loadingHttp")} layout="panel" size="lg" />
 			</Panel>
 		);
 	const summary = insightData?.summary;
 	const meta = seriesData?.meta ?? insightData?.meta;
 	const metrics = [
-		{ label: "Average total", value: formatMs(summary?.averageTotalMs), detail: "request total" },
-		{ label: "Max total", value: formatMs(summary?.maxTotalMs), detail: "request total" },
-		{ label: "Average TTFB", value: formatMs(summary?.averageTtfbMs), detail: "server wait" },
-		{ label: "Failure", value: formatPercent(summary?.failurePercent), detail: "timeout + error" },
-		{ label: "Success", value: formatPercent(summary?.successRate), detail: "successful" },
-		{ label: "Certificate floor", value: summary?.certificateDaysRemaining == null ? "-" : `${Math.floor(summary.certificateDaysRemaining)}d`, detail: "minimum in range" }
+		{ label: t("panel.averageTotal"), value: formatMs(summary?.averageTotalMs), detail: t("panel.requestTotal") },
+		{ label: t("panel.maxTotal"), value: formatMs(summary?.maxTotalMs), detail: t("panel.requestTotal") },
+		{ label: t("panel.averageTtfb"), value: formatMs(summary?.averageTtfbMs), detail: t("panel.serverWait") },
+		{ label: t("panel.failure"), value: formatPercent(summary?.failurePercent), detail: t("panel.timeoutError") },
+		{ label: t("panel.success"), value: formatPercent(summary?.successRate), detail: t("panel.successful") },
+		{
+			label: t("panel.certificateFloor"),
+			value: summary?.certificateDaysRemaining == null ? "-" : t("http.daysShort", { count: Math.floor(summary.certificateDaysRemaining) }),
+			detail: t("panel.minimumInRange")
+		}
 	];
 	const hasData = points(seriesData, "total_avg").length > 0;
 	return (
@@ -84,13 +93,13 @@ export function HttpInsightPanel({ selectedProbe, selectedTarget, insightData, s
 			<HttpLatestResultPanel latestResult={latestResult} target={selectedTarget.target} nowMs={nowMs} isLoading={isLatestLoading} isFetching={isFetching} />
 			<Panel tone="deep" title={`${selectedProbe.name} -> ${selectedTarget.target}`}>
 				<div className={styles.chartMeta}>
-					<span>{isFetching ? "syncing result series" : `${formatCount(meta?.totalPoints)} points`}</span>
+					<span>{isFetching ? t("panel.syncingSeries") : t("panel.points", { count: meta?.totalPoints ?? 0 })}</span>
 					<span>{[meta?.source, meta?.resolution].filter(Boolean).join(" / ")}</span>
 				</div>
 				{hasData ? (
 					<ChartPanel option={chartOption(seriesData)} height="27rem" onTimeRangeSelect={onSelectTimeWindow} timeRangeBounds={meta ? { from: meta.from, to: meta.to } : undefined} />
 				) : (
-					<div className={styles.emptyState}>No HTTP series points were recorded in this time range.</div>
+					<div className={styles.emptyState}>{t("panel.noHttpSeries")}</div>
 				)}
 			</Panel>
 		</div>

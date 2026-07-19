@@ -1,7 +1,8 @@
-import { formatProbeHeartbeat } from "@/features/probes/api/probeAdapters";
 import type { Probe, ProbeStatus } from "@/features/probes/data/probes";
+import { useLocaleFormat } from "@/i18n/format";
 import { Badge, DataTable, FilterGrid, PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger, TextField, type BadgeTone, type DataColumn } from "@netstamp/ui";
 import { useEffect, useState, type MouseEvent } from "react";
+import { useTranslation } from "react-i18next";
 import styles from "./ProbeList.module.css";
 
 const statusTones: Record<ProbeStatus, BadgeTone> = {
@@ -21,6 +22,7 @@ function stopRowSelection(event: MouseEvent) {
 }
 
 function ProbeLabels({ labels }: { labels: string[] }) {
+	const { t } = useTranslation("probes");
 	const visibleLabels = labels.slice(0, visibleLabelCount);
 	const hiddenCount = labels.length - visibleLabels.length;
 
@@ -39,7 +41,7 @@ function ProbeLabels({ labels }: { labels: string[] }) {
 				<PopoverRoot>
 					<span className={styles.labelOverflow}>
 						<PopoverTrigger asChild>
-							<button type="button" className={styles.labelOverflowButton} aria-label={`Show all ${labels.length} labels`} onClick={stopRowSelection}>
+							<button type="button" className={styles.labelOverflowButton} aria-label={t("table.showLabels", { count: labels.length })} onClick={stopRowSelection}>
 								+{hiddenCount}
 							</button>
 						</PopoverTrigger>
@@ -71,6 +73,8 @@ function ProbeLabelGrid({ labels }: { labels: string[] }) {
 }
 
 function HeartbeatValue({ timestamp }: { timestamp: number | null }) {
+	const { t } = useTranslation("probes");
+	const { dateTime, relativeTime } = useLocaleFormat();
 	const [now, setNow] = useState(() => Date.now());
 
 	useEffect(() => {
@@ -78,31 +82,20 @@ function HeartbeatValue({ timestamp }: { timestamp: number | null }) {
 		return () => window.clearInterval(interval);
 	}, []);
 
-	return <span title={timestamp ? new Date(timestamp).toLocaleString() : "No heartbeat recorded"}>{formatProbeHeartbeat(timestamp, now)}</span>;
-}
+	if (timestamp === null) {
+		return <span title={t("table.noHeartbeat")}>{t("relative.never")}</span>;
+	}
 
-const probeColumns: DataColumn<Probe>[] = [
-	{ key: "name", label: "Probe name", sortable: true },
-	{ key: "status", label: "Status", sortable: true, sortValue: probe => statusSortRank[probe.status], render: probe => <Badge tone={statusTones[probe.status]}>{probe.status}</Badge> },
-	{ key: "location", label: "Location", sortable: true },
-	{ key: "publicIp", label: "Public IP", sortable: true },
-	{ key: "ipFamily", label: "Support IP Family", sortable: true },
-	{
-		key: "lastHeartbeat",
-		label: "Last heartbeat",
-		sortable: true,
-		sortValue: probe => probe.lastHeartbeatAt ?? Number.NEGATIVE_INFINITY,
-		render: probe => <HeartbeatValue timestamp={probe.lastHeartbeatAt} />
-	},
-	{
-		key: "labelTokens",
-		label: "Labels",
-		sortable: true,
-		sortValue: probe => probe.labelTokens.join(" "),
-		render: probe => <ProbeLabels labels={probe.labelTokens} />
-	},
-	{ key: "version", label: "Version", sortable: true }
-];
+	const elapsedSeconds = Math.max(0, Math.floor((now - timestamp) / 1000));
+	const value =
+		elapsedSeconds < 60
+			? relativeTime(-elapsedSeconds, "second")
+			: elapsedSeconds < 3600
+				? relativeTime(-Math.floor(elapsedSeconds / 60), "minute")
+				: relativeTime(-Math.floor(elapsedSeconds / 3600), "hour");
+
+	return <span title={dateTime(timestamp)}>{value}</span>;
+}
 
 interface ProbeListProps {
 	probes: Probe[];
@@ -113,14 +106,45 @@ interface ProbeListProps {
 }
 
 export function ProbeList({ probes, selectedId, search, onSearchChange, onSelect }: ProbeListProps) {
+	const { t } = useTranslation("probes");
+	const statusLabel = (status: ProbeStatus) => t(`status.${status.toLowerCase() as "online" | "draining" | "offline"}`);
+	const probeColumns: DataColumn<Probe>[] = [
+		{ key: "name", label: t("table.name"), sortable: true },
+		{
+			key: "status",
+			label: t("table.status"),
+			sortable: true,
+			sortValue: probe => statusSortRank[probe.status],
+			render: probe => <Badge tone={statusTones[probe.status]}>{statusLabel(probe.status)}</Badge>
+		},
+		{ key: "location", label: t("table.location"), sortable: true },
+		{ key: "publicIp", label: t("table.publicIp"), sortable: true },
+		{ key: "ipFamily", label: t("table.ipFamily"), sortable: true },
+		{
+			key: "lastHeartbeat",
+			label: t("table.lastHeartbeat"),
+			sortable: true,
+			sortValue: probe => probe.lastHeartbeatAt ?? Number.NEGATIVE_INFINITY,
+			render: probe => <HeartbeatValue timestamp={probe.lastHeartbeatAt} />
+		},
+		{
+			key: "labelTokens",
+			label: t("table.labels"),
+			sortable: true,
+			sortValue: probe => probe.labelTokens.join(" "),
+			render: probe => <ProbeLabels labels={probe.labelTokens} />
+		},
+		{ key: "version", label: t("table.version"), sortable: true }
+	];
+
 	return (
 		<div className={styles.listStack}>
 			<FilterGrid className={styles.filters}>
-				<TextField label="Search" placeholder="probe name, location, provider, label" value={search} onChange={event => onSearchChange(event.currentTarget.value)} />
+				<TextField label={t("search.label")} placeholder={t("search.placeholder")} value={search} onChange={event => onSearchChange(event.currentTarget.value)} />
 			</FilterGrid>
 
 			<DataTable
-				ariaLabel="Probes"
+				ariaLabel={t("table.aria")}
 				columns={probeColumns}
 				rows={probes}
 				minWidth="62rem"
@@ -129,7 +153,7 @@ export function ProbeList({ probes, selectedId, search, onSearchChange, onSelect
 				getRowKey={probe => probe.id}
 				selectedKey={selectedId}
 				onRowClick={probe => onSelect(probe.id)}
-				emptyLabel="No probes found"
+				emptyLabel={t("table.empty")}
 			/>
 		</div>
 	);

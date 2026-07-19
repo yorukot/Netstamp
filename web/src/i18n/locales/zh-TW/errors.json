@@ -1,0 +1,8 @@
+{
+	"generic": "發生錯誤，請再試一次。",
+	"network": "無法連線至 Netstamp 控制器。",
+	"notFound": "找不到指定的資源。",
+	"server": "Netstamp 控制器回傳伺服器錯誤。",
+	"unauthorized": "登入狀態已失效，請重新登入。",
+	"validation": "請檢查標示的欄位後再試一次。"
+}

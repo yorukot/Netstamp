@@ -1,6 +1,9 @@
 import type { CheckType } from "@/features/checks/data/checks";
+import { i18n } from "@/i18n";
 import type { ApiCheck, CreateCheckInput } from "@/shared/api/types";
 import type { CheckTypeFilter } from "./ChecksTable";
+
+const checkT = i18n.getFixedT(null, "checks") as (key: string) => string;
 
 export function isCheckTypeFilter(value: string | null): value is CheckTypeFilter {
 	return value === "all" || value === "ping" || value === "tcp" || value === "traceroute" || value === "http";
@@ -24,8 +27,8 @@ export function checkTypeFromApi(type: string): CheckType {
 }
 
 function copiedCheckName(name: string) {
-	const base = name.trim() || "Check";
-	const suffix = " copy";
+	const base = name.trim() || checkT("check");
+	const suffix = checkT("copySuffix");
 	const maxBaseLength = Math.max(1, 128 - suffix.length);
 
 	return `${base.slice(0, maxBaseLength)}${suffix}`;

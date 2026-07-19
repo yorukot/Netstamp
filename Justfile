@@ -5,6 +5,7 @@ api_filter := "@netstamp/api"
 web_filter := "@netstamp/web"
 docs_filter := "@netstamp/docs"
 ui_filter := "@netstamp/ui"
+i18n_filter := "@netstamp/i18n"
 
 alias dev := backend-dev
 alias fmt := backend-fmt
@@ -26,19 +27,28 @@ format:
     pnpm format
 
 # Build all runnable surfaces and check the API contract.
-build: api-build docs-build web-build backend-build
+build: i18n-build api-build docs-build web-build backend-build
 
 # Lint all available targets.
 lint: frontend-style-check web-lint backend-lint
 
 # Run all available tests.
-test: backend-test
+test: i18n-test web-test backend-test
 
 # Remove local build and coverage artifacts.
 clean:
     rm -rf docs/dist web/dist server/bin server/tmp server/coverage.out
 
 # Documentation
+
+# Build shared locale and routing helpers.
+i18n-build:
+    pnpm --filter {{ i18n_filter }} build
+
+# Test shared locale and routing helpers.
+i18n-test:
+    pnpm check:i18n
+    pnpm --filter {{ i18n_filter }} test
 
 # Build the TypeSpec API contract.
 api-build:
@@ -60,7 +70,7 @@ docs-dev:
     pnpm --filter {{ docs_filter }} dev
 
 # Build documentation.
-docs-build:
+docs-build: i18n-build
     pnpm --filter {{ docs_filter }} build
 
 # Start Storybook for shared UI components.
@@ -82,12 +92,16 @@ web-dev:
     pnpm --filter {{ web_filter }} dev
 
 # Build the web app.
-web-build:
+web-build: i18n-build
     pnpm --filter {{ web_filter }} build
 
 # Lint the web app.
 web-lint:
     pnpm --filter {{ web_filter }} lint
+
+# Test React localization and frontend behavior.
+web-test:
+    pnpm --filter {{ web_filter }} test
 
 # Check frontend token and focus style rules.
 frontend-style-check:

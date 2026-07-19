@@ -1,0 +1,88 @@
+---
+title: 系統架構
+description: 瞭解 Netstamp 的控制器、探測器執行階段、資料模型、API 合約產生流程、前端套件、儲存層與背景工作。
+icon: route
+navSection: development
+navOrder: 10
+---
+
+Netstamp 由自行託管的控制器與分散式探測器 agent 組成。程式碼儲存庫集中管理可執行服務、API 合約、應用程式、UI 設計系統、說明文件與部署資源。
+
+## 執行階段拓撲
+
+```text
+                                  +-----------------------+
+Browser / API client -----------> | Controller HTTP :8080 |
+                                  | auth, projects, API   |
+                                  +-----------+-----------+
+                                              |
+                                              v
+                                  PostgreSQL + TimescaleDB
+                                              ^
+                                              |
+Linux probe agents ---- hello / heartbeat / assignments / result batches
+                                              |
+                                              +---- alert evaluator
+                                              +---- assignment refresh worker
+                                              +---- notification outbox worker
+```
+
+正式環境映像檔讓控制器從 `/app/web` 提供建置完成的 React 應用程式。瀏覽器路由找不到對應檔案時會回傳 `index.html`；`/api/v1` 仍是 API；`/healthz` 對應 API 健康狀態；`/metrics` 則提供控制器指標。
+
+## 控制器邊界
+
+Go 後端採用模組化單體架構：
+
+- **Transport（傳輸層）**負責 HTTP、驗證、輸入檢查、回應 DTO 與狀態碼對應。
+- **Application（應用層）**負責使用案例編排、授權、介面、事件與追蹤。
+- **Domain（領域層）**負責穩定的資料模型與專案權限政策。
+- **Infrastructure（基礎設施層）**實作 PostgreSQL/sqlc 資料存取層、權杖、密碼雜湊、外部身分服務用戶端與通知傳送。
+- **Composition（組合層）**載入設定並組合具體實作。
+
+HTTP handler 不會直接存取資料庫。應用層服務只依賴範圍明確的介面，並負責其功能的行為語意。
+
+## 探測器執行階段
+
+Agent 的排程、背景工作、結果佇列與 HTTP 用戶端各自獨立。它會：
+
+1. 完成驗證並回報執行階段能力；
+2. 定期傳送心跳訊號與 IP 版本能力更新；
+3. 輪詢目前有效的指派；
+4. 將到期工作排入有數量上限的背景工作池（worker pool）；
+5. 執行 Ping、TCP、HTTP 或 Traceroute；
+6. 暫存結果，並依退避策略重試批次提交。
+
+每個探測器的執行參數都由本機 `NETSTAMP_PROBE_*` 設定控制。控制器只傳送指派，不會下發背景工作或佇列設定。
+
+## 資料儲存
+
+PostgreSQL 儲存身分、工作階段、專案、標籤、探測器、檢查、指派、警示、通知、公開頁面與系統管理設定。TimescaleDB hypertable 與 continuous aggregate 則支援具型別的 Ping、TCP、HTTP、Traceroute 歷史結果，以及依時間範圍調整的查詢。
+
+資料庫遷移使用 Goose SQL 檔案，並在應用程式容器啟動前完成。sqlc 會依查詢檔產生具型別的資料存取程式碼。
+
+## API 合約產生流程
+
+```text
+api/*.tsp
+   |
+   +--> docs/public/openapi.json
+   +--> server embedded openapi.json
+   +--> web/src/shared/api/openapi.d.ts
+   +--> Scalar API explorers
+```
+
+TypeSpec 是 API 合約的唯一準據。`pnpm generate:openapi` 會更新所有產生的使用端，因此控制器與說明文件網站發布的合約，會和 Web 用戶端使用的型別保持一致。
+
+## 前端與說明文件
+
+- `web/` 是使用 React 19 與 Vite 的應用程式，包含以專案為範圍的路由，並以 TanStack Query 管理伺服器狀態。
+- `packages/ui/` 負責共用元件與 `--ns-*` 設計權杖。
+- `docs/` 是靜態 Astro 網站，會發布產品說明文件、OpenAPI 瀏覽器與建置完成的 Storybook。
+
+Web 與 Docs 都使用共用 UI 套件。說明文件內容存放在 Astro 內容集合，讓導覽、搜尋、頁面順序、編輯連結、網站地圖與上一頁／下一頁連結都能從 frontmatter 產生。
+
+## 驗證層面
+
+瀏覽器使用者透過伺服器端工作階段驗證；個人 API 權杖具有權限範圍，並同時受到目前專案權限限制，驗證格式為 `Bearer nst_pat_...`；探測器 agent 則使用 `Authorization: Probe ...`。這三種憑證刻意設計成不能互換。
+
+目前的 Netstamp 架構沒有 GraphQL API、外部訊息佇列、物件儲存相依服務，也沒有 DNS 專用的探測器執行器。

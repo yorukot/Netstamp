@@ -6,34 +6,46 @@ const githubUrl = "https://github.com/yorukot/netstamp";
 
 export interface GlobalFooterProps {
 	className?: string;
+	madeByLabel?: string;
+	separator?: string;
+	contributorsSeparator?: string;
+	contributorsLabel?: string;
+	starLabel?: string;
 }
 
-export function GlobalFooter({ className }: GlobalFooterProps) {
+export const GlobalFooter = ({
+	className,
+	madeByLabel = "Netstamp / Made by",
+	separator = ", ",
+	contributorsSeparator = ", and ",
+	contributorsLabel = "contributors",
+	starLabel = "Give us a star on GitHub"
+}: GlobalFooterProps) => {
 	const classes = [styles.footer, className].filter(Boolean).join(" ");
 
 	return (
 		<footer className={classes}>
 			<div className={styles.footerBottom}>
 				<span>
-					Netstamp / Made by{" "}
+					{madeByLabel}{" "}
 					<a href="https://github.com/elvisdragonmao" target="_blank" rel="noreferrer">
 						Elvis Mao
 					</a>
-					,{" "}
+					{separator}
 					<a href="https://github.com/yorukot" target="_blank" rel="noreferrer">
 						Yorukot
 					</a>
-					, and{" "}
+					{contributorsSeparator}
 					<a href={githubUrl} target="_blank" rel="noreferrer">
-						contributors
+						{contributorsLabel}
 					</a>
 				</span>
 				<a href={githubUrl} target="_blank" rel="noreferrer">
 					<StarIcon size={16} weight="fill" aria-hidden="true" focusable="false" />
-					Give us a star on GitHub
+					{starLabel}
 					<GithubLogoIcon size={16} weight="fill" aria-hidden="true" focusable="false" />
 				</a>
 			</div>
 		</footer>
 	);
-}
+};

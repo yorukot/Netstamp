@@ -1,0 +1,52 @@
+---
+title: Projects and members
+description: Create project workspaces, invite collaborators, assign roles, switch projects, and manage project settings.
+icon: users
+navSection: use
+navOrder: 10
+---
+
+Projects isolate monitoring configuration, results, alerts, public pages, and membership. A probe, check, label, incident, or status page belongs to exactly one project.
+
+## Create a project
+
+After registration, onboarding prompts you to create or select a project. You can create another project from the project switcher when instance policy allows project creation.
+
+Provide:
+
+- **Name** — the display name, up to 64 characters.
+- **Slug** — a stable lowercase identifier containing letters, digits, and hyphens, up to 64 characters.
+
+The project URL is `/projects/<slug>/...`. API operations accept the project reference in the same position.
+
+## Invite a member
+
+1. Open **Members** in the project.
+2. Enter the person's email address.
+3. Choose **Admin**, **Editor**, or **Viewer**.
+4. Send the invite.
+
+Invites may target an email address before that user has registered. The invited user sees pending invitations after signing in and can accept or reject them. Owners and admins can cancel pending invitations.
+
+## Roles
+
+| Role   | Intended use                                                           |
+| ------ | ---------------------------------------------------------------------- |
+| Owner  | Full project control, including project deletion and assigning admins  |
+| Admin  | Project settings and membership management, except owner-level actions |
+| Editor | Day-to-day probes, checks, labels, and alerts                          |
+| Viewer | Read-only project access and result analysis                           |
+
+Owners can assign admins, editors, and viewers. Admins can assign editors and viewers. A project must retain an owner; the last owner cannot leave or be removed.
+
+See [Permissions](/docs/use/permissions/) for exact actions.
+
+## Project settings
+
+Use **Settings** in the project sidebar to rename the project or change its slug. Changing a slug changes browser and API URLs; update bookmarks, scripts, status-page editor links, and API clients that used the previous reference.
+
+Only an owner can delete a project. Deletion removes the project boundary and its related configuration and data. Take a backup and verify the selected project before confirming.
+
+## System administrator is separate
+
+The **Admin** page is visible to instance-level system administrators. This role manages the installation, not every project. Add a system administrator as a project member when they also need project data.

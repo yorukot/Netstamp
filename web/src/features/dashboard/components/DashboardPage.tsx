@@ -8,6 +8,7 @@ import { NetworkMap } from "@/shared/visualizations/NetworkMap";
 import { Badge, EmptyState, MetricTile, Panel, type BadgeTone } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import styles from "./DashboardPage.module.css";
 
 const dashboardFleetFitPadding = { top: 44, right: 48, bottom: 56, left: 48 };
@@ -27,6 +28,7 @@ function percentage(part: number, total: number) {
 }
 
 export function DashboardPage() {
+	const { t } = useTranslation(["dashboard", "probes"]);
 	const { projectRef } = useCurrentProject();
 	const [selectedProbeId, setSelectedProbeId] = useState("");
 	const probesQuery = useQuery({
@@ -56,28 +58,47 @@ export function DashboardPage() {
 		}, new Map<string, number>())
 	);
 	const metrics = [
-		{ label: "Probes Online", value: `${onlineProbes}/${probes.length}`, detail: "online", tone: "success", meta: `${offlineProbes} offline` },
-		{ label: "Map Coverage", value: percentage(positionedProbes.length, probes.length), detail: "coverage", tone: "accent", meta: `${positionedProbes.length} located` },
-		{ label: "Active Checks", value: String(activeChecks), detail: "checks", tone: "neutral", meta: checkTypeSummary.map(([type, count]) => `${count} ${type}`).join(" / ") || "none" },
-		{ label: "Draining", value: String(drainingProbes), detail: "maintenance", tone: "warning", meta: "maintenance" }
+		{
+			label: t("dashboard:metrics.probesOnline"),
+			value: `${onlineProbes}/${probes.length}`,
+			detail: t("dashboard:metrics.online"),
+			tone: "success",
+			meta: t("dashboard:metrics.offlineCount", { count: offlineProbes })
+		},
+		{
+			label: t("dashboard:metrics.mapCoverage"),
+			value: percentage(positionedProbes.length, probes.length),
+			detail: t("dashboard:metrics.coverage"),
+			tone: "accent",
+			meta: t("dashboard:metrics.locatedCount", { count: positionedProbes.length })
+		},
+		{
+			label: t("dashboard:metrics.activeChecks"),
+			value: String(activeChecks),
+			detail: t("dashboard:metrics.checks"),
+			tone: "neutral",
+			meta: checkTypeSummary.map(([type, count]) => `${count} ${type}`).join(" / ") || t("dashboard:metrics.none")
+		},
+		{ label: t("dashboard:metrics.draining"), value: String(drainingProbes), detail: t("dashboard:metrics.maintenance"), tone: "warning", meta: t("dashboard:metrics.maintenance") }
 	] as const;
+	const statusLabel = (status: ProbeStatus) => t(`probes:status.${status.toLowerCase() as "online" | "draining" | "offline"}`);
 
 	return (
 		<PageStack className={styles.dashboard}>
 			<header className={styles.dashboardHeader}>
 				<div className={styles.titleBlock}>
-					<h1>Overview</h1>
+					<h1>{t("dashboard:title")}</h1>
 				</div>
 			</header>
 
 			<div className={styles.sections}>
-				<Panel className={styles.overviewSection} title="Fleet" padded={false} bodyClassName={styles.metricsContent}>
+				<Panel className={styles.overviewSection} title={t("dashboard:fleet")} padded={false} bodyClassName={styles.metricsContent}>
 					{metrics.map(metric => (
 						<MetricTile className={styles.metricTile} key={metric.label} label={metric.label} value={metric.value} description={metric.meta} detail={metric.detail} tone={metric.tone} />
 					))}
 				</Panel>
 
-				<Panel className={styles.mapSection} title="Network Map" padded={false} bodyClassName={styles.mapContent}>
+				<Panel className={styles.mapSection} title={t("dashboard:networkMap")} padded={false} bodyClassName={styles.mapContent}>
 					<NetworkMap
 						probes={probes}
 						selectedId={activeProbeId}
@@ -87,17 +108,17 @@ export function DashboardPage() {
 						fleetFitPadding={dashboardFleetFitPadding}
 						fleetMaxZoom={dashboardFleetMaxZoom}
 						isLoading={probesQuery.isPending}
-						loadingLabel="Loading probes"
+						loadingLabel={t("probes:loading")}
 						className={styles.worldMap}
 					/>
 					<div className={styles.mapReadout}>
-						<span>selected probe</span>
-						<strong>{activeProbe?.name ?? "No probe"}</strong>
-						<small>{activeProbe?.location ?? "coordinates unavailable"}</small>
+						<span>{t("dashboard:selectedProbe")}</span>
+						<strong>{activeProbe?.name ?? t("dashboard:noProbe")}</strong>
+						<small>{activeProbe?.location ?? t("dashboard:coordinatesUnavailable")}</small>
 					</div>
 				</Panel>
 
-				<Panel className={styles.registrySection} title="Probe Registry" padded={false} bodyClassName={styles.listContent}>
+				<Panel className={styles.registrySection} title={t("dashboard:probeRegistry")} padded={false} bodyClassName={styles.listContent}>
 					{visibleProbes.length ? (
 						<ul className={styles.entityList}>
 							{visibleProbes.map(probe => (
@@ -106,12 +127,12 @@ export function DashboardPage() {
 										<strong>{probe.name}</strong>
 										<span className={styles.probeLocation}>{probe.location}</span>
 									</div>
-									<Badge tone={probeStatusTones[probe.status]}>{probe.status}</Badge>
+									<Badge tone={probeStatusTones[probe.status]}>{statusLabel(probe.status)}</Badge>
 								</li>
 							))}
 						</ul>
 					) : (
-						<EmptyState title="No probes registered" description="Create a probe to start collecting fleet telemetry." />
+						<EmptyState title={t("dashboard:emptyTitle")} description={t("dashboard:emptyDescription")} />
 					)}
 				</Panel>
 			</div>

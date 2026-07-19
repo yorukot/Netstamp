@@ -1,0 +1,10 @@
+---
+import { CodeBlock } from "@netstamp/ui";
+import { localeFromAstro, uiForLocale } from "../../i18n/ui";
+
+const ui = uiForLocale(localeFromAstro(Astro.currentLocale));
+---
+
+<CodeBlock {...Astro.props} copyLabel={ui.codeBlock.copy} copiedLabel={ui.codeBlock.copied}>
+	<slot />
+</CodeBlock>

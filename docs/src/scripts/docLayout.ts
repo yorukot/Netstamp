@@ -7,6 +7,8 @@ function initDocLayout() {
 	const mobileNavToggle = document.querySelector("[data-docs-mobile-nav-toggle]");
 	const mobileNavPanel = document.querySelector("[data-docs-nav-panel]");
 	const pageActions = document.querySelector("[data-docs-page-actions]");
+	const copiedLabel = pageActions instanceof HTMLElement ? pageActions.dataset.copiedLabel || "Copied" : "Copied";
+	const noContentLabel = pageActions instanceof HTMLElement ? pageActions.dataset.noContentLabel || "No page content was available." : "No page content was available.";
 	const pageActionsToggle = document.querySelector("[data-docs-page-actions-toggle]");
 	const pageActionsMenu = document.querySelector("[data-docs-page-actions-menu]");
 	const copyPageButton = document.querySelector("[data-docs-copy-page]");
@@ -141,13 +143,13 @@ function initDocLayout() {
 			openedWindow.document.head.append(style);
 
 			const pre = openedWindow.document.createElement("pre");
-			pre.textContent = text || "No page content was available.";
+			pre.textContent = text || noContentLabel;
 			openedWindow.document.body.append(pre);
 			openedWindow.focus();
 			return;
 		}
 
-		const blob = new Blob([text || "No page content was available."], { type: "text/plain;charset=utf-8" });
+		const blob = new Blob([text || noContentLabel], { type: "text/plain;charset=utf-8" });
 		const url = URL.createObjectURL(blob);
 		window.open(url, "_blank", "noopener,noreferrer");
 		window.setTimeout(() => URL.revokeObjectURL(url), 60000);
@@ -177,7 +179,7 @@ function initDocLayout() {
 		};
 		const handleCopyPage = async () => {
 			await copyText(pagePlainText());
-			flashActionLabel(pageActionsToggle, "Copied");
+			flashActionLabel(pageActionsToggle, copiedLabel);
 			setPageActionsOpen(false);
 		};
 		const handleViewMarkdown = () => {

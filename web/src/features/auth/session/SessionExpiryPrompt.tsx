@@ -4,9 +4,11 @@ import { subscribeToSessionUnavailable } from "@/shared/api/sessionUnavailable";
 import { useConfirm } from "@/shared/components/confirmContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useLayoutEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useSession } from "./SessionContext";
 
 export function SessionExpiryPrompt() {
+	const { t } = useTranslation("auth");
 	const { session } = useSession();
 	const confirm = useConfirm();
 	const queryClient = useQueryClient();
@@ -32,10 +34,10 @@ export function SessionExpiryPrompt() {
 				promptingRef.current = true;
 				promptedUserRef.current = userId;
 				void confirm({
-					title: "Session expired",
-					message: "Your session has expired or is no longer available. Sign in again to continue.",
-					confirmLabel: "Sign in again",
-					cancelLabel: "Not now"
+					title: t("session.expiredTitle"),
+					message: t("session.expiredMessage"),
+					confirmLabel: t("session.signInAgain"),
+					cancelLabel: t("session.notNow")
 				})
 					.then(shouldSignIn => {
 						if (!shouldSignIn) {
@@ -49,7 +51,7 @@ export function SessionExpiryPrompt() {
 						promptingRef.current = false;
 					});
 			}),
-		[confirm, queryClient]
+		[confirm, queryClient, t]
 	);
 
 	return null;

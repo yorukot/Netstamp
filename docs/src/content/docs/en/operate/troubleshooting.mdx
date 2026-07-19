@@ -1,0 +1,96 @@
+---
+title: Troubleshooting
+description: Diagnose controller startup, migrations, authentication, probes, assignments, checks, alerts, status pages, and API failures.
+icon: wrench
+navSection: operate
+navOrder: 20
+---
+
+Follow the data path from the outside inward. Record timestamps, project, probe, check, and request identifiers before changing configuration.
+
+## Controller does not start
+
+```bash
+docker compose ps
+docker compose logs postgres
+docker compose logs migrate
+docker compose logs --tail=300 netstamp
+```
+
+Check for a healthy database, a zero exit status from `migrate`, required secrets, valid duration values, valid public origins, and a supported database SSL mode. The controller validates its configuration at startup and reports all detected field errors together.
+
+## Health endpoint fails
+
+Test the container locally before the public proxy:
+
+```bash
+curl --fail http://127.0.0.1:3000/healthz
+curl --fail http://127.0.0.1:3000/api/v1/healthz
+```
+
+If local works and public fails, inspect DNS, TLS, reverse-proxy routing, firewall rules, and forwarded host/proto headers. If both fail, inspect controller and database logs.
+
+## Login loops or cookies do not persist
+
+- Confirm the browser uses the exact HTTPS origin in `BACKEND_BASE_URL` and `PUBLIC_WEB_BASE_URL`.
+- Confirm `APP_ENV=production` is paired with HTTPS.
+- Check browser cookie rejection messages.
+- Verify proxy `Host` and `X-Forwarded-Proto` headers.
+- Confirm server time is accurate.
+- If hash keys changed, expect existing sessions or API tokens to stop working.
+
+## External authentication fails
+
+Compare the provider's registered callback URL byte-for-byte with the URL in [External authentication and email](/docs/install/external-auth-email/). Verify client ID/secret, issuer discovery, public origin, provider enable flag, and JIT policy. Test with a private window to avoid mixing an old flow cookie with new settings.
+
+## Probe stays offline
+
+On the probe host:
+
+```bash
+sudo systemctl status netstamp-agent
+sudo journalctl -u netstamp-agent -n 200 --no-pager
+curl --fail https://netstamp.example.com/api/v1/healthz
+```
+
+Check controller URL, system clock, DNS, TLS trust, outbound firewall, probe ID, and secret. A `PROBE_NOT_FOUND` response means the ID no longer exists in the selected controller/project. An unauthorized response usually means the secret is stale; rotate and reinstall it.
+
+## Probe is online but no results arrive
+
+1. Confirm the probe is enabled.
+2. Preview the check selector.
+3. Confirm an effective assignment exists.
+4. Wait for assignment polling and the check interval.
+5. Inspect agent logs for DNS, capability, timeout, queue, or submission errors.
+6. Confirm the explicit IP family is supported on that host.
+7. Check controller logs and result endpoints.
+
+## One check type fails
+
+- **Ping:** verify `CAP_NET_RAW`, ICMP policy, DNS, and requested IP family.
+- **TCP:** verify port, listener, firewall, route, and connect timeout.
+- **HTTP:** verify URL, DNS, certificate trust, redirects, expected status, body assertion, headers, and timeout.
+- **Traceroute:** verify ICMP/UDP policy and remember that silent intermediate hops can still forward traffic.
+
+## Alerts do not fire
+
+Confirm the rule and alert evaluator are enabled, the chosen check type supports the metric, the window has enough samples, the operator and threshold are correct, and trigger duration has elapsed. Inspect the rule's last evaluation state for `no_data` or `insufficient_samples`.
+
+:::note Alert rules currently support Ping, TCP, and HTTP metrics. Traceroute results are available in Insight, but a Traceroute alert rule cannot be created. :::
+
+## Notifications fail
+
+Send a manual test. Check destination credentials, controller egress, TLS, SMTP, recipient syntax, and notification-worker settings. A successful test with no incident delivery usually means the notification is not attached to the active rule or one resource is disabled.
+
+## Public status page is missing or stale
+
+- Confirm the page is enabled and the slug is correct.
+- Confirm blocks reference existing checks and assignments.
+- Confirm the selected assignment mode still includes active assignments.
+- Check visibility and chart-range settings.
+- Temporarily remove custom CSS when content may only be hidden.
+- Compare the unauthenticated public request with the authenticated editor preview.
+
+## Collect useful support evidence
+
+Before opening an issue, include Netstamp version or commit, deployment method, operating systems and architectures, exact reproduction steps, timestamps and timezone, sanitized logs, expected/actual behavior, and the smallest relevant configuration. Remove every token, cookie, probe secret, password, webhook URL, and private payload.

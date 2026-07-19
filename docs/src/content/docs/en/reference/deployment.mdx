@@ -1,0 +1,108 @@
+---
+title: Docker Compose
+description: Install Netstamp with the supported controller image, PostgreSQL with TimescaleDB, and automatic migrations.
+icon: deployment
+navSection: install
+navOrder: 0
+---
+
+The repository's standard Compose deployment is the recommended starting point for self-hosting. It runs three services:
+
+| Service    | Purpose                                                                     |
+| ---------- | --------------------------------------------------------------------------- |
+| `postgres` | PostgreSQL 16 with TimescaleDB and a persistent named volume                |
+| `migrate`  | One-shot database migration using the same Netstamp image version           |
+| `netstamp` | Controller, embedded React application, API, and Linux probe install assets |
+
+## Download and configure
+
+```bash
+mkdir -p /opt/netstamp
+cd /opt/netstamp
+curl -fsSLO https://raw.githubusercontent.com/yorukot/netstamp/main/deployments/docker/compose.yaml
+curl -fsSLO https://raw.githubusercontent.com/yorukot/netstamp/main/deployments/docker/example.env
+cp example.env .env
+chmod 600 .env
+```
+
+Generate independent secrets:
+
+```bash
+openssl rand -hex 32
+openssl rand -hex 32
+openssl rand -hex 32
+openssl rand -hex 32
+openssl rand -hex 32
+```
+
+Put a different value on each of these lines in `.env`:
+
+```dotenv
+DATABASE_PASSWORD=<random value>
+LOG_PSEUDONYM_KEY=<random value>
+SYSTEM_SETTINGS_ENCRYPTION_KEY=<random value>
+AUTH_SESSION_HASH_KEY=<random value>
+AUTH_API_TOKEN_HASH_KEY=<random value>
+```
+
+The values must remain stable across restarts and upgrades. Changing a hash key invalidates the associated credentials; changing the settings encryption key can make stored SMTP credentials unreadable.
+
+## Start the stack
+
+```bash
+docker compose pull
+docker compose up -d
+docker compose ps
+docker compose logs migrate
+```
+
+The expected state is:
+
+- `postgres` is healthy;
+- `migrate` exited with status 0;
+- `netstamp` is running;
+- the configured port answers `/healthz` and `/api/v1/healthz`.
+
+```bash
+curl --fail http://127.0.0.1:3000/healthz
+curl --fail http://127.0.0.1:3000/api/v1/healthz
+```
+
+## Image and version selection
+
+The defaults are:
+
+```dotenv
+NETSTAMP_IMAGE=yorukot/netstamp
+NETSTAMP_VERSION=latest
+TIMESCALEDB_IMAGE=timescale/timescaledb:latest-pg16
+NETSTAMP_PORT=3000
+```
+
+`latest` is convenient for evaluation. For a controlled installation, pin `NETSTAMP_VERSION` and `TIMESCALEDB_IMAGE` to an immutable release tag or digest that you have tested. The migration and application services always use the same Netstamp version.
+
+## Persistent data
+
+The database lives in the Compose volume logically named `netstamp-postgres`; Docker normally prefixes its actual name with the Compose project name. Removing containers does not remove the volume. Do not use `docker compose down -v` unless you intentionally want to destroy every project, user, probe, result, incident, and setting.
+
+List and inspect the volume:
+
+```bash
+docker volume ls --filter name=netstamp-postgres
+docker compose exec postgres psql -U netstamp -d netstamp -c 'select now();'
+```
+
+## Custom image builds
+
+The published image includes the controller, migrations, web app, and amd64/arm64 probe binaries. To build the same image from a checkout:
+
+```bash
+docker build -f deployments/docker/Dockerfile -t netstamp:local .
+NETSTAMP_IMAGE=netstamp NETSTAMP_VERSION=local docker compose up -d
+```
+
+Frontend `VITE_NETSTAMP_*` feature flags are build-time values. Change them with Docker build arguments when producing a custom image; they cannot be changed by adding runtime variables to an already-built container.
+
+## Next steps
+
+Complete every item in [Production deployment](/docs/install/production/) before exposing the service to the internet.

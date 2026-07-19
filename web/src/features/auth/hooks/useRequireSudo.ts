@@ -5,8 +5,10 @@ import { useChoiceDialog, usePromptDialog } from "@/shared/components/confirmCon
 import { pushToast } from "@/shared/toast/toastStore";
 import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
 import { useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 
 export function useRequireSudo(returnTo?: string) {
+	const { t } = useTranslation("auth");
 	const queryClient = useQueryClient();
 	const choose = useChoiceDialog();
 	const prompt = usePromptDialog();
@@ -20,7 +22,7 @@ export function useRequireSudo(returnTo?: string) {
 				return true;
 			}
 			if (status.methods.length === 0) {
-				pushToast({ title: "Authentication unavailable", message: "This account has no available method for recent authentication.", tone: "critical" });
+				pushToast({ title: t("sudo.unavailableTitle"), message: t("sudo.unavailableMessage"), tone: "critical" });
 				return false;
 			}
 
@@ -29,11 +31,11 @@ export function useRequireSudo(returnTo?: string) {
 				const authMethods = await queryClient.fetchQuery(authQueries.methods());
 				const providerNames = new Map(authMethods.providers.map(provider => [provider.id, provider.displayName]));
 				method = (await choose({
-					title: "Verify it’s you",
-					message: "Sensitive account changes require recent authentication for five minutes. Choose a sign-in method to continue.",
+					title: t("sudo.verifyTitle"),
+					message: t("sudo.chooseMethodMessage"),
 					choices: status.methods.map(candidate => ({
 						value: candidate,
-						label: candidate === "password" ? "Use password" : `Continue with ${providerNames.get(candidate) ?? candidate}`
+						label: candidate === "password" ? t("sudo.usePassword") : t("sudo.continueWith", { provider: providerNames.get(candidate) ?? candidate })
 					}))
 				})) as (typeof status.methods)[number] | null;
 			}
@@ -42,11 +44,11 @@ export function useRequireSudo(returnTo?: string) {
 			}
 			if (method === "password") {
 				const password = await prompt({
-					title: "Confirm it’s you",
-					message: "Sensitive account changes require recent authentication for five minutes.",
-					inputLabel: "Current password",
+					title: t("sudo.confirmTitle"),
+					message: t("sudo.confirmMessage"),
+					inputLabel: t("sudo.currentPassword"),
 					inputType: "password",
-					confirmLabel: "Continue"
+					confirmLabel: t("sudo.continue")
 				});
 				if (!password) return false;
 				await passwordSudoMutation.mutateAsync({ password });
@@ -60,7 +62,7 @@ export function useRequireSudo(returnTo?: string) {
 			window.location.assign(url.toString());
 			return false;
 		} catch (error) {
-			pushToast({ title: "Authentication failed", message: requestErrorMessage(error, "Could not confirm your identity."), tone: "critical" });
+			pushToast({ title: t("sudo.failedTitle"), message: requestErrorMessage(error, t("sudo.failedMessage")), tone: "critical" });
 		}
 		return false;
 	};

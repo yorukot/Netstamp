@@ -8,6 +8,7 @@ import { Button, DialogContent, DialogDescription, DialogOverlay, DialogPortal, 
 import { useQueryClient } from "@tanstack/react-query";
 import type { FormEvent } from "react";
 import { useCallback, useEffect, useId, useState } from "react";
+import { useTranslation } from "react-i18next";
 import styles from "./CreateProjectModal.module.css";
 
 interface CreateProjectModalProps {
@@ -31,6 +32,7 @@ function slugifyProjectName(name: string) {
 }
 
 export function CreateProjectModal({ onClose, onCreatedProject }: CreateProjectModalProps) {
+	const { t } = useTranslation(["project", "common"]);
 	const titleId = useId();
 	const descriptionId = useId();
 	const queryClient = useQueryClient();
@@ -93,13 +95,13 @@ export function CreateProjectModal({ onClose, onCreatedProject }: CreateProjectM
 			setSelectedProjectRef(createdProjectRef);
 			onCreatedProject?.(createdProjectRef);
 			pushToast({
-				title: "Project created",
-				message: `${data.project.name} is now selected.`,
+				title: t("project:create.successTitle"),
+				message: t("project:create.successMessage", { name: data.project.name }),
 				tone: "success"
 			});
 			onClose();
 		} catch (error) {
-			pushErrorToast(requestErrorMessage(error, "Project could not be created."));
+			pushErrorToast(requestErrorMessage(error, t("project:create.error")));
 		}
 	}
 
@@ -121,35 +123,35 @@ export function CreateProjectModal({ onClose, onCreatedProject }: CreateProjectM
 					<DialogContent asChild aria-describedby={descriptionId}>
 						<section className={styles.dialog} onMouseDown={event => event.stopPropagation()}>
 							<div className={styles.header}>
-								<span>Project registry</span>
+								<span>{t("project:create.registry")}</span>
 								<DialogTitle asChild>
 									<strong id={titleId} className="ns-title">
-										Create project
+										{t("project:create.title")}
 									</strong>
 								</DialogTitle>
 								<DialogDescription asChild>
-									<p id={descriptionId}>Add a workspace for probes, checks, and members.</p>
+									<p id={descriptionId}>{t("project:create.description")}</p>
 								</DialogDescription>
 							</div>
 
 							<form className={styles.form} onSubmit={submitProject}>
-								<TextField label="Project name" value={projectName} onChange={event => updateProjectName(event.currentTarget.value)} autoComplete="off" autoFocus required />
+								<TextField label={t("project:create.name")} value={projectName} onChange={event => updateProjectName(event.currentTarget.value)} autoComplete="off" autoFocus required />
 								<TextField
-									label="Slug"
+									label={t("project:create.slug")}
 									value={projectSlug}
 									onChange={event => updateProjectSlug(event.currentTarget.value)}
 									autoComplete="off"
 									maxLength={maxProjectSlugLength}
-									helper="Lowercase letters, numbers, and hyphens."
+									helper={t("project:create.slugHelper")}
 									required
 								/>
 
 								<div className={styles.actions}>
 									<Button type="button" variant="ghost" disabled={createProjectMutation.isPending} onClick={closeModal}>
-										Cancel
+										{t("common:actions.cancel")}
 									</Button>
 									<Button type="submit" disabled={!canCreate}>
-										{createProjectMutation.isPending ? "Creating" : "Create project"}
+										{createProjectMutation.isPending ? t("project:create.creating") : t("project:create.action")}
 									</Button>
 								</div>
 							</form>

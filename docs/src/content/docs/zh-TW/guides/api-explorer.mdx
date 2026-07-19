@@ -1,0 +1,108 @@
+---
+title: API 與自動化
+description: 使用 Netstamp 具版本的 HTTP API、OpenAPI 合約、工作階段或 Bearer 權杖驗證、健康狀態端點，以及問題回應格式。
+icon: api
+navSection: api
+navOrder: 0
+---
+
+Netstamp API 提供與 Web 應用程式相同的專案、探測器、檢查、指派、結果、警示、狀態頁、帳號與系統管理功能。
+
+## 端點
+
+假設控制器位於 `https://netstamp.example.com`：
+
+| 資源                    | URL                                                |
+| ----------------------- | -------------------------------------------------- |
+| API 基底網址            | `https://netstamp.example.com/api/v1`              |
+| OpenAPI JSON            | `https://netstamp.example.com/api/v1/openapi.json` |
+| 控制器 API 說明文件     | `https://netstamp.example.com/api/v1/docs`         |
+| 專案說明文件 API 瀏覽器 | [OpenAPI 瀏覽器](/zh-TW/openapi/)                  |
+| API 健康狀態            | `https://netstamp.example.com/api/v1/healthz`      |
+| 整合容器健康狀態        | `https://netstamp.example.com/healthz`             |
+| Prometheus 指標         | `https://netstamp.example.com/metrics`             |
+
+由 TypeSpec 產生的 OpenAPI 文件是 API 合約的唯一準據。你可以用它產生 API 用戶端，或查閱請求、回應、安全性與錯誤結構描述。
+
+## 驗證方式
+
+### 瀏覽器工作階段
+
+Web 應用程式使用不透明的 HTTP-only 工作階段 cookie。透過 cookie 送出的狀態變更請求，必須走 `/auth/csrf` 提供的 CSRF 流程。帳號、成員、邀請、API 權杖管理與系統管理操作都必須使用工作階段驗證。
+
+### 個人 API 權杖
+
+專案資源端點接受：
+
+```http
+Authorization: Bearer nst_pat_<secret>
+```
+
+權杖必須具有該 API 操作所需的權限範圍，其擁有者目前在專案中的角色也必須具備足夠權限。詳情請參閱 [API 權杖](/zh-TW/docs/guides/api-tokens/)。
+
+### 探測器憑證
+
+探測器執行階段端點使用另一套憑證：
+
+```http
+Authorization: Probe <probe secret>
+```
+
+請勿在人員使用的 API 用戶端中使用探測器憑證，也不要把個人權杖放進探測器服務。
+
+## 第一個請求
+
+```bash
+export NETSTAMP_URL=https://netstamp.example.com
+export NETSTAMP_TOKEN=nst_pat_replace_me
+
+curl --fail --silent --show-error \
+  --header "Authorization: Bearer $NETSTAMP_TOKEN" \
+  "$NETSTAMP_URL/api/v1/projects"
+```
+
+列出專案中的檢查：
+
+```bash
+curl --fail --silent --show-error \
+  --header "Authorization: Bearer $NETSTAMP_TOKEN" \
+  "$NETSTAMP_URL/api/v1/projects/home-lab/checks"
+```
+
+查詢最新結果：
+
+```bash
+curl --fail --silent --show-error \
+  --header "Authorization: Bearer $NETSTAMP_TOKEN" \
+  "$NETSTAMP_URL/api/v1/projects/home-lab/results/latest"
+```
+
+## 問題回應
+
+非成功回應會提供結構化的問題詳細資料；若該 API 操作有定義穩定的 Netstamp 錯誤代碼，也會一併提供。API 用戶端應依 HTTP 狀態碼與問題代碼分流處理，不要比對給人閱讀的 `detail` 文字。
+
+常見類別包括：
+
+- `400` 輸入無效；
+- `401` 憑證遺失、過期或無效；
+- `403` 權杖的權限範圍、近期驗證或專案權限不足；
+- `404` 在已授權範圍內找不到資源；
+- `409` 網址代稱、標籤、邀請或其他狀態衝突；
+- `429` 驗證流程受到速率限制；
+- `503` 相依服務或傳送管道無法使用。
+
+## 自動化實務
+
+- 每個整合服務都使用各自命名的權杖，並只開放最低限度的權限範圍。
+- 設定合理的到期時間，並在到期前輪替。
+- 以穩定的網址代稱解析專案，同時處理網址代稱可能變更的情況。
+- 對具冪等性的讀取請求設定逾時時間與有上限的重試次數。
+- 驗證、授權或狀態衝突的回應不要自動重試。
+- 記錄產生 API 用戶端時使用的 OpenAPI 版本。
+- 絕對不要記錄完整的 Bearer 權杖、探測器金鑰、工作階段 cookie、Webhook URL，或含有憑證的請求本文。
+
+## API 範圍
+
+OpenAPI 瀏覽器會將 API 操作分成 System、Admin、Auth、API Tokens、Users、Projects、Project Members、Project Invites、Labels、Checks、Assignments、Probes、Results、Alerts、Public Status Pages、Probe Runtime 與 Install。
+
+請以瀏覽器中的現行合約為準，不要複製過時的酬載範例；請求與回應的資料模型會隨合約演進。

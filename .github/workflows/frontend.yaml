@@ -74,6 +74,15 @@ jobs:
       - name: Check frontend style rules
         run: pnpm check:frontend-style
 
+      - name: Check localization resources
+        run: pnpm check:i18n
+
+      - name: Test locale routing helpers
+        run: pnpm test:i18n
+
+      - name: Test React localization
+        run: pnpm test:web
+
       - name: Lint
         run: pnpm --filter @netstamp/web lint
 
@@ -123,3 +132,6 @@ jobs:
 
       - name: Build docs
         run: pnpm --filter @netstamp/docs build
+
+      - name: Test localized docs output
+        run: pnpm test:docs:i18n

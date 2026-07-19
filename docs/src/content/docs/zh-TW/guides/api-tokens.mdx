@@ -1,0 +1,79 @@
+---
+title: API 權杖
+description: 為腳本與整合服務建立、設定權限範圍、儲存、使用、輪替及撤銷 Netstamp 個人 API 權杖。
+icon: key
+navSection: api
+navOrder: 10
+---
+
+個人 API 權杖用來驗證瀏覽器以外的專案 API 請求。每個權杖都有一位使用者擁有者、受權限範圍限制，並會在指定時間到期；它能執行的操作也會受到擁有者目前的專案成員資格與角色限制。
+
+## 建立權杖
+
+1. 開啟**帳號 → API 權杖**。
+2. 選擇**建立權杖**。
+3. 輸入可以辨識使用端的名稱，例如 `grafana-read-prod` 或 `ci-status-page-publisher`。
+4. 只勾選實際需要的權限範圍。
+5. 設定到期時間。
+6. 立即複製明文 `nst_pat_...`。
+
+Netstamp 只儲存雜湊值與八個字元的提示；明文不會再次顯示。
+
+## 權限範圍
+
+| 功能領域 | 讀取                | 寫入                 |
+| -------- | ------------------- | -------------------- |
+| 專案     | `projects:read`     | `projects:write`     |
+| 探測器   | `probes:read`       | `probes:write`       |
+| 檢查     | `checks:read`       | `checks:write`       |
+| 標籤     | `labels:read`       | `labels:write`       |
+| 指派     | `assignments:read`  | —                    |
+| 結果     | `results:read`      | —                    |
+| 警示     | `alerts:read`       | `alerts:write`       |
+| 狀態頁   | `status_pages:read` | `status_pages:write` |
+
+依 OpenAPI 操作的定義，寫入操作可能還需要對應的讀取或專案權限範圍。請在 [API 瀏覽器](/zh-TW/openapi/)確認端點的安全性需求。
+
+## 使用權杖
+
+```bash
+curl --fail --silent --show-error \
+  --header 'Authorization: Bearer nst_pat_replace_me' \
+  https://netstamp.example.com/api/v1/projects
+```
+
+建議使用機密管理工具或受保護的環境變數：
+
+```bash
+curl --fail --silent --show-error \
+  --header "Authorization: Bearer $NETSTAMP_TOKEN" \
+  "$NETSTAMP_URL/api/v1/projects/$NETSTAMP_PROJECT/results/latest"
+```
+
+不要讓權杖出現在 shell 歷史紀錄、原始檔、CI 日誌、截圖或 URL 查詢字串中。
+
+## 權限交集
+
+只有在以下條件全部成立時，請求才會成功：
+
+```text
+valid token
+AND not expired
+AND required token scope
+AND active token owner
+AND current project membership
+AND sufficient project role
+```
+
+如果使用者被移出專案，或角色權限遭到調降，該權杖能做的事會立即縮減，不需要修改權杖本身。
+
+## 輪替與撤銷
+
+Netstamp 不會再次顯示或修改既有權杖值。輪替方式如下：
+
+1. 建立權限範圍相同或更少的新權杖；
+2. 更新使用端並完成測試；
+3. 撤銷舊權杖；
+4. 確認舊權杖發出的請求已經失敗。
+
+只要懷疑權杖外洩，就應立即撤銷。帳號停用或管理員協助恢復憑證時，也會依受影響的驗證狀態撤銷權杖或使存取權失效。

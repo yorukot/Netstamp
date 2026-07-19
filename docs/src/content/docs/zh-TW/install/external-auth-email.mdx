@@ -1,0 +1,99 @@
+---
+title: 外部驗證與電子郵件
+description: 設定通用 OIDC、Google、GitHub、SMTP、密碼重設與電子郵件驗證。
+icon: key
+navSection: install
+navOrder: 20
+---
+
+Netstamp 除了本機密碼，也支援通用 OpenID Connect、Google OpenID Connect 與 GitHub OAuth。外部身分提供者可用於登入、敏感操作前的近期身分確認，以及將外部身分連結到既有帳號。
+
+## 先設定公開來源網址
+
+啟用身分提供者前，先設定有效的 HTTPS 來源網址：
+
+```dotenv
+BACKEND_BASE_URL=https://netstamp.example.com
+PUBLIC_WEB_BASE_URL=https://netstamp.example.com
+```
+
+再到身分提供者註冊相符的回呼網址：
+
+| Provider     | Callback URL                                                        |
+| ------------ | ------------------------------------------------------------------- |
+| Generic OIDC | `https://netstamp.example.com/api/v1/auth/external/oidc/callback`   |
+| Google       | `https://netstamp.example.com/api/v1/auth/external/google/callback` |
+| GitHub       | `https://netstamp.example.com/api/v1/auth/external/github/callback` |
+
+## Generic OIDC
+
+```dotenv
+AUTH_OIDC_ENABLED=true
+AUTH_OIDC_ISSUER_URL=https://id.example.com
+AUTH_OIDC_CLIENT_ID=netstamp
+AUTH_OIDC_CLIENT_SECRET=<client secret>
+AUTH_OIDC_DISPLAY_NAME=Company SSO
+AUTH_OIDC_JIT_PROVISIONING_ENABLED=false
+```
+
+Issuer 必須提供有效的 OIDC discovery metadata。只有在該身分提供者接受的所有身分都可以建立 Netstamp 帳號時，才應啟用即時帳號建立（JIT provisioning）。
+
+## Google
+
+```dotenv
+AUTH_GOOGLE_ENABLED=true
+AUTH_GOOGLE_CLIENT_ID=<client id>
+AUTH_GOOGLE_CLIENT_SECRET=<client secret>
+AUTH_GOOGLE_DISPLAY_NAME=Google
+AUTH_GOOGLE_JIT_PROVISIONING_ENABLED=false
+AUTH_GOOGLE_ALLOWED_HOSTED_DOMAINS=example.com,subsidiary.example
+```
+
+`AUTH_GOOGLE_ALLOWED_HOSTED_DOMAINS` 是以逗號分隔的 hosted-domain claim 允許清單。只有在 Google 應用程式接受一般個人帳號，而且所有 Workspace 帳號都符合政策時，才應將它留空。
+
+## GitHub
+
+```dotenv
+AUTH_GITHUB_ENABLED=true
+AUTH_GITHUB_CLIENT_ID=<client id>
+AUTH_GITHUB_CLIENT_SECRET=<client secret>
+AUTH_GITHUB_DISPLAY_NAME=GitHub
+AUTH_GITHUB_JIT_PROVISIONING_ENABLED=false
+AUTH_GITHUB_ALLOW_SIGNUP=true
+```
+
+`AUTH_GITHUB_ALLOW_SIGNUP` 決定 GitHub 授權流程是否可以提供建立 GitHub 帳號的選項。是否能建立 Netstamp 帳號，則另外由 JIT 帳號建立設定與執行個體的註冊政策決定。
+
+## 既有使用者與 JIT 帳號建立
+
+初次設定時，先維持 JIT 帳號建立功能關閉。以第一位系統管理員登入，到**帳號設定 → 登入方式**連結外部身分；變更本機密碼或註冊政策前，先用無痕視窗實際測試外部登入。
+
+JIT 帳號建立功能關閉時，尚未出現過的外部身分不能建立帳號；將該身分連結到既有使用者後，仍可正常登入。
+
+## SMTP
+
+電子郵件通知、密碼重設與電子郵件驗證都需要 SMTP。可從**系統管理 → 系統設定**輸入，或使用下列環境變數作為備援值：
+
+```dotenv
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USERNAME=netstamp
+SMTP_PASSWORD=<smtp password>
+SMTP_FROM=netstamp@example.com
+SMTP_TLS_MODE=starttls
+SMTP_TIMEOUT=10s
+```
+
+支援的 TLS 模式為 `starttls`、`implicit` 與 `none`。只有連線位於可信任的私有網路，而且已有其他傳輸層保護時，才可使用 `none`。
+
+系統管理介面會將設定存入資料庫，並使用 `SYSTEM_SETTINGS_ENCRYPTION_KEY` 加密機密值。資料庫中的設定優先於環境變數備援值；請固定使用同一把加密金鑰，並妥善備份。
+
+## 測試完整流程
+
+1. 在**系統管理**儲存 SMTP 設定。
+2. 到**警示 → 通知**建立 Email 通知並傳送測試訊息。
+3. 使用可拋棄的帳號請求密碼重設信。
+4. 若已要求驗證電子郵件，註冊一個可拋棄帳號並開啟驗證連結。
+5. 在登出後的無痕視窗逐一測試每個外部身分提供者。
+
+在確認有另一條可用的復原途徑前，不要停用系統管理員最後一種仍可登入的驗證方式。

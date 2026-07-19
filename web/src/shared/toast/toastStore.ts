@@ -1,3 +1,4 @@
+import { i18n } from "@/i18n";
 import type { ToastTone } from "@netstamp/ui";
 export type { ToastTone } from "@netstamp/ui";
 
@@ -44,7 +45,7 @@ export function pushToast(message: Omit<ToastMessage, "id">) {
 export function pushErrorToast(message: string) {
 	pushToast({
 		message,
-		title: "Request failed",
+		title: i18n.t("toast.requestFailed", { ns: "common" }),
 		tone: "critical"
 	});
 }

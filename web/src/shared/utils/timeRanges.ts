@@ -5,14 +5,7 @@ export interface TimeWindow {
 	to: number;
 }
 
-export const relativeTimeOptions: Array<{ value: RelativeTimeRange; label: string }> = [
-	{ value: "15m", label: "Last 15 minutes" },
-	{ value: "1h", label: "Last 1 hour" },
-	{ value: "6h", label: "Last 6 hours" },
-	{ value: "24h", label: "Last 24 hours" },
-	{ value: "7d", label: "Last 7 days" },
-	{ value: "30d", label: "Last 30 days" }
-];
+export const relativeTimeOptions: Array<{ value: RelativeTimeRange }> = [{ value: "15m" }, { value: "1h" }, { value: "6h" }, { value: "24h" }, { value: "7d" }, { value: "30d" }];
 
 export const relativeTimeRangeDurations: Record<RelativeTimeRange, number> = {
 	"15m": 15 * 60 * 1000,
@@ -52,9 +45,10 @@ export function relativeRangeForTimeWindow(timeWindow: TimeWindow) {
 }
 
 export function formatAbsoluteTime(value: number) {
-	return new Date(value).toLocaleString(undefined, { month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+	return new Date(value).toLocaleString(localeForFormatting(), { month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
 
 export function formatTimeWindow(from: number, to: number, separator = " - ") {
 	return `${formatAbsoluteTime(from)}${separator}${formatAbsoluteTime(to)}`;
 }
+import { localeForFormatting } from "@/i18n/format";

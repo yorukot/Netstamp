@@ -142,7 +142,7 @@ function initDocsSearch() {
 			const empty = document.createElement("div");
 			empty.className = "docsSearchEmpty";
 			empty.setAttribute("role", "status");
-			empty.textContent = "No matches";
+			empty.textContent = root.dataset.searchEmpty || "No matches";
 			results.append(empty);
 			(results as HTMLElement).hidden = false;
 			return;

@@ -1,0 +1,115 @@
+---
+title: Contributing
+description: Prepare a focused Netstamp change, follow repository conventions, validate it, and submit a reviewable pull request.
+icon: users
+navSection: development
+navOrder: 40
+head:
+  - tag: title
+    content: Contributing | Netstamp Docs
+---
+
+Netstamp welcomes product, backend, frontend, documentation, localization, testing, and operations contributions. The repository's [`CONTRIBUTING.md`](https://github.com/yorukot/netstamp/blob/main/CONTRIBUTING.md) is authoritative; this page summarizes the workflow and links each kind of contribution to the right source of truth.
+
+## Before You Start
+
+1. Search [GitHub Issues](https://github.com/yorukot/netstamp/issues) and open pull requests for overlapping work.
+2. Read the root `AGENTS.md` and the closest area-specific guide.
+3. Read `design.md` for visible product or documentation UI work.
+4. For a substantial change, open or comment on an issue so maintainers can confirm scope and product direction.
+5. Follow [Local development](/docs/development/local-development/) to install dependencies and run the affected surface.
+
+## Choose The Right Source Of Truth
+
+Different files own different behavior:
+
+- `api/` owns the TypeSpec contract. Generated OpenAPI JSON and web types are outputs.
+- `server/db/migrations/` and `server/db/query/` own schema and SQL changes; generated sqlc code is an output.
+- `packages/ui/` owns reusable product primitives and design tokens.
+- English files under `web/src/i18n/locales/en/`, `docs/src/i18n/locales/en/`, and `docs/src/content/docs/en/` are localization sources.
+- Traditional Chinese resources are synchronized from Crowdin and should not be treated as an independent source tree.
+
+Keeping changes at the source prevents the next generation or translation sync from overwriting them.
+
+## Create A Branch
+
+Start from an up-to-date `main` branch:
+
+```bash
+git switch main
+git pull --ff-only
+git switch -c feat/example-change
+```
+
+Branches use `<type>/<short-kebab-case-description>`. Allowed prefixes are `feat/`, `fix/`, `ui/`, `refactor/`, `docs/`, `test/`, `chore/`, and `release/`.
+
+Validate the current name with:
+
+```bash
+pnpm check:branch-name
+```
+
+## Keep The Patch Focused
+
+- Avoid unrelated formatting, renames, dependency upgrades, or generated changes.
+- Preserve existing URLs and compatibility unless the change explicitly includes a migration.
+- Add or update tests for changed behavior.
+- Update documentation and the relevant `AGENTS.md` when a source-of-truth workflow changes.
+- Never commit passwords, tokens, probe secrets, OAuth client secrets, populated environment files, or production data.
+
+## Commit Style
+
+Commit subjects use a repository area or subsystem prefix:
+
+```text
+area: concise patch summary
+sub/sys: concise patch summary
+```
+
+Examples:
+
+```text
+docs: clarify probe installation
+web/alerts: localize notification errors
+server/auth: validate session cookie
+```
+
+Use an imperative, specific summary, keep the first word after the colon lowercase unless it is a proper noun, and do not end the subject with a period.
+
+## Validate The Change
+
+Run the checks that match the area you changed. The repository-wide entry points are:
+
+```bash
+pnpm check:branch-name
+pnpm check:frontend-style
+just lint
+just test
+just build
+```
+
+Focused validation is encouraged while iterating, but the pull request should report every command actually run and any check that could not be completed.
+
+For API changes, run `pnpm generate:openapi` and commit the expected generated artifacts. For user-visible text, also run the localization checks described in [Translating Netstamp](/docs/guides/translating/).
+
+## Submit The Pull Request
+
+Pull requests target `main`. Include:
+
+- the problem and the behavior changed;
+- important implementation or compatibility decisions;
+- validation commands and manual checks;
+- related issues using `Closes`, `Fixes`, or `Refs` when applicable;
+- desktop and mobile screenshots for visible UI changes.
+
+Upload review-only screenshots to the pull request description or comments. Do not add temporary preview images to application source directories.
+
+The project requires review, resolved review threads, and passing checks before squash merge.
+
+## Contribute A Translation
+
+Translation-only contributors do not need a local development environment, repository write access, or a Crowdin API token. Work in the [Netstamp Crowdin project](https://crowdin.com/project/netstamp) and follow [Translating Netstamp](/docs/guides/translating/) for Taiwanese terminology, placeholder safety, technical content, and review guidance.
+
+## Ask For Help
+
+If you are unsure where a change belongs, describe the intended user behavior in a [GitHub issue](https://github.com/yorukot/netstamp/issues) or ask in the [Netstamp Discord community](https://discord.gg/9mdkf6dyTy). For sensitive security reports, follow [Security operations](/docs/operate/security/) instead of opening a public issue.

@@ -1,0 +1,66 @@
+---
+title: Netstamp 說明文件
+description: 部署、設定、使用及維運自行託管的 Netstamp 網路可觀測性平台，並參與專案貢獻。
+icon: compass
+navSection: start
+navTitle: 總覽
+navOrder: 10
+---
+
+Netstamp 是一套開源、可自行託管的網路可觀測性平台。中央控制器負責儲存設定與量測結果，輕量的探測器 agent 則從你在意的網路、區域與主機執行檢查。
+
+你可以用 Netstamp 回答這些問題：
+
+- 服務是否能從每個據點、ISP、實驗室或邊緣節點連線？
+- 延遲或封包遺失只發生在某條路由、某個探測器，還是目的端本身？
+- 網路路徑變得不穩定時，究竟是哪一個躍點發生變化？
+- HTTP 失敗是出在 DNS、TCP、TLS、收到第一個位元組的時間、狀態碼，還是回應內容驗證？
+- TLS 憑證是否即將到期？
+- 目前有哪些進行中的事件？通知又該送到哪裡？
+
+## Netstamp 提供的功能
+
+| 領域           | 功能                                                                                         |
+| -------------- | -------------------------------------------------------------------------------------------- |
+| 檢查           | Ping、TCP 連線、HTTP/HTTPS，以及 ICMP 或 UDP Traceroute                                      |
+| 分散式資料收集 | 適用於 Linux amd64 與 arm64 的探測器 agent、依標籤指派工作，以及回報 IPv4／IPv6 能力         |
+| 分析           | 最新結果、時間序列、延遲與封包遺失率、HTTP 各階段耗時與憑證清單、Traceroute 執行紀錄與拓撲   |
+| 警示           | 指標門檻規則、觸發持續時間、事件，以及 Webhook、Slack、Discord、Telegram 或電子郵件通知      |
+| 分享           | 公開狀態頁，可加入群組、狀態／歷史／延遲／地圖區塊、事件紀錄、佈景主題與自訂 CSS             |
+| 協作           | 專案、邀請、擁有者／管理員／編輯者／檢視者角色、標籤，以及限制權限範圍的個人 API 權杖        |
+| 系統管理       | 註冊與電子郵件設定、SMTP、使用者與系統管理員管理，以及 JSON 資料匯入／匯出                   |
+| 自動化         | 具版本的 HTTP API、OpenAPI 結構描述、互動式 API 瀏覽器、健康狀態端點，以及探測器執行階段 API |
+
+## 依需求開始
+
+- **想先在本機試用 Netstamp？** 請從[快速開始](/zh-TW/docs/guides/getting-started/)著手。
+- **準備正式部署？** 先閱讀 [Docker Compose](/zh-TW/docs/reference/deployment/)，再完成[正式環境檢查清單](/zh-TW/docs/install/production/)。
+- **要設定第一個監測項目？** 先瞭解[核心概念](/zh-TW/docs/start/concepts/)，接著建立[探測器](/zh-TW/docs/use/probes/)與[檢查](/zh-TW/docs/use/checks/)。
+- **要用程式自動操作 Netstamp？** 請使用 [API 權杖](/zh-TW/docs/guides/api-tokens/)與 [API 瀏覽器](/zh-TW/openapi/)。
+- **負責維護既有安裝環境？** 請參閱[探測器 agent 維運](/zh-TW/docs/guides/probe-operations/)與[疑難排解](/zh-TW/docs/operate/troubleshooting/)。
+- **想參與專案開發？** 請先閱讀[貢獻指南](/zh-TW/docs/development/contributing/)。
+
+## 系統概觀
+
+```text
+Browser or API client
+        |
+        v
+Netstamp controller  <---- signed heartbeat, assignments, results ----  Probe agents
+        |
+        +---- PostgreSQL + TimescaleDB
+        |
+        +---- Webhook / Slack / Discord / Telegram / SMTP
+```
+
+正式環境的容器會同時提供 React 應用程式與 `/api/v1`。控制器負責驗證、專案、工作指派、結果查詢、警示評估、通知、公開狀態頁，以及探測器安裝程式；PostgreSQL 搭配 TimescaleDB 儲存應用程式資料與時間序列量測結果。
+
+公開 API 的前綴是 `/api/v1`。控制器也會在 `/api/v1/openapi.json` 提供實際使用的 OpenAPI 文件，並在 `/api/v1/docs` 提供互動式 Scalar 說明文件。
+
+## 專案連結
+
+- [原始程式碼](https://github.com/yorukot/netstamp)
+- [OpenAPI 瀏覽器](/zh-TW/openapi/)
+- [共用 UI Storybook](/storybook/)
+- [Apache License 2.0](https://github.com/yorukot/netstamp/blob/main/LICENSE)
+- [取得協助或支持專案](/zh-TW/docs/community/support/)

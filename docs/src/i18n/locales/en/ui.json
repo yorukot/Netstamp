@@ -1,0 +1,163 @@
+{
+	"meta": {
+		"description": "Open-source network observability from probes you control.",
+		"homeTitle": "Netstamp - Trace every path",
+		"docsDescription": "Netstamp documentation."
+	},
+	"common": {
+		"skipToContent": "Skip to content",
+		"language": "Language",
+		"switchLanguage": "Switch language to {{language}}"
+	},
+	"codeBlock": {
+		"copy": "Copy",
+		"copied": "Copied"
+	},
+	"nav": {
+		"primary": "Primary navigation",
+		"home": "Netstamp home",
+		"sections": "Docs sections",
+		"docs": "Docs",
+		"api": "API",
+		"switchColor": "Switch color mode",
+		"switchToLight": "Switch to light mode",
+		"switchToDark": "Switch to dark mode",
+		"viewDemo": "View demo"
+	},
+	"docs": {
+		"navigation": "Documentation navigation",
+		"mobileNavigation": "Navigation",
+		"externalLinks": "External links",
+		"breadcrumb": "Breadcrumb",
+		"home": "Docs home",
+		"edit": "Edit on GitHub",
+		"pagination": "Documentation pagination",
+		"previous": "Previous",
+		"next": "Next",
+		"noPrevious": "No previous page",
+		"noNext": "No next page",
+		"onThisPage": "On this page",
+		"noHeadings": "No headings",
+		"fallbackNotice": "This page is not yet available in Traditional Chinese. The English source is shown below.",
+		"fallbackLink": "Open the English page",
+		"sections": {
+			"start": "Getting Started",
+			"install": "Installation",
+			"use": "Using Netstamp",
+			"operate": "Operations",
+			"api": "API",
+			"development": "Development",
+			"community": "Community"
+		}
+	},
+	"search": {
+		"open": "Search documentation",
+		"label": "Search",
+		"close": "Close search",
+		"title": "Search docs",
+		"closeAction": "Close",
+		"query": "Search query",
+		"placeholder": "Search documentation…",
+		"results": "Search results",
+		"noResults": "No documentation pages match your search."
+	},
+	"notFound": {
+		"metaTitle": "Page not found - Netstamp",
+		"title": "Page not found",
+		"description": "The page may have moved, or the address may be incorrect. Return home or continue with the documentation.",
+		"home": "Back to home",
+		"docs": "Browse documentation"
+	},
+	"pageActions": {
+		"copy": "Copy page",
+		"copyDescription": "Copy the page as Markdown for LLMs",
+		"viewMarkdown": "View as Markdown",
+		"viewMarkdownDescription": "View this page as plain text",
+		"openChatGpt": "Open in ChatGPT",
+		"openClaude": "Open in Claude",
+		"askDescription": "Ask questions about this page",
+		"copied": "Copied",
+		"noContent": "No page content was available."
+	},
+	"openapi": {
+		"title": "OpenAPI - Netstamp",
+		"description": "Browse the generated backend OpenAPI contract, authentication schemes, request bodies, and response models.",
+		"schemas": "Schemas",
+		"loading": "Loading API reference"
+	},
+	"tracking": {
+		"aria": "Analytics consent",
+		"title": "Analytics consent",
+		"description": "Netstamp can load optional analytics to understand product and docs usage. Declining keeps those trackers disabled in this browser.",
+		"decline": "Decline",
+		"accept": "Accept"
+	},
+	"footer": {
+		"madeBy": "Netstamp / Made by",
+		"separator": ", ",
+		"contributorsSeparator": ", and ",
+		"contributors": "contributors",
+		"star": "Give us a star on GitHub"
+	},
+	"home": {
+		"heroLine1": "Trace every path.",
+		"heroLine2": "Before it breaks.",
+		"subtitle": "Open-source network observability from probes you control.",
+		"getStarted": "Get started",
+		"viewGithub": "View on GitHub",
+		"introAria": "Netstamp product introduction",
+		"introBefore": "Netstamp is an open-source, self-hosted network observability app that helps measure",
+		"introAfter": "and incidents from the viewpoints that matter.",
+		"listSeparator": ", ",
+		"introAfterSeparator": ", ",
+		"latency": "latency",
+		"packetLoss": "packet loss",
+		"routes": "routes",
+		"uptime": "uptime",
+		"certificates": "certificates",
+		"showcaseTitle": "A green dot is not enough.",
+		"showcaseDescription": "Netstamp connects the current state to the evidence behind it.",
+		"showcaseAria": "Netstamp product highlights",
+		"showcase": [
+			["Probe map", "See every reporting location, its health, and the network view it contributes."],
+			["Ping latency", "Inspect round-trip time, packet loss, success rate, and long-running trends."],
+			["HTTP uptime", "Break requests into DNS, connect, TLS, TTFB, and total response timing."],
+			["TCP reachability", "Verify whether critical ports are reachable from every assigned probe."],
+			["Traceroute paths", "Compare route graphs, hop latency, path loss, and changes over time."],
+			["TLS certificates", "Alert before certificate expiry becomes an avoidable production incident."],
+			["Incidents", "Turn threshold breaches into focused incidents with rules and notifications."],
+			["Public dashboard", "Publish live component health and recent history without exposing the console."]
+		],
+		"flowTitle": "From real probes to real incidents.",
+		"flowSteps": ["Bind your machines", "Define assignments", "View insights", "Get notified before users notice"],
+		"faqTitle": "FAQ",
+		"faqs": [
+			[
+				"Is Netstamp just another uptime monitor?",
+				"No. Uptime is only one layer. Netstamp combines real-world probes, ping, TCP reachability, traceroute, HTTP uptime, TLS certificate checks, packet loss, latency, probe health, incidents, dashboards, and historical measurements so you can understand how a service behaves from different networks."
+			],
+			[
+				"Why do I need probes I control?",
+				"Because third-party cloud checks cannot see every network that matters to you. A service may be reachable from a public monitoring region but degraded from your office, lab, ISP, edge node, private network, or user-facing environment. Netstamp gives you visibility from those real viewpoints."
+			],
+			[
+				"Can I self-host Netstamp?",
+				"Yes. Netstamp is open-source and designed for self-hosted deployments with a controller, lightweight probes, PostgreSQL, TimescaleDB, health checks, metrics, OpenAPI, and production deployment documentation."
+			],
+			[
+				"What can Netstamp monitor?",
+				"Netstamp supports real-world network checks such as ping, TCP, traceroute, HTTP uptime, API payload checks, and TLS/SSL certificate monitoring. It also tracks probe health, latest measurements, incidents, dashboards, and historical trends."
+			],
+			[
+				"Who is Netstamp for?",
+				"Netstamp is for developers, infrastructure teams, homelab users, SREs, network operators, researchers, and teams that need to observe services from machines, regions, ISPs, labs, edge nodes, private infrastructure, or real user-facing networks they control."
+			],
+			[
+				"How does Netstamp help with debugging?",
+				"Netstamp helps you separate global outages from regional, provider-specific, probe-specific, target-specific, and route-specific problems. Historical measurements make it easier to see what changed, where it changed, and when it started."
+			]
+		],
+		"finalAria": "Get started with Netstamp",
+		"finalTitle": "Start observing from the networks you control."
+	}
+}

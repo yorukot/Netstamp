@@ -1,0 +1,88 @@
+---
+title: Architecture
+description: Understand Netstamp's controller, probe runtime, data model, API contract pipeline, frontend packages, storage, and background workers.
+icon: route
+navSection: development
+navOrder: 10
+---
+
+Netstamp is a self-hosted controller plus distributed probe agents. The repository keeps the executable services, API contract, application, UI system, documentation, and deployment assets together.
+
+## Runtime topology
+
+```text
+                                  +-----------------------+
+Browser / API client -----------> | Controller HTTP :8080 |
+                                  | auth, projects, API   |
+                                  +-----------+-----------+
+                                              |
+                                              v
+                                  PostgreSQL + TimescaleDB
+                                              ^
+                                              |
+Linux probe agents ---- hello / heartbeat / assignments / result batches
+                                              |
+                                              +---- alert evaluator
+                                              +---- assignment refresh worker
+                                              +---- notification outbox worker
+```
+
+The production image lets the controller serve the built React application from `/app/web`. Browser routes fall back to `index.html`; `/api/v1` remains the API; `/healthz` maps to API health; `/metrics` exposes controller metrics.
+
+## Controller boundaries
+
+The Go backend is a modular monolith:
+
+- **Transport** binds HTTP, authentication, validation, response DTOs, and status mapping.
+- **Application** owns use-case orchestration, authorization, ports, events, and traces.
+- **Domain** owns stable models and project permission policy.
+- **Infrastructure** implements PostgreSQL/sqlc repositories, tokens, password hashing, external identity clients, and notification delivery.
+- **Composition** loads configuration and wires concrete implementations.
+
+HTTP handlers do not call the database directly. Application services depend on narrow interfaces and own their feature's semantics.
+
+## Probe runtime
+
+The agent has independent scheduling, worker, result-queue, and HTTP-client layers. It:
+
+1. authenticates and announces runtime capabilities;
+2. sends periodic heartbeat and IP-family capability updates;
+3. polls effective assignments;
+4. schedules due work into a bounded worker pool;
+5. executes Ping, TCP, HTTP, or Traceroute;
+6. buffers and submits result batches with retry backoff.
+
+Runtime tuning remains local to each probe through `NETSTAMP_PROBE_*` values. The controller sends assignments, not worker or queue configuration.
+
+## Data storage
+
+PostgreSQL stores identity, sessions, projects, labels, probes, checks, assignments, alerts, notifications, public pages, and administrative settings. TimescaleDB hypertables and continuous aggregates support typed Ping, TCP, HTTP, and Traceroute result history and range-aware queries.
+
+Database migrations use Goose SQL files and run before the application container starts. sqlc generates typed repository access from query files.
+
+## API contract pipeline
+
+```text
+api/*.tsp
+   |
+   +--> docs/public/openapi.json
+   +--> server embedded openapi.json
+   +--> web/src/shared/api/openapi.d.ts
+   +--> Scalar API explorers
+```
+
+TypeSpec is the source of truth. `pnpm generate:openapi` refreshes every generated consumer. The controller and docs site therefore publish the same contract used to type the web client.
+
+## Frontend and docs
+
+- `web/` is a React 19 and Vite application with project-scoped routes and TanStack Query server state.
+- `packages/ui/` owns shared components and `--ns-*` design tokens.
+- `docs/` is a static Astro site that publishes product docs, an OpenAPI explorer, and built Storybook.
+
+Both web and docs consume the shared UI package. Docs content lives in an Astro content collection so navigation, search, page order, edit links, sitemap, and previous/next links derive from frontmatter.
+
+## Authentication planes
+
+Browser users authenticate with server-side sessions. Personal API tokens use `Bearer nst_pat_...` with scopes plus current project permissions. Probe agents use `Authorization: Probe ...`. These credentials are intentionally not interchangeable.
+
+Netstamp has no GraphQL API, external message queue, object-storage dependency, or DNS-specific probe executor in the current architecture.

@@ -8,7 +8,9 @@ Read the root `AGENTS.md`, `web/AGENTS.md`, and `design.md` before changing docs
 
 ## Structure
 
-- Keep MDX documentation content under `src/content/docs/`.
+- Keep English source MDX under `src/content/docs/en/` and Crowdin-synchronized Traditional Chinese MDX under `src/content/docs/zh-TW/` with matching relative paths.
+- Treat English `navSection` and `navOrder` frontmatter as the documentation information-architecture source of truth. Localized MDX must preserve those structural values; translate section labels through `src/i18n/locales/*/ui.json` instead.
+- Keep localizable Astro shell and landing-page text in `src/i18n/locales/en/ui.json`; `src/i18n/locales/zh-TW/ui.json` is the Crowdin translation output.
 - Keep docs-only Astro components under `src/components/docs`.
 - Keep public homepage components under `src/components/landing`.
 - Prefer small docs-local components over growing `DocLayout.astro`; navigation, pager, page actions, callouts, cards, and TOC behavior should not all live in one layout file.
@@ -39,3 +41,5 @@ Read the root `AGENTS.md`, `web/AGENTS.md`, and `design.md` before changing docs
 - `pnpm --filter @netstamp/docs preview`: preview the built docs output.
 - `pnpm --filter @netstamp/ui build:storybook`: build shared UI Storybook.
 - `pnpm check:frontend-style`: run token, focus-visible, and px-unit guardrails for docs, web, and shared UI implementation files.
+- `pnpm check:i18n`: validate Docs UI JSON, document parity, code blocks, placeholders, locale directories, and React resources.
+- `pnpm test:docs:i18n`: validate localized routes, metadata, links, language markup, and the OpenAPI shell after building Docs.

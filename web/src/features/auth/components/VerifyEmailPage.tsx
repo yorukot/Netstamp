@@ -4,6 +4,7 @@ import { pushErrorToast, pushToast } from "@/shared/toast/toastStore";
 import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
 import { Button } from "@netstamp/ui";
 import { type FormEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
 import { AuthLayout } from "./AuthLayout";
 import styles from "./AuthPage.module.css";
@@ -13,6 +14,7 @@ interface VerifyEmailPageProps {
 }
 
 export function VerifyEmailPage({ navigate }: VerifyEmailPageProps) {
+	const { t } = useTranslation("auth");
 	const [searchParams] = useSearchParams();
 	const token = searchParams.get("token") || "";
 	const confirmEmail = useConfirmEmailVerificationMutation();
@@ -21,15 +23,15 @@ export function VerifyEmailPage({ navigate }: VerifyEmailPageProps) {
 		event.preventDefault();
 
 		if (!token) {
-			pushErrorToast("Verification link is missing a token.");
+			pushErrorToast(t("verify.missingToken"));
 			return;
 		}
 
 		try {
 			await confirmEmail.mutateAsync({ token });
 			pushToast({
-				title: "Email verified",
-				message: "You can log in now.",
+				title: t("verify.successTitle"),
+				message: t("verify.successMessage"),
 				tone: "success"
 			});
 			navigate("login");
@@ -39,19 +41,19 @@ export function VerifyEmailPage({ navigate }: VerifyEmailPageProps) {
 	}
 
 	return (
-		<AuthLayout title="Verify your email" description="Confirm this account before signing in to Netstamp." helmetTitle="Verify email">
+		<AuthLayout title={t("verify.title")} description={t("verify.description")}>
 			{token ? (
 				<form className={styles.form} onSubmit={handleSubmit}>
 					<Button className={styles.submitButton} type="submit" size="lg" disabled={confirmEmail.isPending}>
-						{confirmEmail.isPending ? "Verifying" : "Verify email"}
+						{confirmEmail.isPending ? t("verify.verifying") : t("verify.verify")}
 					</Button>
-					{confirmEmail.isError ? <div className={styles.notice}>{requestErrorMessage(confirmEmail.error, "Email could not be verified.")}</div> : null}
+					{confirmEmail.isError ? <div className={styles.notice}>{requestErrorMessage(confirmEmail.error, t("verify.error"))}</div> : null}
 				</form>
 			) : (
-				<div className={styles.notice}>Verification link is missing a token.</div>
+				<div className={styles.notice}>{t("verify.missingToken")}</div>
 			)}
 			<Link className={styles.modeLink} to="/login">
-				Return to login
+				{t("common.returnToLogin")}
 			</Link>
 		</AuthLayout>
 	);

@@ -1,0 +1,154 @@
+{
+	"meta": {
+		"description": "使用你所掌控的探測器，打造開放原始碼網路可觀測性。",
+		"homeTitle": "Netstamp - 追蹤每一條路徑",
+		"docsDescription": "Netstamp 說明文件。"
+	},
+	"common": {
+		"skipToContent": "跳至主要內容",
+		"language": "語言",
+		"switchLanguage": "切換語言為 {{language}}"
+	},
+	"codeBlock": {
+		"copy": "複製",
+		"copied": "已複製"
+	},
+	"nav": {
+		"primary": "主要導覽",
+		"home": "Netstamp 首頁",
+		"sections": "說明文件區段",
+		"docs": "說明文件",
+		"api": "API",
+		"switchColor": "切換色彩模式",
+		"switchToLight": "切換至淺色模式",
+		"switchToDark": "切換至深色模式",
+		"viewDemo": "查看線上示範"
+	},
+	"docs": {
+		"navigation": "說明文件導覽",
+		"mobileNavigation": "導覽",
+		"externalLinks": "外部連結",
+		"breadcrumb": "階層導覽",
+		"home": "說明文件首頁",
+		"edit": "在 GitHub 編輯",
+		"pagination": "說明文件分頁導覽",
+		"previous": "上一頁",
+		"next": "下一頁",
+		"noPrevious": "沒有上一頁",
+		"noNext": "沒有下一頁",
+		"onThisPage": "本頁內容",
+		"noHeadings": "本頁沒有標題",
+		"fallbackNotice": "本頁尚未提供繁體中文，以下顯示英文原文。",
+		"fallbackLink": "開啟英文頁面",
+		"sections": {
+			"start": "開始使用",
+			"install": "安裝",
+			"use": "使用 Netstamp",
+			"operate": "維運",
+			"api": "API",
+			"development": "開發",
+			"community": "社群"
+		}
+	},
+	"search": {
+		"open": "搜尋說明文件",
+		"label": "搜尋",
+		"close": "關閉搜尋",
+		"title": "搜尋說明文件",
+		"closeAction": "關閉",
+		"query": "搜尋關鍵字",
+		"placeholder": "搜尋說明文件…",
+		"results": "搜尋結果",
+		"noResults": "找不到符合搜尋條件的說明文件。"
+	},
+	"notFound": {
+		"metaTitle": "找不到頁面 - Netstamp",
+		"title": "找不到頁面",
+		"description": "此頁面可能已移動，或網址有誤。你可以返回首頁，或繼續瀏覽說明文件。",
+		"home": "返回首頁",
+		"docs": "瀏覽說明文件"
+	},
+	"pageActions": {
+		"copy": "複製頁面",
+		"copyDescription": "將頁面複製為適合 LLM 使用的 Markdown",
+		"viewMarkdown": "以 Markdown 檢視",
+		"viewMarkdownDescription": "以純文字檢視本頁",
+		"openChatGpt": "在 ChatGPT 開啟",
+		"openClaude": "在 Claude 開啟",
+		"askDescription": "針對本頁內容提問",
+		"copied": "已複製",
+		"noContent": "沒有可用的頁面內容。"
+	},
+	"openapi": {
+		"title": "OpenAPI - Netstamp",
+		"description": "瀏覽產生的後端 OpenAPI 合約、身分驗證方式、請求內容與回應資料模型。",
+		"schemas": "資料模型",
+		"loading": "正在載入 API 參考資料"
+	},
+	"tracking": {
+		"aria": "分析資料同意選項",
+		"title": "分析資料同意選項",
+		"description": "Netstamp 可以載入選用的分析工具，以瞭解產品與說明文件的使用情況。拒絕後，此瀏覽器將不會啟用這些追蹤工具。",
+		"decline": "拒絕",
+		"accept": "接受"
+	},
+	"footer": {
+		"madeBy": "Netstamp 由",
+		"separator": "、",
+		"contributorsSeparator": " 與 ",
+		"contributors": "所有貢獻者共同製作",
+		"star": "在 GitHub 上給我們一顆星"
+	},
+	"home": {
+		"heroLine1": "追蹤每一條路徑。",
+		"heroLine2": "在問題發生之前。",
+		"subtitle": "使用你所掌控的探測器，打造開放原始碼網路可觀測性。",
+		"getStarted": "開始使用",
+		"viewGithub": "前往 GitHub",
+		"introAria": "Netstamp 產品介紹",
+		"introBefore": "Netstamp 是一套開放原始碼、可自行託管的網路可觀測性應用程式，可協助量測",
+		"introAfter": "事件，並從真正重要的網路視角觀察服務。",
+		"listSeparator": "、",
+		"introAfterSeparator": "及",
+		"latency": "延遲",
+		"packetLoss": "封包遺失",
+		"routes": "路由",
+		"uptime": "可用率",
+		"certificates": "憑證",
+		"showcaseTitle": "一個綠點還不夠。",
+		"showcaseDescription": "Netstamp 將目前狀態與背後的量測證據串連起來。",
+		"showcaseAria": "Netstamp 產品重點",
+		"showcase": [
+			["探測器地圖", "查看每個回報位置、健康狀態與其提供的網路視角。"],
+			["Ping 延遲", "檢視往返時間、封包遺失、成功率與長期趨勢。"],
+			["HTTP 可用率", "將請求時間拆分為 DNS、連線、TLS、TTFB 與完整回應時間。"],
+			["TCP 可達性", "確認關鍵連接埠能否從每個已指派的探測器連線。"],
+			["Traceroute 路徑", "比較路由圖、躍點延遲、沿途封包遺失與隨時間發生的變化。"],
+			["TLS 憑證", "在憑證到期演變成正式環境事故前發出警示。"],
+			["事件", "將超過門檻的狀況轉化為有明確規則與通知的事件。"],
+			["公開狀態頁", "公開服務元件的即時健康狀態與近期紀錄，而不暴露管理介面。"]
+		],
+		"flowTitle": "從真實探測器到真實事件。",
+		"flowSteps": ["註冊探測器", "設定檢查指派", "分析量測結果", "在使用者察覺前收到通知"],
+		"faqTitle": "常見問題",
+		"faqs": [
+			[
+				"Netstamp 只是另一套可用性監控工具嗎？",
+				"不是。可用性只是一個層面。Netstamp 整合真實網路探測器、Ping、TCP 可達性、Traceroute、HTTP 可用率、TLS 憑證檢查、封包遺失、延遲、探測器健康狀態、事件、狀態頁與歷史量測，讓你瞭解服務在不同網路中的實際表現。"
+			],
+			[
+				"為什麼需要由我掌控的探測器？",
+				"因為第三方雲端檢查無法看見每個對你重要的網路。服務可能在公開監控區域可以連線，卻在辦公室、實驗室、ISP、邊緣節點、私有網路或使用者環境中品質不佳。Netstamp 讓你從這些真實視角掌握狀況。"
+			],
+			["可以自行託管 Netstamp 嗎？", "可以。Netstamp 是開放原始碼專案，專為自行託管設計，包含控制器、輕量探測器、PostgreSQL、TimescaleDB、健康檢查、指標、OpenAPI 與正式環境部署文件。"],
+			["Netstamp 可以監控什麼？", "Netstamp 支援 Ping、TCP、Traceroute、HTTP/HTTPS 內容驗證與 TLS 憑證監控等真實網路檢查，也會追蹤探測器健康狀態、最新量測、事件、狀態頁與歷史趨勢。"],
+			[
+				"Netstamp 適合誰？",
+				"Netstamp 適合開發者、基礎架構團隊、Homelab 使用者、SRE、網路維運人員、研究人員，以及需要從自有機器、區域、ISP、實驗室、邊緣節點、私有基礎架構或真實使用者網路觀察服務的團隊。"
+			],
+			["Netstamp 如何協助除錯？", "Netstamp 可協助區分全面性服務中斷與區域、供應商、探測器、目標或路由特定的問題。歷史量測讓你更容易看出改變了什麼、發生在哪裡，以及何時開始。"]
+		],
+		"finalAria": "開始使用 Netstamp",
+		"finalTitle": "從你所掌控的網路開始觀察。"
+	}
+}

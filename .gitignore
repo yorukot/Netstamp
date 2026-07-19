@@ -15,6 +15,9 @@ node_modules/
 dist/
 
 .env
+.env.local
+.env.*.local
+!.env.example
 
 docs/public/storybook
 storybook-static/

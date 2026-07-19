@@ -8,61 +8,64 @@ import publicDashboard from "@/assets/homepage-highlights/public-dashboard.webp?
 import tcpReachability from "@/assets/homepage-highlights/tcp-reachability.webp?url";
 import tlsCertificates from "@/assets/homepage-highlights/tls-certificates.webp?url";
 import traceroutePaths from "@/assets/homepage-highlights/traceroute-paths.webp?url";
+import { uiForLocale } from "../../../i18n/ui";
+
+const ui = uiForLocale(Astro.currentLocale);
 
 const items = [
 	{
 		id: "probe-map",
-		title: "Probe Map",
-		description: "See every reporting location, its health, and the network view it contributes.",
+		title: ui.home.showcase[0][0],
+		description: ui.home.showcase[0][1],
 		image: probeMap,
 		icon: "map"
 	},
 	{
 		id: "ping-latency",
-		title: "Ping latency",
-		description: "Inspect round-trip time, packet loss, success rate, and long-running trends.",
+		title: ui.home.showcase[1][0],
+		description: ui.home.showcase[1][1],
 		image: pingLatency,
 		icon: "pulse"
 	},
 	{
 		id: "http-uptime",
-		title: "HTTP uptime",
-		description: "Break requests into DNS, connect, TLS, TTFB, and total response timing.",
+		title: ui.home.showcase[2][0],
+		description: ui.home.showcase[2][1],
 		image: httpUptime,
 		icon: "globe"
 	},
 	{
 		id: "tcp-reachability",
-		title: "TCP reachability",
-		description: "Verify whether critical ports are reachable from every assigned probe.",
+		title: ui.home.showcase[3][0],
+		description: ui.home.showcase[3][1],
 		image: tcpReachability,
 		icon: "plugs"
 	},
 	{
 		id: "traceroute-paths",
-		title: "Traceroute paths",
-		description: "Compare route graphs, hop latency, path loss, and changes over time.",
+		title: ui.home.showcase[4][0],
+		description: ui.home.showcase[4][1],
 		image: traceroutePaths,
 		icon: "route"
 	},
 	{
 		id: "tls-certificates",
-		title: "TLS certificates",
-		description: "Alert before certificate expiry becomes an avoidable production incident.",
+		title: ui.home.showcase[5][0],
+		description: ui.home.showcase[5][1],
 		image: tlsCertificates,
 		icon: "shield"
 	},
 	{
 		id: "incidents",
-		title: "Incidents",
-		description: "Turn threshold breaches into focused incidents with rules and notifications.",
+		title: ui.home.showcase[6][0],
+		description: ui.home.showcase[6][1],
 		image: incidents,
 		icon: "warning"
 	},
 	{
 		id: "public-dashboard",
-		title: "Public Dashboard",
-		description: "Publish live component health and recent history without exposing the console.",
+		title: ui.home.showcase[7][0],
+		description: ui.home.showcase[7][1],
 		image: publicDashboard,
 		icon: "monitor"
 	}
@@ -73,10 +76,10 @@ const items = [
 	<div class="showcase-grid">
 		<div class="showcase-copy">
 			<header>
-				<h2 id="green-dot-title">A green dot is not enough.</h2>
-				<p>Netstamp connects the current state to the evidence behind it.</p>
+				<h2 id="green-dot-title">{ui.home.showcaseTitle}</h2>
+				<p>{ui.home.showcaseDescription}</p>
 			</header>
-			<div class="feature-gallery" aria-label="Netstamp product highlights" data-showcase-controls>
+			<div class="feature-gallery" aria-label={ui.home.showcaseAria} data-showcase-controls>
 				{
 					items.map((item, index) => (
 						<button

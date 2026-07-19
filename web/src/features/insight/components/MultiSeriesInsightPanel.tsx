@@ -3,12 +3,12 @@ import { hasTcpSeriesChartData, tcpSeriesChartData } from "@/features/insight/da
 import type { InsightPair, TimeWindow } from "@/features/insight/insightTypes";
 import { projectQueries } from "@/shared/api/queries";
 import type { HttpSeriesResponse, LatestHttpResult, PingSeriesResponse, TcpSeriesResponse } from "@/shared/api/types";
-import { formatCount } from "@/shared/utils/insightFormatters";
 import { hasPingSeriesChartData, pingSeriesChartData } from "@/shared/utils/pingInsightData";
 import { ChartPanel } from "@/shared/visualizations/ChartPanel";
 import { insightSeriesColor, multiHttpInsightChartOption, multiPingInsightChartOption, multiTcpInsightChartOption, type InsightMultiSeriesLine } from "@/shared/visualizations/chartOptions";
 import { Panel, Spinner } from "@netstamp/ui";
 import { useQueries } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import styles from "./MultiSeriesInsightPanel.module.css";
 
 interface MultiSeriesInsightPanelProps {
@@ -40,8 +40,9 @@ function queryWindow(data: Array<PingSeriesResponse | TcpSeriesResponse | HttpSe
 }
 
 function SeriesLegend({ lines }: { lines: LegendLine[] }) {
+	const { t } = useTranslation("insight");
 	return (
-		<div className={styles.legend} aria-label="Series color legend">
+		<div className={styles.legend} aria-label={t("legend.series")}>
 			{lines.map(line => (
 				<div className={styles.legendItem} key={line.id}>
 					<span className={styles.legendSwatch} style={{ backgroundColor: line.color }} aria-hidden="true" />
@@ -57,7 +58,7 @@ function SeriesLegend({ lines }: { lines: LegendLine[] }) {
 
 function SeriesPanel({
 	title,
-	unitLabel,
+	typeLabel,
 	totalPoints,
 	isLoading,
 	isFetching,
@@ -68,7 +69,7 @@ function SeriesPanel({
 	onSelectTimeWindow
 }: {
 	title: string;
-	unitLabel: string;
+	typeLabel: string;
 	totalPoints: number;
 	isLoading: boolean;
 	isFetching: boolean;
@@ -78,13 +79,13 @@ function SeriesPanel({
 	filters: TimeWindow;
 	onSelectTimeWindow: (timeWindow: TimeWindow) => void;
 }) {
+	const { t } = useTranslation("insight");
+
 	return (
 		<Panel tone="deep" title={title}>
 			<div className={styles.chartMeta}>
-				<span>{isFetching ? "syncing result series" : `${formatCount(totalPoints)} points`}</span>
-				<span>
-					{formatCount(lines.length)} {unitLabel} series
-				</span>
+				<span>{isFetching ? t("panel.syncingSeries") : t("panel.points", { count: totalPoints })}</span>
+				<span>{t("multi.seriesCount", { count: lines.length, type: typeLabel })}</span>
 			</div>
 			{hasData ? (
 				<>
@@ -94,9 +95,9 @@ function SeriesPanel({
 			) : (
 				<>
 					{isLoading || isFetching ? (
-						<Spinner label={`Loading ${unitLabel} series`} layout="panel" size="lg" />
+						<Spinner label={t("multi.loading", { type: typeLabel })} layout="panel" size="lg" />
 					) : (
-						<div className={styles.emptyState}>No {unitLabel} series points were recorded for the selected assignments in this time range.</div>
+						<div className={styles.emptyState}>{t("multi.empty", { type: typeLabel })}</div>
 					)}
 				</>
 			)}
@@ -105,6 +106,7 @@ function SeriesPanel({
 }
 
 export function MultiSeriesInsightPanel({ projectRef, pairs, filters, latestHTTPResults, nowMs, isLatestHTTPLoading, isLatestHTTPFetching, onSelectTimeWindow }: MultiSeriesInsightPanelProps) {
+	const { t } = useTranslation("insight");
 	const pingPairs = pairs.filter(pair => pair.check.type === "Ping");
 	const tcpPairs = pairs.filter(pair => pair.check.type === "TCP");
 	const httpPairs = pairs.filter(pair => pair.check.type === "HTTP");
@@ -178,8 +180,8 @@ export function MultiSeriesInsightPanel({ projectRef, pairs, filters, latestHTTP
 			{httpPairs.length ? <HttpCertificateInventory pairs={httpPairs} latestResults={latestHTTPResults} nowMs={nowMs} isLoading={isLatestHTTPLoading} isFetching={isLatestHTTPFetching} /> : null}
 			{pingPairs.length ? (
 				<SeriesPanel
-					title={`Ping series (${formatCount(pingPairs.length)} assignments)`}
-					unitLabel="ping"
+					title={t("multi.title", { type: "Ping", count: pingPairs.length })}
+					typeLabel="Ping"
 					totalPoints={pingTotalPoints}
 					isLoading={pingSeriesQueries.some(query => query.isLoading)}
 					isFetching={pingSeriesQueries.some(query => query.isFetching)}
@@ -192,8 +194,8 @@ export function MultiSeriesInsightPanel({ projectRef, pairs, filters, latestHTTP
 			) : null}
 			{tcpPairs.length ? (
 				<SeriesPanel
-					title={`TCP series (${formatCount(tcpPairs.length)} assignments)`}
-					unitLabel="TCP"
+					title={t("multi.title", { type: "TCP", count: tcpPairs.length })}
+					typeLabel="TCP"
 					totalPoints={tcpTotalPoints}
 					isLoading={tcpSeriesQueries.some(query => query.isLoading)}
 					isFetching={tcpSeriesQueries.some(query => query.isFetching)}
@@ -206,8 +208,8 @@ export function MultiSeriesInsightPanel({ projectRef, pairs, filters, latestHTTP
 			) : null}
 			{httpPairs.length ? (
 				<SeriesPanel
-					title={`HTTP series (${formatCount(httpPairs.length)} assignments)`}
-					unitLabel="HTTP"
+					title={t("multi.title", { type: "HTTP", count: httpPairs.length })}
+					typeLabel="HTTP"
 					totalPoints={httpTotalPoints}
 					isLoading={httpSeriesQueries.some(query => query.isLoading)}
 					isFetching={httpSeriesQueries.some(query => query.isFetching)}

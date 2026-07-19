@@ -1,6 +1,9 @@
 ---
 import { Button, Surface } from "@netstamp/ui";
 import { hasEnabledTrackers, normalizeTrackerConfig } from "@netstamp/ui/tracking";
+import { uiForLocale } from "../../i18n/ui";
+
+const ui = uiForLocale(Astro.currentLocale);
 
 const trackerConfig = normalizeTrackerConfig({
 	googleTagId: import.meta.env.PUBLIC_NETSTAMP_GOOGLE_TAG_ID || import.meta.env.PUBLIC_NETSTAMP_GA_MEASUREMENT_ID,
@@ -27,15 +30,15 @@ const trackerConfigJson = JSON.stringify(trackerConfig).replace(/</g, "\\u003c")
 	data-netstamp-tracking-consent
 	data-netstamp-trackers-enabled={trackersEnabled ? "true" : "false"}
 	hidden
-	aria-label="Analytics consent"
+	aria-label={ui.tracking.aria}
 >
 	<div class="trackingConsentCopy">
-		<strong>Analytics consent</strong>
-		<p>Netstamp can load optional analytics to understand product and docs usage. Declining keeps those trackers disabled in this browser.</p>
+		<strong>{ui.tracking.title}</strong>
+		<p>{ui.tracking.description}</p>
 	</div>
 	<div class="trackingConsentActions">
-		<Button className="trackingConsentAction" variant="outline" size="sm" type="button" data-netstamp-consent-decline>Decline</Button>
-		<Button className="trackingConsentAction" size="sm" type="button" data-netstamp-consent-accept>Accept</Button>
+		<Button className="trackingConsentAction" variant="outline" size="sm" type="button" data-netstamp-consent-decline>{ui.tracking.decline}</Button>
+		<Button className="trackingConsentAction" size="sm" type="button" data-netstamp-consent-accept>{ui.tracking.accept}</Button>
 	</div>
 </Surface>
 <script type="application/json" id="netstamp-tracking-config" set:html={trackerConfigJson} />

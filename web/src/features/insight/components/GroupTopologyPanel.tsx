@@ -1,5 +1,6 @@
 import { RouteTopologyMap, type RouteTopologyEdge, type RouteTopologyNode } from "@/shared/visualizations/RouteTopologyMap";
 import { BodyCopy, Panel, Spinner } from "@netstamp/ui";
+import { useTranslation } from "react-i18next";
 
 interface GroupTopologyPanelProps {
 	title: string;
@@ -9,6 +10,7 @@ interface GroupTopologyPanelProps {
 }
 
 export function GroupTopologyPanel({ title, nodes, edges, isLoading }: GroupTopologyPanelProps) {
+	const { t } = useTranslation("insight");
 	const hasTopology = nodes.length > 0 && edges.length > 0;
 
 	return (
@@ -16,9 +18,9 @@ export function GroupTopologyPanel({ title, nodes, edges, isLoading }: GroupTopo
 			{hasTopology ? (
 				<RouteTopologyMap nodes={nodes} edges={edges} />
 			) : isLoading ? (
-				<Spinner label="Loading route graph" layout="panel" size="lg" />
+				<Spinner label={t("panel.loadingRouteGraph")} layout="panel" size="lg" />
 			) : (
-				<BodyCopy>No traceroute topology is available for the selected scope and time range.</BodyCopy>
+				<BodyCopy>{t("panel.noTopology")}</BodyCopy>
 			)}
 		</Panel>
 	);

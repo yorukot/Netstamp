@@ -1,4 +1,4 @@
-import { docsPages } from "../data/docs";
+import { getDocsPages } from "../data/docs";
 import { absoluteUrl, resolveSiteUrl } from "../lib/seo";
 
 export const prerender = true;
@@ -11,8 +11,11 @@ interface SitemapRoute {
 
 const staticRoutes: SitemapRoute[] = [
 	{ path: "/", changefreq: "weekly", priority: "1.0" },
+	{ path: "/zh-TW/", changefreq: "weekly", priority: "0.9" },
 	{ path: "/docs/", changefreq: "weekly", priority: "0.8" },
-	{ path: "/openapi/", changefreq: "weekly", priority: "0.7" }
+	{ path: "/zh-TW/docs/", changefreq: "weekly", priority: "0.8" },
+	{ path: "/openapi/", changefreq: "weekly", priority: "0.7" },
+	{ path: "/zh-TW/openapi/", changefreq: "weekly", priority: "0.7" }
 ];
 
 function escapeXml(value: string) {
@@ -35,7 +38,7 @@ export function GET({ site }: { site?: URL }) {
 		routes.set(route.path, route);
 	}
 
-	for (const page of docsPages) {
+	for (const page of [...getDocsPages("en"), ...getDocsPages("zh-TW")]) {
 		if (!routes.has(page.href)) {
 			routes.set(page.href, routeForDoc(page.href));
 		}

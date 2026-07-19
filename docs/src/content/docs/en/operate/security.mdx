@@ -1,0 +1,75 @@
+---
+title: Security hardening
+description: Harden a Netstamp deployment, protect secrets and probes, minimize published data, and respond to credential exposure.
+icon: shield
+navSection: operate
+navOrder: 30
+---
+
+Netstamp handles monitoring targets, network location, user identities, probe credentials, notification secrets, and long-lived time-series data. Treat the controller as production infrastructure.
+
+## Deployment boundary
+
+- Expose only the HTTPS reverse proxy.
+- Keep PostgreSQL on a private Docker or host network.
+- Restrict controller access with firewall and identity policy appropriate to the deployment.
+- Set exact trusted-proxy CIDRs.
+- Keep the host, Docker, proxy, database image, and Netstamp image patched.
+- Monitor health and resource exhaustion.
+
+## Secret inventory
+
+Protect and back up:
+
+- database password;
+- log pseudonym key;
+- system-settings encryption key;
+- session hash key;
+- API-token hash key;
+- OAuth/OIDC client secrets;
+- SMTP password;
+- probe secrets;
+- personal API tokens;
+- webhook URLs and Telegram bot tokens.
+
+Use independent random values. Store `.env` with restrictive permissions and do not commit it. Avoid passing secrets through shell history or logs.
+
+## Authentication
+
+- Bootstrap the first administrator from a trusted network.
+- Add a second administrator for recovery.
+- Disable open registration when it is unnecessary.
+- Require email verification only after SMTP is proven reliable.
+- Keep external-provider JIT provisioning off unless the provider's population is an intentional trust boundary.
+- Review active sessions and linked identities.
+- Set practical API-token expirations and minimal scopes.
+
+## Probe trust
+
+Each probe gets a unique credential. Never clone `/etc/netstamp/probe.env` to another probe. Rotate after host rebuilds, transfers, suspected exposure, or accidental logging. Disable probes that should temporarily stop receiving work.
+
+The systemd unit limits privileges but still grants raw-network capability for ICMP. Keep the agent binary and root-owned configuration writable only by administrators.
+
+## HTTP check secrets
+
+HTTP headers, bodies, query values, and response assertions may contain credentials or sensitive data. Use purpose-built least-privilege tokens. Do not monitor endpoints with production user credentials. Review who has editor access because users who can manage checks can access sensitive configuration.
+
+## Public status privacy
+
+Status pages are unauthenticated. Review targets, probe names, coordinates, incident summaries, banner URLs, footer text, and custom CSS. Prefer coarse location names when exact coordinates are unnecessary.
+
+## Response to exposure
+
+| Exposed value               | Immediate action                                                                                             |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Session                     | Revoke the session or all sessions                                                                           |
+| API token                   | Create replacement, update consumer, revoke old token                                                        |
+| Probe secret                | Rotate in the probe detail view and reinstall service credentials                                            |
+| OAuth/OIDC secret           | Rotate at provider and update controller configuration                                                       |
+| Webhook/bot/SMTP credential | Rotate at destination and replace stored notification/settings value                                         |
+| Database password           | Restrict access, rotate database and controller value together                                               |
+| Hash/encryption key         | Assess invalidation/data-recovery impact before rotation; restore through a controlled maintenance procedure |
+
+## Vulnerability reports
+
+Do not publish exploit details, secrets, or personal data in a public issue. Follow the repository [security policy](https://github.com/yorukot/netstamp/blob/main/SECURITY.md) and use GitHub private vulnerability reporting when available.

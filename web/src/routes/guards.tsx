@@ -6,6 +6,7 @@ import { appFeatures } from "@/shared/config/features";
 import { Spinner } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Outlet, Navigate as RouterNavigate, useLocation, useParams } from "react-router-dom";
 import { AuthPage, DashboardPage, ForgotPasswordPage, OnboardingPage, ResetPasswordPage, VerifyEmailPage } from "./lazyRoutes";
 import { useRouteNavigate } from "./navigation";
@@ -17,16 +18,18 @@ interface AuthRouteProps {
 	mode: "login" | "register";
 }
 
-function routeSpinner(label: string) {
-	return <Spinner label={label} layout="page" size="lg" />;
-}
+const RouteSpinner = ({ labelKey }: { labelKey: "loadingProject" | "loadingProjects" | "loadingSession" }) => {
+	const { t } = useTranslation("navigation");
+
+	return <Spinner label={t(labelKey)} layout="page" size="lg" />;
+};
 
 export function AuthRoute({ mode }: AuthRouteProps) {
 	const { loading, session } = useSession();
 	const navigate = useRouteNavigate();
 
 	if (loading) {
-		return routeSpinner("Loading session");
+		return <RouteSpinner labelKey="loadingSession" />;
 	}
 
 	if (session) {
@@ -45,7 +48,7 @@ export function PasswordResetRoute({ mode }: { mode: "forgot" | "reset" }) {
 	const navigate = useRouteNavigate();
 
 	if (loading) {
-		return routeSpinner("Loading session");
+		return <RouteSpinner labelKey="loadingSession" />;
 	}
 
 	if (session) {
@@ -60,7 +63,7 @@ export function EmailVerificationRoute() {
 	const navigate = useRouteNavigate();
 
 	if (loading) {
-		return routeSpinner("Loading session");
+		return <RouteSpinner labelKey="loadingSession" />;
 	}
 
 	if (session) {
@@ -76,7 +79,7 @@ export function OnboardingRoute() {
 	const navigate = useRouteNavigate();
 
 	if (loading) {
-		return routeSpinner("Loading session");
+		return <RouteSpinner labelKey="loadingSession" />;
 	}
 
 	if (!session) {
@@ -95,7 +98,7 @@ export function ProtectedAppShell() {
 	const location = useLocation();
 
 	if (loading) {
-		return routeSpinner("Loading session");
+		return <RouteSpinner labelKey="loadingSession" />;
 	}
 
 	if (!session) {
@@ -109,7 +112,7 @@ function ProjectAppShell() {
 	const { projectRef, projectsQuery } = useCurrentProject();
 
 	if (projectsQuery.isPending) {
-		return routeSpinner("Loading projects");
+		return <RouteSpinner labelKey="loadingProjects" />;
 	}
 
 	if (projectsQuery.isSuccess && !projectRef) {
@@ -137,7 +140,7 @@ export function ProjectRouteBoundary() {
 	}
 
 	if (projectsQuery.isPending) {
-		return routeSpinner("Loading projects");
+		return <RouteSpinner labelKey="loadingProjects" />;
 	}
 
 	if (projectsQuery.isSuccess && !matchedProject) {
@@ -152,7 +155,7 @@ export function ProjectRouteBoundary() {
 	}
 
 	if (selectedProjectRef !== projectRef) {
-		return routeSpinner("Loading project");
+		return <RouteSpinner labelKey="loadingProject" />;
 	}
 
 	return <Outlet />;

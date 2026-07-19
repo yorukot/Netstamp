@@ -11052,11 +11052,7 @@
 						}
 					},
 					"oidc": {
-						"allOf": [
-							{
-								"$ref": "#/components/schemas/AuthOIDCMethod"
-							}
-						],
+						"$ref": "#/components/schemas/AuthOIDCMethod",
 						"description": "Deprecated generic OIDC method metadata. Use providers instead."
 					}
 				}
@@ -11090,11 +11086,7 @@
 				"required": ["id", "userAgent", "createdAt", "lastUsedAt", "idleExpiresAt", "absoluteExpiresAt", "authenticatedAt", "authenticationMethod", "isCurrent"],
 				"properties": {
 					"id": {
-						"allOf": [
-							{
-								"$ref": "#/components/schemas/uuid"
-							}
-						],
+						"$ref": "#/components/schemas/uuid",
 						"description": "Server-side auth session UUID."
 					},
 					"userAgent": {
@@ -11231,11 +11223,7 @@
 				"required": ["newEmail"],
 				"properties": {
 					"newEmail": {
-						"allOf": [
-							{
-								"$ref": "#/components/schemas/email"
-							}
-						],
+						"$ref": "#/components/schemas/email",
 						"description": "New normalized email address to use for sign-in."
 					}
 				},
@@ -11699,11 +11687,7 @@
 				"required": ["email"],
 				"properties": {
 					"email": {
-						"allOf": [
-							{
-								"$ref": "#/components/schemas/email"
-							}
-						],
+						"$ref": "#/components/schemas/email",
 						"description": "Email address for the account that should receive a new verification link."
 					}
 				},
@@ -11787,11 +11771,7 @@
 				"required": ["email"],
 				"properties": {
 					"email": {
-						"allOf": [
-							{
-								"$ref": "#/components/schemas/email"
-							}
-						],
+						"$ref": "#/components/schemas/email",
 						"description": "Email address for the account that should receive a password reset link."
 					}
 				},
@@ -12150,11 +12130,7 @@
 				"required": ["email"],
 				"properties": {
 					"email": {
-						"allOf": [
-							{
-								"$ref": "#/components/schemas/email"
-							}
-						],
+						"$ref": "#/components/schemas/email",
 						"description": "Existing user email to grant instance-level administrator access."
 					}
 				},
@@ -12808,11 +12784,7 @@
 				"required": ["email", "password"],
 				"properties": {
 					"email": {
-						"allOf": [
-							{
-								"$ref": "#/components/schemas/email"
-							}
-						],
+						"$ref": "#/components/schemas/email",
 						"description": "Email address used to sign in. It is normalized before lookup."
 					},
 					"password": {
@@ -12835,19 +12807,11 @@
 				"required": ["id", "email", "displayName", "emailVerified", "isSystemAdmin", "hasPassword", "createdAt", "updatedAt"],
 				"properties": {
 					"id": {
-						"allOf": [
-							{
-								"$ref": "#/components/schemas/uuid"
-							}
-						],
+						"$ref": "#/components/schemas/uuid",
 						"description": "User UUID."
 					},
 					"email": {
-						"allOf": [
-							{
-								"$ref": "#/components/schemas/email"
-							}
-						],
+						"$ref": "#/components/schemas/email",
 						"description": "Normalized email address used to sign in."
 					},
 					"displayName": {
@@ -14974,11 +14938,7 @@
 				"required": ["email", "displayName", "password"],
 				"properties": {
 					"email": {
-						"allOf": [
-							{
-								"$ref": "#/components/schemas/email"
-							}
-						],
+						"$ref": "#/components/schemas/email",
 						"description": "Email address used to sign in."
 					},
 					"displayName": {
@@ -15303,11 +15263,7 @@
 				"type": "object",
 				"properties": {
 					"selector": {
-						"allOf": [
-							{
-								"$ref": "#/components/schemas/Selector"
-							}
-						],
+						"$ref": "#/components/schemas/Selector",
 						"description": "Selector AST to validate and preview against active project probes. Empty or omitted selectors match all probes."
 					}
 				},
@@ -15328,11 +15284,7 @@
 				"required": ["selector", "matchedCount", "probes"],
 				"properties": {
 					"selector": {
-						"allOf": [
-							{
-								"$ref": "#/components/schemas/Selector"
-							}
-						],
+						"$ref": "#/components/schemas/Selector",
 						"description": "Backend-canonical selector AST."
 					},
 					"matchedCount": {
@@ -15552,19 +15504,11 @@
 				"required": ["id", "email", "displayName", "emailVerified", "grantedAt"],
 				"properties": {
 					"id": {
-						"allOf": [
-							{
-								"$ref": "#/components/schemas/uuid"
-							}
-						],
+						"$ref": "#/components/schemas/uuid",
 						"description": "User UUID."
 					},
 					"email": {
-						"allOf": [
-							{
-								"$ref": "#/components/schemas/email"
-							}
-						],
+						"$ref": "#/components/schemas/email",
 						"description": "Normalized email address used to sign in."
 					},
 					"displayName": {
@@ -17084,19 +17028,11 @@
 				"required": ["id", "email", "displayName", "emailVerified", "isSystemAdmin", "hasPassword"],
 				"properties": {
 					"id": {
-						"allOf": [
-							{
-								"$ref": "#/components/schemas/uuid"
-							}
-						],
+						"$ref": "#/components/schemas/uuid",
 						"description": "User UUID."
 					},
 					"email": {
-						"allOf": [
-							{
-								"$ref": "#/components/schemas/email"
-							}
-						],
+						"$ref": "#/components/schemas/email",
 						"description": "Normalized email address used to sign in."
 					},
 					"displayName": {

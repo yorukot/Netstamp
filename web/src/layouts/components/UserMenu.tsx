@@ -1,4 +1,5 @@
 import type { SessionUser } from "@/features/auth/services/authService";
+import { LanguageSwitcher } from "@/i18n/LanguageSwitcher";
 import { pathForRoute } from "@/routes/routePaths";
 import { useTheme } from "@/shared/theme/useTheme";
 import { classNames } from "@/shared/utils/classNames";
@@ -8,6 +9,7 @@ import { MoonStarsIcon } from "@phosphor-icons/react/dist/csr/MoonStars";
 import { SignOutIcon } from "@phosphor-icons/react/dist/csr/SignOut";
 import { SunIcon } from "@phosphor-icons/react/dist/csr/Sun";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import styles from "./UserMenu.module.css";
 
@@ -23,28 +25,29 @@ interface UserMenuPanelProps extends UserMenuProps {
 }
 
 export function UserMenu({ user, collapsed = false, onLogout }: UserMenuProps) {
+	const { t } = useTranslation(["navigation", "project"]);
 	const [profileOpen, setProfileOpen] = useState(false);
 
-	function closeMenus() {
+	const closeMenus = () => {
 		setProfileOpen(false);
-	}
+	};
 
-	function logout() {
+	const logout = () => {
 		closeMenus();
 		onLogout();
-	}
+	};
 
 	const content = <UserMenuContent onClose={closeMenus} onLogout={logout} />;
 
 	return (
 		<PopoverRoot open={profileOpen} onOpenChange={setProfileOpen}>
 			<PopoverTrigger asChild>
-				<button type="button" className={classNames(styles.userCard, collapsed && styles.userCardCollapsed)} aria-label={`Open user menu for ${user.name}`} title={user.name}>
+				<button type="button" className={classNames(styles.userCard, collapsed && styles.userCardCollapsed)} aria-label={t("navigation:openUserMenu", { name: user.name })} title={user.name}>
 					<div className={styles.userProfile}>
 						<SignalAvatar className={styles.userAvatar} size="sm" src={user.gravatarUrl} referrerPolicy="no-referrer" aria-hidden="true" />
 						<div className={styles.userMeta}>
 							<strong>{user.name}</strong>
-							<span>{user.role}</span>
+							<span>{user.isSystemAdmin ? t("project:roles.globalAdmin") : t("project:roles.user")}</span>
 						</div>
 					</div>
 				</button>
@@ -60,26 +63,28 @@ export function UserMenu({ user, collapsed = false, onLogout }: UserMenuProps) {
 }
 
 export function UserMenuPanel({ onLogout, className, onClose }: UserMenuPanelProps) {
-	function closePanel() {
+	const { t } = useTranslation("navigation");
+	const closePanel = () => {
 		onClose?.();
-	}
+	};
 
-	function logout() {
+	const logout = () => {
 		closePanel();
 		onLogout();
-	}
+	};
 
 	return (
-		<section className={classNames(styles.mobileDrawerUserPanel, className)} aria-label="User menu">
+		<section className={classNames(styles.mobileDrawerUserPanel, className)} aria-label={t("userMenu")}>
 			<UserMenuContent onClose={closePanel} onLogout={logout} />
 		</section>
 	);
 }
 
 function UserMenuContent({ onClose, onLogout }: { onClose: () => void; onLogout: () => void }) {
+	const { t } = useTranslation(["navigation", "common"]);
 	const { theme, toggleTheme } = useTheme();
 	const ThemeIcon = theme === "dark" ? SunIcon : MoonStarsIcon;
-	const themeToggleLabel = theme === "dark" ? "Switch to light mode" : "Switch to dark mode";
+	const themeToggleLabel = theme === "dark" ? t("common:theme.switchToLight") : t("common:theme.switchToDark");
 
 	function switchTheme() {
 		toggleTheme();
@@ -90,15 +95,16 @@ function UserMenuContent({ onClose, onLogout }: { onClose: () => void; onLogout:
 		<div className={styles.userPopoverActions}>
 			<Link className={styles.userPopoverAction} to={pathForRoute("accountSettings")} onClick={onClose}>
 				<GearSixIcon size={18} weight="bold" aria-hidden="true" focusable="false" />
-				<span>Settings</span>
+				<span>{t("navigation:settings")}</span>
 			</Link>
+			<LanguageSwitcher className={styles.userPopoverAction} onChange={onClose} />
 			<button type="button" className={styles.userPopoverAction} aria-label={themeToggleLabel} title={themeToggleLabel} aria-pressed={theme === "light"} onClick={switchTheme}>
 				<ThemeIcon size={18} weight="bold" aria-hidden="true" focusable="false" />
-				<span>{theme === "dark" ? "Light mode" : "Dark mode"}</span>
+				<span>{theme === "dark" ? t("common:theme.lightMode") : t("common:theme.darkMode")}</span>
 			</button>
 			<button type="button" className={styles.userPopoverAction} onClick={onLogout}>
 				<SignOutIcon size={18} weight="bold" aria-hidden="true" focusable="false" />
-				<span>Logout</span>
+				<span>{t("navigation:logout")}</span>
 			</button>
 		</div>
 	);

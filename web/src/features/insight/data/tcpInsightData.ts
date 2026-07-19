@@ -1,19 +1,5 @@
-import type { TcpInsightResponse, TcpSeriesKey, TcpSeriesResponse } from "@/shared/api/types";
-import { formatCount, formatMs, formatPercent } from "@/shared/utils/insightFormatters";
-import type { SummaryMetric } from "@/shared/utils/insightTypes";
+import type { TcpSeriesKey, TcpSeriesResponse } from "@/shared/api/types";
 import type { PingSeriesPoint, TcpSeriesChartData } from "@/shared/visualizations/chartOptions";
-
-export function tcpSummaryMetrics(data: TcpInsightResponse | undefined): SummaryMetric[] {
-	const summary = data?.summary;
-
-	return [
-		{ label: "Average", value: formatMs(summary?.averageConnectMs), detail: "connect avg" },
-		{ label: "Max", value: formatMs(summary?.maxConnectMs), detail: "connect max" },
-		{ label: "Failure", value: formatPercent(summary?.failurePercent), detail: "timeout + error" },
-		{ label: "Success", value: formatPercent(summary?.successRate), detail: "successful" },
-		{ label: "Samples", value: formatCount(summary?.samples), detail: "connect attempts" }
-	];
-}
 
 function seriesPoints(data: TcpSeriesResponse | undefined, key: TcpSeriesKey): PingSeriesPoint[] {
 	return (data?.series[key]?.points ?? []).filter((point): point is PingSeriesPoint => {

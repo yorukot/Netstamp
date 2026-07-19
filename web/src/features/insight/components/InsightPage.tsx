@@ -29,6 +29,7 @@ import { BodyCopy, Button, Panel, Spinner } from "@netstamp/ui";
 import { ArrowRightIcon } from "@phosphor-icons/react/dist/csr/ArrowRight";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 import styles from "./InsightPage.module.css";
 
@@ -127,6 +128,7 @@ function InsightPairDetail({
 }
 
 export function InsightPage() {
+	const { t } = useTranslation("insight");
 	const { projectRef } = useCurrentProject();
 	const queryClient = useQueryClient();
 	const [searchParams, setSearchParams] = useSearchParams();
@@ -456,28 +458,28 @@ export function InsightPage() {
 	}
 
 	const scopeTitle = hasInvalidFocus
-		? "Invalid scope"
+		? t("invalidScope")
 		: selectedPairs.length > 1
-			? `${formatCount(selectedPairs.length)} selected assignments`
+			? t("selectedAssignments", { count: formatCount(selectedPairs.length) })
 			: exactPair
 				? `${exactPair.probe.name} -> ${exactPair.check.target}`
 				: selectedProbe && selectedCheck
-					? "No active assignment"
+					? t("noActiveAssignment")
 					: selectedProbe
 						? selectedProbe.name
 						: selectedCheck
 							? selectedCheck.target
 							: hasResultScope
-								? "No active assignment"
-								: "Select scope";
+								? t("noActiveAssignment")
+								: t("selectScope");
 	const groupTopologyTitle =
 		topologyProbe && topologyCheck
-			? `${topologyProbe.name} -> ${topologyCheck.target} route graph`
+			? t("routeGraphPair", { probe: topologyProbe.name, target: topologyCheck.target })
 			: topologyProbe
-				? `${topologyProbe.name} route graph`
+				? t("routeGraphProbe", { probe: topologyProbe.name })
 				: topologyCheck
-					? `${topologyCheck.target} route graph`
-					: "Selected route graph";
+					? t("routeGraphCheck", { target: topologyCheck.target })
+					: t("selectedRouteGraph");
 	const pairDetail = (
 		<InsightPairDetail
 			pair={exactPair}
@@ -543,14 +545,14 @@ export function InsightPage() {
 
 	return (
 		<PageStack>
-			<ScreenHeader title="Insight" />
+			<ScreenHeader title={t("title")} />
 
 			<Panel
 				tone="glass"
 				title={scopeTitle}
 				actions={
 					<Button variant="outline" size="sm" disabled={!hasResultScope && !hasInvalidFocus} onClick={resetScope}>
-						Reset scope
+						{t("resetScope")}
 					</Button>
 				}
 			>
@@ -577,16 +579,16 @@ export function InsightPage() {
 			</Panel>
 
 			{isSelectionLoading && !pairs.length ? (
-				<Panel tone="deep" title="Active paths">
-					<Spinner label="Loading active paths" layout="compact" size="lg" />
+				<Panel tone="deep" title={t("activePaths")}>
+					<Spinner label={t("loadingActivePaths")} layout="compact" size="lg" />
 				</Panel>
 			) : !pairs.length ? (
-				<Panel tone="deep" title="No active paths">
-					<BodyCopy>Create or refresh check assignments before opening result insight.</BodyCopy>
+				<Panel tone="deep" title={t("noActivePaths")}>
+					<BodyCopy>{t("noActivePathsDescription")}</BodyCopy>
 				</Panel>
 			) : hasInvalidFocus ? (
-				<Panel tone="deep" title="The shared scope is no longer valid">
-					<BodyCopy>Reset the scope to return to active probes and checks.</BodyCopy>
+				<Panel tone="deep" title={t("invalidSharedScope")}>
+					<BodyCopy>{t("invalidSharedScopeDescription")}</BodyCopy>
 				</Panel>
 			) : !hasResultScope ? null : (
 				<>

@@ -1,0 +1,33 @@
+---
+title: UI System
+description: Shared UI primitives define the spec-docs product language across docs, Storybook, API reference, and the authenticated app.
+icon: cube
+navSection: development
+navOrder: 20
+head:
+  - tag: title
+    content: UI System | Netstamp Docs
+---
+
+## Tokens
+
+`@netstamp/ui/styles` defines fonts, the default dark palette, the optional light palette, frame borders, scrollbars, focus behavior, and compatibility utility classes. Import it once at each app root or Astro layout.
+
+```ts
+import "@netstamp/ui/styles";
+import { Button, Panel, MetricCard } from "@netstamp/ui";
+```
+
+## Components
+
+The package exports primitives such as `Button`, `Badge`, `Surface`, `Panel`, `MetricCard`, `MetricTile`, `SpecCard`, `SpecLabel`, `SelectableRow`, `KeyValueRow`, `CodeBlock`, `Field`, `DataTable`, `SignalAvatar`, `PageShell`, and `GlobalFooter`.
+
+:::note Astro pages stay static by default. React is only hydrated for pages that need actual React components or landing-page browser effects. :::
+
+## Interaction Frames
+
+Interactive components use one visible frame at a time. Hover and active states use token borders; keyboard focus uses `--ns-focus-outline` and suppresses the component border where needed so buttons, inputs, tabs, searchable selects, and spec rows do not show stacked borders when selected or focused.
+
+## Storybook
+
+The component catalog is built with Storybook and published with the docs site at [`/storybook/`](/storybook/). It includes foundations, component specs, form states, overlay examples, and operational workspace patterns. Run it locally with `pnpm --filter @netstamp/ui storybook`.

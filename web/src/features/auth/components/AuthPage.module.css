@@ -53,6 +53,13 @@
 	padding: clamp(1.5rem, 3vw, 3rem);
 }
 
+.authTopBar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+}
+
 .brandLink {
 	display: inline-flex;
 	align-items: center;
@@ -69,6 +76,37 @@
 	display: block;
 	width: 9.5rem;
 	height: auto;
+}
+
+.authLanguageSwitcher {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	min-height: 2.5rem;
+	border: 1px solid var(--ns-border-faint);
+	background: transparent;
+	padding: 0.5rem 0.75rem;
+	color: var(--ns-text-subtle);
+	cursor: pointer;
+	font: inherit;
+	font-size: 0.8125rem;
+	font-weight: 650;
+}
+
+.authLanguageSwitcher:hover {
+	border-color: var(--ns-border-strong);
+	color: var(--ns-text);
+}
+
+.authLanguageSwitcher:focus-visible {
+	outline: var(--ns-focus-outline);
+	outline-offset: var(--ns-focus-outline-offset);
+}
+
+.authLanguageSwitcher svg {
+	flex: 0 0 auto;
+	color: var(--ns-primary);
 }
 
 .authCard {

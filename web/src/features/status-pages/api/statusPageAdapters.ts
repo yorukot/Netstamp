@@ -1,18 +1,22 @@
+import { i18n } from "@/i18n";
+import { formatDateTime as formatLocaleDateTime } from "@/i18n/format";
 import type { ApiPublicStatusPublicElement, ApiSeries, PublicStatusState } from "@/shared/api/types";
 import type { ChartOption } from "@/shared/visualizations/chartOptions";
 import { chartAxisLabel, chartTheme, chartTooltipTextStyle } from "@/shared/visualizations/chartTheme";
 import type { BadgeTone } from "@netstamp/ui";
 
+const statusT = i18n.getFixedT(null, "status") as (key: string, options?: Record<string, unknown>) => string;
+
 export function statusLabel(status: PublicStatusState | string | undefined) {
 	switch (status) {
 		case "operational":
-			return "Operational";
+			return statusT("states.operational");
 		case "degraded":
-			return "Degraded";
+			return statusT("states.degraded");
 		case "down":
-			return "Down";
+			return statusT("states.down");
 		default:
-			return "Unknown";
+			return statusT("states.unknown");
 	}
 }
 
@@ -53,7 +57,7 @@ export function checkTypeLabel(type: string | undefined) {
 		case "ping":
 			return "Ping";
 		default:
-			return "Check";
+			return statusT("types.check");
 	}
 }
 
@@ -67,7 +71,7 @@ export function formatDateTime(value?: string | null) {
 		return "-";
 	}
 
-	return date.toLocaleString([], {
+	return formatLocaleDateTime(date, {
 		month: "short",
 		day: "2-digit",
 		hour: "2-digit",

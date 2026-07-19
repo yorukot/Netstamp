@@ -1,30 +1,13 @@
 ---
-const steps = [
-	{
-		number: "01",
-		title: "Bind your machines",
-		visual: "machines"
-	},
-	{
-		number: "02",
-		title: "Define assignments",
-		visual: "assignments"
-	},
-	{
-		number: "03",
-		title: "View Insights",
-		visual: "insights"
-	},
-	{
-		number: "04",
-		title: "Get notified before users notice",
-		visual: "incidents"
-	}
-];
+import { uiForLocale } from "../../../i18n/ui";
+
+const ui = uiForLocale(Astro.currentLocale);
+const visuals = ["machines", "assignments", "insights", "incidents"] as const;
+const steps = ui.home.flowSteps.map((title, index) => ({ number: String(index + 1).padStart(2, "0"), title, visual: visuals[index] }));
 ---
 
 <section id="scroll-flow" class="flow" data-scroll-progress="flow" aria-labelledby="flow-title">
-	<h2 id="flow-title">From real probes to real incidents.</h2>
+	<h2 id="flow-title">{ui.home.flowTitle}</h2>
 	<ol class="flow-list">
 		{
 			steps.map(step => (

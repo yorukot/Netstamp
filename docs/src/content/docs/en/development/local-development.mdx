@@ -1,0 +1,145 @@
+---
+title: Local development
+description: Set up the Netstamp workspace, run each application surface, regenerate contracts, and use focused validation commands.
+icon: code
+navSection: development
+navOrder: 0
+head:
+  - tag: title
+    content: Local Development | Netstamp Docs
+---
+
+Netstamp is a pnpm workspace with a Go controller and probe agent, a TypeSpec API contract, a React/Vite application, a shared React UI package, and an Astro documentation site.
+
+## Prerequisites
+
+Install:
+
+- Node.js 22.12 or newer;
+- pnpm 11.9;
+- Go 1.26 for controller or probe-agent work;
+- [`just`](https://github.com/casey/just) for the repository task commands;
+- Docker when you need PostgreSQL, TimescaleDB, or the complete self-host stack.
+
+Clone the repository and install workspace dependencies:
+
+```bash
+git clone https://github.com/yorukot/netstamp.git
+cd netstamp
+pnpm install
+```
+
+The install step also configures the repository's Git hooks.
+
+## Start PostgreSQL For Controller Development
+
+The controller needs PostgreSQL with the TimescaleDB extension. One local option is to start only the database service from the deployment Compose file:
+
+```bash
+cp deployments/docker/example.env deployments/docker/.env
+docker compose --env-file deployments/docker/.env \
+  -f deployments/docker/compose.yaml up -d postgres
+```
+
+Copy the controller environment template:
+
+```bash
+cp server/.env.example server/.env
+```
+
+Set `DATABASE_PASSWORD` in `server/.env` to the same value used by `deployments/docker/.env`, then apply migrations:
+
+```bash
+just backend-migrate-up
+```
+
+Both environment files are local configuration. Do not commit populated environment files or production credentials.
+
+## Run The Controller And Web App
+
+Start the Go controller with Air hot reload:
+
+```bash
+just dev
+```
+
+The default controller listens on `http://localhost:8080`. In another terminal, start Vite:
+
+```bash
+just web-dev
+```
+
+Vite proxies `/api` to `http://localhost:8080` by default. Set `VITE_NETSTAMP_API_PROXY_TARGET` if your controller uses another origin.
+
+The first account successfully registered on a new database becomes a system administrator. This bootstrap rule is only for an empty instance; system administrator access is separate from project membership.
+
+## Run Docs And Storybook
+
+Start the Astro documentation site:
+
+```bash
+just docs-dev
+```
+
+Start the shared component catalog separately when working on `@netstamp/ui`:
+
+```bash
+pnpm dev:storybook
+```
+
+The production docs build generates a static Storybook site before Astro builds. Avoid committing generated preview or screenshot artifacts unless the repository explicitly treats them as source.
+
+## Build And Test By Area
+
+Use focused commands while iterating:
+
+```bash
+pnpm --filter @netstamp/web typecheck
+pnpm --filter @netstamp/web lint
+pnpm --filter @netstamp/web test
+pnpm --filter @netstamp/web build
+
+pnpm --filter @netstamp/docs build
+pnpm --filter @netstamp/ui build
+
+just backend-test
+just backend-lint
+just backend-build
+```
+
+Repository-wide entry points are:
+
+```bash
+just lint
+just test
+just build
+```
+
+## Change The API Contract
+
+TypeSpec under `api/` is the source of truth for the HTTP contract. After changing it, regenerate every checked-in consumer artifact:
+
+```bash
+pnpm generate:openapi
+```
+
+That command refreshes the public OpenAPI document, the controller's embedded copy, and the web app's generated TypeScript declarations. Do not edit those generated files by hand.
+
+## Change User-Visible Text
+
+English UI resources and English MDX are translation sources. Add semantic translation keys instead of embedding new English prose directly in React components, then run:
+
+```bash
+pnpm check:i18n
+pnpm test:i18n
+pnpm test:web
+pnpm test:docs:i18n
+```
+
+Read [Translating Netstamp](/docs/guides/translating/) before changing localized content. It explains which files Crowdin manages and which technical tokens must remain unchanged.
+
+## Follow Area Guides
+
+Before editing, read the closest `AGENTS.md` in the repository. Backend, API, web, shared UI, and docs work have different source-of-truth and validation rules. Visible UI work must also follow `design.md`.
+
+For branch names, commits, pull requests, and the full review checklist, continue to [Contributing](/docs/development/contributing/).

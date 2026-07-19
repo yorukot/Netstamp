@@ -3,6 +3,7 @@ import { Spinner } from "@netstamp/ui";
 import type { Map as MapLibreMap, Marker as MapLibreMarker, StyleSpecification } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import styles from "./NetworkMap.module.css";
 
 export interface NetworkMapMarker {
@@ -76,10 +77,10 @@ function setMarkerActive(element: HTMLElement, active: boolean) {
 	element.dataset.active = String(active);
 }
 
-function updateMarkerElement(element: HTMLButtonElement, probe: NetworkMapMarker, mode: "fleet" | "detail", clickable: boolean) {
+function updateMarkerElement(element: HTMLButtonElement, probe: NetworkMapMarker, mode: "fleet" | "detail", clickable: boolean, ariaLabel: string) {
 	element.dataset.mode = mode;
 	element.dataset.clickable = String(clickable);
-	element.setAttribute("aria-label", `Select probe ${probe.name}`);
+	element.setAttribute("aria-label", ariaLabel);
 
 	if (probe.status) {
 		element.dataset.status = probe.status.toLowerCase();
@@ -94,7 +95,7 @@ function updateMarkerElement(element: HTMLButtonElement, probe: NetworkMapMarker
 	}
 }
 
-function createMarkerElement(probe: NetworkMapMarker, mode: "fleet" | "detail", clickable: boolean, onSelect: (probeId: string) => void) {
+function createMarkerElement(probe: NetworkMapMarker, mode: "fleet" | "detail", clickable: boolean, ariaLabel: string, onSelect: (probeId: string) => void) {
 	const markerEl = document.createElement("button");
 	markerEl.type = "button";
 	markerEl.className = styles.marker;
@@ -117,7 +118,7 @@ function createMarkerElement(probe: NetworkMapMarker, mode: "fleet" | "detail", 
 
 	markerEl.appendChild(labelEl);
 	markerEl.appendChild(squareEl);
-	updateMarkerElement(markerEl, probe, mode, clickable);
+	updateMarkerElement(markerEl, probe, mode, clickable, ariaLabel);
 
 	return markerEl;
 }
@@ -157,9 +158,10 @@ export function NetworkMap({
 	fleetFitPadding = defaultFleetFitPadding,
 	fleetMaxZoom = defaultFleetMaxZoom,
 	isLoading = false,
-	loadingLabel = "Loading map",
+	loadingLabel,
 	className
 }: NetworkMapProps) {
+	const { t } = useTranslation("common");
 	const { theme: appTheme } = useTheme();
 	const mapTheme = themeOverride ?? appTheme;
 	const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -312,14 +314,14 @@ export function NetworkMap({
 				const existing = existingMarkers.get(probe.id);
 
 				if (existing) {
-					updateMarkerElement(existing.element, probe, mode, markerClickable);
+					updateMarkerElement(existing.element, probe, mode, markerClickable, t("map.selectProbe", { name: probe.name }));
 					setMarkerActive(existing.element, probe.id === selectedIdRef.current);
 					existing.marker.setLngLat(probe.coordinates);
 					existingMarkers.delete(probe.id);
 					return existing;
 				}
 
-				const element = createMarkerElement(probe, mode, markerClickable, probeId => onSelectRef.current?.(probeId));
+				const element = createMarkerElement(probe, mode, markerClickable, t("map.selectProbe", { name: probe.name }), probeId => onSelectRef.current?.(probeId));
 				setMarkerActive(element, probe.id === selectedIdRef.current);
 
 				const marker = new activeMaplibregl.Marker({
@@ -337,7 +339,7 @@ export function NetworkMap({
 		}
 
 		renderMarkers();
-	}, [mapReady, markerClickable, mode, positionedProbes]);
+	}, [mapReady, markerClickable, mode, positionedProbes, t]);
 
 	useEffect(() => {
 		const map = mapRef.current;
@@ -400,7 +402,7 @@ export function NetworkMap({
 			{showLoadingOverlay ? (
 				<div className={styles.loadingOverlay}>
 					<div className={styles.loadingFrame}>
-						<Spinner label={loadingLabel} size="lg" />
+						<Spinner label={loadingLabel ?? t("map.loading")} size="lg" />
 					</div>
 				</div>
 			) : null}

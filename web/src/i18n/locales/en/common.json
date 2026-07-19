@@ -1,0 +1,109 @@
+{
+	"actions": {
+		"add": "Add",
+		"apply": "Apply",
+		"back": "Back",
+		"cancel": "Cancel",
+		"clear": "Clear",
+		"close": "Close",
+		"confirm": "Confirm",
+		"continue": "Continue",
+		"copy": "Copy",
+		"create": "Create",
+		"delete": "Delete",
+		"disable": "Disable",
+		"done": "Done",
+		"download": "Download",
+		"edit": "Edit",
+		"enable": "Enable",
+		"finish": "Finish",
+		"import": "Import",
+		"next": "Next",
+		"ok": "OK",
+		"open": "Open",
+		"remove": "Remove",
+		"reset": "Reset",
+		"retry": "Retry",
+		"revoke": "Revoke",
+		"save": "Save",
+		"saveChanges": "Save changes",
+		"saving": "Saving",
+		"search": "Search",
+		"test": "Test",
+		"update": "Update",
+		"upload": "Upload"
+	},
+	"a11y": {
+		"closePanel": "Close panel",
+		"closeDialog": "Close dialog",
+		"closeNotification": "Close notification",
+		"loading": "Loading",
+		"primaryNavigation": "Primary app navigation",
+		"primaryNavigationMenu": "Primary navigation menu"
+	},
+	"dialog": {
+		"actionRequired": "Action required",
+		"alertEyebrow": "Notice",
+		"authenticationRequired": "Authentication required",
+		"choiceEyebrow": "Choose an option",
+		"confirmAction": "Confirm action",
+		"confirmEyebrow": "Confirmation required",
+		"destructiveAction": "Destructive action",
+		"fillConfirmation": "Fill the confirmation input",
+		"promptEyebrow": "Input required",
+		"typeToConfirm": "Type <confirmation>{{value}}</confirmation> to confirm."
+	},
+	"demo": {
+		"description": "Read-only access. Mutating requests are blocked; you can only view project data.",
+		"title": "Demo mode"
+	},
+	"fields": {
+		"name": "Name",
+		"value": "Value"
+	},
+	"language": {
+		"label": "Language",
+		"switchTo": "Switch language to {{language}}"
+	},
+	"loading": {
+		"default": "Loading…",
+		"route": "Loading page…"
+	},
+	"map": {
+		"loading": "Loading map",
+		"selectProbe": "Select probe {{name}}"
+	},
+	"skipToContent": "Skip to content",
+	"states": {
+		"disabled": "Disabled",
+		"enabled": "Enabled",
+		"error": "Error",
+		"loading": "Loading",
+		"never": "Never",
+		"no": "No",
+		"none": "None",
+		"offline": "Offline",
+		"online": "Online",
+		"unknown": "Unknown",
+		"yes": "Yes"
+	},
+	"toast": {
+		"requestFailed": "Request failed"
+	},
+	"tracking": {
+		"accept": "Accept",
+		"ariaLabel": "Analytics consent",
+		"decline": "Decline",
+		"description": "Netstamp can load optional analytics to understand product and docs usage. Declining keeps those trackers disabled in this browser.",
+		"title": "Analytics consent"
+	},
+	"theme": {
+		"darkMode": "Dark mode",
+		"lightMode": "Light mode",
+		"switchToDark": "Switch to dark mode",
+		"switchToLight": "Switch to light mode"
+	},
+	"unsaved": {
+		"message": "Careful, you have unsaved changes."
+	}
+}

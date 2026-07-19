@@ -1,4 +1,5 @@
 import { useLayoutEffect, useMemo, useRef, type ChangeEvent, type KeyboardEvent, type ReactNode, type UIEvent } from "react";
+import { useTranslation } from "react-i18next";
 import styles from "./CssCodeEditor.module.css";
 
 interface CssCodeEditorProps {
@@ -52,6 +53,7 @@ function highlightedCSS(value: string) {
 }
 
 export function CssCodeEditor({ value, onChange }: CssCodeEditorProps) {
+	const { t } = useTranslation("status");
 	const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 	const highlightRef = useRef<HTMLPreElement | null>(null);
 	const pendingSelection = useRef<{ start: number; end: number } | null>(null);
@@ -133,7 +135,7 @@ export function CssCodeEditor({ value, onChange }: CssCodeEditorProps) {
 	return (
 		<div className={styles.field}>
 			<div className={styles.labelRow}>
-				<label htmlFor="status-page-custom-css">Custom CSS</label>
+				<label htmlFor="status-page-custom-css">{t("builder.customCss")}</label>
 				<span>CSS</span>
 			</div>
 			<div className={styles.editor}>

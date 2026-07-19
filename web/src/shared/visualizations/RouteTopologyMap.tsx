@@ -1,6 +1,10 @@
+import { i18n } from "@/i18n";
 import { useRef, useState, type CSSProperties } from "react";
+import { useTranslation } from "react-i18next";
 import styles from "./RouteTopologyMap.module.css";
 import { TopologyDetailCard, TopologyEdgeLayer, TopologyLegend, TopologyNodeLayer } from "./RouteTopologyMapParts";
+
+const insightT = i18n.getFixedT(null, "insight") as (key: string) => string;
 
 export type RouteTopologyNodeKind = "probe" | "hop" | "destination" | "unknown";
 type TopologySeverity = "normal" | "warning" | "critical";
@@ -391,13 +395,26 @@ function topologyNodeTitle(node: TopologyRouteNode) {
 	const primaryName = node.hostname || node.label;
 	const secondaryName = node.hostname && node.label !== node.hostname ? node.label : null;
 
-	return [primaryName, secondaryName, node.address, node.hopLabel, `seen ${formatCount(node.seenCount)}`, `avg ${formatMs(node.avgRttMs)}`, `loss ${formatPercent(node.lossPercent)}`]
+	return [
+		primaryName,
+		secondaryName,
+		node.address,
+		node.hopLabel,
+		`${insightT("map.seen")}: ${formatCount(node.seenCount)}`,
+		`${insightT("map.avgRtt")}: ${formatMs(node.avgRttMs)}`,
+		`${insightT("map.loss")}: ${formatPercent(node.lossPercent)}`
+	]
 		.filter(Boolean)
 		.join("\n");
 }
 
 function topologyEdgeTitle(edge: TopologyRouteEdge) {
-	return [`${edge.sourceLabel} -> ${edge.targetLabel}`, `seen ${formatCount(edge.seenCount)}`, `avg ${formatMs(edge.avgRttMs)}`, `loss ${formatPercent(edge.lossPercent)}`].join("\n");
+	return [
+		`${edge.sourceLabel} -> ${edge.targetLabel}`,
+		`${insightT("map.seen")}: ${formatCount(edge.seenCount)}`,
+		`${insightT("map.avgRtt")}: ${formatMs(edge.avgRttMs)}`,
+		`${insightT("map.loss")}: ${formatPercent(edge.lossPercent)}`
+	].join("\n");
 }
 
 function topologyAriaLabel(value: string) {
@@ -441,10 +458,10 @@ function topologyNodeDetail(node: TopologyRouteNode, layout: TopologyRouteLayout
 		placement: position.placement,
 		tone: topologyNodeDetailTone(node),
 		rows: [
-			...(node.address ? [{ label: "address", value: node.address }] : []),
-			{ label: "seen", value: formatCount(node.seenCount) },
-			{ label: "avg rtt", value: formatMs(node.avgRttMs) },
-			{ label: "loss", value: formatPercent(node.lossPercent) }
+			...(node.address ? [{ label: insightT("map.address"), value: node.address }] : []),
+			{ label: insightT("map.seen"), value: formatCount(node.seenCount) },
+			{ label: insightT("map.avgRtt"), value: formatMs(node.avgRttMs) },
+			{ label: insightT("map.loss"), value: formatPercent(node.lossPercent) }
 		]
 	};
 }
@@ -460,14 +477,15 @@ function topologyEdgeDetail(edge: TopologyRouteEdge, layout: TopologyRouteLayout
 		placement: position.placement,
 		tone: topologySeverity(edge.lossPercent, edge.avgRttMs),
 		rows: [
-			{ label: "seen", value: formatCount(edge.seenCount) },
-			{ label: "avg rtt", value: formatMs(edge.avgRttMs) },
-			{ label: "loss", value: formatPercent(edge.lossPercent) }
+			{ label: insightT("map.seen"), value: formatCount(edge.seenCount) },
+			{ label: insightT("map.avgRtt"), value: formatMs(edge.avgRttMs) },
+			{ label: insightT("map.loss"), value: formatPercent(edge.lossPercent) }
 		]
 	};
 }
 
 export function RouteTopologyMap({ nodes, edges }: { nodes: RouteTopologyNode[]; edges: RouteTopologyEdge[] }) {
+	const { t } = useTranslation("insight");
 	const shellRef = useRef<HTMLDivElement>(null);
 	const viewportRef = useRef<HTMLDivElement>(null);
 	const [activeDetail, setActiveDetail] = useState<TopologyHoverDetail | null>(null);
@@ -508,7 +526,7 @@ export function RouteTopologyMap({ nodes, edges }: { nodes: RouteTopologyNode[];
 			<TopologyLegend />
 			<div className={styles.topologyViewport} ref={viewportRef} onScroll={clearActiveDetail}>
 				<div className={styles.topologyMap} style={style}>
-					<svg className={styles.topologySvg} viewBox={`0 0 ${layout.viewWidth} ${layout.viewHeight}`} role="img" aria-label="Aggregated route topology">
+					<svg className={styles.topologySvg} viewBox={`0 0 ${layout.viewWidth} ${layout.viewHeight}`} role="img" aria-label={t("map.aggregatedTopology")}>
 						<TopologyEdgeLayer
 							edges={layout.edges}
 							activeDetail={activeDetail}
