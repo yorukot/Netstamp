@@ -1,0 +1,96 @@
+---
+title: 疑難排解
+description: 診斷控制器啟動、資料庫遷移、身分驗證、探測器、指派、檢查、警示、狀態頁與 API 問題。
+icon: wrench
+navSection: operate
+navOrder: 20
+---
+
+請沿著資料流由外往內排查。變更設定前，先記下時間、專案、探測器、檢查與請求識別碼。
+
+## 控制器無法啟動
+
+```bash
+docker compose ps
+docker compose logs postgres
+docker compose logs migrate
+docker compose logs --tail=300 netstamp
+```
+
+確認資料庫健康、`migrate` 的結束狀態為 0、必要密鑰皆已設定、時間長度格式有效、公開來源網址合法，且使用支援的資料庫 SSL 模式。控制器會在啟動時驗證設定，並一次列出所有偵測到的欄位錯誤。
+
+## 健康檢查失敗
+
+先略過公開反向代理，直接在本機測試容器：
+
+```bash
+curl --fail http://127.0.0.1:3000/healthz
+curl --fail http://127.0.0.1:3000/api/v1/healthz
+```
+
+若本機正常、公開網址失敗，請檢查 DNS、TLS、反向代理路由、防火牆規則，以及轉送的主機與通訊協定標頭。若兩邊都失敗，請查看控制器與資料庫記錄。
+
+## 重複跳回登入或 cookie 無法保存
+
+- 確認瀏覽器使用的 HTTPS origin 與 `BACKEND_BASE_URL`、`PUBLIC_WEB_BASE_URL` 完全相同。
+- 確認 `APP_ENV=production` 搭配 HTTPS 使用。
+- 查看瀏覽器拒絕 cookie 的訊息。
+- 確認代理傳入正確的 `Host` 與 `X-Forwarded-Proto` header。
+- 確認伺服器時間準確。
+- 如果更換過 hash key，既有 session 或 API token 失效是預期行為。
+
+## 外部驗證失敗
+
+逐字比對身分提供者中註冊的回呼 URL 與[外部驗證與電子郵件](/zh-TW/docs/install/external-auth-email/)列出的網址。確認用戶端 ID 與密鑰、issuer discovery、公開來源網址、身分提供者啟用旗標及 JIT 政策。請用無痕視窗測試，避免舊的流程 Cookie 干擾新設定。
+
+## 探測器持續離線
+
+在探測器主機執行：
+
+```bash
+sudo systemctl status netstamp-agent
+sudo journalctl -u netstamp-agent -n 200 --no-pager
+curl --fail https://netstamp.example.com/api/v1/healthz
+```
+
+檢查控制器 URL、系統時間、DNS、TLS 憑證信任、對外連線防火牆、探測器 ID 與密鑰。`PROBE_NOT_FOUND` 表示該 ID 已不存在於指定控制器或專案；未授權回應通常表示密鑰已過期，請輪替並重新安裝憑證。
+
+## 探測器已上線但沒有結果
+
+1. 確認探測器已啟用。
+2. 預覽檢查的選取條件。
+3. 確認有效指派確實存在。
+4. 等待指派輪詢及檢查週期經過。
+5. 查看代理程式記錄是否有 DNS 解析、支援能力、逾時、佇列或提交錯誤。
+6. 確認主機支援指定的 IP 版本。
+7. 查看控制器記錄與結果 API 端點。
+
+## 只有某種檢查失敗
+
+- **Ping：**確認 `CAP_NET_RAW`、ICMP 政策、DNS 與指定的 IP 版本。
+- **TCP：**確認連接埠、監聽服務、防火牆、路由與連線逾時。
+- **HTTP：**確認 URL、DNS、憑證信任、重新導向、預期狀態、內文判斷、標頭與逾時。
+- **Traceroute：**確認 ICMP/UDP 政策；沒有回應的中間躍點仍可能正常轉送封包。
+
+## 警示沒有觸發
+
+確認規則與警示評估器都已啟用、選擇的檢查類型支援該指標、時間窗中有足夠樣本、運算子與門檻正確，而且條件持續時間已經過。查看規則最後一次評估是否為 `no_data` 或 `insufficient_samples`。
+
+:::note 警示規則目前只支援 Ping、TCP 與 HTTP 指標。Traceroute 結果可在分析工作區查看，但不能建立 Traceroute 警示規則。 :::
+
+## 通知傳送失敗
+
+先手動傳送測試訊息，再檢查目的地憑證、控制器對外連線、TLS、SMTP、收件者格式與通知背景工作設定。若測試成功、事件通知卻未送出，通常是通知尚未連結到該規則，或其中一項資源仍為停用狀態。
+
+## 公開狀態頁不存在或資料過期
+
+- 確認頁面已啟用，且網址代稱正確。
+- 確認區塊仍參照存在的檢查與指派。
+- 確認選擇的指派模式仍包含有效指派。
+- 查看公開範圍與圖表時間範圍設定。
+- 如果內容可能只是被隱藏，暫時移除自訂 CSS。
+- 比較未登入的公開請求與已驗證的編輯器預覽。
+
+## 收集可用的支援資訊
+
+開啟 GitHub issue 前，請附上 Netstamp 版本或 commit、部署方式、作業系統與架構、可重現步驟、時間與時區、已移除敏感資料的記錄、預期與實際行為，以及能說明問題的最小設定。務必移除所有權杖、Cookie、探測器密鑰、密碼、Webhook URL 與私有傳輸內容。

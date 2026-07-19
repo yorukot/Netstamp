@@ -1,0 +1,81 @@
+---
+title: Probes
+description: Register distributed network viewpoints, install the Linux agent, label and locate probes, rotate secrets, and interpret status.
+icon: server
+navSection: use
+navOrder: 20
+---
+
+A probe represents a Netstamp agent running from a real network viewpoint. Place probes where a measurement difference would change your diagnosis: user networks, regions, providers, offices, labs, clusters, or edge nodes.
+
+## Platform support
+
+The controller-served installer currently supports:
+
+- Linux amd64 (`x86_64` or `amd64`)
+- Linux arm64 (`aarch64` or `arm64`)
+- systemd service management
+
+The installer requires root, `curl` or `wget`, and outbound HTTP(S) access to the controller. It installs the binary at `/usr/local/bin/netstamp-agent`.
+
+## Create and install
+
+1. Open **Probes → New probe**.
+2. Choose a stable, descriptive name.
+3. Search for a location or provide latitude and longitude.
+4. Create the probe. Netstamp returns a probe ID and one-time secret.
+5. Run the generated installer and service-install commands on the target host.
+6. Wait for the wizard to receive a signed heartbeat.
+
+The service command has this shape:
+
+```bash
+sudo netstamp-agent service install \
+  --url 'https://netstamp.example.com' \
+  --probe-id '<probe UUID>' \
+  --probe-secret '<one-time secret>'
+```
+
+The service manager creates a dedicated system user and group, a root-owned environment file, a data directory, and a systemd unit. See [Probe agent operations](/docs/guides/probe-operations/) for exact paths and commands.
+
+## Location
+
+Location name, latitude, and longitude drive map displays and public status location views. They do not geofence execution or discover the host automatically. Keep coordinates accurate enough for the visibility you intend to publish.
+
+The creation wizard uses a place search service when search mode is selected. Manual decimal coordinates avoid that external lookup.
+
+## Labels
+
+Attach labels such as:
+
+```text
+region=ap-east
+provider=isp-a
+environment=production
+role=edge
+```
+
+Probe labels are evaluated by check selectors. Changing them may add or remove effective assignments after the controller refreshes assignment state.
+
+## Enabled and online are different
+
+- **Enabled** controls whether the probe is eligible for assignments.
+- **Online** means the controller has received a recent runtime heartbeat.
+
+Probe status may include last seen time, online-since time, uptime, agent version, local addresses, public IPv4/IPv6, and autonomous-system information. An enabled but offline probe retains its configuration but does not produce results.
+
+## Rotate a secret
+
+Rotate credentials when a secret may have leaked, a host is rebuilt, or ownership changes:
+
+1. Open the probe detail view.
+2. Rotate the secret.
+3. Copy the new value immediately.
+4. Run the generated service-install command on the host.
+5. Restart the service and confirm a new heartbeat.
+
+The old secret stops authenticating after rotation. The plaintext new secret is not retrievable later.
+
+## Delete or temporarily stop a probe
+
+Disable a probe to preserve history while stopping new assignments. Delete it only when the project should no longer retain that probe resource. Uninstalling the host service does not delete the controller resource, and deleting the controller resource does not remove software from the host.

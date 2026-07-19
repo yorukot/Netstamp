@@ -1,50 +1,79 @@
 ---
-title: API Tokens
-description: Create scoped personal access tokens for curl, CI, CLI tools, and backend integrations.
+title: API tokens
+description: Create, scope, store, use, rotate, and revoke Netstamp personal API tokens for scripts and integrations.
 icon: key
-navOrder: 25
-head:
-  - tag: title
-    content: API Tokens | Netstamp Docs
+navSection: api
+navOrder: 10
 ---
 
-## Create A Token
+Personal API tokens authenticate non-browser project API requests. They are owned by a user, limited by scopes, expire at a chosen time, and remain subject to the owner's current project membership and role.
 
-Open **Account → API tokens**, choose a descriptive name, expiration, and only the scopes the integration needs. Confirm the action with your current password.
+## Create a token
 
-The plaintext token is shown once. Store it in a secret manager or protected environment variable before closing the dialog. Netstamp stores only a keyed hash and cannot reveal the token again.
+1. Open **Account → API tokens**.
+2. Choose **Create token**.
+3. Enter a name that identifies the consumer, such as `grafana-read-prod` or `ci-status-page-publisher`.
+4. Select only the required scopes.
+5. Set an expiration.
+6. Copy the plaintext `nst_pat_...` value immediately.
 
-## Call The API
+Netstamp stores only a hash and an eight-character hint. The plaintext is never returned again.
 
-Send the token as a Bearer credential. Use the controller's public HTTPS origin and the versioned `/api/v1` base path.
+## Scopes
+
+| Area         | Read                | Write                |
+| ------------ | ------------------- | -------------------- |
+| Projects     | `projects:read`     | `projects:write`     |
+| Probes       | `probes:read`       | `probes:write`       |
+| Checks       | `checks:read`       | `checks:write`       |
+| Labels       | `labels:read`       | `labels:write`       |
+| Assignments  | `assignments:read`  | —                    |
+| Results      | `results:read`      | —                    |
+| Alerts       | `alerts:read`       | `alerts:write`       |
+| Status pages | `status_pages:read` | `status_pages:write` |
+
+A write operation may also require the matching read or project scope as defined by the OpenAPI operation. Confirm the endpoint security requirements in the [API explorer](/openapi/).
+
+## Use a token
 
 ```bash
-export NETSTAMP_API_TOKEN='nst_pat_...'
-
-curl \
-  -H "Authorization: Bearer $NETSTAMP_API_TOKEN" \
-  -H "Accept: application/json" \
-  https://controller.example.com/api/v1/projects
+curl --fail --silent --show-error \
+  --header 'Authorization: Bearer nst_pat_replace_me' \
+  https://netstamp.example.com/api/v1/projects
 ```
 
-PAT requests do not use browser cookies or CSRF tokens. The first release is intended for server-to-server clients and does not enable cross-origin browser access.
+Prefer a secret manager or protected environment variable:
 
-## Scope And Project Access
+```bash
+curl --fail --silent --show-error \
+  --header "Authorization: Bearer $NETSTAMP_TOKEN" \
+  "$NETSTAMP_URL/api/v1/projects/$NETSTAMP_PROJECT/results/latest"
+```
 
-Token scopes and the owner's current project role both apply. A `checks:write` token still cannot update a check when its owner has only the project viewer role. Removing the owner from a project or lowering the owner's role takes effect on the next request.
+Avoid command history, source files, CI logs, screenshots, and query strings.
 
-Available scopes cover projects, probes, checks, labels, assignments, results, alerts, and status pages. Account security, project members, invites, token management, and system administration remain session-only.
+## Permission intersection
 
-## Expiration And Rotation
+A request succeeds only when all are true:
 
-Tokens expire after 7, 30, 90, or 365 days. For zero-downtime rotation, create a replacement, update the integration, verify it, and then revoke the old token.
+```text
+valid token
+AND not expired
+AND required token scope
+AND active token owner
+AND current project membership
+AND sufficient project role
+```
 
-Password changes, password resets, administrator password resets, and account deactivation revoke all personal API tokens. Logging out browser sessions does not revoke them.
+Removing the user from a project or reducing the user's role immediately narrows what the token can do without changing the token itself.
 
-:::warning Never place a token in a URL, frontend bundle, Git repository, chat message, or shell history. If a token may have leaked, revoke it immediately. :::
+## Rotate and revoke
 
-## Errors And Observability
+Netstamp does not reveal or mutate an existing token value. To rotate:
 
-Invalid, expired, revoked, or disabled-account credentials return `401 AUTH_INVALID_API_TOKEN`. Missing scopes return `403 AUTH_INSUFFICIENT_SCOPE`; project role failures continue to return the existing project authorization problem.
+1. create a replacement with the same or narrower scopes;
+2. update and test the consumer;
+3. revoke the old token;
+4. confirm requests with the old value fail.
 
-Netstamp exports aggregate PAT authentication and request metrics without token or user identifiers. Apply traffic limits at the reverse proxy or API gateway when exposing a controller publicly.
+Revoke a token immediately after suspected exposure. Account deactivation and administrative credential recovery also revoke or invalidate access according to the affected authentication state.

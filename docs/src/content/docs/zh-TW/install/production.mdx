@@ -1,0 +1,122 @@
+---
+title: 正式環境部署
+description: 將 Netstamp 置於 HTTPS 後方、設定公開來源與受信任代理、強化密鑰，並驗證正式環境安裝。
+icon: shield
+navSection: install
+navOrder: 10
+---
+
+正式環境中的 Netstamp 應使用單一且穩定的 HTTPS origin、私有資料庫、長期保存的密鑰、實際測試過的備份，以及明確的升級流程。
+
+## 必要設定
+
+對外開放服務前，先在 `.env` 設定下列值：
+
+```dotenv
+APP_ENV=production
+BACKEND_BASE_URL=https://netstamp.example.com
+PUBLIC_WEB_BASE_URL=https://netstamp.example.com
+NETSTAMP_VERSION=<tested tag or digest>
+DATABASE_PASSWORD=<unique random value>
+LOG_PSEUDONYM_KEY=<unique random value>
+SYSTEM_SETTINGS_ENCRYPTION_KEY=<unique random value>
+AUTH_SESSION_HASH_KEY=<unique random value>
+AUTH_API_TOKEN_HASH_KEY=<unique random value>
+```
+
+`BACKEND_BASE_URL` 用於 OAuth/OIDC callback URL、電子郵件連結，以及控制器提供的探測器安裝網址；`PUBLIC_WEB_BASE_URL` 則用於瀏覽器會開啟的連結。兩者都只能填 origin，也就是 scheme 與 host，不可包含 path、query 或 fragment。
+
+設定 `APP_ENV=production` 後，session cookie 會使用 `__Host-` prefix，並套用 `Secure`、`HttpOnly`、`SameSite=Strict` 與 `Path=/`。使用者必須透過 HTTPS 存取網站。
+
+## 反向代理需求
+
+請由反向代理終止 TLS，再將完整 origin 轉送到 container，並保留下列 header：
+
+- `Host`
+- `X-Forwarded-Proto`
+- `X-Forwarded-For`
+- 反向代理有提供時的 `X-Real-IP`
+- `Authorization`
+
+以下是 Nginx server block 範例：
+
+```nginx
+server {
+    listen 443 ssl http2;
+    server_name netstamp.example.com;
+
+    ssl_certificate /etc/letsencrypt/live/netstamp.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/netstamp.example.com/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Authorization $http_authorization;
+    }
+}
+```
+
+若反向代理與 Compose 位於同一部主機，請只將 Compose 連接埠綁定到 loopback：
+
+```yaml
+services:
+  netstamp:
+    ports:
+      - "127.0.0.1:3000:8080"
+```
+
+若 Netstamp 需要信任反向代理提供的 client address，請將 `HTTP_TRUSTED_PROXIES` 設為代理的確切 IP 或 CIDR prefix，多筆資料以逗號分隔。除非其他網路控制已保證 container port 無法直接存取，否則不要信任所有來源。
+
+## 防火牆與網路方向
+
+控制器需要：
+
+- 接受來自瀏覽器、API client 與探測器代理程式的 inbound HTTPS；
+- 對設定的 OAuth/OIDC 身分提供者與通知端點建立對外連線；
+- 啟用電子郵件時能 outbound 連線至 SMTP；
+- 連線至 PostgreSQL 資料庫。
+
+探測器代理程式會主動向控制器建立 outbound HTTP(S) 連線，控制器不需要直接連入探測器主機。
+
+## 建立第一位系統管理員
+
+第一個成功註冊的帳號會取得系統管理員權限。請在開放註冊前先建立這個帳號，再前往**系統管理 → 系統設定**：
+
+1. 確認 backend 與 public web origin；
+2. 視需要設定 SMTP；
+3. 決定是否繼續開放註冊；
+4. 決定新帳號是否必須驗證電子郵件；
+5. 至少再新增一位系統管理員，以備原管理員無法登入時復原。
+
+系統管理員不會自動取得專案權限。若管理員也需要查看專案資料，仍須由專案 owner 邀請加入。
+
+## 正式環境檢查清單
+
+- [ ] 已設定 `APP_ENV=production`。
+- [ ] 每個預留值與開發用密鑰都已分別更換。
+- [ ] 已固定並記錄 Netstamp 與 TimescaleDB 映像檔版本。
+- [ ] 資料庫連接埠未對外公開。
+- [ ] HTTPS 憑證有效，HTTP 會重新導向 HTTPS。
+- [ ] `BACKEND_BASE_URL` 與 `PUBLIC_WEB_BASE_URL` 符合實際公開 origin。
+- [ ] 受信任代理範圍沒有超出必要範圍。
+- [ ] 註冊與電子郵件驗證政策符合預期。
+- [ ] SMTP 與每個警示通知目的地都已測試。
+- [ ] 已監控 `/healthz` 與 `/api/v1/healthz`。
+- [ ] 已建立資料庫備份，並在測試環境完成還原。
+- [ ] 探測器主機可連線至控制器的公開 origin。
+- [ ] 離開控制範圍的備份不包含密鑰與 `.env`，或已在儲存前加密。
+
+## 驗證
+
+```bash
+curl --fail https://netstamp.example.com/healthz
+curl --fail https://netstamp.example.com/api/v1/healthz
+curl --fail https://netstamp.example.com/api/v1/openapi.json >/dev/null
+curl --fail https://netstamp.example.com/api/v1/install/agent.sh >/dev/null
+```
+
+另外建立一部可拋棄的探測器，確認心跳、執行一項檢查、測試一個通知目的地，並載入一個公開狀態頁；全部正常後，才能視為部署完成。

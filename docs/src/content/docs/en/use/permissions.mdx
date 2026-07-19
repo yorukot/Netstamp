@@ -1,0 +1,55 @@
+---
+title: Permissions
+description: Reference instance administrator access, project owner/admin/editor/viewer permissions, API token scope intersection, and public routes.
+icon: shield
+navSection: use
+navOrder: 90
+---
+
+Netstamp has instance-level administration, project roles, API-token scopes, probe credentials, and unauthenticated public status routes.
+
+## Project role matrix
+
+| Action                                                  | Owner | Admin | Editor | Viewer |
+| ------------------------------------------------------- | :---: | :---: | :----: | :----: |
+| Read project and monitoring data                        |   ✓   |   ✓   |   ✓    |   ✓    |
+| Rename project or change slug                           |   ✓   |   ✓   |   —    |   —    |
+| Delete project                                          |   ✓   |   —   |   —    |   —    |
+| Invite and manage members                               |   ✓   |   ✓   |   —    |   —    |
+| Create and manage labels                                |   ✓   |   ✓   |   ✓    |   —    |
+| Create and manage probes                                |   ✓   |   ✓   |   ✓    |   —    |
+| Create and manage checks                                |   ✓   |   ✓   |   ✓    |   —    |
+| Create and manage alert rules                           |   ✓   |   ✓   |   ✓    |   —    |
+| Create, edit, test, or delete notification destinations |   ✓   |   ✓   |   ✓    |   —    |
+| Create or edit public status pages                      |   ✓   |   ✓   |   —    |   —    |
+| Read results and incidents                              |   ✓   |   ✓   |   ✓    |   ✓    |
+
+Owners can assign admin, editor, or viewer. Admins can assign editor or viewer. Editors and viewers cannot manage membership. An admin cannot remove or demote an owner or another admin. The last owner cannot leave or be removed.
+
+## System administrator
+
+System administrators manage instance settings, users, other system administrators, and administrative data transfer. They do not automatically receive project membership or project permissions.
+
+The first registered account is granted system administrator access. The instance must keep at least one active system administrator.
+
+## API token permission
+
+Bearer access is the intersection of:
+
+1. an active user;
+2. a valid, unexpired token;
+3. the endpoint's required token scope;
+4. current membership in the target project;
+5. a project role that permits the action.
+
+A broadly scoped token does not elevate a viewer into an editor. Changing membership or role affects existing tokens immediately.
+
+Account, membership, invite, token-management, and administrator endpoints remain session-only. If an `Authorization` header is present, middleware does not fall back to the session cookie.
+
+## Probe runtime
+
+A probe credential authenticates only that probe's runtime routes: hello, heartbeat, capabilities, assignment polling, and result submission. The plaintext secret is returned only at creation or rotation.
+
+## Public status routes
+
+Enabled status pages expose only their public summary, elements, charts, daily status, and incident history without authentication. Editor context requires an authorized owner or admin. Page visibility controls decide whether targets, probe names, locations, incidents, and generation time appear.

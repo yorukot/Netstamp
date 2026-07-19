@@ -1,0 +1,90 @@
+---
+title: 可觀測性
+description: 監控 Netstamp 控制器、探測器代理程式、PostgreSQL、記錄、追蹤與隨附的 Grafana 儀表板。
+icon: activity
+navSection: operate
+navOrder: 10
+---
+
+Netstamp 本身的運作狀態與 Netstamp 執行的檢查應分開監控。控制器程序顯示健康，不代表探測器心跳仍是最新、結果佇列正在清空、通知已成功送達，或儲存空間仍然足夠。
+
+## 健康檢查與指標端點
+
+控制器提供：
+
+| Endpoint          | 用途                                             |
+| ----------------- | ------------------------------------------------ |
+| `/healthz`        | 供負載平衡器與基本可用性檢查使用的根路徑健康檢查 |
+| `/api/v1/healthz` | 有版本的 API 健康檢查                            |
+| `/metrics`        | Prometheus 格式的控制器指標                      |
+
+探測器指標預設關閉。在探測器主機設定 `NETSTAMP_PROBE_METRICS_ADDR`，即可啟用 Prometheus 監聽服務：
+
+```dotenv
+NETSTAMP_PROBE_METRICS_ADDR=127.0.0.1:9091
+```
+
+請綁定在指標收集器能存取的私有位址。控制器與探測器的指標都屬於維運端點，不是提供給一般使用者的儀表板，不應直接公開到網際網路。
+
+## 應該監控與告警的項目
+
+至少監控：
+
+- 控制器的公開與本機健康狀態；
+- 控制器重新啟動頻率與請求錯誤；
+- 部署期間的資料庫遷移失敗；
+- PostgreSQL 可用性、連線、儲存空間、暫存檔案與備份存放時間；
+- 探測器最後心跳時間與非預期離線數量；
+- 代理程式佇列壓力、遺失結果與提交失敗；
+- 指派更新與通知背景工作的積壓量；
+- 磁碟、記憶體、CPU、憑證到期時間與主機時鐘同步。
+
+請使用 Netstamp 以外的監控系統檢查控制器本身，才能在整個 Netstamp 執行個體無法使用時仍收到通知。
+
+## 記錄
+
+控制器與代理程式的記錄應包含時間、服務、嚴重程度，以及追查單一失敗所需的請求或領域識別碼。固定使用同一個 `LOG_PSEUDONYM_KEY`，才能在不記錄原始電子郵件地址的前提下持續比對去識別化後的識別碼。
+
+集中保存記錄時，應依監控目標的敏感程度設定存取控制與保留期限。分享記錄前務必移除敏感資料；錯誤訊息與檢查設定可能洩漏內部主機名稱、位址、URL 與整合服務細節。
+
+## 分散式追蹤
+
+將 `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` 指向 OTLP HTTP 接收端點，即可匯出控制器追蹤資料：
+
+```dotenv
+OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://trace-collector:4318/v1/traces
+```
+
+留空即可停用追蹤資料匯出。收集器應位於受信任網路；追蹤資料量較大時，請在收集器端設定抽樣比例或保留政策。
+
+## 程式碼儲存庫中的可觀測性設定檔
+
+`deployments/docker/compose.observability.yaml` 是供程式碼儲存庫本機版本使用的進階範例，內容包括：
+
+- 使用 VictoriaMetrics 收集控制器、探測器與 PostgreSQL 指標；
+- 使用 VictoriaTraces 接收 OTLP 追蹤資料；
+- 使用 VictoriaLogs 與 Vector 收集容器記錄；
+- PostgreSQL Exporter；
+- 已預先設定 Netstamp 控制器、探測器代理程式及 PostgreSQL 儀表板的 Grafana。
+
+它不是標準映像檔 Compose 的即插即用擴充。此設定檔會在本機建置映像檔，並包含特定部署環境的假設，例如外部 `dokploy-network`、公開網域預設值與範例探測器抓取目標。使用前請逐一檢查每項服務、連接埠、網路、映像檔、保留期限、密鑰與抓取目標。
+
+在程式碼儲存庫的本機版本中，先驗證自訂設定檔，再啟動服務：
+
+```bash
+docker compose -f deployments/docker/compose.observability.yaml config
+docker compose -f deployments/docker/compose.observability.yaml up -d --build
+```
+
+可觀測性資料儲存區與 Grafana 各自使用永久儲存空間。請分別備份；若決定不備份，也要接受它們可能獨立於 Netstamp 主要資料庫而遺失。
+
+## 維運驗證
+
+每次調整 observability 設定後：
+
+1. 查詢兩個健康檢查端點；
+2. 確認控制器抓取目標顯示正常；
+3. 確認指定探測器的指標持續更新；
+4. 從記錄與追蹤資料找到一筆已知請求；
+5. 載入每個預先設定的儀表板，確認沒有資料來源錯誤；
+6. 觸發一個可拋棄的警示，確認 Netstamp 以外的接收者確實收到通知。

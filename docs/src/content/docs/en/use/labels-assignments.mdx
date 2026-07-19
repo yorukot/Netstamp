@@ -1,0 +1,59 @@
+---
+title: Labels and assignments
+description: Organize probes and checks with labels, build selectors, preview matches, and troubleshoot effective assignments.
+icon: route
+navSection: use
+navOrder: 30
+---
+
+Labels describe resources; selectors turn probe labels into execution placement. Keep those jobs separate when designing your taxonomy.
+
+## Create a label vocabulary
+
+A label is a key/value pair with a maximum of 64 characters per part. Useful dimensions are stable and mutually understandable:
+
+| Key           | Example values                        |
+| ------------- | ------------------------------------- |
+| `region`      | `taipei`, `tokyo`, `frankfurt`        |
+| `provider`    | `isp-a`, `cloud-b`                    |
+| `environment` | `production`, `staging`, `lab`        |
+| `network`     | `office`, `residential`, `mobile`     |
+| `role`        | `edge`, `datacenter`, `customer-site` |
+
+Create values under **Labels**, then attach them to probes and checks. Renaming or deleting a label can change selector outcomes, so inspect affected checks before a taxonomy change.
+
+## Select probes for a check
+
+The controller uses a selector abstract syntax tree with label equality and logical composition. The web editor builds this expression and previews the active probes that match it.
+
+Conceptually:
+
+```text
+region=tokyo AND (provider=isp-a OR provider=isp-b)
+```
+
+An empty selector matches every active project probe. Use that deliberately for global checks.
+
+## Effective assignments
+
+For each matching enabled probe, the controller creates an effective probe/check assignment. The assignment records check and selector versions so agents can detect changes.
+
+Assignments refresh after relevant probe, check, or label mutations. A background retry worker repairs refreshes that could not complete synchronously.
+
+## Troubleshoot missing results
+
+Work in this order:
+
+1. Confirm the check is saved and its interval is valid.
+2. Preview the selector and confirm the expected probe appears.
+3. Confirm the probe is enabled.
+4. Confirm the probe is online and recently heartbeating.
+5. Inspect project assignments filtered by the probe or check.
+6. Wait for the agent's assignment poll interval.
+7. Inspect probe service logs for executor or submission errors.
+
+If a probe matches but cannot execute an explicit IPv4 or IPv6 check, inspect its reported IP-family capabilities and the host's actual network configuration.
+
+## Keep public views intentional
+
+Status pages can publish selected assignments or every assignment for a check. Review assignment membership after changing labels so a public page does not unexpectedly reveal a probe name, target, or location that was previously out of scope.

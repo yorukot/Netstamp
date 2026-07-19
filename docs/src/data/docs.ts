@@ -2,6 +2,8 @@ import { getCollection, type CollectionEntry } from "astro:content";
 import { localeFromAstro, pathForLocale, uiForLocale } from "../i18n/ui";
 
 export type DocIcon = "activity" | "api" | "bolt" | "book" | "code" | "codeBlock" | "compass" | "cube" | "database" | "deployment" | "key" | "map" | "route" | "server" | "shield" | "users" | "wrench";
+export const docSectionKeys = ["start", "install", "use", "operate", "api", "development", "community"] as const;
+export type DocSectionKey = (typeof docSectionKeys)[number];
 
 export interface DocNavItem {
 	title: string;
@@ -12,7 +14,7 @@ export interface DocNavItem {
 
 export interface DocPage extends DocNavItem {
 	section: string;
-	sectionKey: "guides" | "reference" | "start";
+	sectionKey: DocSectionKey;
 	order: number;
 	editPath: string;
 	contentId: string;
@@ -20,6 +22,7 @@ export interface DocPage extends DocNavItem {
 }
 
 export interface DocNavGroup {
+	key: DocSectionKey;
 	title: string;
 	items: DocNavItem[];
 }
@@ -53,6 +56,7 @@ const docIconNames = new Set<DocIcon>([
 	"wrench"
 ]);
 const docEntries = await getCollection("docs", entry => !entry.data.draft);
+const docSectionOrder = new Map<DocSectionKey, number>(docSectionKeys.map((sectionKey, index) => [sectionKey, index]));
 
 const searchContentFromSource = (source: string) =>
 	source
@@ -73,8 +77,13 @@ const contentIdFromEntry = (entry: DocsEntry) => {
 		.replace(/\.mdx$/, "")
 		.replace(/\/index$/, "");
 };
-const sectionKeyFromContentId = (contentId: string): DocPage["sectionKey"] => (contentId === "index" ? "start" : contentId.startsWith("guides/") ? "guides" : "reference");
 const routeFromContentId = (contentId: string, locale: string | undefined) => pathForLocale(contentId === "index" ? "/docs/" : `/docs/${contentId}/`, locale);
+
+const sectionKeyFromEntry = (entry: DocsEntry): DocSectionKey => {
+	if (entry.data.navSection) return entry.data.navSection;
+
+	throw new Error(`English documentation source ${entry.id} is missing navSection.`);
+};
 
 const editPathFromEntry = (entry: DocsEntry) => {
 	if (entry.data.editPath) return entry.data.editPath;
@@ -97,9 +106,10 @@ const iconFromEntry = (entry: DocsEntry, contentId: string): DocIcon => {
 };
 
 const navOrderFromEntry = (entry: DocsEntry, contentId: string) => {
-	const order = entry.data.navOrder ?? entry.data.order;
+	const order = entry.data.navOrder;
 	if (typeof order === "number" && Number.isFinite(order)) return order;
-	return contentId === "index" ? 0 : 100;
+
+	throw new Error(`English documentation source ${contentId} is missing navOrder.`);
 };
 
 const localizedEntryFor = (contentId: string, locale: string | undefined) => {
@@ -120,11 +130,11 @@ export const getDocsPages = (locale: string | undefined): DocPage[] => {
 		.map(englishEntry => {
 			const contentId = contentIdFromEntry(englishEntry);
 			const { entry = englishEntry, translated } = localizedEntryFor(contentId, resolvedLocale);
-			const sectionKey = sectionKeyFromContentId(contentId);
+			const sectionKey = sectionKeyFromEntry(englishEntry);
 			return {
 				title: entry.data.navTitle ?? entry.data.title,
 				href: routeFromContentId(contentId, resolvedLocale),
-				icon: iconFromEntry(entry, contentId),
+				icon: iconFromEntry(englishEntry, contentId),
 				description: entry.data.description ?? ui.meta.docsDescription,
 				section: ui.docs.sections[sectionKey],
 				sectionKey,
@@ -135,20 +145,23 @@ export const getDocsPages = (locale: string | undefined): DocPage[] => {
 			};
 		})
 		.sort((a, b) => {
-			const order = { start: 0, guides: 10, reference: 20 } as const;
-			return order[a.sectionKey] - order[b.sectionKey] || a.order - b.order || a.title.localeCompare(b.title, resolvedLocale);
+			return (
+				(docSectionOrder.get(a.sectionKey) ?? docSectionKeys.length) - (docSectionOrder.get(b.sectionKey) ?? docSectionKeys.length) || a.order - b.order || a.contentId.localeCompare(b.contentId, "en")
+			);
 		});
 };
 
 export const getDocsNav = (locale: string | undefined): DocNavGroup[] =>
 	Array.from(
-		getDocsPages(locale).reduce((groups, page) => {
-			const items = groups.get(page.section) ?? [];
-			items.push({ title: page.title, href: page.href, icon: page.icon, description: page.description });
-			groups.set(page.section, items);
-			return groups;
-		}, new Map<string, DocNavItem[]>())
-	).map(([title, items]) => ({ title, items }));
+		getDocsPages(locale)
+			.reduce((groups, page) => {
+				const group: DocNavGroup = groups.get(page.sectionKey) ?? { key: page.sectionKey, title: page.section, items: [] };
+				group.items.push({ title: page.title, href: page.href, icon: page.icon, description: page.description });
+				groups.set(page.sectionKey, group);
+				return groups;
+			}, new Map<DocSectionKey, DocNavGroup>())
+			.values()
+	);
 
 export const getDocsSearchIndex = (locale: string | undefined): SearchEntry[] => {
 	const pages = getDocsPages(locale);

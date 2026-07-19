@@ -20,7 +20,14 @@ const ui = uiForLocale(Astro.currentLocale);
 		<FinalCtaSection />
 		<FaqSection />
 	</main>
-	<GlobalFooter className="homepageFooter" madeByLabel={ui.footer.madeBy} andLabel={ui.footer.and} contributorsLabel={ui.footer.contributors} starLabel={ui.footer.star} />
+	<GlobalFooter
+		className="homepageFooter"
+		madeByLabel={ui.footer.madeBy}
+		separator={ui.footer.separator}
+		contributorsSeparator={ui.footer.contributorsSeparator}
+		contributorsLabel={ui.footer.contributors}
+		starLabel={ui.footer.star}
+	/>
 
 	<script>
 		import "../../scripts/homepageRedesign";

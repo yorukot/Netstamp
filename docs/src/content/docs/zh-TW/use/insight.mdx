@@ -1,0 +1,75 @@
+---
+title: 量測結果與分析
+description: 跨探測器與檢查分析最新量測、時間序列、HTTP 憑證及 Traceroute 拓撲。
+icon: map
+navSection: use
+navOrder: 50
+---
+
+import ProductScreenshot from "@/components/docs/ProductScreenshot.astro";
+import httpUptimeScreenshot from "@/assets/homepage-highlights/http-uptime.webp";
+import traceroutePathsScreenshot from "@/assets/homepage-highlights/traceroute-paths.webp";
+
+「**總覽**」頁面會摘要專案目前的健康狀態；「**分析**」則是深入調查的工作區，可以選擇檢查、探測器範圍、指標與時間範圍。
+
+## 選擇正確的分析範圍
+
+先從受影響的檢查開始，再進行以下比較：
+
+- 比較單一探測器目前與過去的表現；
+- 比較多個探測器對同一目標的量測；
+- 比較特定地區或網路供應商群組；
+- 比較這項檢查的所有指派。
+
+如此可以分辨問題影響的是整個目標，還是只有特定路由、網路供應商、位置或探測器。
+
+## Ping 分析
+
+Ping 時間序列包含平均、最低與最高延遲，以及封包遺失率。如果有相關資料，量測結果詳細資料也會保留中位數、標準差與原始 RTT 樣本。
+
+分析時可留意封包遺失率與延遲是否同時上升、是否只有單一探測器明顯偏離，或多個探測位置是否在同一時間出現突變。
+
+## TCP 分析
+
+TCP 時間序列包含平均、最短與最長連線時間，以及失敗率。如果 Ping 正常但 TCP 連線失敗，問題可能出在連接埠、防火牆、服務監聽狀態或特定傳輸層，而不是整體網路無法連線。
+
+## HTTP 分析
+
+HTTP 分析會分別顯示：
+
+- DNS 查詢時間；
+- TCP 連線時間；
+- TLS 交握時間；
+- 收到第一個位元組的時間；
+- 請求總耗時；
+- 失敗率。
+
+若量測結果包含相關資料，最新結果詳細資料會顯示狀態碼、最終 URL、重新導向次數、回應內容判定結果、回應大小、解析後的位址、TLS 版本與加密套件，以及憑證有效期限。
+
+憑證清單會彙整觀測到的 HTTPS 憑證及剩餘天數。如果需要在憑證到期前主動通知，請針對 `http.certificate_days_remaining` 設定警示。
+
+<ProductScreenshot src={httpUptimeScreenshot} alt="Netstamp HTTP 分析畫面，顯示可用率、回應時間及多個探測器的量測結果" caption="HTTP 分析會彙整所選探測器指派的可用狀態與各階段耗時。" />
+
+## Traceroute 分析
+
+Traceroute 提供抽樣的執行紀錄與拓撲檢視。你可以比較路由形狀、躍點延遲、封包遺失、目的地是否可達，以及不同探測器之間的路徑差異。
+
+中間路由器即使正常轉送流量，也可能限制 Traceroute 回應頻率或完全忽略探測封包。除非端點量測與多個探測位置都支持相同結論，否則應把沒有回應的躍點視為路徑線索，而不是封包遺失的直接證明。
+
+<ProductScreenshot
+	src={traceroutePathsScreenshot}
+	alt="Netstamp Traceroute 分析畫面，比較多個探測器經過的網路躍點與路由"
+	caption="Traceroute 拓撲能呈現不同探測位置的路由差異；沒有回應的躍點不會因此自動判定為故障。"
+/>
+
+## 時間範圍與資料解析度
+
+查詢 API 會依時間範圍、要求的資料點數量上限及可用的連續彙總資料，回傳原始或彙整後的時間序列。時間範圍越長，越需要減少每次執行的細節，才能維持圖表清楚及查詢效率。
+
+調查事件時：
+
+1. 先將時間範圍縮小到事件發生期間。
+2. 比較受影響與未受影響的探測器。
+3. 交叉比較多個指標。
+4. 查看最新的原始詳細資料與 Traceroute 執行紀錄。
+5. 再擴大時間範圍，確認平時的正常基準。

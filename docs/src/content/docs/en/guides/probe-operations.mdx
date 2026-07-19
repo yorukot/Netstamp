@@ -1,34 +1,97 @@
 ---
-title: Probe Operations
-description: Plan probe placement, schedule checks, and read results without mixing docs and product responsibilities.
-icon: activity
-head:
-  - tag: title
-    content: Probe Operations | Netstamp Docs
+title: Probe agent operations
+description: Inspect, configure, update, restart, observe, and uninstall the Netstamp Linux systemd probe agent.
+icon: wrench
+navSection: operate
+navOrder: 0
 ---
 
-## Probe Lifecycle
+The probe agent is a single Linux binary with a systemd service manager and a runtime scheduler.
 
-Treat a probe as a viewpoint on the network. Place probes where the measurement perspective matters, such as an edge region, lab network, community node, private server, or provider boundary.
+## Installed files
 
-Keep probe identity stable. Historical latency, DNS, and route data is most useful when a probe represents the same location over time.
+| Path                                         | Purpose                                                        |
+| -------------------------------------------- | -------------------------------------------------------------- |
+| `/usr/local/bin/netstamp-agent`              | Agent binary                                                   |
+| `/etc/netstamp/probe.env`                    | Root-owned runtime credentials and controller URL, mode `0600` |
+| `/etc/systemd/system/netstamp-agent.service` | systemd unit                                                   |
+| `/var/lib/netstamp`                          | Dedicated service user's home/data directory                   |
 
-## Checks
+The service runs as user and group `netstamp`, receives only `CAP_NET_RAW` for ICMP, and enables `NoNewPrivileges`, private temporary files, protected home directories, and a read-only system view where possible.
 
-Start with a small set of checks that answer operational questions.
+## Status and logs
 
-- Use latency checks to spot packet loss and jitter from one viewpoint.
-- Use DNS checks to compare resolver behavior and authoritative responses.
-- Use route checks to catch path changes that normal uptime checks miss.
+```bash
+sudo netstamp-agent service status
+sudo systemctl status netstamp-agent
+sudo journalctl -u netstamp-agent -n 200 --no-pager
+sudo journalctl -u netstamp-agent --since '30 minutes ago' --follow
+```
 
-## Result Flow
+The controller's probe detail page should show a recent heartbeat, agent version, addresses, capabilities, and online state.
 
-The product app should present probe results as server state from the Go API. The docs site should explain that behavior and link to generated API examples instead of duplicating product code.
+## Restart and credential reinstall
 
-:::tip When adding new check types, update the backend contract first, regenerate `docs/public/openapi.json`, then document the operational meaning here. :::
+```bash
+sudo systemctl restart netstamp-agent
+sudo systemctl is-active netstamp-agent
+```
 
-## Operational Habits
+Running `service install` again updates the environment file and unit, reloads systemd, and enables/starts the service:
 
-Record why each probe exists. A short note like `home fiber edge`, `university lab`, or `regional VPS` makes future comparisons easier to interpret.
+```bash
+sudo netstamp-agent service install \
+  --url 'https://netstamp.example.com' \
+  --probe-id '<probe UUID>' \
+  --probe-secret '<new secret>'
+```
 
-Review probes after infrastructure changes. Replaced hosts, moved regions, and changed upstream providers can all make old measurements misleading.
+## Update the binary
+
+```bash
+sudo netstamp-agent update \
+  --url 'https://netstamp.example.com' \
+  --api-version 'v1'
+```
+
+The agent downloads the matching architecture from the controller, atomically replaces the installed binary, and restarts the service when the unit exists. Confirm the reported agent version and heartbeat after updating.
+
+## Runtime tuning
+
+Edit `/etc/netstamp/probe.env`, then restart the service. Defaults are documented in [Configuration reference](/docs/reference/configuration/).
+
+Important controls include worker concurrency, result queue and batch size, assignment TTL and polling, heartbeat interval, retry backoff, shutdown timeout, and log level.
+
+## Metrics and pprof
+
+Both diagnostic listeners are disabled by default. Bind to loopback unless a protected monitoring network is required:
+
+```dotenv
+NETSTAMP_PROBE_METRICS_ADDR=127.0.0.1:9091
+NETSTAMP_PROBE_PPROF_ADDR=127.0.0.1:6060
+```
+
+After restart:
+
+```bash
+curl http://127.0.0.1:9091/metrics
+curl http://127.0.0.1:6060/debug/pprof/
+```
+
+pprof can expose sensitive runtime details and should never be published directly.
+
+## Uninstall
+
+Keep configuration and the service user for a possible reinstall:
+
+```bash
+sudo netstamp-agent service uninstall
+```
+
+Remove the environment file, data directory, user, and group too:
+
+```bash
+sudo netstamp-agent service uninstall --purge
+```
+
+Uninstalling the host agent does not delete the probe in Netstamp. Disable or delete the controller resource separately when intended.

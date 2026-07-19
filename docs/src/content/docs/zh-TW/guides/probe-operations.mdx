@@ -1,34 +1,97 @@
 ---
-title: 探測器操作
-description: 規劃探測器位置、排程檢查並解讀結果，同時維持說明文件與產品職責的界線。
-icon: activity
-head:
-  - tag: title
-    content: 探測器操作 | Netstamp 說明文件
+title: 探測器代理程式維運
+description: 檢查、設定、更新、重新啟動、監控及解除安裝 Netstamp Linux systemd 探測器代理程式。
+icon: wrench
+navSection: operate
+navOrder: 0
 ---
 
-## 探測器生命週期
+探測器代理程式是一個 Linux 執行檔，內建 systemd 服務管理與執行排程器。
 
-將探測器視為觀察網路的一個視角。探測器應放在量測視角真正重要的位置，例如邊緣區域、實驗室網路、社群節點、私人伺服器或供應商邊界。
+## 安裝的檔案
 
-保持探測器身分穩定。當探測器長期代表相同位置時，歷史延遲、DNS 與路由資料最有價值。
+| 路徑                                         | 用途                                                  |
+| -------------------------------------------- | ----------------------------------------------------- |
+| `/usr/local/bin/netstamp-agent`              | 代理程式執行檔                                        |
+| `/etc/netstamp/probe.env`                    | 僅 root 可讀的執行憑證與控制器網址，權限模式為 `0600` |
+| `/etc/systemd/system/netstamp-agent.service` | systemd unit                                          |
+| `/var/lib/netstamp`                          | 專用服務帳號的家目錄與資料目錄                        |
 
-## 檢查
+服務會以 `netstamp` 使用者與群組執行，只有 ICMP 所需的 `CAP_NET_RAW` 能力。systemd unit 也會啟用 `NoNewPrivileges`、獨立暫存目錄、受保護的家目錄，並在可行範圍內將系統檢視設為唯讀。
 
-先從少量、能回答維運問題的檢查開始。
+## 查看狀態與記錄
 
-- 使用延遲檢查，從單一視角找出封包遺失與 jitter。
-- 使用 DNS 檢查，比較 resolver 行為與 authoritative response。
-- 使用路由檢查，找出一般 uptime check 容易漏掉的路徑變化。
+```bash
+sudo netstamp-agent service status
+sudo systemctl status netstamp-agent
+sudo journalctl -u netstamp-agent -n 200 --no-pager
+sudo journalctl -u netstamp-agent --since '30 minutes ago' --follow
+```
 
-## 結果流程
+控制器的探測器詳細資料應顯示近期心跳、代理程式版本、位址、支援能力與上線狀態。
 
-產品應用程式應將探測結果呈現為來自 Go API 的 server state。說明文件網站應解釋此行為並連結至產生的 API 範例，不應重複產品程式碼。
+## 重新啟動與重裝憑證
 
-:::tip 新增 check type 時，請先更新後端合約、重新產生 `docs/public/openapi.json`，再於此處記錄其維運意義。 :::
+```bash
+sudo systemctl restart netstamp-agent
+sudo systemctl is-active netstamp-agent
+```
 
-## 維運習慣
+再次執行 `service install` 會更新環境檔與 systemd unit，重新載入 systemd，並啟用及啟動服務：
 
-記錄每個探測器存在的原因。像是 `home fiber edge`、`university lab` 或 `regional VPS` 的簡短備註，可以讓未來的比較更容易解讀。
+```bash
+sudo netstamp-agent service install \
+  --url 'https://netstamp.example.com' \
+  --probe-id '<probe UUID>' \
+  --probe-secret '<new secret>'
+```
 
-基礎架構變更後應重新檢查探測器。更換主機、搬移區域或變更上游供應商，都可能讓舊量測失去代表性。
+## 更新執行檔
+
+```bash
+sudo netstamp-agent update \
+  --url 'https://netstamp.example.com' \
+  --api-version 'v1'
+```
+
+代理程式會從控制器下載符合主機架構的版本，以不可分割的方式取代已安裝的執行檔；若 systemd unit 存在，也會重新啟動服務。更新後請確認控制器回報的代理程式版本及心跳都正常。
+
+## 調整執行參數
+
+編輯 `/etc/netstamp/probe.env`，再重新啟動服務。所有預設值請參閱[設定參考](/zh-TW/docs/reference/configuration/)。
+
+重要設定包括 worker 並行數、結果佇列與批次大小、指派存留時間與輪詢間隔、心跳間隔、重試退避、關機逾時及記錄層級。
+
+## Metrics 與 pprof
+
+這兩個診斷 listener 預設都不會啟用。除非受保護的監控網路確實需要連入，否則請只綁定 loopback：
+
+```dotenv
+NETSTAMP_PROBE_METRICS_ADDR=127.0.0.1:9091
+NETSTAMP_PROBE_PPROF_ADDR=127.0.0.1:6060
+```
+
+重新啟動後可用下列命令測試：
+
+```bash
+curl http://127.0.0.1:9091/metrics
+curl http://127.0.0.1:6060/debug/pprof/
+```
+
+pprof 可能揭露敏感的執行狀態，絕對不要直接公開到網際網路。
+
+## 解除安裝
+
+如果可能稍後重新安裝，可保留設定與服務帳號：
+
+```bash
+sudo netstamp-agent service uninstall
+```
+
+若也要移除環境檔、資料目錄、使用者與群組：
+
+```bash
+sudo netstamp-agent service uninstall --purge
+```
+
+解除安裝主機上的代理程式不會刪除 Netstamp 中的探測器。若不再需要該資源，仍須另外在控制器中停用或刪除。

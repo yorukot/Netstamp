@@ -1,0 +1,78 @@
+---
+title: Dashboard overview
+description: Read the current project's probe health, check coverage, network map, and recent probe registry at a glance.
+icon: activity
+navSection: use
+navOrder: 0
+head:
+  - tag: title
+    content: Dashboard Overview | Netstamp Docs
+---
+
+import ProductScreenshot from "@/components/docs/ProductScreenshot.astro";
+import probeMapScreenshot from "@/assets/homepage-highlights/probe-map.webp";
+
+The application's **Overview** page is the dashboard for a selected project. It summarizes whether the monitoring fleet is ready to run checks and points you to the product area that can explain or correct a problem.
+
+:::note Overview is a current-state dashboard, not a historical report. Use [Insight](/docs/use/insight/) for measurements over time and [Alerts and notifications](/docs/use/alerts-notifications/) for incidents. :::
+
+## Select The Project
+
+Netstamp keeps probes, checks, labels, alert rules, and status pages inside projects. Use the project switcher in the application navigation before interpreting Overview. A healthy probe count in one project says nothing about another project's fleet.
+
+If you have not joined a project yet, create one or accept a project invitation. See [Projects and members](/docs/use/projects-members/).
+
+## Probe Health
+
+The probe summary separates the fleet into these operational states:
+
+- **Online** probes are actively sending heartbeats to the controller.
+- **Offline** probes have stopped reporting within the expected window.
+- **Draining** probes are disabled. They remain registered, but should not receive normal monitoring work until they are enabled again.
+
+The counts use every probe in the selected project. Open [Probes](/docs/use/probes/) to inspect heartbeat time, agent version, IP-family support, or installation state for one machine.
+
+## Map Coverage
+
+The coverage card compares the number of registered probes with the number that have geographic coordinates. The network map can only place probes with a known location, so its marker count may be lower than the total fleet count.
+
+Locations may come from the address search in the probe editor or from manually entered latitude and longitude. A missing map marker does not mean that a probe is offline.
+
+## Active Checks
+
+The check summary counts enabled monitoring definitions and groups them by type. Netstamp currently supports:
+
+- Ping;
+- TCP connect;
+- HTTP or HTTPS;
+- Traceroute.
+
+Open [Checks](/docs/use/checks/) to add, edit, disable, or assign a check. A check definition alone does not guarantee execution: its selector must resolve to at least one eligible probe. Use [Labels and assignments](/docs/use/labels-assignments/) to verify that relationship.
+
+## Network Map
+
+The map shows the positioned probes in the current project. Use it to spot geographic gaps and confirm that monitoring originates from the locations you intended.
+
+<ProductScreenshot
+	src={probeMapScreenshot}
+	alt="Netstamp Overview showing probe health cards and probes positioned on the network map"
+	caption="Overview combines fleet health with geographic probe coverage for the selected project."
+/>
+
+The map represents probe locations, not traceroute paths. Open [Insight](/docs/use/insight/) and select a Traceroute check to explore hop topology and individual runs.
+
+## Probe Registry
+
+The registry lists a small, recent slice of the fleet with each probe's status and identifying details. It is useful for jumping from a high-level count to a specific probe, but it is not the complete inventory. Open the Probes page to search, filter, map, and manage the full fleet.
+
+## A Practical Triage Sequence
+
+When Overview signals a problem:
+
+1. Confirm that you selected the expected project.
+2. Open an offline or draining probe and inspect its last heartbeat and installation state.
+3. Confirm that active checks resolve to the intended probes.
+4. Use Insight to compare recent measurements across probes and checks.
+5. Review incidents and notification delivery only after verifying the underlying probe and assignment state.
+
+This order helps distinguish a monitoring target failure from a disabled probe, a stale agent, or a selector that matches nothing.

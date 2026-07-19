@@ -1,0 +1,84 @@
+---
+title: Upgrade, backup, and restore
+description: Upgrade Netstamp safely, back up PostgreSQL, restore a deployment, and understand the admin JSON export.
+icon: database
+navSection: install
+navOrder: 40
+---
+
+Netstamp applies forward database migrations before the controller starts. Treat the application image and database schema as one release unit.
+
+## Before an upgrade
+
+1. Record the current `NETSTAMP_VERSION` and `TIMESCALEDB_IMAGE` values.
+2. Read the changes between the current and target revisions.
+3. Create a PostgreSQL backup.
+4. Verify that the backup can be read.
+5. Schedule a maintenance window when the change is operationally significant.
+
+## Create a database backup
+
+Use PostgreSQL's custom archive format:
+
+```bash
+backup_file="netstamp-$(date -u +%Y%m%dT%H%M%SZ).dump"
+docker compose exec -T postgres \
+  pg_dump -U netstamp -d netstamp --format=custom > "$backup_file"
+pg_restore --list "$backup_file" >/dev/null
+```
+
+Store the dump together with the Compose files, the non-secret version settings, and an encrypted copy of the stable secret material needed to interpret credentials and stored settings.
+
+## Upgrade
+
+Edit `.env` to select the tested target version, then run:
+
+```bash
+docker compose pull
+docker compose up -d
+docker compose ps
+docker compose logs migrate
+docker compose logs --tail=200 netstamp
+```
+
+The migration container must exit successfully before the controller starts. Verify health, sign-in, one result query, one probe heartbeat, and one public status page.
+
+:::caution Do not assume that switching the container image back also reverses database migrations. Restore the pre-upgrade database backup when the target release does not explicitly support a schema downgrade. :::
+
+## Restore a backup
+
+Restore into a new database or a disposable environment first whenever possible. For an in-place restore:
+
+```bash
+docker compose stop netstamp
+docker compose exec -T postgres \
+  pg_restore -U netstamp -d netstamp --clean --if-exists --no-owner < netstamp-backup.dump
+docker compose run --rm migrate
+docker compose up -d netstamp
+```
+
+Then verify:
+
+```bash
+docker compose ps
+curl --fail http://127.0.0.1:3000/api/v1/healthz
+```
+
+If the backup came from another installation, restore the matching `SYSTEM_SETTINGS_ENCRYPTION_KEY`. Session and API-token hash keys must also match if existing sessions and tokens are expected to remain valid.
+
+## Admin JSON export and import
+
+System administrators can download and import a Netstamp JSON data package from **Admin → Data**. It is useful for application-level portability and controlled administrative workflows.
+
+It is not a substitute for a PostgreSQL backup because it does not preserve database-level metadata, extensions, ownership, or an exact point-in-time recovery boundary. Use `pg_dump` for disaster recovery and test the admin package separately if it is part of your migration plan.
+
+## Database volume safety
+
+These commands have different effects:
+
+```bash
+docker compose down        # removes containers and network; keeps the database volume
+docker compose down -v     # also deletes the database volume
+```
+
+Never add `-v` to routine stop, restart, or upgrade procedures.

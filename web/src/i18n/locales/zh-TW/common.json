@@ -48,13 +48,13 @@
 		"choiceEyebrow": "選擇一個選項",
 		"confirmAction": "確認操作",
 		"confirmEyebrow": "需要確認",
-		"destructiveAction": "破壞性操作",
-		"fillConfirmation": "填入確認欄位",
+		"destructiveAction": "高風險操作",
+		"fillConfirmation": "輸入確認內容",
 		"promptEyebrow": "需要輸入",
 		"typeToConfirm": "輸入 <confirmation>{{value}}</confirmation> 以確認。"
 	},
 	"demo": {
-		"description": "目前為唯讀存取。所有變更資料的要求都會被阻擋，你只能檢視專案資料。",
+		"description": "目前是唯讀模式。系統會阻擋所有變更資料的操作，你仍可瀏覽專案資料。",
 		"title": "示範模式"
 	},
 	"fields": {
@@ -63,7 +63,7 @@
 	},
 	"language": {
 		"label": "語言",
-		"switchTo": "切換語言為{{language}}"
+		"switchTo": "切換語言為 {{language}}"
 	},
 	"loading": {
 		"default": "載入中…",
@@ -88,13 +88,13 @@
 		"yes": "是"
 	},
 	"toast": {
-		"requestFailed": "要求失敗"
+		"requestFailed": "操作失敗"
 	},
 	"tracking": {
 		"accept": "接受",
 		"ariaLabel": "分析資料同意設定",
 		"decline": "拒絕",
-		"description": "Netstamp 可以載入選用的分析工具，以瞭解產品與文件的使用情形。拒絕後，這些追蹤工具會在此瀏覽器中維持停用。",
+		"description": "Netstamp 可以載入選用的分析工具，以瞭解產品與說明文件的使用情形。拒絕後，這些追蹤工具會在此瀏覽器中維持停用。",
 		"title": "分析資料同意設定"
 	},
 	"theme": {
@@ -104,6 +104,6 @@
 		"switchToLight": "切換為淺色模式"
 	},
 	"unsaved": {
-		"message": "請注意，您有尚未儲存的變更。"
+		"message": "尚有未儲存的變更。"
 	}
 }

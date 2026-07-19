@@ -1,53 +1,108 @@
 ---
-title: 部署
-description: 說明靜態 Docs build、產生的 API 合約與 Storybook 輸出如何組合並發布。
+title: Docker Compose
+description: 使用官方控制器映像檔、搭配 TimescaleDB 的 PostgreSQL 與自動遷移功能安裝 Netstamp。
 icon: deployment
-head:
-  - tag: title
-    content: 部署 | Netstamp 說明文件
+navSection: install
+navOrder: 0
 ---
 
-## 靜態輸出
+若要自行託管 Netstamp，建議先從程式碼儲存庫提供的標準 Compose 部署開始。它會執行三個服務：
 
-Docs 網站是建置至 `docs/dist` 的 Astro 應用程式，負責公開 host 上的首頁、說明文件 route、產生的 OpenAPI explorer 與靜態 Storybook 輸出。頁面仍會預先 render 成靜態檔案，Astro 的 `ClientRouter` 則讓站內導覽具有類似 SPA 的體驗。
+| 服務       | 用途                                                        |
+| ---------- | ----------------------------------------------------------- |
+| `postgres` | PostgreSQL 16、TimescaleDB，以及保存資料的 named volume     |
+| `migrate`  | 使用相同 Netstamp 映像檔版本執行一次性的資料庫遷移          |
+| `netstamp` | 控制器、內嵌 React 應用程式、API，以及 Linux 探測器安裝資源 |
 
-```bash
-pnpm build:docs
-```
-
-## 建置步驟
-
-Docs build 會先將共用 UI 的 Storybook 輸出發布到 `docs/public/storybook`，再執行 `astro build`。Astro 會將 Storybook artifact 與網站其他靜態檔案一起複製到 `docs/dist/storybook`。
-
-如此可將 API reference、說明文件頁面與 component example 放進同一個可部署 artifact。
-
-後端 route 變更時，請另外重新產生 OpenAPI 合約：
+## 下載並設定
 
 ```bash
-pnpm generate:openapi
-```
-
-## Route 所有權
-
-公開 host 透過 GitHub Pages 負責 `/`、`/docs/*`、`/openapi/` 與 `/storybook/`。App host 負責 `/login`、`/register` 與需驗證的 dashboard path，該 host 上的 `/api/*` 則會 proxy 到 Go controller。Observability deployment 可以將 Grafana 直接對應至 `grafana.netstamp.dev`。
-
-:::note 公開說明文件網站、app runtime 與 Grafana runtime 是不同的部署目標。GitHub Pages 為 `netstamp.dev` 提供 Astro 靜態 build；bundle 中的 nginx image 只為 React app 與 API 提供 `app.netstamp.dev`。 :::
-
-## 自行託管 Runtime
-
-預設的自行託管 runtime 是 `deployments/docker/compose.yaml`。它會拉取 `yorukot/netstamp` app image、執行 PostgreSQL/TimescaleDB、透過一次性 service 套用 migration，並由 Netstamp container 提供 React app 與 `/api/v1/*`。
-
-```bash
-curl -O https://raw.githubusercontent.com/yorukot/netstamp/main/deployments/docker/compose.yaml
-curl -O https://raw.githubusercontent.com/yorukot/netstamp/main/deployments/docker/example.env
+mkdir -p /opt/netstamp
+cd /opt/netstamp
+curl -fsSLO https://raw.githubusercontent.com/yorukot/netstamp/main/deployments/docker/compose.yaml
+curl -fsSLO https://raw.githubusercontent.com/yorukot/netstamp/main/deployments/docker/example.env
 cp example.env .env
-docker compose up -d
+chmod 600 .env
 ```
 
-公開 HTTPS deployment 請使用外部 reverse proxy。
+產生五組彼此獨立的密鑰：
 
-Reverse proxy 必須保留 personal access token 所需的 `Authorization` header。Netstamp 不會為 PAT endpoint 啟用 CORS；請使用 curl、CI、CLI 工具或後端 service，不要在瀏覽器 JavaScript 中放入權杖。
+```bash
+openssl rand -hex 32
+openssl rand -hex 32
+openssl rand -hex 32
+openssl rand -hex 32
+openssl rand -hex 32
+```
 
-## 驗證
+將不同的隨機值分別填入 `.env` 下列欄位：
 
-發布涉及 MDX、導覽、共用 UI Storybook 輸出或 Astro layout 的變更前，請先執行 Docs build。後端 API route 或 schema 變更時，請在 build 前執行 `pnpm generate:openapi`。
+```dotenv
+DATABASE_PASSWORD=<random value>
+LOG_PSEUDONYM_KEY=<random value>
+SYSTEM_SETTINGS_ENCRYPTION_KEY=<random value>
+AUTH_SESSION_HASH_KEY=<random value>
+AUTH_API_TOKEN_HASH_KEY=<random value>
+```
+
+重新啟動或升級時必須沿用這些值。變更 hash key 會讓對應憑證失效；變更系統設定加密金鑰，則可能導致已儲存的 SMTP 憑證無法解密。
+
+## 啟動服務
+
+```bash
+docker compose pull
+docker compose up -d
+docker compose ps
+docker compose logs migrate
+```
+
+正常狀態如下：
+
+- `postgres` 顯示 healthy；
+- `migrate` 以狀態碼 0 結束；
+- `netstamp` 持續執行；
+- 設定的連接埠可回應 `/healthz` 與 `/api/v1/healthz`。
+
+```bash
+curl --fail http://127.0.0.1:3000/healthz
+curl --fail http://127.0.0.1:3000/api/v1/healthz
+```
+
+## 選擇映像檔與版本
+
+預設值如下：
+
+```dotenv
+NETSTAMP_IMAGE=yorukot/netstamp
+NETSTAMP_VERSION=latest
+TIMESCALEDB_IMAGE=timescale/timescaledb:latest-pg16
+NETSTAMP_PORT=3000
+```
+
+`latest` 適合試用。正式或受控環境應將 `NETSTAMP_VERSION` 與 `TIMESCALEDB_IMAGE` 固定在已測試、不可變動的 release tag 或 digest。遷移與應用程式服務必須使用相同的 Netstamp 版本。
+
+## 持久化資料
+
+資料庫存放在 Compose 中邏輯名稱為 `netstamp-postgres` 的 volume；Docker 通常會在實際名稱前加上 Compose project name。移除 container 不會刪除 volume。除非確定要銷毀所有專案、使用者、探測器、結果、事件與設定，否則不要執行 `docker compose down -v`。
+
+列出並檢查 volume：
+
+```bash
+docker volume ls --filter name=netstamp-postgres
+docker compose exec postgres psql -U netstamp -d netstamp -c 'select now();'
+```
+
+## 建置自訂映像檔
+
+發布的映像檔包含控制器、遷移工具、網頁應用程式，以及 amd64/arm64 探測器執行檔。若要從 checkout 建置相同映像檔：
+
+```bash
+docker build -f deployments/docker/Dockerfile -t netstamp:local .
+NETSTAMP_IMAGE=netstamp NETSTAMP_VERSION=local docker compose up -d
+```
+
+前端的 `VITE_NETSTAMP_*` 功能旗標會在建置時寫入。製作自訂映像檔時，請透過 Docker 建置參數修改；在已建置完成的容器中新增執行階段環境變數，不會改變前端內容。
+
+## 接下來
+
+將服務公開到網際網路之前，請完成[正式環境部署](/zh-TW/docs/install/production/)中的所有項目。

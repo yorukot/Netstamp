@@ -1,0 +1,122 @@
+---
+title: Production deployment
+description: Put Netstamp behind HTTPS, configure public origins and trusted proxies, harden secrets, and verify a production installation.
+icon: shield
+navSection: install
+navOrder: 10
+---
+
+A production Netstamp instance should have one stable HTTPS origin, a private database, persistent secrets, tested backups, and an explicit upgrade process.
+
+## Required settings
+
+Set these values in `.env` before exposing the service:
+
+```dotenv
+APP_ENV=production
+BACKEND_BASE_URL=https://netstamp.example.com
+PUBLIC_WEB_BASE_URL=https://netstamp.example.com
+NETSTAMP_VERSION=<tested tag or digest>
+DATABASE_PASSWORD=<unique random value>
+LOG_PSEUDONYM_KEY=<unique random value>
+SYSTEM_SETTINGS_ENCRYPTION_KEY=<unique random value>
+AUTH_SESSION_HASH_KEY=<unique random value>
+AUTH_API_TOKEN_HASH_KEY=<unique random value>
+```
+
+`BACKEND_BASE_URL` is used for OAuth/OIDC callback URLs, email links, and controller-served probe installer URLs. `PUBLIC_WEB_BASE_URL` is used for browser-facing links. Both values must be origins only: scheme and host, with no path, query, or fragment.
+
+With `APP_ENV=production`, session cookies use the `__Host-` prefix, `Secure`, `HttpOnly`, `SameSite=Strict`, and `Path=/`. Users must access the site over HTTPS.
+
+## Reverse proxy requirements
+
+Terminate TLS in a reverse proxy and forward the complete origin to the container. Preserve these headers:
+
+- `Host`
+- `X-Forwarded-Proto`
+- `X-Forwarded-For`
+- `X-Real-IP` when your proxy provides it
+- `Authorization`
+
+Example Nginx server block:
+
+```nginx
+server {
+    listen 443 ssl http2;
+    server_name netstamp.example.com;
+
+    ssl_certificate /etc/letsencrypt/live/netstamp.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/netstamp.example.com/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Authorization $http_authorization;
+    }
+}
+```
+
+Bind the Compose port to loopback when the reverse proxy runs on the same host:
+
+```yaml
+services:
+  netstamp:
+    ports:
+      - "127.0.0.1:3000:8080"
+```
+
+If Netstamp must trust client addresses from the proxy, set `HTTP_TRUSTED_PROXIES` to the proxy's exact address or CIDR prefixes, separated by commas. Do not trust all addresses unless the container port is otherwise unreachable.
+
+## Firewall and network direction
+
+The controller needs:
+
+- inbound HTTPS from browsers, API clients, and probe agents;
+- outbound access to configured OAuth/OIDC providers and notification endpoints;
+- outbound SMTP when email is enabled;
+- database access to PostgreSQL.
+
+Probe agents initiate outbound HTTP(S) connections to the controller. The controller does not need inbound access to probe hosts.
+
+## Account bootstrap
+
+The first successfully registered account is granted system administrator access. Create that account before opening registration broadly, then use **Admin → System settings** to:
+
+1. verify backend and public web origins;
+2. configure SMTP if needed;
+3. decide whether registration remains enabled;
+4. decide whether new accounts must verify email;
+5. add at least one additional system administrator for recovery.
+
+System administrators do not automatically gain access to projects. Project owners must invite them when project access is required.
+
+## Production checklist
+
+- [ ] `APP_ENV=production` is set.
+- [ ] Every placeholder and development secret was replaced independently.
+- [ ] The Netstamp and TimescaleDB image versions are pinned and recorded.
+- [ ] The database port is not exposed publicly.
+- [ ] HTTPS is valid and HTTP redirects to HTTPS.
+- [ ] `BACKEND_BASE_URL` and `PUBLIC_WEB_BASE_URL` match the public origin.
+- [ ] Trusted proxy ranges are no broader than necessary.
+- [ ] Registration and email-verification policy are intentional.
+- [ ] SMTP and every alert notification are tested.
+- [ ] `/healthz` and `/api/v1/healthz` are monitored.
+- [ ] A database backup was created and restored in a test environment.
+- [ ] Probe hosts can reach the public controller origin.
+- [ ] Secrets and `.env` are excluded from backups that leave your control, or encrypted before storage.
+
+## Verification
+
+```bash
+curl --fail https://netstamp.example.com/healthz
+curl --fail https://netstamp.example.com/api/v1/healthz
+curl --fail https://netstamp.example.com/api/v1/openapi.json >/dev/null
+curl --fail https://netstamp.example.com/api/v1/install/agent.sh >/dev/null
+```
+
+Create a disposable probe, confirm its heartbeat, run one check, test one notification, and load a public status page before declaring the deployment ready.

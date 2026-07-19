@@ -2,7 +2,8 @@
 title: Translating Netstamp
 description: Contribute translations in Crowdin, preserve technical content, and validate localized resources before they ship.
 icon: users
-navOrder: 35
+navSection: development
+navOrder: 30
 head:
   - tag: title
     content: Translating Netstamp | Netstamp Docs
@@ -12,12 +13,12 @@ Netstamp uses English as the source language and currently publishes Traditional
 
 ## Translate Without Writing Code
 
-1. Open the [Netstamp project in Crowdin](https://crowdin.com/project/netstamp).
-2. Choose **Chinese Traditional (`zh-TW`)**.
-3. Select a file with untranslated or untranslated-with-context strings.
-4. Read the English source, surrounding strings, file path, and available translation-memory suggestions before translating.
-5. Enter natural Taiwanese Traditional Chinese, run Crowdin's QA checks, and save the translation.
-6. Leave a Crowdin comment when the source is ambiguous or when the correct translation depends on product behavior.
+1. Open the [Netstamp project in Crowdin](https://crowdin.com/project/netstamp), then sign in or create a free account.
+2. Choose **Chinese Traditional (`zh-TW`)** and open the file you want to translate. Crowdin's filters can show only untranslated or unapproved strings.
+3. Before translating a string, read its English source, neighboring text, source-file path, and contributor comments. Translation-memory suggestions are references, not automatically correct answers.
+4. Write complete, natural Taiwanese Traditional Chinese. Search the project for existing translations of the same product term when you need to confirm consistency.
+5. Resolve Crowdin's QA warnings before saving, especially mismatched variables, tags, numbers, punctuation, and whitespace.
+6. When English is ambiguous or the right translation depends on product behavior, leave a comment on the string and mention a maintainer instead of guessing.
 
 Maintainers review the translation in Crowdin and synchronize accepted output back to the repository. Translation contributors do not need `CROWDIN_PROJECT_ID`, `CROWDIN_PERSONAL_TOKEN`, or repository write access.
 
@@ -30,6 +31,8 @@ Translate user-facing prose and interface text, including:
 - localized page titles, metadata, and image alternative text.
 
 Use natural terminology for Taiwan. Prefer「設定」、「檔案」、「連線」、「使用者」、「資訊」、「程式碼」與「伺服器」when those meanings apply.
+
+Keep Netstamp terminology consistent as well. For example, ordinary prose uses「探測器」for Probe,「控制器」for Controller,「檢查」for check,「指派」for assignment, and「權杖」for token when the context calls for it. Type names, fields, and component identifiers in code remain unchanged.
 
 ## What To Preserve
 

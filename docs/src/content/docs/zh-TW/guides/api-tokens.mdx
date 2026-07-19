@@ -1,50 +1,79 @@
 ---
 title: API 權杖
-description: 為 curl、CI、CLI 工具與後端整合建立具有 scope 的 personal access token。
+description: 為腳本與整合服務建立、設定權限範圍、儲存、使用、輪替及撤銷 Netstamp 個人 API 權杖。
 icon: key
-navOrder: 25
-head:
-  - tag: title
-    content: API 權杖 | Netstamp 說明文件
+navSection: api
+navOrder: 10
 ---
+
+個人 API 權杖用來驗證瀏覽器以外的專案 API 請求。每個權杖都有一位使用者擁有者、受權限範圍限制，並會在指定時間到期；它能執行的操作也會受到擁有者目前的專案成員資格與角色限制。
 
 ## 建立權杖
 
-開啟「**帳號 → API 權杖**」，設定容易辨識的名稱、到期時間，以及整合真正需要的 scope，然後使用目前密碼確認操作。
+1. 開啟**帳號 → API 權杖**。
+2. 選擇**建立權杖**。
+3. 輸入可以辨識使用端的名稱，例如 `grafana-read-prod` 或 `ci-status-page-publisher`。
+4. 只勾選實際需要的權限範圍。
+5. 設定到期時間。
+6. 立即複製明文 `nst_pat_...`。
 
-明文權杖只會顯示一次。關閉對話框前，請將它保存到 secret manager 或受保護的環境變數。Netstamp 只保存加上 key 的 hash，之後無法再次顯示權杖。
+Netstamp 只儲存雜湊值與八個字元的提示；明文不會再次顯示。
 
-## 呼叫 API
+## 權限範圍
 
-將權杖作為 Bearer credential 傳送，並使用 controller 的公開 HTTPS origin 與有版本的 `/api/v1` base path。
+| 功能領域 | 讀取                | 寫入                 |
+| -------- | ------------------- | -------------------- |
+| 專案     | `projects:read`     | `projects:write`     |
+| 探測器   | `probes:read`       | `probes:write`       |
+| 檢查     | `checks:read`       | `checks:write`       |
+| 標籤     | `labels:read`       | `labels:write`       |
+| 指派     | `assignments:read`  | —                    |
+| 結果     | `results:read`      | —                    |
+| 警示     | `alerts:read`       | `alerts:write`       |
+| 狀態頁   | `status_pages:read` | `status_pages:write` |
+
+依 OpenAPI 操作的定義，寫入操作可能還需要對應的讀取或專案權限範圍。請在 [API 瀏覽器](/zh-TW/openapi/)確認端點的安全性需求。
+
+## 使用權杖
 
 ```bash
-export NETSTAMP_API_TOKEN='nst_pat_...'
-
-curl \
-  -H "Authorization: Bearer $NETSTAMP_API_TOKEN" \
-  -H "Accept: application/json" \
-  https://controller.example.com/api/v1/projects
+curl --fail --silent --show-error \
+  --header 'Authorization: Bearer nst_pat_replace_me' \
+  https://netstamp.example.com/api/v1/projects
 ```
 
-PAT request 不使用瀏覽器 cookie 或 CSRF token。第一版設計給 server-to-server client 使用，不會開放跨來源瀏覽器存取。
+建議使用機密管理工具或受保護的環境變數：
 
-## Scope 與專案存取權
+```bash
+curl --fail --silent --show-error \
+  --header "Authorization: Bearer $NETSTAMP_TOKEN" \
+  "$NETSTAMP_URL/api/v1/projects/$NETSTAMP_PROJECT/results/latest"
+```
 
-權杖 scope 與擁有者目前的專案角色會同時套用。即使權杖具有 `checks:write`，如果擁有者在專案中只有 viewer 角色，仍無法更新 check。從專案移除擁有者或降低角色後，下一個 request 就會套用新的權限。
+不要讓權杖出現在 shell 歷史紀錄、原始檔、CI 日誌、截圖或 URL 查詢字串中。
 
-可用 scope 涵蓋專案、探測器、檢查、標籤、指派、結果、警示與狀態頁面。帳號安全、專案成員、邀請、權杖管理與系統管理仍只能透過 session 操作。
+## 權限交集
 
-## 到期與輪替
+只有在以下條件全部成立時，請求才會成功：
 
-權杖可在 7、30、90 或 365 天後到期。若要零停機輪替，請先建立替代權杖、更新整合並驗證，最後再撤銷舊權杖。
+```text
+valid token
+AND not expired
+AND required token scope
+AND active token owner
+AND current project membership
+AND sufficient project role
+```
 
-變更密碼、重設密碼、管理員重設密碼或停用帳號，都會撤銷所有個人 API 權杖。登出瀏覽器 session 不會撤銷權杖。
+如果使用者被移出專案，或角色權限遭到調降，該權杖能做的事會立即縮減，不需要修改權杖本身。
 
-:::warning 絕對不要把權杖放進 URL、前端 bundle、Git repository、聊天訊息或 shell history。若權杖可能外洩，請立即撤銷。 :::
+## 輪替與撤銷
 
-## 錯誤與可觀測性
+Netstamp 不會再次顯示或修改既有權杖值。輪替方式如下：
 
-無效、已到期、已撤銷或屬於停用帳號的 credential 會回傳 `401 AUTH_INVALID_API_TOKEN`。缺少 scope 時回傳 `403 AUTH_INSUFFICIENT_SCOPE`；專案角色不足則維持現有的專案授權錯誤。
+1. 建立權限範圍相同或更少的新權杖；
+2. 更新使用端並完成測試；
+3. 撤銷舊權杖；
+4. 確認舊權杖發出的請求已經失敗。
 
-Netstamp 會匯出彙總的 PAT 驗證與 request metric，其中不包含權杖或使用者識別資訊。公開 controller 時，請在 reverse proxy 或 API gateway 套用流量限制。
+只要懷疑權杖外洩，就應立即撤銷。帳號停用或管理員協助恢復憑證時，也會依受影響的驗證狀態撤銷權杖或使存取權失效。

@@ -41,9 +41,13 @@
 		"fallbackNotice": "This page is not yet available in Traditional Chinese. The English source is shown below.",
 		"fallbackLink": "Open the English page",
 		"sections": {
-			"start": "Start",
-			"guides": "Guides",
-			"reference": "Reference"
+			"start": "Getting Started",
+			"install": "Installation",
+			"use": "Using Netstamp",
+			"operate": "Operations",
+			"api": "API",
+			"development": "Development",
+			"community": "Community"
 		}
 	},
 	"search": {
@@ -90,7 +94,8 @@
 	},
 	"footer": {
 		"madeBy": "Netstamp / Made by",
-		"and": "and",
+		"separator": ", ",
+		"contributorsSeparator": ", and ",
 		"contributors": "contributors",
 		"star": "Give us a star on GitHub"
 	},
@@ -103,6 +108,8 @@
 		"introAria": "Netstamp product introduction",
 		"introBefore": "Netstamp is an open-source, self-hosted network observability app that helps measure",
 		"introAfter": "and incidents from the viewpoints that matter.",
+		"listSeparator": ", ",
+		"introAfterSeparator": ", ",
 		"latency": "latency",
 		"packetLoss": "packet loss",
 		"routes": "routes",

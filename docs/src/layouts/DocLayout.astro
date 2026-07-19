@@ -70,13 +70,11 @@ const pageAssistantPrompt =
 const chatGptUrl = `https://chatgpt.com/?q=${encodeURIComponent(pageAssistantPrompt)}`;
 const claudeUrl = `https://claude.ai/new?q=${encodeURIComponent(pageAssistantPrompt)}`;
 
-function isActiveNavItem(href: string) {
-	return pathname === href || (href !== "/docs/" && pathname.startsWith(href));
-}
+const isActiveNavItem = (href: string) => pathname === href || (href !== "/docs/" && pathname.startsWith(href));
 
 const navGroups = docsNav.map(group => ({
 	...group,
-	id: group.title.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+	id: group.key,
 	active: group.items.some(item => isActiveNavItem(item.href)),
 	items: group.items.map(item => ({
 		...item,

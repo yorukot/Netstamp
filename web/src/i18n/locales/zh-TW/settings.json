@@ -1,7 +1,7 @@
 {
 	"apiTokens": {
 		"title": "API 權杖",
-		"summary": "為 curl、CI、CLI 工具與後端整合建立限定權限的憑證。",
+		"summary": "建立權限受限的個人存取權杖，供 curl、CI、CLI 工具與後端整合使用。",
 		"create": "建立權杖",
 		"creating": "建立中",
 		"name": "名稱",
@@ -21,15 +21,15 @@
 		"empty": "沒有 API 權杖",
 		"revoke": "撤銷",
 		"revokeQuestion": "要撤銷 API 權杖嗎？",
-		"revokeMessage": "{{name}} 將立即停止運作。",
+		"revokeMessage": "{{name}} 將立即失效。",
 		"revoked": "API 權杖已撤銷",
 		"revokedMessage": "{{name}} 已無法再存取 API。",
 		"revokeFailed": "撤銷失敗",
 		"revokeError": "無法撤銷 API 權杖。",
 		"creationFailed": "權杖建立失敗",
 		"creationError": "無法建立 API 權杖。",
-		"copyTitle": "複製您的 API 權杖",
-		"copyDescription": "此密鑰只會顯示一次。請立即妥善保存；Netstamp 無法再次顯示。",
+		"copyTitle": "複製 API 權杖",
+		"copyDescription": "此權杖只會顯示一次，請立即妥善儲存；Netstamp 之後無法再次顯示。",
 		"personalToken": "個人存取權杖",
 		"curlExample": "curl 範例",
 		"createTitle": "建立 API 權杖",
@@ -58,11 +58,11 @@
 	},
 	"account": {
 		"title": "帳號",
-		"authenticationFailed": "驗證失敗",
+		"authenticationFailed": "身分驗證失敗",
 		"authErrors": {
-			"identityConflict": "此外部身分不屬於此 Netstamp 帳號。",
+			"identityConflict": "這個外部身分已連結至其他 Netstamp 帳號。",
 			"sudoExpired": "驗證已逾時，請再試一次。",
-			"default": "無法完成外部驗證，請再試一次。"
+			"default": "無法完成第三方身分驗證，請再試一次。"
 		},
 		"emailChanged": "電子郵件已變更",
 		"emailChangedMessage": "登入電子郵件與 Gravatar 來源已更新。",
@@ -96,11 +96,11 @@
 			"title": "個人資料",
 			"displayName": "顯示名稱",
 			"demoDisabled": "示範存取模式無法變更個人資料。",
-			"avatarDescription": "您的頭像由 Gravatar 根據帳號電子郵件產生。"
+			"avatarDescription": "頭像會由 Gravatar 根據帳號電子郵件產生。"
 		},
 		"sessions": {
 			"title": "使用中的工作階段",
-			"summary": "檢視已使用此帳號驗證的用戶端，並撤銷不再認得的存取權。",
+			"summary": "查看已登入此帳號的裝置與用戶端，並撤銷不再認得的工作階段。",
 			"client": "用戶端",
 			"currentSession": "目前工作階段",
 			"authenticatedSession": "已驗證工作階段",
@@ -122,7 +122,7 @@
 			"revoke": "撤銷",
 			"signOutQuestion": "要登出這個工作階段嗎？",
 			"revokeQuestion": "要撤銷工作階段嗎？",
-			"currentMessage": "這是目前的工作階段；您將在此裝置上登出。",
+			"currentMessage": "這是目前的工作階段；此裝置將會登出。",
 			"revokeMessage": "此裝置將立即失去存取權，其他使用中的工作階段仍會保持登入。",
 			"signedOut": "已登出",
 			"signedOutMessage": "目前的工作階段已撤銷。",
@@ -150,27 +150,27 @@
 			"connected": "已連結",
 			"notConnected": "尚未連結",
 			"externalIdentity": "外部身分",
-			"disconnect": "中斷連結",
-			"disconnecting": "中斷連結中",
-			"disconnectAria": "中斷 {{provider}} 連結",
-			"connectDescription": "連結此提供者，作為另一種登入方式。",
+			"disconnect": "取消連結",
+			"disconnecting": "正在取消連結",
+			"disconnectAria": "取消連結 {{provider}}",
+			"connectDescription": "連結這個身分提供者，作為另一種登入方式。",
 			"connect": "連結 {{provider}}"
 		},
 		"danger": {
 			"title": "高風險帳號操作",
 			"deactivate": "停用帳號",
 			"deactivating": "停用中",
-			"description": "停用登入與受保護路由的存取權，直到系統管理員重新啟用帳號。",
+			"description": "停用登入及受保護頁面的存取權，直到系統管理員重新啟用帳號。",
 			"question": "要停用這個帳號嗎？",
 			"message": "帳號將被停用，且在系統管理員重新啟用前無法登入。",
 			"confirmationLabel": "帳號電子郵件",
 			"deactivated": "帳號已停用",
 			"deactivatedMessage": "系統管理員之後可以重新啟用。",
 			"failed": "停用失敗",
-			"error": "無法停用您的帳號。"
+			"error": "無法停用帳號。"
 		},
 		"credentialDialog": {
-			"eyebrow": "帳號憑證",
+			"eyebrow": "帳號登入憑證",
 			"emailDescription": "更新登入及產生 Gravatar 所使用的電子郵件。",
 			"changePasswordDescription": "更換用於登入帳號的密碼。",
 			"setPasswordDescription": "新增本機密碼，讓此帳號能確認敏感變更。",

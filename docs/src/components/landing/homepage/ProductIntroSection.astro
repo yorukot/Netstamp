@@ -10,23 +10,23 @@ const ui = uiForLocale(Astro.currentLocale);
 		<span class="intro-mark" data-intro-highlight>
 			<span class="intro-mark-base">{ui.home.latency}</span>
 			<span class="intro-mark-fill" aria-hidden="true"><span class="intro-icon"><ph-pulse weight="regular" focusable="false"></ph-pulse></span><span>{ui.home.latency}</span></span>
-		</span>,{" "}
+		</span>{ui.home.listSeparator}
 		<span class="intro-mark" data-intro-highlight>
 			<span class="intro-mark-base">{ui.home.packetLoss}</span>
 			<span class="intro-mark-fill" aria-hidden="true"><span class="intro-icon"><ph-warning weight="regular" focusable="false"></ph-warning></span><span>{ui.home.packetLoss}</span></span>
-		</span>,{" "}
+		</span>{ui.home.listSeparator}
 		<span class="intro-mark" data-intro-highlight>
 			<span class="intro-mark-base">{ui.home.routes}</span>
 			<span class="intro-mark-fill" aria-hidden="true"><span class="intro-icon"><ph-git-branch weight="regular" focusable="false"></ph-git-branch></span><span>{ui.home.routes}</span></span>
-		</span>,{" "}
+		</span>{ui.home.listSeparator}
 		<span class="intro-mark" data-intro-highlight>
 			<span class="intro-mark-base">{ui.home.uptime}</span>
 			<span class="intro-mark-fill" aria-hidden="true"><span class="intro-icon"><ph-check-circle weight="regular" focusable="false"></ph-check-circle></span><span>{ui.home.uptime}</span></span>
-		</span>,{" "}
+		</span>{ui.home.listSeparator}
 		<span class="intro-mark" data-intro-highlight>
 			<span class="intro-mark-base">{ui.home.certificates}</span>
 			<span class="intro-mark-fill" aria-hidden="true"><span class="intro-icon"><ph-shield-check weight="regular" focusable="false"></ph-shield-check></span><span>{ui.home.certificates}</span></span>
-		</span>,{" "}{ui.home.introAfter}
+		</span>{ui.home.introAfterSeparator}{ui.home.introAfter}
 	</p>
 </section>
 

@@ -1,0 +1,145 @@
+---
+title: 本機開發
+description: 設定 Netstamp 工作區、啟動各個應用程式、重新產生合約，並使用範圍明確的驗證指令。
+icon: code
+navSection: development
+navOrder: 0
+head:
+  - tag: title
+    content: 本機開發 | Netstamp 說明文件
+---
+
+Netstamp 是一個 pnpm 工作區，包含 Go 控制器與探測器 agent、TypeSpec API 合約、React/Vite 應用程式、共用 React UI 套件，以及 Astro 說明文件網站。
+
+## 前置需求
+
+請先安裝：
+
+- Node.js 22.12 或更新版本；
+- pnpm 11.9；
+- Go 1.26，供控制器或探測器 agent 開發使用；
+- [`just`](https://github.com/casey/just)，用來執行程式碼儲存庫提供的工作指令；
+- Docker，需要 PostgreSQL、TimescaleDB 或完整自行託管環境時使用。
+
+複製程式碼儲存庫並安裝工作區相依套件：
+
+```bash
+git clone https://github.com/yorukot/netstamp.git
+cd netstamp
+pnpm install
+```
+
+安裝步驟也會設定程式碼儲存庫的 Git hook。
+
+## 啟動控制器開發用 PostgreSQL
+
+控制器需要啟用 TimescaleDB 擴充功能的 PostgreSQL。本機開發可以只啟動部署用 Compose 檔案中的資料庫服務：
+
+```bash
+cp deployments/docker/example.env deployments/docker/.env
+docker compose --env-file deployments/docker/.env \
+  -f deployments/docker/compose.yaml up -d postgres
+```
+
+複製控制器環境變數範本：
+
+```bash
+cp server/.env.example server/.env
+```
+
+將 `server/.env` 的 `DATABASE_PASSWORD` 設為與 `deployments/docker/.env` 相同的值，接著套用資料庫遷移：
+
+```bash
+just backend-migrate-up
+```
+
+這兩個環境檔都是本機設定。請勿提交已填入內容的環境檔或正式環境憑證。
+
+## 啟動控制器與 Web 應用程式
+
+使用 Air 熱重新載入功能啟動 Go 控制器：
+
+```bash
+just dev
+```
+
+控制器預設監聽 `http://localhost:8080`。另開一個終端機視窗啟動 Vite：
+
+```bash
+just web-dev
+```
+
+Vite 預設會將 `/api` 反向代理到 `http://localhost:8080`。如果控制器使用其他來源網址，請設定 `VITE_NETSTAMP_API_PROXY_TARGET`。
+
+全新資料庫中第一個成功註冊的帳號會成為系統管理員。這項初始化規則只適用於空白系統；系統管理員權限與專案成員資格是兩套不同的權限。
+
+## 啟動說明文件與 Storybook
+
+啟動 Astro 說明文件網站：
+
+```bash
+just docs-dev
+```
+
+開發 `@netstamp/ui` 時，可另外啟動共用元件目錄：
+
+```bash
+pnpm dev:storybook
+```
+
+正式的說明文件建置會先產生靜態 Storybook 網站，再建置 Astro。除非程式碼儲存庫明確將其視為來源檔，否則不要提交產生的預覽或截圖檔。
+
+## 依範圍建置與測試
+
+開發過程中請使用範圍明確的指令：
+
+```bash
+pnpm --filter @netstamp/web typecheck
+pnpm --filter @netstamp/web lint
+pnpm --filter @netstamp/web test
+pnpm --filter @netstamp/web build
+
+pnpm --filter @netstamp/docs build
+pnpm --filter @netstamp/ui build
+
+just backend-test
+just backend-lint
+just backend-build
+```
+
+整個程式碼儲存庫的共用入口如下：
+
+```bash
+just lint
+just test
+just build
+```
+
+## 修改 API 合約
+
+`api/` 下的 TypeSpec 是 HTTP 合約的唯一準據。修改後，請重新產生所有需要提交的使用端檔案：
+
+```bash
+pnpm generate:openapi
+```
+
+這個指令會更新公開 OpenAPI 文件、控制器內嵌的副本，以及 Web 應用程式產生的 TypeScript 型別宣告。請勿手動編輯這些產生的檔案。
+
+## 修改使用者會看到的文字
+
+英文 UI 翻譯資源與英文 MDX 是翻譯來源。請新增語意清楚的翻譯 key，不要直接在 React 元件中嵌入新的英文句子，接著執行：
+
+```bash
+pnpm check:i18n
+pnpm test:i18n
+pnpm test:web
+pnpm test:docs:i18n
+```
+
+修改在地化內容前，請先閱讀[翻譯 Netstamp](/zh-TW/docs/guides/translating/)。該頁會說明哪些檔案由 Crowdin 管理，以及哪些技術識別名稱必須保持原樣。
+
+## 遵循各區域指南
+
+開始修改前，請先閱讀程式碼儲存庫中距離工作範圍最近的 `AGENTS.md`。後端、API、Web、共用 UI 與 Docs 各有不同的主要依據與驗證規則；會改變畫面的 UI 工作也必須遵循 `design.md`。
+
+分支名稱、commit、pull request 與完整審閱清單，請接著閱讀[貢獻指南](/zh-TW/docs/development/contributing/)。

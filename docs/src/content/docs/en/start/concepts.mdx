@@ -1,0 +1,81 @@
+---
+title: Core concepts
+description: Understand controllers, projects, probes, checks, selectors, assignments, results, incidents, and public status pages.
+icon: book
+navSection: start
+navOrder: 20
+---
+
+Netstamp separates what to measure from where to measure it. That separation is the foundation of every workflow.
+
+## Controller
+
+The controller is the central Go service. It serves the web application and API, authenticates users and probes, stores configuration and measurements, refreshes assignments, evaluates alert rules, sends notifications, and renders public status data.
+
+The controller does not run network checks itself. Probe agents execute checks and submit signed result batches.
+
+## Project
+
+A project is the collaboration and authorization boundary for probes, checks, labels, results, alerts, members, and status pages. Users may belong to multiple projects with a different role in each project.
+
+Project roles are independent from instance-level system administrator access. A system administrator can manage the Netstamp instance, but does not automatically become a member of every project.
+
+## Probe
+
+A probe is a registered network viewpoint. The Linux agent:
+
+- authenticates with a probe ID and one-time secret;
+- reports heartbeat, agent version, addresses, public IPs, autonomous-system data, and IPv4/IPv6 capabilities;
+- polls for its effective assignments;
+- schedules Ping, TCP, HTTP, and Traceroute work;
+- buffers and submits result batches.
+
+Probe location and labels are controller metadata. They help with maps, filtering, and assignment but do not change where the process actually runs.
+
+## Check
+
+A check defines a target, type, interval, optional labels, an optional probe selector, and type-specific settings. One check can be assigned to many probes.
+
+| Type       | Main result data                                                                                                  |
+| ---------- | ----------------------------------------------------------------------------------------------------------------- |
+| Ping       | sent/received count, loss, RTT min/average/median/max/standard deviation and samples                              |
+| TCP        | reachability, connect duration, resolved address, IP family, timeout or error                                     |
+| HTTP       | DNS/connect/TLS/TTFB/total timing, status code, redirects, body assertion, response size, and certificate details |
+| Traceroute | per-hop addresses, names, loss and RTT, destination reachability, path runs, and topology                         |
+
+## Label and selector
+
+A label is a project-scoped key/value pair such as `region=tokyo`, `provider=isp-a`, or `role=edge`. Labels may be attached to probes and checks for organization.
+
+A check selector is a logical expression evaluated against probe labels. An empty selector matches all active project probes. The UI previews matched probes before the check is saved.
+
+## Assignment
+
+An assignment is the controller-generated relationship between one check and one probe. Assignment rows are refreshed when relevant labels, probes, or checks change. Agents receive only their effective assignments.
+
+```text
+check selector + enabled probe labels -> effective assignment -> agent execution -> result
+```
+
+If a check exists but no results arrive, inspect its selector preview, the probe's enabled and online state, and the assignment list before debugging the executor.
+
+## Result and Insight
+
+Each execution produces a typed result. Netstamp keeps latest results and time-series data in PostgreSQL/TimescaleDB. Insight chooses a probe and check scope, time range, and metric series, then uses raw or aggregate data depending on the requested range and point budget.
+
+## Alert rule and incident
+
+An alert rule applies a metric-threshold condition to one check. The evaluator tracks firing, clear, insufficient-sample, and no-data states. A configured trigger duration prevents a transient threshold crossing from immediately opening an incident.
+
+An incident records the operational lifecycle: open, acknowledged, and resolved. Notifications are project resources that can be connected to one or more rules.
+
+## Public status page
+
+A public status page is an explicitly enabled, unauthenticated view at `/status/<slug>`. It contains ordered folders and assignment groups. Each block can display status, history, latency, or a map while the page controls which target, probe, location, incident, and generated-time details are public.
+
+## Two authorization planes
+
+- **Instance administration** manages registration, SMTP, users, system administrators, and data export/import.
+- **Project membership** governs project configuration and monitoring resources through owner, admin, editor, and viewer roles.
+
+See [Permissions](/docs/use/permissions/) for the exact matrix.

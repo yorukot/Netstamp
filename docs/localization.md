@@ -48,9 +48,12 @@ Do not translate product names, API names, code, commands, file paths, URLs, pla
 ## Adding Documentation
 
 1. Add the English MDX file below `docs/src/content/docs/en/`.
-2. Include localized frontmatter fields such as `title` and `description`; keep structural frontmatter, imports, component tags, anchors, code blocks, and file paths intact.
-3. Upload sources to Crowdin and download the completed translation. Crowdin writes the matching path below `docs/src/content/docs/zh-TW/`.
-4. Check relative links, localized internal links, headings, images, code examples, sidebar order, search results, the page switcher, and both direct URLs.
+2. Assign its sidebar section with `navSection` and its position within that section with `navOrder`. These structural values are owned by the English source and must match in every locale.
+3. Include localizable frontmatter fields such as `title`, `description`, and page-title metadata; keep structural frontmatter, imports, component tags, anchors, code blocks, and file paths intact.
+4. Upload sources to Crowdin and download the completed translation. Crowdin writes the matching path below `docs/src/content/docs/zh-TW/`.
+5. Check relative links, localized internal links, headings, images, code examples, sidebar order, search results, the page switcher, and both direct URLs.
+
+The supported sidebar sections, in display order, are `start`, `install`, `use`, `operate`, `api`, `development`, and `community`. Section labels are translated in `docs/src/i18n/locales/*/ui.json`; localized MDX cannot move itself to a different section or change its order. Keep Getting Started at `start` / `0`, and keep translation and contribution material under `development` rather than mixing it into product reference material.
 
 Astro shell, search, navigation, pagination, tracking consent, page actions, landing-page copy, accessibility labels, and metadata come from `docs/src/i18n/locales/*/ui.json` and follow the same English-source workflow.
 
@@ -83,6 +86,8 @@ pnpm test:docs:i18n
 
 The root `crowdin.yml` uploads only English sources and maps Crowdin's Traditional Chinese locale to the exact `zh-TW` directory name. It preserves the documentation hierarchy.
 
+MDX sources disable Crowdin content segmentation. Crowdin otherwise splits long English and Chinese paragraphs differently, which prevents a reviewed translated MDX file from mapping back to every source segment. Paragraph-level segmentation keeps checked-in human translations aligned with their English document structure; changed source text is retained as unapproved so it can be reviewed again.
+
 Create a personal local `.env` or export these variables in the shell or CI secret store:
 
 ```text
@@ -111,6 +116,10 @@ Crowdin manages these translation outputs:
 - `docs/src/content/docs/zh-TW/**/*.mdx`
 
 Avoid editing those files directly because the next download can overwrite the change. Make translation corrections in Crowdin, then download again. If an urgent local correction is unavoidable, apply the same correction in Crowdin before the next synchronization.
+
+When a maintainer reviews or improves a checked-in `zh-TW` file locally, import that exact reviewed file into Crowdin before running the next download. Confirm the Crowdin import finishes successfully, allow its QA checks and glossary terminology checks to run, and only then download translations again. This keeps the human-reviewed Taiwanese wording from being replaced by an older machine or translation-memory suggestion.
+
+The Netstamp Crowdin project glossary defines preferred product terminology. Use it for recurring terms such as probe, check, incident, token, availability, and status-page states. A glossary suggestion is context, not permission to translate identifiers, commands, file paths, code, or brand names.
 
 The repository does not automatically upload or download translations in pull requests. This avoids competing with a Crowdin VCS integration. CI validates checked-in resources, tests fallback behavior, and builds both locales.
 

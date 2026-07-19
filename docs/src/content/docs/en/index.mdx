@@ -1,33 +1,66 @@
 ---
-title: Overview
-description: Netstamp is split into a static docs and marketing site, a React service app, a Go API, and a shared React UI package.
+title: Netstamp documentation
+description: Deploy, configure, use, operate, and contribute to the self-hosted Netstamp network observability platform.
 icon: compass
-head:
-  - tag: title
-    content: Overview | Netstamp Docs
+navSection: start
+navTitle: Overview
+navOrder: 10
 ---
 
-## Workspace Map
+Netstamp is an open-source, self-hosted network observability platform. A central controller stores configuration and results, while lightweight probes run checks from the networks, regions, and machines that matter to you.
 
-The repository keeps the public site and product app as separate surfaces. `docs/` owns the public homepage and documentation. `web/` owns the authenticated React service app. `packages/ui/` contains reusable React primitives shared by both surfaces.
+Use Netstamp to answer questions such as:
 
-- [Start local](/docs/guides/getting-started/): Install dependencies and boot each workspace target.
-- [Understand flow](/docs/reference/architecture/): See how the browser app, API, database, and docs relate.
-- [Try the API](/openapi/): Browse generated OpenAPI and send requests from the docs.
+- Is a service reachable from every site, ISP, lab, or edge location?
+- Is latency or packet loss local to one route, one probe, or the destination?
+- Which hop changed when a path became unstable?
+- Is an HTTP failure caused by DNS, TCP, TLS, time to first byte, status code, or a body assertion?
+- Is a TLS certificate approaching expiration?
+- Which incidents are active, and where should notifications be delivered?
 
-## Where To Go Next
+## What Netstamp includes
 
-Use the left navigation to move across documentation sections. Use the search box to jump by title, keyword, or short description. Use the right table of contents to move within the current page.
+| Area                   | Capabilities                                                                                                               |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Checks                 | Ping, TCP connect, HTTP/HTTPS, and ICMP or UDP traceroute                                                                  |
+| Distributed collection | Linux amd64 and arm64 probe agents, label-based assignment, IPv4 and IPv6 capability reporting                             |
+| Analysis               | Latest results, time series, latency and loss metrics, HTTP timing and certificate inventory, traceroute runs and topology |
+| Alerting               | Metric-threshold rules, trigger duration, incidents, and Webhook, Slack, Discord, Telegram, or Email notifications         |
+| Sharing                | Public status pages with groups, status/history/latency/map blocks, incident history, theming, and custom CSS              |
+| Collaboration          | Projects, invitations, owner/admin/editor/viewer roles, labels, and scoped personal API tokens                             |
+| Administration         | Registration and email settings, SMTP, user and system-admin management, and JSON data import/export                       |
+| Automation             | A versioned HTTP API, OpenAPI schema, interactive API explorer, health endpoints, and probe runtime API                    |
 
-:::tip This docs shell implements a top nav, sidebar, page TOC, search, callouts, code highlighting, and edit links directly in Astro instead of depending on Astro Starlight. :::
+## Choose a path
 
-## Local Commands
+- **Trying Netstamp locally?** Follow [Quick start](/docs/guides/getting-started/).
+- **Preparing a real deployment?** Start with [Docker Compose](/docs/reference/deployment/) and finish the [Production checklist](/docs/install/production/).
+- **Configuring your first monitor?** Read [Core concepts](/docs/start/concepts/), then create [Probes](/docs/use/probes/) and [Checks](/docs/use/checks/).
+- **Automating Netstamp?** Use [API tokens](/docs/guides/api-tokens/) and the [API explorer](/openapi/).
+- **Maintaining an installation?** See [Probe agent operations](/docs/guides/probe-operations/) and [Troubleshooting](/docs/operate/troubleshooting/).
+- **Working on the project?** Begin with [Contributing](/docs/development/contributing/).
 
-These are the common commands from the root workspace.
+## System at a glance
 
-```bash
-pnpm install
-just docs-dev
-just web-dev
-just backend-test
+```text
+Browser or API client
+        |
+        v
+Netstamp controller  <---- signed heartbeat, assignments, results ----  Probe agents
+        |
+        +---- PostgreSQL + TimescaleDB
+        |
+        +---- Webhook / Slack / Discord / Telegram / SMTP
 ```
+
+The production container serves both the React application and `/api/v1`. The controller owns authentication, projects, assignments, result queries, alert evaluation, notifications, public status pages, and the probe installer. PostgreSQL with TimescaleDB stores application data and time-series measurements.
+
+The public API prefix is `/api/v1`. The controller also publishes its exact OpenAPI document at `/api/v1/openapi.json` and interactive Scalar documentation at `/api/v1/docs`.
+
+## Project links
+
+- [Source code](https://github.com/yorukot/netstamp)
+- [OpenAPI explorer](/openapi/)
+- [Shared UI Storybook](/storybook/)
+- [Apache License 2.0](https://github.com/yorukot/netstamp/blob/main/LICENSE)
+- [Get help or support the project](/docs/community/support/)

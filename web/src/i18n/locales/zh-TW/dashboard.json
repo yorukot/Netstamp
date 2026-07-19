@@ -7,20 +7,20 @@
 	"noProbe": "沒有探測器",
 	"coordinatesUnavailable": "無座標資訊",
 	"emptyTitle": "尚未註冊探測器",
-	"emptyDescription": "建立探測器以開始收集群組遙測資料。",
+	"emptyDescription": "新增探測器，開始收集網路量測資料。",
 	"metrics": {
 		"probesOnline": "上線探測器",
 		"online": "上線",
 		"offlineCount_one": "{{count}} 個離線",
 		"offlineCount_other": "{{count}} 個離線",
-		"mapCoverage": "地圖涵蓋率",
-		"coverage": "涵蓋率",
+		"mapCoverage": "已設定位置比例",
+		"coverage": "位置涵蓋率",
 		"locatedCount_one": "{{count}} 個有位置資訊",
 		"locatedCount_other": "{{count}} 個有位置資訊",
-		"activeChecks": "啟用中的檢查",
+		"activeChecks": "已啟用的檢查",
 		"checks": "檢查",
 		"none": "無",
-		"draining": "停止接收中",
-		"maintenance": "維護中"
+		"draining": "準備離線",
+		"maintenance": "維護模式"
 	}
 }

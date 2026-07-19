@@ -1,0 +1,90 @@
+---
+title: Observability
+description: Monitor the Netstamp controller, probe agents, PostgreSQL, logs, traces, and the bundled Grafana dashboards.
+icon: activity
+navSection: operate
+navOrder: 10
+---
+
+Monitor Netstamp itself separately from the checks that Netstamp performs. A healthy controller process does not prove that probes are current, result queues are draining, notifications are delivering, or storage has enough capacity.
+
+## Health and metrics endpoints
+
+The controller exposes:
+
+| Endpoint          | Use                                                               |
+| ----------------- | ----------------------------------------------------------------- |
+| `/healthz`        | Root health alias used by load balancers and simple uptime checks |
+| `/api/v1/healthz` | Versioned API health endpoint                                     |
+| `/metrics`        | Prometheus-format controller metrics                              |
+
+Probe metrics are disabled by default. Set `NETSTAMP_PROBE_METRICS_ADDR` on a probe host to enable its Prometheus listener:
+
+```dotenv
+NETSTAMP_PROBE_METRICS_ADDR=127.0.0.1:9091
+```
+
+Bind to a private address that your metrics collector can reach. Do not publish controller or probe metrics directly to the internet; they are operational endpoints, not end-user dashboards.
+
+## What to alert on
+
+At minimum, monitor:
+
+- public and local controller health;
+- controller restart rate and request errors;
+- migration failures during deploys;
+- PostgreSQL availability, connections, storage, temporary files, and backup age;
+- probe heartbeat age and unexpected offline counts;
+- agent queue pressure, dropped results, and submission failures;
+- assignment-refresh and notification-worker backlog;
+- disk, memory, CPU, certificate expiry, and host clock synchronization.
+
+Use an external monitor for the Netstamp controller itself so an unavailable instance can still notify you.
+
+## Logs
+
+Controller and agent logs should include the time, service, severity, and request or domain identifiers needed to follow one failure. Keep `LOG_PSEUDONYM_KEY` stable so pseudonymized identifiers remain correlatable without logging raw email addresses.
+
+Centralize logs with access controls and retention appropriate to the targets being monitored. Sanitize logs before sharing them; error messages and check configuration can reveal private hostnames, addresses, URLs, and integration details.
+
+## Distributed traces
+
+Set `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` to an OTLP HTTP ingest endpoint to export controller traces:
+
+```dotenv
+OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://trace-collector:4318/v1/traces
+```
+
+Leave it empty to disable trace export. Keep the collector on a trusted network and apply sampling or retention controls at the collector when trace volume is high.
+
+## Repository observability profile
+
+`deployments/docker/compose.observability.yaml` is an advanced, source-checkout profile that demonstrates:
+
+- VictoriaMetrics for controller, probe, and PostgreSQL metrics;
+- VictoriaTraces for OTLP traces;
+- VictoriaLogs and Vector for container logs;
+- PostgreSQL Exporter;
+- Grafana with provisioned Netstamp controller, probe-agent, and PostgreSQL dashboards.
+
+It is not a drop-in extension of the standard published-image Compose file. The profile builds local images and contains deployment-specific assumptions, including an external `dokploy-network`, public-domain defaults, and a sample probe scrape target. Review every service, port, network, image, retention period, secret, and scrape target before using it.
+
+From a repository checkout, validate the customized profile before starting it:
+
+```bash
+docker compose -f deployments/docker/compose.observability.yaml config
+docker compose -f deployments/docker/compose.observability.yaml up -d --build
+```
+
+The observability stores and Grafana each use persistent volumes. Back them up or accept their loss independently from the primary Netstamp database.
+
+## Operational verification
+
+After any observability change:
+
+1. query both health endpoints;
+2. confirm the controller scrape target is up;
+3. confirm a selected probe's metrics advance;
+4. search for a known request in logs and traces;
+5. load every provisioned dashboard without datasource errors;
+6. trigger a disposable alert and confirm it reaches an operator outside Netstamp.

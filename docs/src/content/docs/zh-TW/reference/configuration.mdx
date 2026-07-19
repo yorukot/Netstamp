@@ -1,146 +1,223 @@
 ---
-title: 設定
-description: Docs、Web、後端、共用 UI、格式化與產生的 API 資產在工作區中的設定位置。
+title: 設定參考
+description: 控制器、Docker Compose、探測器 agent、Web 建置與說明文件建置所使用的完整環境變數參考。
 icon: wrench
-head:
-  - tag: title
-    content: 設定 | Netstamp 說明文件
+navSection: install
+navOrder: 30
 ---
 
-## 工作區檔案
+控制器會讀取環境變數，也可以讀取工作目錄或 `server/` 下的 `.env`。Docker Compose 則讀取該專案的 `.env`，並將支援的值傳入容器。
 
-根目錄的 `package.json`、`pnpm-workspace.yaml` 與 `Justfile` 定義共用 entry point。變更跨越 package 邊界時，優先使用這些指令。
+時間長度使用 Go 語法，例如 `250ms`、`5s`、`30m` 或 `168h`。布林值使用 `true` 或 `false`。機密值必須保持穩定、彼此不同，而且不能放進版本控制。
 
-```bash
-pnpm install
-just lint
-just test
-just build
-```
+## Compose 部署變數
 
-## Docs 設定
+這些值用來選擇映像檔與主機對外開放方式，不會直接設定控制器。
 
-Docs app 位於 `docs/`。Astro 設定在 `docs/astro.config.mjs`，shell 與 prose style 與 `docs/src/layouts/DocLayout.astro` 放在一起；component style 則與擁有該 markup 的 component 放在一起。
+| 變數                | 預設值                              | 用途                                     |
+| ------------------- | ----------------------------------- | ---------------------------------------- |
+| `NETSTAMP_IMAGE`    | `yorukot/netstamp`                  | 控制器映像檔儲存庫                       |
+| `NETSTAMP_VERSION`  | `latest`                            | 控制器與遷移映像檔的標籤                 |
+| `TIMESCALEDB_IMAGE` | `timescale/timescaledb:latest-pg16` | 資料庫映像檔                             |
+| `NETSTAMP_PORT`     | `3000`                              | 對外映射至控制器 8080 連接埠的主機連接埠 |
 
-說明文件頁面是 `docs/src/content/docs/` 下的 MDX 檔案。左側 sidebar 與 search index 會自動從 frontmatter 掃描這些檔案。
+正式環境應固定映像檔版本。Compose volume 的邏輯名稱是 `netstamp-postgres`；Docker 通常會在實際名稱前加上 Compose 專案名稱。
 
-## Web 與 Docs 追蹤工具
+## 控制器核心設定
 
-Web app 與 Docs 網站可在 build time 載入選用的瀏覽器追蹤工具。`web/` 使用 `VITE_NETSTAMP_*` prefix，`docs/` 使用 `PUBLIC_NETSTAMP_*` prefix。
+| 變數                             | 預設值                  | 用途                                                           |
+| -------------------------------- | ----------------------- | -------------------------------------------------------------- |
+| `APP_ENV`                        | `local`                 | 執行環境；不是 `local` 時會啟用安全工作階段 cookie 行為        |
+| `DEMO_MODE`                      | `false`                 | 啟用後端示範模式限制                                           |
+| `SERVICE_NAME`                   | `controller`            | 日誌與遙測使用的服務識別名稱                                   |
+| `APP_VERSION`                    | `0.1.0`                 | 回報的應用程式版本；Compose 會將 `NETSTAMP_VERSION` 對應到這裡 |
+| `API_VERSION`                    | `v1`                    | 掛載在 `/api/<version>` 下的版本路徑                           |
+| `LOG_LEVEL`                      | `info`                  | `debug`、`info`、`warn`、`error`、`dpanic`、`panic` 或 `fatal` |
+| `LOG_PSEUDONYM_KEY`              | development placeholder | 將敏感日誌識別資訊去識別化時使用的穩定金鑰                     |
+| `SYSTEM_SETTINGS_ENCRYPTION_KEY` | development placeholder | 加密系統管理機密設定時使用的穩定金鑰                           |
+| `SHUTDOWN_TIMEOUT`               | `10s`                   | 控制器正常關閉的期限                                           |
 
-| Suffix                       | 用途                                                | 預設值                              |
-| ---------------------------- | --------------------------------------------------- | ----------------------------------- |
-| `GA_MEASUREMENT_ID`          | Google Analytics GA4 measurement ID                 | 空白                                |
-| `GOOGLE_TAG_ID`              | 通用 Google tag ID，優先於 `GA_MEASUREMENT_ID` 使用 | 空白                                |
-| `CLARITY_PROJECT_ID`         | Microsoft Clarity project ID                        | 空白                                |
-| `META_PIXEL_ID`              | Meta Pixel ID                                       | 空白                                |
-| `POSTHOG_KEY`                | PostHog project API key                             | 空白                                |
-| `POSTHOG_HOST`               | PostHog API host                                    | `https://us.i.posthog.com`          |
-| `PLAUSIBLE_DOMAIN`           | Plausible site domain                               | 空白                                |
-| `PLAUSIBLE_SCRIPT_URL`       | 雲端或自行託管 deployment 的 Plausible script URL   | `https://plausible.io/js/script.js` |
-| `UMAMI_WEBSITE_ID`           | Umami website ID                                    | 空白                                |
-| `UMAMI_SCRIPT_URL`           | 雲端或自行託管 deployment 的 Umami script URL       | `https://cloud.umami.is/script.js`  |
-| `TRACKING_CONSENT_MODE`      | `regional`、`always` 或 `never` 的 consent gating   | `regional`                          |
-| `TRACKING_CONSENT_COUNTRIES` | 需要 consent 的 ISO 國家代碼，以半形逗號分隔        | EEA、英國與瑞士                     |
+所有非本機部署都必須更換這兩個開發用預留金鑰。變更設定加密金鑰可能使已儲存的 SMTP 機密值無法解密。
 
-設定任一 tracker ID 後，`regional` mode 只會在指定國家要求同意。如果無法判斷訪客國家，系統會先顯示 banner，再載入 tracker。國家判定依序檢查 `window.NETSTAMP_VISITOR_COUNTRY`、`<html data-netstamp-country>`、`<meta name="netstamp-visitor-country">`，最後是 Cloudflare `/cdn-cgi/trace`。既有 deployment 若使用 Facebook 命名，也可以用 `FACEBOOK_PIXEL_ID` 作為 `META_PIXEL_ID` 的 alias。
+## HTTP 與公開來源網址
 
-## Demo 存取控制
+| 變數                       | 預設值  | 用途                                                   |
+| -------------------------- | ------- | ------------------------------------------------------ |
+| `BACKEND_BASE_URL`         | empty   | 回呼、電子郵件與探測器安裝網址使用的公開控制器來源網址 |
+| `PUBLIC_WEB_BASE_URL`      | empty   | 使用者連結使用的公開瀏覽器來源網址                     |
+| `HTTP_ADDR`                | `:8080` | 控制器監聽位址                                         |
+| `WEB_DIR`                  | empty   | 建置後的前端目錄；正式映像檔設為 `/app/web`            |
+| `REQUEST_TIMEOUT`          | `10s`   | 請求內容的逾時時間                                     |
+| `HTTP_READ_HEADER_TIMEOUT` | `5s`    | 讀取標頭的逾時時間                                     |
+| `HTTP_READ_TIMEOUT`        | `15s`   | 讀取請求的逾時時間                                     |
+| `HTTP_WRITE_TIMEOUT`       | `15s`   | 寫入回應的逾時時間                                     |
+| `HTTP_IDLE_TIMEOUT`        | `60s`   | keep-alive 連線閒置逾時時間                            |
+| `HTTP_TRUSTED_PROXIES`     | empty   | 以逗號分隔的 Proxy IP 位址或 CIDR 前綴                 |
 
-自行託管的 demo deployment 可以重用真實資料，同時阻擋寫入。以下後端設定會在 runtime 強制執行：
+來源網址只能包含 `http` 或 `https` 通訊協定與主機名稱。啟用外部驗證時，`BACKEND_BASE_URL` 不可為空。
 
-| Variable                    | 用途                                           | 預設值               |
-| --------------------------- | ---------------------------------------------- | -------------------- |
-| `DEMO_MODE`                 | 除 login 與 logout 外，阻擋不安全的 API method | `false`              |
-| `AUTH_REGISTRATION_ENABLED` | Demo mode 未啟用時，允許 `POST /auth/register` | `true`               |
-| `AUTH_API_TOKEN_HASH_KEY`   | Personal access token hash 使用的 HMAC key     | 僅供本機開發使用的值 |
+## 資料庫
 
-公開 demo instance 請設定 `DEMO_MODE=true`。`AUTH_REGISTRATION_ENABLED=false` 仍可清楚表達意圖，但 demo mode 會在 request 到達 feature handler 前阻擋註冊與所有其他不安全 API request。如果維運人員仍需要完整存取，請保留一個指向相同資料庫的獨立正常 deployment。
+| 變數                    | 預設值      | 用途                                     |
+| ----------------------- | ----------- | ---------------------------------------- |
+| `DATABASE_HOST`         | `localhost` | PostgreSQL 主機；Compose 使用 `postgres` |
+| `DATABASE_PORT`         | `5432`      | PostgreSQL 連接埠                        |
+| `DATABASE_USER`         | `netstamp`  | 資料庫使用者                             |
+| `DATABASE_PASSWORD`     | `netstamp`  | 資料庫密碼                               |
+| `DATABASE_NAME`         | `netstamp`  | 資料庫名稱                               |
+| `DATABASE_SSLMODE`      | `disable`   | PostgreSQL SSL 模式                      |
+| `DB_MAX_CONNS`          | `10`        | 連線池上限                               |
+| `DB_MIN_CONNS`          | `0`         | 連線池最少閒置連線數量                   |
+| `DB_MAX_CONN_LIFETIME`  | `1h`        | 連線池中連線的最長存活時間               |
+| `DB_MAX_CONN_IDLE_TIME` | `30m`       | 連線池中連線的最長閒置時間               |
 
-Observability Docker Compose 檔會啟動鎖定的 demo controller 與靜態 Web bundle，並與相同 PostgreSQL 資料庫及 observability service 連線：
+資料庫連線若會通過不受信任的網路，請啟用 TLS 驗證。標準 Compose 環境會將資料庫流量留在私有網路內。
 
-```bash
-docker compose -f deployments/docker/compose.observability.yaml up -d --build
-```
+## 工作階段、密碼與權杖
 
-Web app 具有對應的 build-time flag，用來隱藏已停用的 UI control：
+| 變數                                    | 預設值                  | 用途                                     |
+| --------------------------------------- | ----------------------- | ---------------------------------------- |
+| `AUTH_SESSION_HASH_KEY`                 | development placeholder | 不透明工作階段權杖使用的 HMAC/雜湊金鑰   |
+| `AUTH_API_TOKEN_HASH_KEY`               | development placeholder | 個人 API 權杖使用的 HMAC/雜湊金鑰        |
+| `AUTH_SESSION_IDLE_TTL`                 | `24h`                   | 工作階段閒置期限                         |
+| `AUTH_SESSION_ABSOLUTE_TTL`             | `168h`                  | 工作階段最長存活時間                     |
+| `AUTH_SESSION_TOUCH_INTERVAL`           | `5m`                    | 兩次寫入工作階段活動狀態的最短間隔       |
+| `AUTH_SUDO_TTL`                         | `5m`                    | 敏感操作所需的近期驗證有效時間           |
+| `AUTH_REGISTRATION_ENABLED`             | `true`                  | 本機帳號註冊政策的環境變數備援值         |
+| `AUTH_EXTERNAL_FLOW_TTL`                | `10m`                   | OAuth/OIDC 驗證流程存活時間              |
+| `AUTH_PASSWORD_RESET_TOKEN_TTL`         | `30m`                   | 密碼重設連結有效時間                     |
+| `AUTH_PASSWORD_RESET_RATE_LIMIT_WINDOW` | `1h`                    | 密碼重設速率限制的時間範圍               |
+| `AUTH_PASSWORD_RESET_IP_LIMIT`          | `10`                    | 時間範圍內每個 IP 可發出的請求數         |
+| `AUTH_PASSWORD_RESET_EMAIL_LIMIT`       | `3`                     | 時間範圍內每個電子郵件地址可發出的請求數 |
+| `AUTH_ARGON2ID_MEMORY_KIB`              | `65536`                 | Argon2id 記憶體成本                      |
+| `AUTH_ARGON2ID_ITERATIONS`              | `3`                     | Argon2id 迭代成本                        |
+| `AUTH_ARGON2ID_PARALLELISM`             | `4`                     | Argon2id 平行處理數                      |
 
-| Variable                                        | 用途                        | 預設值  |
-| ----------------------------------------------- | --------------------------- | ------- |
-| `VITE_NETSTAMP_REGISTRATION_ENABLED`            | 顯示註冊 route 與 link      | `true`  |
-| `VITE_NETSTAMP_PROJECT_CREATION_ENABLED`        | 顯示建立專案 control        | `true`  |
-| `VITE_NETSTAMP_USER_CREDENTIAL_CHANGES_ENABLED` | 顯示 email 與 password form | `true`  |
-| `VITE_NETSTAMP_DEMO_MODE`                       | 顯示 demo mode 唯讀 UI      | `false` |
-| `VITE_NETSTAMP_DEMO_EMAIL`                      | 顯示 demo login email       | 空白    |
-| `VITE_NETSTAMP_DEMO_PASSWORD`                   | 顯示 demo login password    | 空白    |
+系統管理介面中儲存的設定可以覆蓋註冊政策。變更雜湊金鑰會使受該金鑰保護的既有憑證失效。
 
-設定 `VITE_NETSTAMP_DEMO_MODE=true` 並同時提供兩個 demo credential 後，login page 會顯示該帳號與自動填入 login form 的 button。Demo mode 必須明確啟用；只停用註冊不會顯示 demo banner。後端 runtime setting 才是 source of truth，Vite flag 只控制該 deployment 的靜態 frontend bundle。
+## 通用 OIDC
 
-## Observability Host
+| 變數                                 | 預設值           | 用途                                 |
+| ------------------------------------ | ---------------- | ------------------------------------ |
+| `AUTH_OIDC_ENABLED`                  | `false`          | 啟用通用 OIDC                        |
+| `AUTH_OIDC_ISSUER_URL`               | empty            | OIDC 簽發者與探索服務來源網址        |
+| `AUTH_OIDC_CLIENT_ID`                | empty            | 用戶端 ID                            |
+| `AUTH_OIDC_CLIENT_SECRET`            | empty            | 用戶端密鑰                           |
+| `AUTH_OIDC_DISPLAY_NAME`             | `Single sign-on` | 登入按鈕標籤                         |
+| `AUTH_OIDC_JIT_PROVISIONING_ENABLED` | `false`          | 為身分有效但尚未存在的使用者建立帳號 |
 
-Observability compose stack 會在獨立 host 提供 Grafana。
+## Google 驗證
 
-| Variable           | 用途                                    | 預設值                          |
-| ------------------ | --------------------------------------- | ------------------------------- |
-| `BACKEND_BASE_URL` | 產生 URL 時使用的公開 controller origin | `https://app.netstamp.dev`      |
-| `GRAFANA_DOMAIN`   | Grafana 公開 domain                     | `grafana.netstamp.dev`          |
-| `GRAFANA_ROOT_URL` | Grafana 公開 root URL                   | `https://grafana.netstamp.dev/` |
+| 變數                                   | 預設值   | 用途                                    |
+| -------------------------------------- | -------- | --------------------------------------- |
+| `AUTH_GOOGLE_ENABLED`                  | `false`  | 啟用 Google OpenID Connect              |
+| `AUTH_GOOGLE_CLIENT_ID`                | empty    | Google 用戶端 ID                        |
+| `AUTH_GOOGLE_CLIENT_SECRET`            | empty    | Google 用戶端密鑰                       |
+| `AUTH_GOOGLE_DISPLAY_NAME`             | `Google` | 登入按鈕標籤                            |
+| `AUTH_GOOGLE_JIT_PROVISIONING_ENABLED` | `false`  | 為接受的 Google 身分建立新使用者        |
+| `AUTH_GOOGLE_ALLOWED_HOSTED_DOMAINS`   | empty    | 以逗號分隔的 Workspace 託管網域允許清單 |
 
-## 後端與 API 資產
+## GitHub 驗證
 
-後端 source 位於 `server/`。Docs API explorer 讀取 `docs/public/openapi.json`，API 行為變更時應從 TypeSpec 合約重新產生。Controller 環境也會在 `/api/v1/docs` 提供 Scalar docs，schema 則位於 `/api/v1/openapi.json`。
+| 變數                                   | 預設值   | 用途                                       |
+| -------------------------------------- | -------- | ------------------------------------------ |
+| `AUTH_GITHUB_ENABLED`                  | `false`  | 啟用 GitHub OAuth                          |
+| `AUTH_GITHUB_CLIENT_ID`                | empty    | GitHub OAuth 用戶端 ID                     |
+| `AUTH_GITHUB_CLIENT_SECRET`            | empty    | GitHub OAuth 用戶端密鑰                    |
+| `AUTH_GITHUB_DISPLAY_NAME`             | `GitHub` | 登入按鈕標籤                               |
+| `AUTH_GITHUB_JIT_PROVISIONING_ENABLED` | `false`  | 為接受的 GitHub 身分建立新使用者           |
+| `AUTH_GITHUB_ALLOW_SIGNUP`             | `true`   | 允許透過 GitHub OAuth 流程註冊 GitHub 帳號 |
 
-請將 `AUTH_API_TOKEN_HASH_KEY` 保持為機密，並確保重啟與 restore 後維持不變。變更此值會刻意使所有既有 personal access token 失效。Data backup 可以包含 hashed token row，但 restore 後的 token 只有在 controller 使用相同 hash key 時才有效。
+## 指派、警示與通知背景工作
 
-### 驗證與 SSO
+| 變數                                      | 預設值 | 用途                                             |
+| ----------------------------------------- | ------ | ------------------------------------------------ |
+| `ASSIGNMENT_REFRESH_WORKER_ENABLED`       | `true` | 重試已排入佇列的指派更新工作                     |
+| `ASSIGNMENT_REFRESH_WORKER_INTERVAL`      | `5s`   | 指派更新背景工作的輪詢間隔                       |
+| `ASSIGNMENT_REFRESH_WORKER_BATCH_SIZE`    | `25`   | 每次更新週期取得的工作數量                       |
+| `ASSIGNMENT_REFRESH_WORKER_STALE_TIMEOUT` | `1m`   | 中斷的更新工作可被重新取得前的逾時時間           |
+| `ALERT_EVALUATION_ENABLED`                | `true` | 執行指標門檻警示評估                             |
+| `NOTIFICATION_WORKER_ENABLED`             | `true` | 傳送已排入佇列的事件通知                         |
+| `NOTIFICATION_WORKER_INTERVAL`            | `5s`   | 通知寄件匣的輪詢間隔                             |
+| `NOTIFICATION_WORKER_BATCH_SIZE`          | `25`   | 每次週期取得的通知傳送工作數量                   |
+| `NOTIFICATION_WORKER_STALE_TIMEOUT`       | `1m`   | 中斷的傳送工作可被重新取得前的逾時時間           |
+| `NOTIFICATION_HTTP_TIMEOUT`               | `10s`  | Webhook、Slack、Discord 與 Telegram 的 HTTP 逾時 |
 
-密碼是選用的帳號 credential。Password hash 與 user 分開儲存；external identity 則使用 provider、issuer 與穩定 subject tuple。相同 email address 不會自動合併帳號；已登入的使用者必須從帳號設定明確連結其他 identity。
+停用背景工作只會暫停處理，不會刪除設定或已排入佇列的工作。
 
-| Variable                               | 用途                                                   | 預設值           |
-| -------------------------------------- | ------------------------------------------------------ | ---------------- |
-| `AUTH_SUDO_TTL`                        | 敏感操作的 recent-authentication window                | `5m`             |
-| `AUTH_EXTERNAL_FLOW_TTL`               | 單次使用 provider authorization flow 的生命週期        | `10m`            |
-| `AUTH_GOOGLE_ENABLED`                  | 啟用 Google OpenID Connect                             | `false`          |
-| `AUTH_GOOGLE_CLIENT_ID`                | Google OAuth web client ID                             | 空白             |
-| `AUTH_GOOGLE_CLIENT_SECRET`            | Google OAuth web client secret                         | 空白             |
-| `AUTH_GOOGLE_DISPLAY_NAME`             | UI 顯示的 Google provider label                        | `Google`         |
-| `AUTH_GOOGLE_JIT_PROVISIONING_ENABLED` | 從已驗證的 Google email claim 建立 user                | `false`          |
-| `AUTH_GOOGLE_ALLOWED_HOSTED_DOMAINS`   | 選用，以半形逗號分隔的 Google Workspace `hd` allowlist | 空白             |
-| `AUTH_GITHUB_ENABLED`                  | 啟用 GitHub OAuth login                                | `false`          |
-| `AUTH_GITHUB_CLIENT_ID`                | GitHub OAuth App client ID                             | 空白             |
-| `AUTH_GITHUB_CLIENT_SECRET`            | GitHub OAuth App client secret                         | 空白             |
-| `AUTH_GITHUB_DISPLAY_NAME`             | UI 顯示的 GitHub provider label                        | `GitHub`         |
-| `AUTH_GITHUB_JIT_PROVISIONING_ENABLED` | 從主要且已驗證的 GitHub email 建立 user                | `false`          |
-| `AUTH_GITHUB_ALLOW_SIGNUP`             | 允許從 authorization screen 建立 GitHub account        | `true`           |
-| `AUTH_OIDC_ENABLED`                    | 啟用通用 OpenID Connect provider                       | `false`          |
-| `AUTH_OIDC_ISSUER_URL`                 | Discovery 與 token verification 使用的通用 OIDC issuer | 空白             |
-| `AUTH_OIDC_CLIENT_ID`                  | 通用 OIDC client ID                                    | 空白             |
-| `AUTH_OIDC_CLIENT_SECRET`              | 通用 OIDC client secret                                | 空白             |
-| `AUTH_OIDC_DISPLAY_NAME`               | 通用 OIDC provider label                               | `Single sign-on` |
-| `AUTH_OIDC_JIT_PROVISIONING_ENABLED`   | 通用 OIDC login 驗證 email 後建立 user                 | `false`          |
+## SMTP
 
-任何啟用的 external provider 都需要將 `BACKEND_BASE_URL` 設為公開 controller origin。請向對應 provider 註冊以下完整 callback URL：
+| 變數            | 預設值     | 用途                                                    |
+| --------------- | ---------- | ------------------------------------------------------- |
+| `SMTP_HOST`     | empty      | SMTP 主機；主機或寄件者為空時，電子郵件功能視為尚未設定 |
+| `SMTP_PORT`     | `587`      | SMTP 連接埠                                             |
+| `SMTP_USERNAME` | empty      | 選用的 SMTP AUTH 使用者名稱                             |
+| `SMTP_PASSWORD` | empty      | 選用的 SMTP AUTH 密碼                                   |
+| `SMTP_FROM`     | empty      | 信封寄件者地址                                          |
+| `SMTP_TLS_MODE` | `starttls` | `starttls`、`implicit` 或 `none`                        |
+| `SMTP_TIMEOUT`  | `10s`      | 連線與寄送逾時時間                                      |
 
-- Google：`${BACKEND_BASE_URL}/api/${API_VERSION}/auth/external/google/callback`
-- GitHub：`${BACKEND_BASE_URL}/api/${API_VERSION}/auth/external/github/callback`
-- 通用 OIDC：`${BACKEND_BASE_URL}/api/${API_VERSION}/auth/external/oidc/callback`
+儲存在系統管理介面中的 SMTP 設定會覆蓋這些環境變數備援值。
 
-建立 application type 為 **Web application** 的 Google OAuth client，並將 Google callback 加入 authorized redirect URI。`AUTH_GOOGLE_ALLOWED_HOSTED_DOMAINS` 會對已簽署的 `hd` claim 執行限制，而不是檢查 email suffix。Google sudo request 會要求 `auth_time`，只有當 provider timestamp 在 `AUTH_SUDO_TTL` 所設定的近期範圍內才會接受。
+## Tracing
 
-建立 GitHub **OAuth App**，並將 authorization callback URL 設為上述 GitHub callback。Netstamp 只要求 profile 與 email scope，使用 GitHub numeric user ID 作為穩定 subject，選擇主要且已驗證的 email 進行 JIT provisioning，並在讀取 `/user` 與 `/user/emails` 後丟棄 callback access token。GitHub OAuth 沒有可信任的 `auth_time` 對應值；需要 recent authentication 時，Netstamp 會要求完成一個綁定目前 Netstamp session、全新且生命週期短的 OAuth flow，之後才開啟設定的 sudo window。Google 與通用 OIDC claim 若提供近期 provider authentication time 就會加以檢查，否則使用相同的 session-bound flow completion policy。
+| 變數                                 | 預設值 | 用途                        |
+| ------------------------------------ | ------ | --------------------------- |
+| `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` | empty  | 接收 OTLP HTTP trace 的端點 |
 
-所有 external flow 都使用 state、PKCE S256、綁定瀏覽器的 HTTP-only cookie、單次使用的 database record，以及設定的 flow expiry。OIDC provider 另外使用 nonce 與經驗證的 ID token。Provider code、access token、refresh token 與 client secret 絕不會儲存在 auth session 或 identity record。
+程式碼儲存庫提供的可觀測性 Compose 環境會將這個值指向 VictoriaTraces。保留空值即可停用匯出。
 
-## 資料庫 Image
+## 探測器 agent
 
-Docker Compose 使用 `TIMESCALEDB_IMAGE` 作為 PostgreSQL/TimescaleDB service，預設為輕量的 `timescale/timescaledb:latest-pg16` image。
+Systemd 安裝程式會寫入前三個值，其餘都是本機執行參數的覆寫值。
 
-目前 migration 只會啟用 TimescaleDB 核心功能。Result series downsampling 使用 `time_bucket`，因此不需要 TimescaleDB Toolkit 或資料庫端的 `lttb`。如果未來 schema 新增其他 extension，所選 image 必須先包含對應 extension package，Goose 才能啟用它們。
+| 變數                                      | 預設值   | 用途                                              |
+| ----------------------------------------- | -------- | ------------------------------------------------- |
+| `NETSTAMP_PROBE_CONTROLLER_URL`           | required | 控制器來源網址，不含 `/api/v1`                    |
+| `NETSTAMP_PROBE_ID`                       | required | 探測器 UUID                                       |
+| `NETSTAMP_PROBE_SECRET`                   | required | 探測器執行階段金鑰                                |
+| `NETSTAMP_PROBE_HTTP_TIMEOUT`             | `10s`    | 執行階段 API 請求逾時時間                         |
+| `NETSTAMP_PROBE_MAX_WORKERS`              | `128`    | 同時執行的背景工作數量上限                        |
+| `NETSTAMP_PROBE_RESULT_QUEUE_SIZE`        | `10000`  | 可暫存的結果數量                                  |
+| `NETSTAMP_PROBE_RESULT_BATCH_SIZE`        | `100`    | 單次提交的批次上限                                |
+| `NETSTAMP_PROBE_RESULT_FLUSH_INTERVAL`    | `5s`     | 提交未滿批次前的最長等待時間                      |
+| `NETSTAMP_PROBE_ASSIGNMENT_TTL`           | `10m`    | 本機指派資料的有效期限                            |
+| `NETSTAMP_PROBE_SHUTDOWN_TIMEOUT`         | `10s`    | Agent 正常關閉的期限                              |
+| `NETSTAMP_PROBE_HEARTBEAT_INTERVAL`       | `30s`    | 心跳訊號間隔                                      |
+| `NETSTAMP_PROBE_ASSIGNMENT_POLL_INTERVAL` | `30s`    | 指派輪詢間隔                                      |
+| `NETSTAMP_PROBE_INITIAL_BACKOFF`          | `1s`     | 執行階段重試的初始延遲                            |
+| `NETSTAMP_PROBE_MAX_BACKOFF`              | `30s`    | 執行階段重試的最長延遲                            |
+| `NETSTAMP_PROBE_MAX_ATTEMPTS`             | `5`      | 目前重試週期判定失敗前的嘗試次數                  |
+| `NETSTAMP_PROBE_METRICS_ADDR`             | empty    | 選用的 Prometheus 監聽位址，例如 `127.0.0.1:9091` |
+| `NETSTAMP_PROBE_PPROF_ADDR`               | empty    | 選用的 pprof 監聽位址，例如 `127.0.0.1:6060`      |
+| `NETSTAMP_PROBE_LOG_LEVEL`                | `info`   | `debug`、`info`、`warn` 或 `error`                |
 
-## 共用 UI
+所有數值容量與時間長度都必須大於零。最大退避時間不得小於初始退避時間。
 
-可重用的 React primitive 位於 `packages/ui/`，由 service app 與 Docs 共用。這些 component 的靜態說明文件會透過 Storybook build 發布至 `/storybook/`。
+## Web 應用程式建置變數
 
-## 更新規則
+這些值會編譯進靜態前端。容器啟動後再變更執行環境，不會修改已建置的程式套件。
 
-設定變更若影響本機指令、專案結構或說明文件行為，請在同一個變更中更新最接近的 `AGENTS.md` 指南。
+| 變數                                            | 預設值                  | 用途                      |
+| ----------------------------------------------- | ----------------------- | ------------------------- |
+| `VITE_NETSTAMP_API_BASE_URL`                    | `/api/v1`               | 瀏覽器 API 基底網址       |
+| `VITE_NETSTAMP_API_PROXY_TARGET`                | `http://localhost:8080` | Vite 開發用反向代理目標   |
+| `VITE_NETSTAMP_REGISTRATION_ENABLED`            | `true`                  | 後端政策允許時顯示註冊 UI |
+| `VITE_NETSTAMP_PROJECT_CREATION_ENABLED`        | `true`                  | 顯示建立專案 UI           |
+| `VITE_NETSTAMP_USER_CREDENTIAL_CHANGES_ENABLED` | `true`                  | 顯示憑證管理介面          |
+| `VITE_NETSTAMP_DEMO_MODE`                       | `false`                 | 啟用唯讀示範模式          |
+| `VITE_NETSTAMP_DEMO_EMAIL`                      | empty                   | 選用的示範帳號電子郵件    |
+| `VITE_NETSTAMP_DEMO_PASSWORD`                   | empty                   | 選用的示範帳號密碼        |
+
+分析服務整合都是選用功能：`VITE_NETSTAMP_GA_MEASUREMENT_ID`、`VITE_NETSTAMP_GOOGLE_TAG_ID`、`VITE_NETSTAMP_CLARITY_PROJECT_ID`、`VITE_NETSTAMP_META_PIXEL_ID` 或其 `FACEBOOK` 別名、`VITE_NETSTAMP_POSTHOG_KEY` 與主機、`VITE_NETSTAMP_PLAUSIBLE_DOMAIN` 與指令碼 URL，以及 `VITE_NETSTAMP_UMAMI_WEBSITE_ID` 與指令碼 URL。
+
+`VITE_NETSTAMP_TRACKING_CONSENT_MODE` 接受 `regional`、`always` 或 `never`；`VITE_NETSTAMP_TRACKING_CONSENT_COUNTRIES` 則是區域適用國家清單。
+
+## 說明文件建置變數
+
+| 變數                           | 預設值                     | 用途                           |
+| ------------------------------ | -------------------------- | ------------------------------ |
+| `PUBLIC_SITE_URL`              | `https://netstamp.dev`     | 說明文件的標準來源網址         |
+| `PUBLIC_NETSTAMP_APP_BASE_URL` | `https://app.netstamp.dev` | 說明文件連往產品應用程式的 URL |
+
+說明文件支援相同的選用追蹤服務與同意控制，但前綴使用 `PUBLIC_NETSTAMP_*`，而不是 `VITE_NETSTAMP_*`。
