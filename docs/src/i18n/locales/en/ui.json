@@ -93,11 +93,18 @@
 		"accept": "Accept"
 	},
 	"footer": {
-		"madeBy": "Netstamp / Made by",
-		"separator": ", ",
-		"contributorsSeparator": ", and ",
-		"contributors": "contributors",
-		"star": "Give us a star on GitHub"
+		"eyebrow": "Network observability",
+		"description": "Measure latency, packet loss, DNS, and routes from probes you control.",
+		"navigation": "Footer navigation",
+		"explore": "Explore",
+		"docs": "Documentation",
+		"api": "API reference",
+		"project": "Project",
+		"github": "GitHub",
+		"discord": "Discord",
+		"license": "Apache 2.0 license",
+		"openSource": "Open source / Self-hosted",
+		"star": "Star Netstamp on GitHub"
 	},
 	"home": {
 		"heroLine1": "Trace every path.",

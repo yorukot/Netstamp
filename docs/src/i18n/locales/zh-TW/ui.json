@@ -93,11 +93,18 @@
 		"accept": "接受"
 	},
 	"footer": {
-		"madeBy": "Netstamp 由",
-		"separator": "、",
-		"contributorsSeparator": " 與 ",
-		"contributors": "所有貢獻者共同製作",
-		"star": "在 GitHub 上給我們一顆星"
+		"eyebrow": "網路可觀測性",
+		"description": "透過你所掌控的探測器，量測延遲、封包遺失、DNS 與網路路由。",
+		"navigation": "頁尾導覽",
+		"explore": "探索",
+		"docs": "說明文件",
+		"api": "API 參考",
+		"project": "專案",
+		"github": "GitHub",
+		"discord": "Discord",
+		"license": "Apache 2.0 授權",
+		"openSource": "開放原始碼 / 可自行託管",
+		"star": "在 GitHub 上給 Netstamp 一顆星"
 	},
 	"home": {
 		"heroLine1": "追蹤每一條路徑。",
