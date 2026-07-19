@@ -46,8 +46,7 @@ ENV VITE_NETSTAMP_DEMO_MODE=$VITE_NETSTAMP_DEMO_MODE
 ENV VITE_NETSTAMP_DEMO_EMAIL=$VITE_NETSTAMP_DEMO_EMAIL
 ENV VITE_NETSTAMP_DEMO_PASSWORD=$VITE_NETSTAMP_DEMO_PASSWORD
 
-RUN pnpm --filter @netstamp/i18n build \
-    && pnpm --filter @netstamp/web build
+RUN pnpm --filter @netstamp/web build
 
 FROM alpine:3.22
 
