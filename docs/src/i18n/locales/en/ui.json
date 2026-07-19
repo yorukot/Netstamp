@@ -72,7 +72,7 @@
 		"copy": "Copy page",
 		"copyDescription": "Copy the page as Markdown for LLMs",
 		"viewMarkdown": "View as Markdown",
-		"viewMarkdownDescription": "View this page as plain text",
+		"viewMarkdownDescription": "Open the original Markdown source",
 		"openChatGpt": "Open in ChatGPT",
 		"openClaude": "Open in Claude",
 		"askDescription": "Ask questions about this page",

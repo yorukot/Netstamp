@@ -32,7 +32,7 @@ export interface SearchEntry extends DocNavItem {
 	content: string;
 }
 
-export const githubBaseUrl = "https://github.com/yorukot/netstamp/blob/main";
+export const githubBaseUrl = "https://github.com/yorukot/Netstamp/blob/main";
 
 type DocsEntry = CollectionEntry<"docs">;
 
