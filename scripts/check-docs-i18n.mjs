@@ -17,6 +17,7 @@ const assertEqual = (actual, expected, label) => {
 	}
 };
 const docsNavHrefs = html => Array.from(html.matchAll(/<a href="([^"]+)" class="docsNavItem(?: active)?"/g), match => match[1]);
+const activeDocsNavHrefs = html => Array.from(html.matchAll(/<a href="([^"]+)" class="docsNavItem active" aria-current="page"/g), match => match[1]);
 const docsSectionLabels = html => Array.from(html.matchAll(/<h2 class="docsNavSectionTitle"[^>]*>([^<]+)<\/h2>/g), match => match[1]).filter(label => !["External links", "外部連結"].includes(label));
 const sectionMarkup = (html, label) => {
 	const headingIndex = html.indexOf(`>${label}</h2>`);
@@ -49,6 +50,10 @@ const traditionalChineseGuide = await readPage("zh-TW/docs/guides/getting-starte
 const traditionalChineseOpenApi = await readPage("zh-TW/openapi");
 const englishDocsHome = await readPage("docs");
 const traditionalChineseDocsHome = await readPage("zh-TW/docs");
+const englishProduction = await readPage("docs/install/production");
+const traditionalChineseProduction = await readPage("zh-TW/docs/install/production");
+const englishDeploymentMarkdown = await readFile(path.join(dist, "docs/reference/deployment.md"), "utf8");
+const traditionalChineseDeploymentMarkdown = await readFile(path.join(dist, "zh-TW/docs/reference/deployment.md"), "utf8");
 
 const existingDocRoutes = [
 	"docs",
@@ -69,9 +74,13 @@ const englishNavHrefs = docsNavHrefs(englishDocsHome);
 const traditionalChineseNavHrefs = docsNavHrefs(traditionalChineseDocsHome).map(href => href.replace(/^\/zh-TW/, ""));
 assertEqual(traditionalChineseNavHrefs, englishNavHrefs, "English and Traditional Chinese documentation navigation order");
 
-if (englishNavHrefs[0] !== "/docs/guides/getting-started/") {
-	throw new Error(`Getting Started must be the first documentation page, received ${JSON.stringify(englishNavHrefs[0])}`);
-}
+assertEqual(englishNavHrefs.slice(0, 3), ["/docs/", "/docs/guides/getting-started/", "/docs/start/concepts/"], "Getting Started page order");
+assertExcludes(englishDocsHome, "--nav-depth", "English documentation navigation hierarchy");
+assertExcludes(traditionalChineseDocsHome, "--nav-depth", "Traditional Chinese documentation navigation hierarchy");
+assertEqual(activeDocsNavHrefs(englishDocsHome), ["/docs/"], "English documentation home active navigation item");
+assertEqual(activeDocsNavHrefs(traditionalChineseDocsHome), ["/zh-TW/docs/"], "Traditional Chinese documentation home active navigation item");
+assertEqual(activeDocsNavHrefs(englishProduction), ["/docs/install/production/"], "English production page active navigation item");
+assertEqual(activeDocsNavHrefs(traditionalChineseProduction), ["/zh-TW/docs/install/production/"], "Traditional Chinese production page active navigation item");
 
 const englishRenderedSections = docsSectionLabels(englishDocsHome);
 const traditionalChineseRenderedSections = docsSectionLabels(traditionalChineseDocsHome);
@@ -102,5 +111,17 @@ assertIncludes(traditionalChineseGuide, 'data-copy-label="複製"', "/zh-TW/docs
 assertIncludes(traditionalChineseGuide, 'data-copied-label="已複製"', "/zh-TW/docs/guides/getting-started/");
 assertIncludes(traditionalChineseOpenApi, "正在載入 API 參考資料", "/zh-TW/openapi/");
 assertIncludes(traditionalChineseOpenApi, "資料模型", "/zh-TW/openapi/");
+assertIncludes(englishProduction, 'href="https://github.com/yorukot/Netstamp/blob/main/docs/src/content/docs/en/install/production.mdx"', "/docs/install/production/");
+assertIncludes(traditionalChineseProduction, 'href="https://crowdin.com/project/netstamp"', "/zh-TW/docs/install/production/");
+assertIncludes(englishDeploymentMarkdown, "# Docker Compose", "/docs/reference/deployment.md");
+assertIncludes(englishDeploymentMarkdown, "| Service", "/docs/reference/deployment.md");
+assertIncludes(englishDeploymentMarkdown, "```bash", "/docs/reference/deployment.md");
+assertIncludes(englishDeploymentMarkdown, "`.env`", "/docs/reference/deployment.md");
+assertIncludes(englishDeploymentMarkdown, "[Production deployment](/docs/install/production/)", "/docs/reference/deployment.md");
+assertIncludes(traditionalChineseDeploymentMarkdown, "# Docker Compose", "/zh-TW/docs/reference/deployment.md");
+assertIncludes(traditionalChineseDeploymentMarkdown, "| 服務", "/zh-TW/docs/reference/deployment.md");
+assertIncludes(traditionalChineseDeploymentMarkdown, "```bash", "/zh-TW/docs/reference/deployment.md");
+assertIncludes(traditionalChineseDeploymentMarkdown, "`.env`", "/zh-TW/docs/reference/deployment.md");
+assertIncludes(traditionalChineseDeploymentMarkdown, "[正式環境部署](/zh-TW/docs/install/production/)", "/zh-TW/docs/reference/deployment.md");
 
-console.log("Localized docs output check passed for English and Traditional Chinese IA, routes, metadata, links, and OpenAPI UI.");
+console.log("Localized docs output check passed for English and Traditional Chinese IA, routes, active navigation, Markdown payloads, metadata, links, and OpenAPI UI.");

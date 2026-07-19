@@ -9,10 +9,10 @@ function initDocLayout() {
 	const pageActions = document.querySelector("[data-docs-page-actions]");
 	const copiedLabel = pageActions instanceof HTMLElement ? pageActions.dataset.copiedLabel || "Copied" : "Copied";
 	const noContentLabel = pageActions instanceof HTMLElement ? pageActions.dataset.noContentLabel || "No page content was available." : "No page content was available.";
+	const markdownUrl = pageActions instanceof HTMLElement ? pageActions.dataset.markdownUrl : undefined;
 	const pageActionsToggle = document.querySelector("[data-docs-page-actions-toggle]");
 	const pageActionsMenu = document.querySelector("[data-docs-page-actions-menu]");
 	const copyPageButton = document.querySelector("[data-docs-copy-page]");
-	const viewMarkdownButton = document.querySelector("[data-docs-view-markdown]");
 
 	function setMobileNavExpanded(expanded: boolean) {
 		mobileNavToggle?.setAttribute("aria-expanded", String(expanded));
@@ -36,21 +36,6 @@ function initDocLayout() {
 			mobileNavToggle.removeEventListener("click", handleMobileNavToggle);
 			mobileNavPanel.removeEventListener("click", handleMobileNavLinkClick);
 		});
-	}
-
-	function plainTextFromElement(selector: string) {
-		const element = document.querySelector(selector);
-		if (!(element instanceof HTMLElement)) return "";
-
-		return (element.innerText || element.textContent || "").replace(/\n{3,}/g, "\n\n").trim();
-	}
-
-	function pagePlainText() {
-		const title = plainTextFromElement(".docTitle") || document.title;
-		const summary = plainTextFromElement(".docDescription");
-		const body = plainTextFromElement(".docProse");
-
-		return [`# ${title}`, summary, body].filter(Boolean).join("\n\n");
 	}
 
 	function setPageActionsOpen(open: boolean) {
@@ -123,44 +108,12 @@ function initDocLayout() {
 		cleanupTasks.push(() => button.removeEventListener("click", handleCodeCopy));
 	}
 
-	function openPlainTextDocument(text: string) {
-		const title = `${plainTextFromElement(".docTitle") || document.title} Markdown`;
-		const openedWindow = window.open("", "_blank");
-
-		if (openedWindow) {
-			openedWindow.opener = null;
-			openedWindow.document.title = title;
-			openedWindow.document.body.replaceChildren();
-			openedWindow.document.head.replaceChildren();
-
-			const meta = openedWindow.document.createElement("meta");
-			meta.setAttribute("charset", "utf-8");
-			openedWindow.document.head.append(meta);
-
-			const monoFont = getComputedStyle(document.documentElement).getPropertyValue("--ns-font-mono").trim() || "monospace";
-			const style = openedWindow.document.createElement("style");
-			style.textContent = `body{margin:0;padding:2rem;background:#f8fafc;color:#172033;font:16px/1.65 ${monoFont};}pre{margin:0;white-space:pre-wrap;word-break:break-word;}`;
-			openedWindow.document.head.append(style);
-
-			const pre = openedWindow.document.createElement("pre");
-			pre.textContent = text || noContentLabel;
-			openedWindow.document.body.append(pre);
-			openedWindow.focus();
-			return;
-		}
-
-		const blob = new Blob([text || noContentLabel], { type: "text/plain;charset=utf-8" });
-		const url = URL.createObjectURL(blob);
-		window.open(url, "_blank", "noopener,noreferrer");
-		window.setTimeout(() => URL.revokeObjectURL(url), 60000);
-	}
-
 	if (pageActions && pageActionsToggle && pageActionsMenu) {
 		const handlePageActionsToggle = () => {
 			const willOpen = pageActionsToggle.getAttribute("aria-expanded") !== "true";
 			setPageActionsOpen(willOpen);
 			if (willOpen) {
-				(pageActionsMenu.querySelector("[role='menuitem']") as HTMLElement | null)?.focus();
+				(pageActionsMenu.querySelector("button, a[href]") as HTMLElement | null)?.focus();
 			}
 		};
 		const handleDocumentClick = (event: MouseEvent) => {
@@ -178,12 +131,20 @@ function initDocLayout() {
 			}
 		};
 		const handleCopyPage = async () => {
-			await copyText(pagePlainText());
-			flashActionLabel(pageActionsToggle, copiedLabel);
-			setPageActionsOpen(false);
-		};
-		const handleViewMarkdown = () => {
-			openPlainTextDocument(pagePlainText());
+			try {
+				if (!markdownUrl) throw new Error("Missing documentation Markdown URL.");
+
+				const response = await fetch(markdownUrl, { headers: { Accept: "text/markdown" } });
+				if (!response.ok) throw new Error(`Documentation Markdown request failed with ${response.status}.`);
+
+				const markdown = await response.text();
+				if (!markdown.trim()) throw new Error("Documentation Markdown response was empty.");
+
+				await copyText(markdown);
+				flashActionLabel(pageActionsToggle, copiedLabel);
+			} catch {
+				flashActionLabel(pageActionsToggle, noContentLabel);
+			}
 			setPageActionsOpen(false);
 		};
 
@@ -192,13 +153,11 @@ function initDocLayout() {
 		document.addEventListener("click", handleDocumentClick);
 		document.addEventListener("keydown", handlePageActionsKeydown);
 		copyPageButton?.addEventListener("click", handleCopyPage);
-		viewMarkdownButton?.addEventListener("click", handleViewMarkdown);
 		cleanupTasks.push(() => {
 			pageActionsToggle.removeEventListener("click", handlePageActionsToggle);
 			document.removeEventListener("click", handleDocumentClick);
 			document.removeEventListener("keydown", handlePageActionsKeydown);
 			copyPageButton?.removeEventListener("click", handleCopyPage);
-			viewMarkdownButton?.removeEventListener("click", handleViewMarkdown);
 		});
 	}
 

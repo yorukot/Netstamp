@@ -18,12 +18,10 @@ interface Props {
 	title?: string;
 	description?: string;
 	headings?: Heading[];
-	editPath?: string;
 	head?: HeadEntry[];
 	frontmatter?: {
 		title?: string;
 		description?: string;
-		editPath?: string;
 		head?: HeadEntry[];
 	};
 	fallback?: boolean;
@@ -47,8 +45,8 @@ const currentPageIndex = docsPages.findIndex(page => page.href === pathname);
 const currentPage = currentPageIndex >= 0 ? docsPages[currentPageIndex] : undefined;
 const previousPage = currentPageIndex > 0 ? docsPages[currentPageIndex - 1] : undefined;
 const nextPage = currentPageIndex >= 0 && currentPageIndex < docsPages.length - 1 ? docsPages[currentPageIndex + 1] : undefined;
-const editPath = Astro.props.editPath ?? frontmatter.editPath ?? currentPage?.editPath ?? Astro.url.pathname;
-const editUrl = `${githubBaseUrl}/${editPath}`;
+const englishSourcePath = currentPage ? `docs/src/content/docs/en/${currentPage.contentId === "index" ? "index" : currentPage.contentId}.mdx` : undefined;
+const editUrl = locale === "zh-TW" ? "https://crowdin.com/project/netstamp" : englishSourcePath ? `${githubBaseUrl}/${englishSourcePath}` : githubBaseUrl;
 const siteUrl = resolveSiteUrl(Astro.site);
 const pageUrl = absoluteUrl(pathname, siteUrl);
 const breadcrumbs =
@@ -70,7 +68,9 @@ const pageAssistantPrompt =
 const chatGptUrl = `https://chatgpt.com/?q=${encodeURIComponent(pageAssistantPrompt)}`;
 const claudeUrl = `https://claude.ai/new?q=${encodeURIComponent(pageAssistantPrompt)}`;
 
-const isActiveNavItem = (href: string) => pathname === href || (href !== "/docs/" && pathname.startsWith(href));
+const docsRootPath = pathForLocale("/docs/", locale);
+const markdownUrl = currentPage?.contentId === "index" ? `${docsRootPath}index.md` : `${pathname.replace(/\/$/, "")}.md`;
+const isActiveNavItem = (href: string) => pathname === href || (href !== docsRootPath && pathname.startsWith(href));
 
 const navGroups = docsNav.map(group => ({
 	...group,
@@ -78,8 +78,7 @@ const navGroups = docsNav.map(group => ({
 	active: group.items.some(item => isActiveNavItem(item.href)),
 	items: group.items.map(item => ({
 		...item,
-		active: isActiveNavItem(item.href),
-		depth: Math.max(0, item.href.split("/").filter(Boolean).length - 2)
+		active: isActiveNavItem(item.href)
 	}))
 }));
 const externalLinks = [
@@ -116,7 +115,7 @@ const visibleBreadcrumbs =
 								{group.title}
 							</h2>
 							{group.items.map(item => (
-								<a href={item.href} class:list={["docsNavItem", item.active && "active"]} aria-current={item.active ? "page" : undefined} title={item.title} style={`--nav-depth: ${item.depth};`}>
+								<a href={item.href} class:list={["docsNavItem", item.active && "active"]} aria-current={item.active ? "page" : undefined} title={item.title}>
 									<span>{item.title}</span>
 								</a>
 							))}
@@ -225,7 +224,7 @@ const visibleBreadcrumbs =
 
 		<aside class="docsToc" aria-label={ui.docs.onThisPage}>
 			<div class="docsTocInner">
-				<PageActions chatGptUrl={chatGptUrl} claudeUrl={claudeUrl} />
+				<PageActions chatGptUrl={chatGptUrl} claudeUrl={claudeUrl} markdownUrl={markdownUrl} />
 				{
 					headings.length ? (
 						<nav data-docs-toc>
@@ -360,7 +359,7 @@ const visibleBreadcrumbs =
 		.docsNavItem {
 			position: relative;
 			display: block;
-			padding: 0.42rem 0.5rem 0.42rem calc(0.55rem + (var(--nav-depth, 0) * 0.8rem));
+			padding: 0.42rem 0.55rem;
 			color: var(--ns-text-subtle);
 			border-left: 2px solid transparent;
 			font-size: 0.9rem;
@@ -431,7 +430,7 @@ const visibleBreadcrumbs =
 		}
 
 		.docBreadcrumb {
-			margin: 0.25rem 0 1.325rem;
+			margin: 0.25rem 0 0;
 		}
 
 		.docBreadcrumb ol {
@@ -480,7 +479,7 @@ const visibleBreadcrumbs =
 
 		.docTitle {
 			max-width: 20ch;
-			margin: 0 0 0.875rem;
+			margin: 1.5rem 0 1rem;
 			font-size: clamp(2.1rem, 4vw, 3.25rem);
 			font-weight: 850;
 			letter-spacing: 0;
@@ -646,6 +645,58 @@ const visibleBreadcrumbs =
 			font-size: 0.9em;
 		}
 
+		:global(.docProse table) {
+			display: block;
+			width: 100%;
+			max-width: 100%;
+			overflow-x: auto;
+			border: 1px solid var(--ns-border);
+			border-collapse: collapse;
+			background: var(--ns-surface);
+			scrollbar-gutter: stable;
+		}
+
+		:global(.docProse thead) {
+			background: var(--ns-container-bg);
+		}
+
+		:global(.docProse th),
+		:global(.docProse td) {
+			min-width: 12rem;
+			padding: 0.75rem 1rem;
+			border-bottom: 1px solid var(--ns-border-faint);
+			color: var(--ns-text-muted);
+			font-size: 0.9rem;
+			line-height: 1.5;
+			text-align: left;
+			vertical-align: top;
+		}
+
+		:global(.docProse th) {
+			color: var(--ns-text);
+			font-family: var(--ns-font-code);
+			font-size: 0.75rem;
+			font-weight: 800;
+			letter-spacing: 0.06em;
+			white-space: nowrap;
+		}
+
+		:global(.docProse tbody tr:last-child td) {
+			border-bottom: 0;
+		}
+
+		:global(.docProse tbody tr) {
+			transition: background var(--ns-transition);
+		}
+
+		:global(.docProse tbody tr:hover) {
+			background: var(--ns-container-bg-hover);
+		}
+
+		:global(:root:not([data-theme="light"])) .docProse :global([data-ns-code-block]) {
+			background: color-mix(in srgb, var(--ns-surface-deep) 72%, var(--ns-surface-raised));
+		}
+
 		:global(.docProse > pre),
 		:global(.docProse > .astro-code) {
 			position: relative;
@@ -742,147 +793,6 @@ const visibleBreadcrumbs =
 			gap: 0.9rem;
 			padding-left: 1rem;
 			border-left: 1px solid var(--ns-border-faint);
-		}
-
-		.docsPageActions {
-			position: relative;
-			display: grid;
-			justify-items: start;
-			max-width: 100%;
-		}
-
-		:global(.docsPageActionsToggle) {
-			--ns-frame-color: transparent;
-			display: inline-flex;
-			align-items: center;
-			justify-content: flex-start;
-			gap: 0.5rem;
-			min-height: 1.75rem;
-			padding: 0.25rem 0.5rem;
-			color: var(--ns-text-subtle);
-			background: transparent;
-			font-size: 0.78rem;
-			font-weight: 600;
-			letter-spacing: 0;
-			text-transform: none;
-		}
-
-		:global(.docsPageActionsToggle [data-docs-action-label]) {
-			min-width: 0;
-			overflow: hidden;
-			text-overflow: ellipsis;
-			white-space: nowrap;
-		}
-
-		:global(.docsPageActionsToggle:hover),
-		:global(.docsPageActionsToggle[aria-expanded="true"]) {
-			--ns-frame-color: transparent;
-			color: var(--ns-primary-hover);
-			background: transparent;
-		}
-
-		:global(.docsPageActionsToggle[aria-expanded="true"] > .icon:last-child) {
-			transform: rotate(180deg);
-		}
-
-		.docsPageActionsMenu[hidden] {
-			display: none !important;
-		}
-
-		.docsPageActionsMenu {
-			position: fixed;
-			top: calc(var(--docs-sticky-top) + 2.2rem);
-			right: clamp(1rem, 4vw, 3rem);
-			z-index: var(--ns-z-popover);
-			display: grid;
-			width: min(17.5rem, calc(100vw - 2rem));
-			max-height: calc(100svh - var(--docs-sticky-top) - 3.25rem);
-			padding: 0.25rem;
-			overflow-x: clip;
-			overflow-y: auto;
-			border: 1px solid color-mix(in srgb, var(--ns-border) 78%, transparent);
-			border-radius: var(--ns-radius-sm);
-			background: color-mix(in srgb, var(--ns-surface) 92%, var(--ns-bg-subtle));
-			backdrop-filter: blur(1rem) saturate(0.92);
-			box-shadow: none;
-			-webkit-backdrop-filter: blur(1rem) saturate(0.92);
-		}
-
-		.docsToc .docsPageActionItem {
-			display: grid;
-			grid-template-columns: 1.25rem minmax(0, 1fr);
-			align-items: center;
-			gap: 0.75rem;
-			width: 100%;
-			min-height: 0;
-			padding: 0.5rem 0.75rem;
-			color: var(--ns-text-muted);
-			border: 0;
-			border-top: 1px solid var(--ns-border-faint);
-			background: transparent;
-			font: inherit;
-			text-align: left;
-			text-decoration: none;
-			cursor: pointer;
-			transition:
-				background var(--ns-transition),
-				color var(--ns-transition);
-		}
-
-		.docsToc .docsPageActionItem:first-child {
-			border-top: 0;
-		}
-
-		.docsToc .docsPageActionItem:hover,
-		.docsToc .docsPageActionItem:focus-visible {
-			color: var(--ns-text);
-			background: var(--ns-primary-muted);
-		}
-
-		.docsToc .docsPageActionItem:focus-visible {
-			outline: var(--ns-focus-outline);
-			outline-offset: var(--ns-focus-outline-offset);
-		}
-
-		.docsPageActionIcon {
-			display: inline-grid;
-			place-items: center;
-			width: 1.25rem;
-			height: 1.25rem;
-			color: var(--ns-text-low);
-		}
-
-		.docsPageActionIcon img {
-			display: block;
-			width: 1.05rem;
-			height: 1.05rem;
-			object-fit: contain;
-		}
-
-		:global(:root[data-theme="dark"]) .docsPageActionLogoChatGpt {
-			filter: invert(1);
-		}
-
-		.docsPageActionCopy {
-			display: grid;
-			gap: 0.25rem;
-			min-width: 0;
-		}
-
-		.docsPageActionCopy strong {
-			color: inherit;
-			font-size: 0.84rem;
-			font-weight: 680;
-			letter-spacing: 0;
-			line-height: 1.2;
-		}
-
-		.docsPageActionCopy small {
-			color: var(--ns-text-low);
-			font-size: 0.72rem;
-			font-weight: 450;
-			letter-spacing: 0;
-			line-height: 1.35;
 		}
 
 		.docsToc nav {
@@ -1001,22 +911,6 @@ const visibleBreadcrumbs =
 
 			.docsSidebar {
 				order: 0;
-			}
-
-			.docsPageActions {
-				justify-items: stretch;
-			}
-
-			:global(.docsPageActionsToggle) {
-				width: 100%;
-				justify-content: space-between;
-			}
-
-			.docsPageActionsMenu {
-				position: static;
-				width: 100%;
-				max-height: none;
-				margin-top: 0.45rem;
 			}
 
 			:global(.docsMobileNavToggle) {
