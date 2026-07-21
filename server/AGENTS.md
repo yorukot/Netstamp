@@ -146,7 +146,7 @@ Direct backend dependencies are declared in `server/go.mod`.
 - Auth/security: `github.com/golang-jwt/jwt/v4` and `golang.org/x/crypto/argon2`. Probe runtime authentication uses the hashed probe secret in `probe_credentials`; never pass or log plaintext probe secrets outside the HTTP auth boundary and verifier call.
 - Logging: `go.uber.org/zap`.
 - Tracing: OpenTelemetry SDK, trace API, and OTLP HTTP trace exporter.
-- Tool tracking: `tools/` is a nested Go module that pins the sqlc CLI for code generation. `air` and `golangci-lint` are used by commands/config but are not pinned in `server/go.mod`.
+- Tool tracking: `tools/` is a nested Go module that pins the sqlc CLI for code generation. `air` is used by commands but is not pinned in `server/go.mod`; golangci-lint is pinned to 2.12.2 by CI, the pre-push hook, and contributor guidance.
 
 ## Logging Guidelines
 

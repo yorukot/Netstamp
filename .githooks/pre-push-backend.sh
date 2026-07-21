@@ -74,7 +74,15 @@ fi
 
 if ! command -v golangci-lint >/dev/null 2>&1; then
 	echo "golangci-lint is required for backend pre-push checks." >&2
-	echo "Install golangci-lint v2.x, then retry the push." >&2
+	echo "Install golangci-lint v2.12.2, then retry the push." >&2
+	exit 1
+fi
+
+required_golangci_lint_version="2.12.2"
+actual_golangci_lint_version=$(golangci-lint version --short)
+if [ "$actual_golangci_lint_version" != "$required_golangci_lint_version" ]; then
+	echo "Backend checks require golangci-lint $required_golangci_lint_version; found $actual_golangci_lint_version." >&2
+	echo "Install the required version, then retry the push." >&2
 	exit 1
 fi
 
