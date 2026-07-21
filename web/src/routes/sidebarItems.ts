@@ -5,17 +5,15 @@ import { CheckCircleIcon } from "@phosphor-icons/react/dist/csr/CheckCircle";
 import { GaugeIcon } from "@phosphor-icons/react/dist/csr/Gauge";
 import { GearSixIcon } from "@phosphor-icons/react/dist/csr/GearSix";
 import { GlobeIcon } from "@phosphor-icons/react/dist/csr/Globe";
-import { ShieldCheckIcon } from "@phosphor-icons/react/dist/csr/ShieldCheck";
 import { TagIcon } from "@phosphor-icons/react/dist/csr/Tag";
 import { UsersThreeIcon } from "@phosphor-icons/react/dist/csr/UsersThree";
 import type { Icon } from "@phosphor-icons/react/dist/lib/types";
-import type { AppRoute } from "./routeTypes";
+import type { ProjectAppRoute } from "./routeTypes";
 
 export interface SidebarItem {
-	labelKey: "admin" | "alerts" | "checks" | "insight" | "labels" | "members" | "overview" | "probes" | "settings" | "status";
-	route: AppRoute;
+	labelKey: "alerts" | "checks" | "insight" | "labels" | "members" | "overview" | "probes" | "settings" | "status";
+	route: ProjectAppRoute;
 	icon: Icon;
-	systemAdminOnly?: boolean;
 }
 
 export const sidebarItems: SidebarItem[] = [
@@ -27,6 +25,5 @@ export const sidebarItems: SidebarItem[] = [
 	{ labelKey: "labels", route: "labels", icon: TagIcon },
 	{ labelKey: "insight", route: "insight", icon: ChartLineUpIcon },
 	{ labelKey: "members", route: "members", icon: UsersThreeIcon },
-	{ labelKey: "settings", route: "projectSettings", icon: GearSixIcon },
-	{ labelKey: "admin", route: "adminSettings", icon: ShieldCheckIcon, systemAdminOnly: true }
+	{ labelKey: "settings", route: "projectSettings", icon: GearSixIcon }
 ];
