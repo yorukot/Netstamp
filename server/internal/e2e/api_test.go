@@ -257,7 +257,7 @@ func TestAPIAuthProjectAndProbeRuntimeFlow(t *testing.T) {
 
 	assertExtensionNotEnabled(t, suite, "timescaledb_toolkit")
 
-	seriesStart := time.Date(2026, 5, 13, 10, 5, 0, 0, time.UTC)
+	seriesStart := time.Now().UTC().Add(-10 * time.Minute).Truncate(time.Minute)
 	seriesPayload := map[string]any{
 		"results": []map[string]any{{
 			"checkId": plainCheck.Check.ID,
