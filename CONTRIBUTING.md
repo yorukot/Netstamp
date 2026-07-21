@@ -102,7 +102,7 @@ Validate the current branch locally with:
 pnpm check:branch-name
 ```
 
-The pre-push hook validates every branch ref being pushed, and pull requests run the same check in GitHub Actions.
+The pre-push hook validates every branch ref being pushed. Pull request titles are validated separately in GitHub Actions using the repository's `area: concise patch summary` convention.
 
 ## Commits
 
