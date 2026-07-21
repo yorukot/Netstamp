@@ -54,13 +54,17 @@
 	font-size: 0.8125rem;
 	font-weight: 650;
 	line-height: 1.2;
-	outline: 0;
 	user-select: none;
 }
 
 .item[data-highlighted] {
 	color: var(--ns-text);
 	background: var(--ns-control-bg-hover);
+}
+
+.item:focus-visible {
+	outline: var(--ns-focus-outline);
+	outline-offset: var(--ns-focus-outline-offset);
 }
 
 .item[aria-current="true"] {
