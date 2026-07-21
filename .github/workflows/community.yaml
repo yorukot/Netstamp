@@ -1,0 +1,32 @@
+name: Community
+
+on:
+  issues:
+    types: [opened]
+  pull_request_target:
+    types: [opened]
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  Welcome:
+    name: Welcome first-time contributor
+    runs-on: ubuntu-latest
+    steps:
+      - name: Welcome contributor
+        uses: actions/first-interaction@v3
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          issue_message: |
+            👋 Welcome to **Netstamp**, and thank you for opening your first issue!
+
+            A maintainer may ask for more details so we can understand and resolve the issue effectively.
+            If you plan to contribute a fix, please read our [contribution guide](https://github.com/yorukot/Netstamp/blob/main/CONTRIBUTING.md).
+
+          pr_message: |
+            🎉 Thank you for your first contribution to **Netstamp**!
+
+            A maintainer may suggest changes during review. That is a normal part of the process, and we will help guide you through it.
+            Please take a moment to review our [contribution guide](https://github.com/yorukot/Netstamp/blob/main/CONTRIBUTING.md).

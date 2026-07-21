@@ -1,0 +1,53 @@
+name: Pull Request
+
+on:
+  pull_request_target:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  Title:
+    name: Check title format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR title
+        id: title
+        uses: amannn/action-semantic-pull-request@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            [a-z0-9]+(?:[./-][a-z0-9]+)*
+          headerPattern: "^([^:]+): (.+)$"
+          headerPatternCorrespondence: type, subject
+
+      - name: Explain invalid PR title
+        if: always() && steps.title.outputs.error_message != null
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: pr-title-format
+          message: |
+            The PR title must follow Netstamp's `area: concise patch summary` format.
+
+            Examples:
+
+            ```text
+            web/routes: split route-level chunks
+            server/auth: validate session cookie
+            github/workflows: report backend checks for every PR
+            ```
+
+            Details:
+
+            ```text
+            ${{ steps.title.outputs.error_message }}
+            ```
+
+      - name: Remove resolved PR title comment
+        if: steps.title.outputs.error_message == null
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: pr-title-format
+          delete: true
