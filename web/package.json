@@ -11,6 +11,7 @@
 		"generate:api-types": "openapi-typescript ../docs/public/openapi.json -o src/shared/api/openapi.d.ts",
 		"lint": "eslint .",
 		"preview": "vite preview",
+		"pretest": "pnpm --filter @netstamp/i18n build && pnpm --filter @netstamp/ui build",
 		"test": "vitest run",
 		"pretypecheck": "pnpm --filter @netstamp/i18n build && pnpm --filter @netstamp/ui build",
 		"typecheck": "tsc -p tsconfig.json --noEmit"
