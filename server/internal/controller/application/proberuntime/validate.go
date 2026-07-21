@@ -307,7 +307,7 @@ func normalizeRuntimeStatus(input RuntimeStatusInput, probeID string) (domainpro
 		PublicV4:     publicV4,
 		PublicV6:     publicV6,
 		AS:           as,
-		Addrs:        append([]netip.Addr(nil), addrs...),
+		Addrs:        append(make([]netip.Addr, 0, len(addrs)), addrs...),
 	}, nil
 }
 

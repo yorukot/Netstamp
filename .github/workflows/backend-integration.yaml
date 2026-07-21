@@ -1,0 +1,51 @@
+name: Backend Integration CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/backend-integration.yaml"
+      - "server/**"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/backend-integration.yaml"
+      - "server/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  Integration:
+    name: Run TimescaleDB integration tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      timescaledb:
+        image: timescale/timescaledb:2.20.3-pg16
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_USER: netstamp
+          POSTGRES_PASSWORD: netstamp
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U netstamp -d postgres" --health-interval 5s --health-timeout 5s --health-retries 12
+
+
+    env:
+      NETSTAMP_TEST_DATABASE_URL: postgres://netstamp:netstamp@localhost:5432/postgres?sslmode=disable
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
+
+      - name: Run backend integration tests
+        working-directory: server
+        run: go test -v -tags=integration ./internal/e2e/...
