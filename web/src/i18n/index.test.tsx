@@ -59,9 +59,10 @@ describe("React i18n", () => {
 	it("switches immediately, persists the locale, and updates html lang", async () => {
 		await changeLocale("en");
 		render(<LanguageSwitcher />);
-		fireEvent.click(screen.getByRole("button", { name: /繁體中文/ }));
+		fireEvent.pointerDown(screen.getByRole("button", { name: "Language" }), { button: 0, ctrlKey: false });
+		fireEvent.click(await screen.findByRole("menuitem", { name: "繁體中文" }));
 
-		await screen.findByRole("button", { name: /English/ });
+		await screen.findByRole("button", { name: "語言" });
 		expect(i18n.resolvedLanguage).toBe("zh-TW");
 		expect(window.localStorage.getItem("netstamp:locale")).toBe("zh-TW");
 		expect(document.documentElement.lang).toBe("zh-Hant-TW");

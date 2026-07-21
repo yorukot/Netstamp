@@ -6,6 +6,7 @@ import { classNames } from "@/shared/utils/classNames";
 import { PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger, SignalAvatar } from "@netstamp/ui";
 import { GearSixIcon } from "@phosphor-icons/react/dist/csr/GearSix";
 import { MoonStarsIcon } from "@phosphor-icons/react/dist/csr/MoonStars";
+import { ShieldCheckIcon } from "@phosphor-icons/react/dist/csr/ShieldCheck";
 import { SignOutIcon } from "@phosphor-icons/react/dist/csr/SignOut";
 import { SunIcon } from "@phosphor-icons/react/dist/csr/Sun";
 import { useState } from "react";
@@ -37,7 +38,7 @@ export function UserMenu({ user, collapsed = false, onLogout }: UserMenuProps) {
 		onLogout();
 	};
 
-	const content = <UserMenuContent onClose={closeMenus} onLogout={logout} />;
+	const content = <UserMenuContent user={user} onClose={closeMenus} onLogout={logout} />;
 
 	return (
 		<PopoverRoot open={profileOpen} onOpenChange={setProfileOpen}>
@@ -62,7 +63,7 @@ export function UserMenu({ user, collapsed = false, onLogout }: UserMenuProps) {
 	);
 }
 
-export function UserMenuPanel({ onLogout, className, onClose }: UserMenuPanelProps) {
+export function UserMenuPanel({ user, onLogout, className, onClose }: UserMenuPanelProps) {
 	const { t } = useTranslation("navigation");
 	const closePanel = () => {
 		onClose?.();
@@ -75,12 +76,12 @@ export function UserMenuPanel({ onLogout, className, onClose }: UserMenuPanelPro
 
 	return (
 		<section className={classNames(styles.mobileDrawerUserPanel, className)} aria-label={t("userMenu")}>
-			<UserMenuContent onClose={closePanel} onLogout={logout} />
+			<UserMenuContent user={user} onClose={closePanel} onLogout={logout} />
 		</section>
 	);
 }
 
-function UserMenuContent({ onClose, onLogout }: { onClose: () => void; onLogout: () => void }) {
+function UserMenuContent({ user, onClose, onLogout }: { user: SessionUser; onClose: () => void; onLogout: () => void }) {
 	const { t } = useTranslation(["navigation", "common"]);
 	const { theme, toggleTheme } = useTheme();
 	const ThemeIcon = theme === "dark" ? SunIcon : MoonStarsIcon;
@@ -93,11 +94,19 @@ function UserMenuContent({ onClose, onLogout }: { onClose: () => void; onLogout:
 
 	return (
 		<div className={styles.userPopoverActions}>
+			{user.isSystemAdmin ? (
+				<div className={styles.systemActions}>
+					<Link className={styles.userPopoverAction} to={pathForRoute("adminSettings")} onClick={onClose}>
+						<ShieldCheckIcon size={18} weight="bold" aria-hidden="true" focusable="false" />
+						<span>{t("navigation:admin")}</span>
+					</Link>
+				</div>
+			) : null}
 			<Link className={styles.userPopoverAction} to={pathForRoute("accountSettings")} onClick={onClose}>
 				<GearSixIcon size={18} weight="bold" aria-hidden="true" focusable="false" />
 				<span>{t("navigation:settings")}</span>
 			</Link>
-			<LanguageSwitcher className={styles.userPopoverAction} onChange={onClose} />
+			<LanguageSwitcher className={styles.userPopoverAction} menuClassName="ns-theme-dark" onChange={onClose} />
 			<button type="button" className={styles.userPopoverAction} aria-label={themeToggleLabel} title={themeToggleLabel} aria-pressed={theme === "light"} onClick={switchTheme}>
 				<ThemeIcon size={18} weight="bold" aria-hidden="true" focusable="false" />
 				<span>{theme === "dark" ? t("common:theme.lightMode") : t("common:theme.darkMode")}</span>

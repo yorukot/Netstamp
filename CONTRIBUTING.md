@@ -21,6 +21,7 @@ Prerequisites:
 - Node.js 22.12 or newer
 - pnpm 11.9
 - Go 1.26 for backend work
+- golangci-lint 2.12.2 for backend formatting and lint checks
 - `just` for the repository task commands
 - Docker when running PostgreSQL, TimescaleDB, or the full deployment stack
 
