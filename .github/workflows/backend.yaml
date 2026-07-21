@@ -30,7 +30,7 @@ on:
   workflow_dispatch:
 
 env:
-  GOLANGCI_LINT_VERSION: v2.11.4
+  GOLANGCI_LINT_VERSION: v2.12.2
 
 jobs:
   Format:
@@ -58,6 +58,30 @@ jobs:
 
       - name: Check backend formatting diff
         run: git diff --exit-code -- server
+
+  Lint:
+    name: Run lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
+
+      - name: Install golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
+          install-only: true
+          working-directory: server
+
+      - name: Run backend lint
+        working-directory: server
+        run: golangci-lint run --config ../golangci.yaml ./...
 
   Test:
     name: Run tests
