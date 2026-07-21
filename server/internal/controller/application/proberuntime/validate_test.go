@@ -25,6 +25,16 @@ func TestNormalizeRuntimeStatusReturnsAllFieldErrors(t *testing.T) {
 	assertValidationFields(t, err, []string{"agentVersion", "publicV4", "publicV6", "as", "addrs"})
 }
 
+func TestNormalizeRuntimeStatusUsesEmptyAddressListWhenOmitted(t *testing.T) {
+	status, err := normalizeRuntimeStatus(RuntimeStatusInput{}, testProbeID)
+	if err != nil {
+		t.Fatalf("expected omitted addresses to be valid: %v", err)
+	}
+	if status.Addrs == nil || len(status.Addrs) != 0 {
+		t.Fatalf("expected a non-nil empty address list, got %#v", status.Addrs)
+	}
+}
+
 func TestNormalizeSubmitResultsReturnsAllFieldErrors(t *testing.T) {
 	_, err := normalizeSubmitResults(SubmitResultsInput{
 		Results: []RuntimeResultGroupInput{{
