@@ -22,7 +22,7 @@ func TestTimescaleColumnstorePolicies(t *testing.T) {
 		{name: "tcp_results", orderbyTokens: []string{"started_atdesc"}},
 		{name: "http_results", orderbyTokens: []string{"started_atdesc"}},
 		{name: "traceroute_results", orderbyTokens: []string{"started_atdesc"}},
-		{name: "traceroute_result_hops", orderbyTokens: []string{"started_atdesc", "hop_indexasc"}},
+		{name: "traceroute_result_hops", orderbyTokens: []string{"started_atdesc", "hop_index"}},
 		{name: "traceroute_sampled_runs_1m", orderbyTokens: []string{"bucketdesc"}},
 		{name: "ping_result_rollups_1m", orderbyTokens: []string{"bucketdesc"}},
 		{name: "tcp_result_rollups_1m", orderbyTokens: []string{"bucketdesc"}},
