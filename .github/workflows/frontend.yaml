@@ -1,19 +1,8 @@
-name: CI
+name: Frontend
 
 on:
   pull_request:
     branches: [main]
-    paths:
-      - ".github/workflows/frontend.yaml"
-      - ".prettierignore"
-      - ".prettierrc"
-      - "docs/**"
-      - "!docs/public/openapi.json"
-      - "package.json"
-      - "packages/**"
-      - "pnpm-lock.yaml"
-      - "pnpm-workspace.yaml"
-      - "web/**"
   push:
     branches: [main]
     paths:
@@ -29,109 +18,207 @@ on:
       - "web/**"
   workflow_dispatch:
 
+permissions:
+  contents: read
+  pull-requests: read
+
 jobs:
-  Format:
-    name: Check formatting
+  Changes:
+    name: Detect frontend changes
     runs-on: ubuntu-latest
+    outputs:
+      relevant: ${{ github.event_name == 'workflow_dispatch' || steps.filter.outputs.relevant == 'true' }}
     steps:
       - name: Checkout repo
+        if: github.event_name != 'workflow_dispatch'
+        uses: actions/checkout@v6
+
+      - name: Detect relevant changes
+        id: filter
+        if: github.event_name != 'workflow_dispatch'
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            relevant:
+              - ".github/workflows/frontend.yaml"
+              - ".prettierignore"
+              - ".prettierrc"
+              - "docs/**"
+              - "!docs/public/openapi.json"
+              - "package.json"
+              - "packages/**"
+              - "pnpm-lock.yaml"
+              - "pnpm-workspace.yaml"
+              - "web/**"
+
+  Format:
+    name: Check frontend formatting
+    needs: Changes
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require change detection
+        if: needs.Changes.result != 'success'
+        run: exit 1
+
+      - name: Skip frontend formatting
+        if: needs.Changes.outputs.relevant != 'true'
+        run: echo "No frontend-related changes; skipping frontend formatting."
+
+      - name: Checkout repo
+        if: needs.Changes.outputs.relevant == 'true'
         uses: actions/checkout@v6
 
       - name: Setup pnpm
+        if: needs.Changes.outputs.relevant == 'true'
         uses: pnpm/action-setup@v6
 
       - name: Setup Node.js
+        if: needs.Changes.outputs.relevant == 'true'
         uses: actions/setup-node@v6
         with:
           node-version: "24.15.0"
           cache: "pnpm"
 
       - name: Install dependencies
+        if: needs.Changes.outputs.relevant == 'true'
         run: pnpm install --frozen-lockfile
 
       - name: Run Prettier
+        if: needs.Changes.outputs.relevant == 'true'
         run: pnpm prettier --check .
 
   Frontend:
     name: Test frontend
+    needs: Changes
+    if: always()
     runs-on: ubuntu-latest
     steps:
+      - name: Require change detection
+        if: needs.Changes.result != 'success'
+        run: exit 1
+
+      - name: Skip frontend tests
+        if: needs.Changes.outputs.relevant != 'true'
+        run: echo "No frontend-related changes; skipping frontend tests."
+
       - name: Checkout repo
+        if: needs.Changes.outputs.relevant == 'true'
         uses: actions/checkout@v6
 
       - name: Setup pnpm
+        if: needs.Changes.outputs.relevant == 'true'
         uses: pnpm/action-setup@v6
 
       - name: Setup Node.js
+        if: needs.Changes.outputs.relevant == 'true'
         uses: actions/setup-node@v6
         with:
           node-version: "24.15.0"
           cache: "pnpm"
 
       - name: Install dependencies
+        if: needs.Changes.outputs.relevant == 'true'
         run: pnpm install --frozen-lockfile
 
       - name: Check frontend style rules
+        if: needs.Changes.outputs.relevant == 'true'
         run: pnpm check:frontend-style
 
       - name: Check localization resources
+        if: needs.Changes.outputs.relevant == 'true'
         run: pnpm check:i18n
 
       - name: Test locale routing helpers
+        if: needs.Changes.outputs.relevant == 'true'
         run: pnpm test:i18n
 
       - name: Test React localization
+        if: needs.Changes.outputs.relevant == 'true'
         run: pnpm test:web
 
       - name: Lint
+        if: needs.Changes.outputs.relevant == 'true'
         run: pnpm --filter @netstamp/web lint
 
       - name: Typecheck
+        if: needs.Changes.outputs.relevant == 'true'
         run: pnpm --filter @netstamp/web typecheck
 
   Components:
     name: Test components
+    needs: Changes
+    if: always()
     runs-on: ubuntu-latest
     steps:
+      - name: Require change detection
+        if: needs.Changes.result != 'success'
+        run: exit 1
+
+      - name: Skip component tests
+        if: needs.Changes.outputs.relevant != 'true'
+        run: echo "No frontend-related changes; skipping component tests."
+
       - name: Checkout repo
+        if: needs.Changes.outputs.relevant == 'true'
         uses: actions/checkout@v6
 
       - name: Setup pnpm
+        if: needs.Changes.outputs.relevant == 'true'
         uses: pnpm/action-setup@v6
 
       - name: Setup Node.js
+        if: needs.Changes.outputs.relevant == 'true'
         uses: actions/setup-node@v6
         with:
           node-version: "24.15.0"
           cache: "pnpm"
 
       - name: Install dependencies
+        if: needs.Changes.outputs.relevant == 'true'
         run: pnpm install --frozen-lockfile
 
       - name: Typecheck
+        if: needs.Changes.outputs.relevant == 'true'
         run: pnpm --filter @netstamp/ui typecheck
 
   Docs:
     name: Test docs build
+    needs: Changes
+    if: always()
     runs-on: ubuntu-latest
     steps:
+      - name: Require change detection
+        if: needs.Changes.result != 'success'
+        run: exit 1
+
+      - name: Skip docs tests
+        if: needs.Changes.outputs.relevant != 'true'
+        run: echo "No frontend-related changes; skipping docs tests."
+
       - name: Checkout repo
+        if: needs.Changes.outputs.relevant == 'true'
         uses: actions/checkout@v6
 
       - name: Setup pnpm
+        if: needs.Changes.outputs.relevant == 'true'
         uses: pnpm/action-setup@v6
 
       - name: Setup Node.js
+        if: needs.Changes.outputs.relevant == 'true'
         uses: actions/setup-node@v6
         with:
           node-version: "24.15.0"
           cache: "pnpm"
 
       - name: Install dependencies
+        if: needs.Changes.outputs.relevant == 'true'
         run: pnpm install --frozen-lockfile
 
       - name: Build docs
+        if: needs.Changes.outputs.relevant == 'true'
         run: pnpm --filter @netstamp/docs build
 
       - name: Test localized docs output
+        if: needs.Changes.outputs.relevant == 'true'
         run: pnpm test:docs:i18n
