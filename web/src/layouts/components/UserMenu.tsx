@@ -106,7 +106,7 @@ function UserMenuContent({ user, onClose, onLogout }: { user: SessionUser; onClo
 				<GearSixIcon size={18} weight="bold" aria-hidden="true" focusable="false" />
 				<span>{t("navigation:settings")}</span>
 			</Link>
-			<LanguageSwitcher className={styles.userPopoverAction} onChange={onClose} />
+			<LanguageSwitcher className={styles.userPopoverAction} menuClassName="ns-theme-dark" onChange={onClose} />
 			<button type="button" className={styles.userPopoverAction} aria-label={themeToggleLabel} title={themeToggleLabel} aria-pressed={theme === "light"} onClick={switchTheme}>
 				<ThemeIcon size={18} weight="bold" aria-hidden="true" focusable="false" />
 				<span>{theme === "dark" ? t("common:theme.lightMode") : t("common:theme.darkMode")}</span>
