@@ -119,6 +119,12 @@
 	gap: 0.125rem;
 }
 
+.systemActions {
+	padding-bottom: 0.25rem;
+	margin-bottom: 0.125rem;
+	border-bottom: 1px solid var(--ns-border-faint);
+}
+
 .userPopoverAction {
 	display: flex;
 	align-items: center;
