@@ -109,6 +109,11 @@ assertIncludes(traditionalChineseGuide, 'href="/zh-TW/docs/reference/architectur
 assertExcludes(traditionalChineseGuide, 'href="/docs/reference/architecture/"', "/zh-TW/docs/guides/getting-started/");
 assertIncludes(traditionalChineseGuide, 'data-copy-label="複製"', "/zh-TW/docs/guides/getting-started/");
 assertIncludes(traditionalChineseGuide, 'data-copied-label="已複製"', "/zh-TW/docs/guides/getting-started/");
+assertIncludes(englishDocsHome, "data-language-menu-trigger", "/docs/");
+assertIncludes(englishDocsHome, "data-language-menu-content", "/docs/");
+assertIncludes(englishDocsHome, 'href="/zh-TW/docs/"', "/docs/");
+assertIncludes(traditionalChineseDocsHome, "data-language-menu-trigger", "/zh-TW/docs/");
+assertIncludes(traditionalChineseDocsHome, 'href="/docs/"', "/zh-TW/docs/");
 assertIncludes(traditionalChineseOpenApi, "正在載入 API 參考資料", "/zh-TW/openapi/");
 assertIncludes(traditionalChineseOpenApi, "資料模型", "/zh-TW/openapi/");
 assertIncludes(englishProduction, 'href="https://github.com/yorukot/Netstamp/blob/main/docs/src/content/docs/en/install/production.mdx"', "/docs/install/production/");
