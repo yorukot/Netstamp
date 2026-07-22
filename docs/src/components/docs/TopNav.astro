@@ -1,9 +1,8 @@
 ---
 import netstampLogoLight from "@netstamp/brand/assets/netstamp-logo-light.svg?url";
-import { localeMetadata, stripLocalePrefix, type SupportedLocale } from "@netstamp/i18n";
+import { localeMetadata, stripLocalePrefix, supportedLocales } from "@netstamp/i18n";
 import { Button } from "@netstamp/ui";
-import { interpolate, localeFromAstro, pathForLocale, uiForLocale } from "../../i18n/ui";
-import { appUrl } from "../../lib/publicUrls";
+import { localeFromAstro, pathForLocale, uiForLocale } from "@/i18n/ui";
 
 interface Props {
 	pathname?: string;
@@ -15,9 +14,12 @@ const pathname = stripLocalePrefix(Astro.props.pathname ?? Astro.url.pathname);
 const isHome = pathname === "/";
 const isDocs = pathname.startsWith("/docs");
 const isOpenAPI = pathname.startsWith("/openapi");
-const alternateLocale: SupportedLocale = locale === "en" ? "zh-TW" : "en";
-const alternatePath = pathForLocale(pathname, alternateLocale);
-const languageLabel = interpolate(ui.common.switchLanguage, { language: localeMetadata[alternateLocale].label });
+const languageOptions = supportedLocales.map(candidate => ({
+	href: pathForLocale(pathname, candidate),
+	isCurrent: candidate === locale,
+	label: localeMetadata[candidate].label,
+	locale: candidate
+}));
 const demoHref = "https://demo.netstamp.dev";
 const discordHref = "https://discord.gg/9mdkf6dyTy";
 ---
@@ -61,10 +63,41 @@ const discordHref = "https://discord.gg/9mdkf6dyTy";
 				</Button>
 			) : null
 		}
-		<a class="siteLanguageSwitch" href={alternatePath} lang={localeMetadata[alternateLocale].htmlLang} hreflang={alternateLocale} aria-label={languageLabel} title={languageLabel}>
-			<ph-translate size="16" weight="bold" aria-hidden="true" focusable="false"></ph-translate>
-			<span>{localeMetadata[alternateLocale].label}</span>
-		</a>
+		<div class="siteLanguageMenu" data-language-menu>
+			<Button
+				className="siteLanguageTrigger"
+				variant="outline"
+				size="sm"
+				type="button"
+				aria-label={ui.common.language}
+				aria-haspopup="menu"
+				aria-expanded="false"
+				aria-controls="site-language-menu"
+				title={ui.common.language}
+				data-language-menu-trigger
+			>
+				<ph-translate size="16" weight="bold" aria-hidden="true" focusable="false"></ph-translate>
+				<span class="siteLanguageLabel">{ui.common.language}</span>
+			</Button>
+			<div class="siteLanguageMenuContent" id="site-language-menu" role="menu" aria-label={ui.common.language} data-language-menu-content data-state="closed" hidden>
+				{
+					languageOptions.map(option => (
+						<a
+							class:list={["siteLanguageOption", option.isCurrent && "current"]}
+							href={option.href}
+							lang={localeMetadata[option.locale].htmlLang}
+							hreflang={option.locale}
+							role="menuitem"
+							aria-current={option.isCurrent ? "page" : undefined}
+							data-language-menu-item
+						>
+							<span>{option.label}</span>
+							{option.isCurrent ? <ph-check size="16" weight="bold" aria-hidden="true" focusable="false" /> : null}
+						</a>
+					))
+				}
+			</div>
+		</div>
 		<a class="siteNavLogin" href={demoHref}>{ui.nav.viewDemo}</a>
 	</div>
 </nav>
@@ -165,29 +198,113 @@ const discordHref = "https://discord.gg/9mdkf6dyTy";
 	}
 
 	.siteNavLogin,
-	.siteLanguageSwitch,
+	:global(.siteLanguageTrigger),
 	:global(.siteThemeToggle) {
 		justify-content: center;
 	}
 
-	.siteLanguageSwitch {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.4rem;
+	.siteLanguageMenu {
+		position: relative;
+	}
+
+	:global(.siteLanguageTrigger) {
+		--ns-frame-color: var(--ns-chrome-border);
+		gap: 0.5rem;
 		min-height: 2.25rem;
-		padding: 0.4rem 0.6rem;
+		padding: 0.5rem 0.75rem;
 		color: var(--ns-chrome-text);
-		font-size: 0.78rem;
+		background: transparent;
+	}
+
+	:global(.siteLanguageTrigger:hover),
+	:global(.siteLanguageTrigger[aria-expanded="true"]) {
+		--ns-frame-color: var(--ns-chrome-border);
+		color: var(--ns-chrome-text);
+		background: var(--ns-chrome-hover);
+	}
+
+	:global(.siteLanguageTrigger ph-translate) {
+		color: var(--ns-primary);
+	}
+
+	.siteLanguageMenuContent {
+		position: absolute;
+		top: calc(100% + 0.5rem);
+		right: 0;
+		z-index: var(--ns-z-popover);
+		min-width: 10rem;
+		padding: 0.25rem;
+		border: 1px solid var(--ns-chrome-border);
+		color: var(--ns-chrome-text);
+		background: var(--ns-chrome-bg);
+		transform-origin: top right;
+	}
+
+	.siteLanguageMenuContent[hidden] {
+		display: none;
+	}
+
+	.siteLanguageMenuContent[data-state="open"] {
+		animation: siteLanguageMenuIn 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+	}
+
+	.siteLanguageMenuContent[data-state="closed"]:not([hidden]) {
+		animation: siteLanguageMenuOut 160ms ease-in forwards;
+		pointer-events: none;
+	}
+
+	.siteLanguageOption {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+		min-height: 2.25rem;
+		padding: 0.5rem 0.75rem;
+		color: var(--ns-chrome-text-muted);
+		font-size: 0.8125rem;
+		font-weight: 650;
+		line-height: 1.2;
 		text-decoration: none;
 	}
 
-	.siteLanguageSwitch:hover {
-		color: var(--ns-primary-hover);
+	.siteLanguageOption:hover,
+	.siteLanguageOption.current {
+		color: var(--ns-chrome-text);
+		background: var(--ns-chrome-hover);
 	}
 
-	.siteLanguageSwitch:focus-visible {
+	.siteLanguageOption:focus-visible {
 		outline: var(--ns-focus-outline);
-		outline-offset: 0.25rem;
+		outline-offset: var(--ns-focus-outline-offset);
+	}
+
+	.siteLanguageOption ph-check {
+		flex: 0 0 auto;
+		color: var(--ns-primary);
+	}
+
+	@keyframes siteLanguageMenuIn {
+		from {
+			opacity: 0;
+			transform: translateY(-0.25rem) scale(0.98);
+		}
+
+		to {
+			opacity: 1;
+			transform: translateY(0) scale(1);
+		}
+	}
+
+	@keyframes siteLanguageMenuOut {
+		from {
+			opacity: 1;
+			transform: translateY(0) scale(1);
+		}
+
+		to {
+			opacity: 0;
+			transform: translateY(-0.25rem) scale(0.98);
+		}
 	}
 
 	:global(.siteThemeToggle) {
@@ -294,8 +411,24 @@ const discordHref = "https://discord.gg/9mdkf6dyTy";
 			width: 8.75rem;
 		}
 
+		.siteLanguageLabel {
+			display: none;
+		}
+
+		:global(.siteLanguageTrigger) {
+			width: 2.25rem;
+			min-width: 2.25rem;
+			padding: 0;
+		}
+
 		.siteNavTextLink {
 			font-size: 0.75rem;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.siteLanguageMenuContent[data-state] {
+			animation-duration: 1ms;
 		}
 	}
 </style>

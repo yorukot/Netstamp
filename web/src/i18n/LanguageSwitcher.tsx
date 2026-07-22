@@ -11,9 +11,10 @@ interface LanguageSwitcherProps {
 	className?: string;
 	menuClassName?: string;
 	onChange?: () => void;
+	showLabel?: boolean;
 }
 
-export const LanguageSwitcher = ({ className, menuClassName, onChange }: LanguageSwitcherProps) => {
+export const LanguageSwitcher = ({ className, menuClassName, onChange, showLabel = false }: LanguageSwitcherProps) => {
 	const { t } = useTranslation("common");
 	const locale = currentLocale();
 
@@ -27,6 +28,7 @@ export const LanguageSwitcher = ({ className, menuClassName, onChange }: Languag
 			<DropdownMenuTrigger asChild>
 				<button type="button" className={classNames(styles.trigger, className)} aria-label={t("language.label")} title={t("language.label")}>
 					<TranslateIcon size="1.25rem" weight="bold" aria-hidden="true" focusable="false" />
+					{showLabel ? <span>{t("language.label")}</span> : null}
 				</button>
 			</DropdownMenuTrigger>
 			<DropdownMenuPortal>

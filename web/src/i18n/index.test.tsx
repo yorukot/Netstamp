@@ -68,6 +68,13 @@ describe("React i18n", () => {
 		expect(document.documentElement.lang).toBe("zh-Hant-TW");
 	});
 
+	it("shows a visible label when the surrounding layout has room", async () => {
+		await changeLocale("en");
+		render(<LanguageSwitcher showLabel />);
+
+		expect(screen.getByRole("button", { name: "Language" }).textContent).toContain("Language");
+	});
+
 	it("restores an explicit locale before checking browser languages", () => {
 		setBrowserLanguages(["en-US"]);
 		window.localStorage.setItem("netstamp:locale", "zh-TW");
