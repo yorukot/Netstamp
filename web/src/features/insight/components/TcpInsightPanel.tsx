@@ -71,7 +71,7 @@ export function TcpInsightPanel({ selectedProbe, selectedTarget, insightData, se
 					<span>{sourceLabel}</span>
 				</div>
 				{hasChartData ? (
-					<ChartPanel option={tcpInsightChartOption(chartData)} height="27rem" onTimeRangeSelect={onSelectTimeWindow} timeRangeBounds={queryWindow} />
+					<ChartPanel getOption={theme => tcpInsightChartOption(chartData, theme)} height="27rem" onTimeRangeSelect={onSelectTimeWindow} timeRangeBounds={queryWindow} />
 				) : isSeriesLoading || isFetching ? (
 					<Spinner label={t("panel.loadingTcpSeries")} layout="panel" size="lg" />
 				) : (

@@ -20,7 +20,7 @@ import { Badge, Button, Spinner, type BadgeTone } from "@netstamp/ui";
 import { CaretDownIcon } from "@phosphor-icons/react/dist/csr/CaretDown";
 import { useQuery } from "@tanstack/react-query";
 import type { TFunction } from "i18next";
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router-dom";
 import styles from "./PublicStatusPage.module.css";
@@ -377,8 +377,8 @@ function ExpandableStatusRow({ slug, element, mapTheme }: { slug: string; elemen
 						<Metrics element={element} />
 						<AssignmentRows assignments={element.assignments ?? []} />
 						{expanded && element.displayMode === "map" ? <AssignmentMap assignments={element.assignments ?? []} theme={mapTheme} /> : null}
-						{showChart && element.chart?.series.length ? <ChartPanel className={styles.chart} option={publicStatusChartOption(element)} height="12rem" /> : null}
-						{showChart && !element.chart?.series.length ? <LazyPublicElementChart slug={slug} element={element} /> : null}
+						{showChart && element.chart?.series.length ? <ChartPanel className={styles.chart} getOption={theme => publicStatusChartOption(element, theme)} height="12rem" theme={mapTheme} /> : null}
+						{showChart && !element.chart?.series.length ? <LazyPublicElementChart slug={slug} element={element} theme={mapTheme} /> : null}
 					</div>
 				</div>
 			</div>
@@ -435,7 +435,7 @@ function LazyPublicElementDailyStatus({ slug, element }: { slug: string; element
 	);
 }
 
-function LazyPublicElementChart({ slug, element }: { slug: string; element: ApiPublicStatusPublicElement }) {
+function LazyPublicElementChart({ slug, element, theme }: { slug: string; element: ApiPublicStatusPublicElement; theme: "light" | "dark" }) {
 	const { t } = useTranslation("status");
 	const { ref, inView } = useInView<HTMLDivElement>("200px");
 	const filters = element.chartRange ? { range: element.chartRange } : {};
@@ -454,7 +454,7 @@ function LazyPublicElementChart({ slug, element }: { slug: string; element: ApiP
 				</div>
 			) : null}
 			{chartQuery.error ? <div className={styles.chartPlaceholder}>{t("public.chartUnavailable")}</div> : null}
-			{chart?.series.length ? <ChartPanel className={styles.chart} option={publicStatusChartOption({ ...element, chart })} height="12rem" /> : null}
+			{chart?.series.length ? <ChartPanel className={styles.chart} getOption={chartTheme => publicStatusChartOption({ ...element, chart }, chartTheme)} height="12rem" theme={theme} /> : null}
 		</div>
 	);
 }
@@ -589,7 +589,7 @@ function usePublicStatusTheme(theme: PublicPageTheme | undefined) {
 	const preferredTheme = () => (typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
 	const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">(() => (theme === "light" || theme === "dark" ? theme : preferredTheme()));
 
-	useEffect(() => {
+	useLayoutEffect(() => {
 		if (!theme) {
 			return;
 		}

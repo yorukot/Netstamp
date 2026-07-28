@@ -17,6 +17,7 @@ const rawColorAllowlist = new Map([
 	["docs/src/scripts/homepageRedesign.js", "canvas and WebGL scene colors require concrete computed strings"],
 	["packages/ui/src/stories/Foundations.stories.tsx", "token specimen documents exact token values"],
 	["packages/ui/.storybook/preview.ts", "Storybook background swatches document exact token values"],
+	["web/src/shared/visualizations/chartTheme.test.ts", "chart theme tests verify concrete canvas color resolution"],
 	["web/src/shared/visualizations/chartTheme.ts", "canvas and SSR chart fallbacks require computed color strings"]
 ]);
 

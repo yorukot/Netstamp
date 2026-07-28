@@ -5,7 +5,8 @@ import { projectQueries } from "@/shared/api/queries";
 import type { HttpSeriesResponse, LatestHttpResult, PingSeriesResponse, TcpSeriesResponse } from "@/shared/api/types";
 import { hasPingSeriesChartData, pingSeriesChartData } from "@/shared/utils/pingInsightData";
 import { ChartPanel } from "@/shared/visualizations/ChartPanel";
-import { insightSeriesColor, multiHttpInsightChartOption, multiPingInsightChartOption, multiTcpInsightChartOption, type InsightMultiSeriesLine } from "@/shared/visualizations/chartOptions";
+import { multiHttpInsightChartOption, multiPingInsightChartOption, multiTcpInsightChartOption, type ChartOption, type InsightMultiSeriesLine } from "@/shared/visualizations/chartOptions";
+import type { ChartTheme } from "@/shared/visualizations/chartTheme";
 import { Panel, Spinner } from "@netstamp/ui";
 import { useQueries } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -26,6 +27,8 @@ interface LegendLine extends InsightMultiSeriesLine {
 	meta: string;
 }
 
+type MultiSeriesOptionBuilder = (lines: InsightMultiSeriesLine[], theme: ChartTheme) => ChartOption;
+
 function pairLabel(pair: InsightPair) {
 	return `${pair.probe.name} -> ${pair.check.target}`;
 }
@@ -43,9 +46,9 @@ function SeriesLegend({ lines }: { lines: LegendLine[] }) {
 	const { t } = useTranslation("insight");
 	return (
 		<div className={styles.legend} aria-label={t("legend.series")}>
-			{lines.map(line => (
+			{lines.map((line, index) => (
 				<div className={styles.legendItem} key={line.id}>
-					<span className={styles.legendSwatch} style={{ backgroundColor: line.color }} aria-hidden="true" />
+					<span className={styles.legendSwatch} data-color-index={index % 8} aria-hidden="true" />
 					<span className={styles.legendText}>
 						<strong>{line.name}</strong>
 						<small>{line.meta}</small>
@@ -64,7 +67,7 @@ function SeriesPanel({
 	isFetching,
 	hasData,
 	lines,
-	option,
+	getOption,
 	filters,
 	onSelectTimeWindow
 }: {
@@ -75,7 +78,7 @@ function SeriesPanel({
 	isFetching: boolean;
 	hasData: boolean;
 	lines: LegendLine[];
-	option: ReturnType<typeof multiPingInsightChartOption>;
+	getOption: MultiSeriesOptionBuilder;
 	filters: TimeWindow;
 	onSelectTimeWindow: (timeWindow: TimeWindow) => void;
 }) {
@@ -89,7 +92,7 @@ function SeriesPanel({
 			</div>
 			{hasData ? (
 				<>
-					<ChartPanel option={option} height="27rem" onTimeRangeSelect={onSelectTimeWindow} timeRangeBounds={filters} />
+					<ChartPanel getOption={theme => getOption(lines, theme)} height="27rem" onTimeRangeSelect={onSelectTimeWindow} timeRangeBounds={filters} />
 					<SeriesLegend lines={lines} />
 				</>
 			) : (
@@ -130,7 +133,6 @@ export function MultiSeriesInsightPanel({ projectRef, pairs, filters, latestHTTP
 			id: pair.key,
 			name: pairLabel(pair),
 			meta: pairMeta(pair),
-			color: insightSeriesColor(index),
 			points: data.latencyAvg
 		};
 	});
@@ -141,7 +143,6 @@ export function MultiSeriesInsightPanel({ projectRef, pairs, filters, latestHTTP
 			id: pair.key,
 			name: pairLabel(pair),
 			meta: pairMeta(pair),
-			color: insightSeriesColor(index),
 			points: data.connectAvg
 		};
 	});
@@ -149,7 +150,6 @@ export function MultiSeriesInsightPanel({ projectRef, pairs, filters, latestHTTP
 		id: pair.key,
 		name: pairLabel(pair),
 		meta: pairMeta(pair),
-		color: insightSeriesColor(index),
 		points: httpSeriesQueries[index]?.data?.series.total_avg?.points ?? []
 	}));
 	const hasPingData = pingSeriesQueries.some(query => hasPingSeriesChartData(pingSeriesChartData(query.data)));
@@ -187,7 +187,7 @@ export function MultiSeriesInsightPanel({ projectRef, pairs, filters, latestHTTP
 					isFetching={pingSeriesQueries.some(query => query.isFetching)}
 					hasData={hasPingData}
 					lines={pingLines}
-					option={multiPingInsightChartOption(pingLines)}
+					getOption={multiPingInsightChartOption}
 					filters={pingWindow}
 					onSelectTimeWindow={onSelectTimeWindow}
 				/>
@@ -201,7 +201,7 @@ export function MultiSeriesInsightPanel({ projectRef, pairs, filters, latestHTTP
 					isFetching={tcpSeriesQueries.some(query => query.isFetching)}
 					hasData={hasTcpData}
 					lines={tcpLines}
-					option={multiTcpInsightChartOption(tcpLines)}
+					getOption={multiTcpInsightChartOption}
 					filters={tcpWindow}
 					onSelectTimeWindow={onSelectTimeWindow}
 				/>
@@ -215,7 +215,7 @@ export function MultiSeriesInsightPanel({ projectRef, pairs, filters, latestHTTP
 					isFetching={httpSeriesQueries.some(query => query.isFetching)}
 					hasData={hasHTTPData}
 					lines={httpLines}
-					option={multiHttpInsightChartOption(httpLines)}
+					getOption={multiHttpInsightChartOption}
 					filters={httpWindow}
 					onSelectTimeWindow={onSelectTimeWindow}
 				/>

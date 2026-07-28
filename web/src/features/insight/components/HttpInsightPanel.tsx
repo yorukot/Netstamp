@@ -6,7 +6,7 @@ import type { HttpInsightResponse, HttpSeriesKey, HttpSeriesResponse, LatestHttp
 import { formatMs, formatPercent } from "@/shared/utils/insightFormatters";
 import type { ChartOption } from "@/shared/visualizations/chartOptions";
 import { ChartPanel } from "@/shared/visualizations/ChartPanel";
-import { chartAxisLabel, chartTheme, chartTooltipTextStyle } from "@/shared/visualizations/chartTheme";
+import { chartAxisLabel, chartTooltipTextStyle, type ChartTheme } from "@/shared/visualizations/chartTheme";
 import { BodyCopy, Panel, Spinner } from "@netstamp/ui";
 import { useTranslation } from "react-i18next";
 import styles from "./PingInsightPanel.module.css";
@@ -16,8 +16,7 @@ const insightT = i18n.getFixedT(null, "insight") as (key: string) => string;
 function points(data: HttpSeriesResponse | undefined, key: HttpSeriesKey) {
 	return data?.series[key]?.points ?? [];
 }
-function chartOption(data: HttpSeriesResponse | undefined): ChartOption {
-	const theme = chartTheme();
+function chartOption(data: HttpSeriesResponse | undefined, theme: ChartTheme): ChartOption {
 	const metrics: Array<[HttpSeriesKey, string]> = [
 		["total_avg", insightT("http.total")],
 		["ttfb_avg", "TTFB"],
@@ -28,11 +27,11 @@ function chartOption(data: HttpSeriesResponse | undefined): ChartOption {
 	return {
 		backgroundColor: "transparent",
 		color: [theme.primary, theme.secondary, theme.success, theme.warning, theme.metal],
-		tooltip: { trigger: "axis", backgroundColor: theme.tooltipBackground, borderColor: theme.tooltipBorder, textStyle: chartTooltipTextStyle() },
-		legend: { textStyle: chartAxisLabel() },
+		tooltip: { trigger: "axis", backgroundColor: theme.tooltipBackground, borderColor: theme.tooltipBorder, textStyle: chartTooltipTextStyle(theme) },
+		legend: { textStyle: chartAxisLabel(theme) },
 		grid: { top: 42, right: 18, bottom: 48, left: 52 },
-		xAxis: { type: "time", axisLabel: chartAxisLabel(), axisLine: { lineStyle: { color: theme.axisLine } } },
-		yAxis: [{ type: "value", name: "ms", axisLabel: chartAxisLabel(), splitLine: { lineStyle: { color: theme.splitLine } } }],
+		xAxis: { type: "time", axisLabel: chartAxisLabel(theme), axisLine: { lineStyle: { color: theme.axisLine } } },
+		yAxis: [{ type: "value", name: "ms", axisLabel: chartAxisLabel(theme), splitLine: { lineStyle: { color: theme.splitLine } } }],
 		dataZoom: [{ type: "inside" }, { type: "slider", height: 18, bottom: 6 }],
 		series: metrics.map(([key, name]) => ({ name, type: "line", showSymbol: false, connectNulls: true, data: points(data, key) }))
 	};
@@ -97,7 +96,7 @@ export function HttpInsightPanel({ selectedProbe, selectedTarget, insightData, s
 					<span>{[meta?.source, meta?.resolution].filter(Boolean).join(" / ")}</span>
 				</div>
 				{hasData ? (
-					<ChartPanel option={chartOption(seriesData)} height="27rem" onTimeRangeSelect={onSelectTimeWindow} timeRangeBounds={meta ? { from: meta.from, to: meta.to } : undefined} />
+					<ChartPanel getOption={theme => chartOption(seriesData, theme)} height="27rem" onTimeRangeSelect={onSelectTimeWindow} timeRangeBounds={meta ? { from: meta.from, to: meta.to } : undefined} />
 				) : (
 					<div className={styles.emptyState}>{t("panel.noHttpSeries")}</div>
 				)}

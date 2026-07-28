@@ -1,6 +1,6 @@
 import { i18n } from "@/i18n";
 import { formatDateTime } from "@/i18n/format";
-import { chartAxisLabel, chartMutedTextStyle, chartTheme, chartTooltipTextStyle, type ChartTheme } from "./chartTheme";
+import { chartAxisLabel, chartMutedTextStyle, chartTooltipTextStyle, type ChartTheme } from "./chartTheme";
 
 const insightT = i18n.getFixedT(null, "insight") as (key: string) => string;
 
@@ -26,7 +26,6 @@ export interface TcpSeriesChartData {
 export interface InsightMultiSeriesLine {
 	id: string;
 	name: string;
-	color: string;
 	points: PingSeriesPoint[];
 }
 
@@ -341,18 +340,18 @@ function dataZoomToolbox(theme: ChartTheme) {
 	};
 }
 
-function multiSeriesChartOption(lines: InsightMultiSeriesLine[], axisName: string, unit: string): ChartOption {
-	const theme = chartTheme();
+function multiSeriesChartOption(lines: InsightMultiSeriesLine[], axisName: string, unit: string, theme: ChartTheme): ChartOption {
 	const splitLine = { lineStyle: { color: theme.splitLine } };
+	const themedLines = lines.map((line, index) => ({ ...line, color: insightSeriesColor(index, theme) }));
 
 	return {
 		backgroundColor: "transparent",
-		color: lines.map(line => line.color),
+		color: themedLines.map(line => line.color),
 		tooltip: {
 			trigger: "axis",
 			backgroundColor: theme.tooltipBackground,
 			borderColor: theme.tooltipBorder,
-			textStyle: chartTooltipTextStyle(11),
+			textStyle: chartTooltipTextStyle(theme, 11),
 			formatter: multiSeriesTooltipFormatter(unit)
 		},
 		grid: { top: 18, right: 44, bottom: 30, left: 48 },
@@ -360,7 +359,7 @@ function multiSeriesChartOption(lines: InsightMultiSeriesLine[], axisName: strin
 		xAxis: {
 			type: "time",
 			axisLabel: {
-				...chartAxisLabel(),
+				...chartAxisLabel(theme),
 				formatter: (value: number) => timestampLabel(value)
 			},
 			axisLine: { lineStyle: { color: theme.axisLine } },
@@ -370,15 +369,15 @@ function multiSeriesChartOption(lines: InsightMultiSeriesLine[], axisName: strin
 			{
 				type: "value",
 				name: axisName,
-				nameTextStyle: chartMutedTextStyle(),
-				axisLabel: chartAxisLabel(),
+				nameTextStyle: chartMutedTextStyle(theme),
+				axisLabel: chartAxisLabel(theme),
 				splitLine,
 				axisLine: { show: false },
 				axisTick: { show: false },
 				...lineAxisBounds(lines)
 			}
 		],
-		series: lines.map(line => ({
+		series: themedLines.map(line => ({
 			name: line.name,
 			type: "line",
 			data: pingSeriesData(line.points),
@@ -421,25 +420,24 @@ function lossBandRenderItem(theme: ChartTheme) {
 	};
 }
 
-export function insightSeriesColor(index: number) {
-	const palette = chartTheme().seriesPalette;
+export function insightSeriesColor(index: number, theme: ChartTheme) {
+	const palette = theme.seriesPalette;
 	return palette[index % palette.length];
 }
 
-export function multiPingInsightChartOption(lines: InsightMultiSeriesLine[]): ChartOption {
-	return multiSeriesChartOption(lines, insightT("chart.rttAxis"), "ms");
+export function multiPingInsightChartOption(lines: InsightMultiSeriesLine[], theme: ChartTheme): ChartOption {
+	return multiSeriesChartOption(lines, insightT("chart.rttAxis"), "ms", theme);
 }
 
-export function multiTcpInsightChartOption(lines: InsightMultiSeriesLine[]): ChartOption {
-	return multiSeriesChartOption(lines, insightT("chart.connectAxis"), "ms");
+export function multiTcpInsightChartOption(lines: InsightMultiSeriesLine[], theme: ChartTheme): ChartOption {
+	return multiSeriesChartOption(lines, insightT("chart.connectAxis"), "ms", theme);
 }
 
-export function multiHttpInsightChartOption(lines: InsightMultiSeriesLine[]): ChartOption {
-	return multiSeriesChartOption(lines, insightT("chart.totalAxis"), "ms");
+export function multiHttpInsightChartOption(lines: InsightMultiSeriesLine[], theme: ChartTheme): ChartOption {
+	return multiSeriesChartOption(lines, insightT("chart.totalAxis"), "ms", theme);
 }
 
-export function pingInsightChartOption(data: PingSeriesChartData): ChartOption {
-	const theme = chartTheme();
+export function pingInsightChartOption(data: PingSeriesChartData, theme: ChartTheme): ChartOption {
 	const averageLabel = insightT("panel.average");
 	const lossLabel = insightT("panel.loss");
 	const splitLine = { lineStyle: { color: theme.splitLine } };
@@ -453,14 +451,14 @@ export function pingInsightChartOption(data: PingSeriesChartData): ChartOption {
 			trigger: "axis",
 			backgroundColor: theme.tooltipBackground,
 			borderColor: theme.tooltipBorder,
-			textStyle: chartTooltipTextStyle(11),
+			textStyle: chartTooltipTextStyle(theme, 11),
 			formatter: pingTooltipFormatter
 		},
 		legend: {
 			top: 0,
 			right: 0,
 			data: [averageLabel, lossLabel],
-			textStyle: chartMutedTextStyle(),
+			textStyle: chartMutedTextStyle(theme),
 			itemWidth: 12,
 			itemHeight: 6
 		},
@@ -470,7 +468,7 @@ export function pingInsightChartOption(data: PingSeriesChartData): ChartOption {
 		xAxis: {
 			type: "time",
 			axisLabel: {
-				...chartAxisLabel(),
+				...chartAxisLabel(theme),
 				formatter: (value: number) => timestampLabel(value)
 			},
 			axisLine: { lineStyle: { color: theme.axisLine } },
@@ -480,8 +478,8 @@ export function pingInsightChartOption(data: PingSeriesChartData): ChartOption {
 			{
 				type: "value",
 				name: insightT("chart.rttAxis"),
-				nameTextStyle: chartMutedTextStyle(),
-				axisLabel: chartAxisLabel(),
+				nameTextStyle: chartMutedTextStyle(theme),
+				axisLabel: chartAxisLabel(theme),
 				splitLine,
 				axisLine: { show: false },
 				axisTick: { show: false },
@@ -532,8 +530,7 @@ export function pingInsightChartOption(data: PingSeriesChartData): ChartOption {
 	};
 }
 
-export function tcpInsightChartOption(data: TcpSeriesChartData): ChartOption {
-	const theme = chartTheme();
+export function tcpInsightChartOption(data: TcpSeriesChartData, theme: ChartTheme): ChartOption {
 	const averageLabel = insightT("panel.average");
 	const failureLabel = insightT("panel.failure");
 	const splitLine = { lineStyle: { color: theme.splitLine } };
@@ -547,14 +544,14 @@ export function tcpInsightChartOption(data: TcpSeriesChartData): ChartOption {
 			trigger: "axis",
 			backgroundColor: theme.tooltipBackground,
 			borderColor: theme.tooltipBorder,
-			textStyle: chartTooltipTextStyle(11),
+			textStyle: chartTooltipTextStyle(theme, 11),
 			formatter: tcpTooltipFormatter
 		},
 		legend: {
 			top: 0,
 			right: 0,
 			data: [averageLabel, failureLabel],
-			textStyle: chartMutedTextStyle(),
+			textStyle: chartMutedTextStyle(theme),
 			itemWidth: 12,
 			itemHeight: 6
 		},
@@ -563,7 +560,7 @@ export function tcpInsightChartOption(data: TcpSeriesChartData): ChartOption {
 		xAxis: {
 			type: "time",
 			axisLabel: {
-				...chartAxisLabel(),
+				...chartAxisLabel(theme),
 				formatter: (value: number) => timestampLabel(value)
 			},
 			axisLine: { lineStyle: { color: theme.axisLine } },
@@ -573,8 +570,8 @@ export function tcpInsightChartOption(data: TcpSeriesChartData): ChartOption {
 			{
 				type: "value",
 				name: insightT("chart.connectAxis"),
-				nameTextStyle: chartMutedTextStyle(),
-				axisLabel: chartAxisLabel(),
+				nameTextStyle: chartMutedTextStyle(theme),
+				axisLabel: chartAxisLabel(theme),
 				splitLine,
 				axisLine: { show: false },
 				axisTick: { show: false },

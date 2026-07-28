@@ -1,9 +1,8 @@
 import type { ChartOption } from "./chartOptions";
-import { chartAxisLabel, chartTheme, chartTooltipTextStyle } from "./chartTheme";
+import { chartAxisLabel, chartTooltipTextStyle, type ChartTheme } from "./chartTheme";
 
-export function lineChartOption(title: string, values: number[], secondaryValues: number[] = []): ChartOption {
+export function lineChartOption(title: string, values: number[], theme: ChartTheme, secondaryValues: number[] = []): ChartOption {
 	const labels = values.map((_, index) => `${index * 10}m`);
-	const theme = chartTheme();
 	const splitLine = { lineStyle: { color: theme.splitLine } };
 
 	return {
@@ -13,11 +12,11 @@ export function lineChartOption(title: string, values: number[], secondaryValues
 			trigger: "axis",
 			backgroundColor: theme.tooltipBackground,
 			borderColor: theme.tooltipBorder,
-			textStyle: chartTooltipTextStyle()
+			textStyle: chartTooltipTextStyle(theme)
 		},
 		grid: { top: 22, right: 12, bottom: 24, left: 34 },
-		xAxis: { type: "category", data: labels, boundaryGap: false, axisLabel: chartAxisLabel(), axisLine: { lineStyle: { color: theme.axisLine } }, axisTick: { show: false } },
-		yAxis: { type: "value", axisLabel: chartAxisLabel(), splitLine, axisLine: { show: false }, axisTick: { show: false } },
+		xAxis: { type: "category", data: labels, boundaryGap: false, axisLabel: chartAxisLabel(theme), axisLine: { lineStyle: { color: theme.axisLine } }, axisTick: { show: false } },
+		yAxis: { type: "value", axisLabel: chartAxisLabel(theme), splitLine, axisLine: { show: false }, axisTick: { show: false } },
 		series: [
 			{
 				name: title,
@@ -44,8 +43,7 @@ export function lineChartOption(title: string, values: number[], secondaryValues
 	};
 }
 
-export function barChartOption(values: number[], name = "events"): ChartOption {
-	const theme = chartTheme();
+export function barChartOption(values: number[], theme: ChartTheme, name = "events"): ChartOption {
 	const splitLine = { lineStyle: { color: theme.splitLine } };
 
 	return {
@@ -55,11 +53,11 @@ export function barChartOption(values: number[], name = "events"): ChartOption {
 			trigger: "axis",
 			backgroundColor: theme.tooltipBackground,
 			borderColor: theme.tooltipBorder,
-			textStyle: chartTooltipTextStyle()
+			textStyle: chartTooltipTextStyle(theme)
 		},
 		grid: { top: 22, right: 10, bottom: 22, left: 28 },
-		xAxis: { type: "category", data: values.map((_, index) => `${index + 1}`), axisLabel: chartAxisLabel(), axisTick: { show: false }, axisLine: { lineStyle: { color: theme.axisLine } } },
-		yAxis: { type: "value", axisLabel: chartAxisLabel(), splitLine, axisTick: { show: false }, axisLine: { show: false } },
+		xAxis: { type: "category", data: values.map((_, index) => `${index + 1}`), axisLabel: chartAxisLabel(theme), axisTick: { show: false }, axisLine: { lineStyle: { color: theme.axisLine } } },
+		yAxis: { type: "value", axisLabel: chartAxisLabel(theme), splitLine, axisTick: { show: false }, axisLine: { show: false } },
 		series: [
 			{
 				name,

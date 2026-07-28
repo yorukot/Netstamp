@@ -124,7 +124,8 @@
 	color-scheme: dark;
 }
 
-:root[data-theme="light"] {
+:root[data-theme="light"],
+.ns-theme-light {
 	--ns-bg: #f4f5f7;
 	--ns-bg-section: #ffffff;
 	--ns-bg-subtle: #edeff3;
@@ -178,6 +179,14 @@
 	--ns-border: #d7dbe2;
 	--ns-border-strong: #9fa7b5;
 	--ns-border-faint: #e7e9ee;
+	--ns-focus-ring: color-mix(in srgb, var(--ns-border-strong) 78%, var(--ns-text-subtle));
+	--ns-focus-outline: 2px solid var(--ns-focus-ring);
+	--ns-container-bg: var(--ns-surface-raised);
+	--ns-container-bg-raised: color-mix(in srgb, var(--ns-surface-raised) 88%, var(--ns-border-strong));
+	--ns-container-bg-hover: color-mix(in srgb, var(--ns-surface-raised) 82%, var(--ns-border-strong));
+	--ns-control-bg: var(--ns-surface-raised);
+	--ns-control-bg-raised: color-mix(in srgb, var(--ns-surface-raised) 88%, var(--ns-border-strong));
+	--ns-control-bg-hover: color-mix(in srgb, var(--ns-surface-raised) 82%, var(--ns-border-strong));
 	color-scheme: light;
 }
 
