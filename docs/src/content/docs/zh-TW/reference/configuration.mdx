@@ -83,7 +83,6 @@ navOrder: 30
 | `AUTH_SESSION_ABSOLUTE_TTL`             | `168h`                  | 工作階段最長存活時間                     |
 | `AUTH_SESSION_TOUCH_INTERVAL`           | `5m`                    | 兩次寫入工作階段活動狀態的最短間隔       |
 | `AUTH_SUDO_TTL`                         | `5m`                    | 敏感操作所需的近期驗證有效時間           |
-| `AUTH_REGISTRATION_ENABLED`             | `true`                  | 本機帳號註冊政策的環境變數備援值         |
 | `AUTH_EXTERNAL_FLOW_TTL`                | `10m`                   | OAuth/OIDC 驗證流程存活時間              |
 | `AUTH_PASSWORD_RESET_TOKEN_TTL`         | `30m`                   | 密碼重設連結有效時間                     |
 | `AUTH_PASSWORD_RESET_RATE_LIMIT_WINDOW` | `1h`                    | 密碼重設速率限制的時間範圍               |
@@ -93,40 +92,7 @@ navOrder: 30
 | `AUTH_ARGON2ID_ITERATIONS`              | `3`                     | Argon2id 迭代成本                        |
 | `AUTH_ARGON2ID_PARALLELISM`             | `4`                     | Argon2id 平行處理數                      |
 
-系統管理介面中儲存的設定可以覆蓋註冊政策。變更雜湊金鑰會使受該金鑰保護的既有憑證失效。
-
-## 通用 OIDC
-
-| 變數                                 | 預設值           | 用途                                 |
-| ------------------------------------ | ---------------- | ------------------------------------ |
-| `AUTH_OIDC_ENABLED`                  | `false`          | 啟用通用 OIDC                        |
-| `AUTH_OIDC_ISSUER_URL`               | empty            | OIDC 簽發者與探索服務來源網址        |
-| `AUTH_OIDC_CLIENT_ID`                | empty            | 用戶端 ID                            |
-| `AUTH_OIDC_CLIENT_SECRET`            | empty            | 用戶端密鑰                           |
-| `AUTH_OIDC_DISPLAY_NAME`             | `Single sign-on` | 登入按鈕標籤                         |
-| `AUTH_OIDC_JIT_PROVISIONING_ENABLED` | `false`          | 為身分有效但尚未存在的使用者建立帳號 |
-
-## Google 驗證
-
-| 變數                                   | 預設值   | 用途                                    |
-| -------------------------------------- | -------- | --------------------------------------- |
-| `AUTH_GOOGLE_ENABLED`                  | `false`  | 啟用 Google OpenID Connect              |
-| `AUTH_GOOGLE_CLIENT_ID`                | empty    | Google 用戶端 ID                        |
-| `AUTH_GOOGLE_CLIENT_SECRET`            | empty    | Google 用戶端密鑰                       |
-| `AUTH_GOOGLE_DISPLAY_NAME`             | `Google` | 登入按鈕標籤                            |
-| `AUTH_GOOGLE_JIT_PROVISIONING_ENABLED` | `false`  | 為接受的 Google 身分建立新使用者        |
-| `AUTH_GOOGLE_ALLOWED_HOSTED_DOMAINS`   | empty    | 以逗號分隔的 Workspace 託管網域允許清單 |
-
-## GitHub 驗證
-
-| 變數                                   | 預設值   | 用途                                       |
-| -------------------------------------- | -------- | ------------------------------------------ |
-| `AUTH_GITHUB_ENABLED`                  | `false`  | 啟用 GitHub OAuth                          |
-| `AUTH_GITHUB_CLIENT_ID`                | empty    | GitHub OAuth 用戶端 ID                     |
-| `AUTH_GITHUB_CLIENT_SECRET`            | empty    | GitHub OAuth 用戶端密鑰                    |
-| `AUTH_GITHUB_DISPLAY_NAME`             | `GitHub` | 登入按鈕標籤                               |
-| `AUTH_GITHUB_JIT_PROVISIONING_ENABLED` | `false`  | 為接受的 GitHub 身分建立新使用者           |
-| `AUTH_GITHUB_ALLOW_SIGNUP`             | `true`   | 允許透過 GitHub OAuth 流程註冊 GitHub 帳號 |
+變更雜湊金鑰會使受該金鑰保護的既有憑證失效。註冊、電子郵件驗證、專案建立、憑證變更與外部驗證提供者皆在 **Admin → System settings** 中設定。
 
 ## 指派、警示與通知背景工作
 
@@ -145,19 +111,7 @@ navOrder: 30
 
 停用背景工作只會暫停處理，不會刪除設定或已排入佇列的工作。
 
-## SMTP
-
-| 變數            | 預設值     | 用途                                                    |
-| --------------- | ---------- | ------------------------------------------------------- |
-| `SMTP_HOST`     | empty      | SMTP 主機；主機或寄件者為空時，電子郵件功能視為尚未設定 |
-| `SMTP_PORT`     | `587`      | SMTP 連接埠                                             |
-| `SMTP_USERNAME` | empty      | 選用的 SMTP AUTH 使用者名稱                             |
-| `SMTP_PASSWORD` | empty      | 選用的 SMTP AUTH 密碼                                   |
-| `SMTP_FROM`     | empty      | 信封寄件者地址                                          |
-| `SMTP_TLS_MODE` | `starttls` | `starttls`、`implicit` 或 `none`                        |
-| `SMTP_TIMEOUT`  | `10s`      | 連線與寄送逾時時間                                      |
-
-儲存在系統管理介面中的 SMTP 設定會覆蓋這些環境變數備援值。
+SMTP 與網頁分析設定只在 **Admin → System settings** 中管理。機密值會使用 `SYSTEM_SETTINGS_ENCRYPTION_KEY` 加密。
 
 ## Tracing
 
@@ -198,20 +152,14 @@ Systemd 安裝程式會寫入前三個值，其餘都是本機執行參數的覆
 
 這些值會編譯進靜態前端。容器啟動後再變更執行環境，不會修改已建置的程式套件。
 
-| 變數                                            | 預設值                  | 用途                      |
-| ----------------------------------------------- | ----------------------- | ------------------------- |
-| `VITE_NETSTAMP_API_BASE_URL`                    | `/api/v1`               | 瀏覽器 API 基底網址       |
-| `VITE_NETSTAMP_API_PROXY_TARGET`                | `http://localhost:8080` | Vite 開發用反向代理目標   |
-| `VITE_NETSTAMP_REGISTRATION_ENABLED`            | `true`                  | 後端政策允許時顯示註冊 UI |
-| `VITE_NETSTAMP_PROJECT_CREATION_ENABLED`        | `true`                  | 顯示建立專案 UI           |
-| `VITE_NETSTAMP_USER_CREDENTIAL_CHANGES_ENABLED` | `true`                  | 顯示憑證管理介面          |
-| `VITE_NETSTAMP_DEMO_MODE`                       | `false`                 | 啟用唯讀示範模式          |
-| `VITE_NETSTAMP_DEMO_EMAIL`                      | empty                   | 選用的示範帳號電子郵件    |
-| `VITE_NETSTAMP_DEMO_PASSWORD`                   | empty                   | 選用的示範帳號密碼        |
+| 變數                             | 預設值                  | 用途                    |
+| -------------------------------- | ----------------------- | ----------------------- |
+| `VITE_NETSTAMP_API_BASE_URL`     | `/api/v1`               | 瀏覽器 API 基底網址     |
+| `VITE_NETSTAMP_API_PROXY_TARGET` | `http://localhost:8080` | Vite 開發用反向代理目標 |
+| `VITE_NETSTAMP_DEMO_EMAIL`       | empty                   | 選用的示範帳號電子郵件  |
+| `VITE_NETSTAMP_DEMO_PASSWORD`    | empty                   | 選用的示範帳號密碼      |
 
-分析服務整合都是選用功能：`VITE_NETSTAMP_GA_MEASUREMENT_ID`、`VITE_NETSTAMP_GOOGLE_TAG_ID`、`VITE_NETSTAMP_CLARITY_PROJECT_ID`、`VITE_NETSTAMP_META_PIXEL_ID` 或其 `FACEBOOK` 別名、`VITE_NETSTAMP_POSTHOG_KEY` 與主機、`VITE_NETSTAMP_PLAUSIBLE_DOMAIN` 與指令碼 URL，以及 `VITE_NETSTAMP_UMAMI_WEBSITE_ID` 與指令碼 URL。
-
-`VITE_NETSTAMP_TRACKING_CONSENT_MODE` 接受 `regional`、`always` 或 `never`；`VITE_NETSTAMP_TRACKING_CONSENT_COUNTRIES` 則是區域適用國家清單。
+Web 應用程式會在執行時從控制器載入存取政策、示範模式、分析服務與同意設定；這些項目皆在 **管理 → 系統設定** 中管理。
 
 ## 說明文件建置變數
 

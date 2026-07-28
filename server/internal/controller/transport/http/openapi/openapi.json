@@ -378,6 +378,64 @@
 				]
 			}
 		},
+		"/admin/settings/smtp/test": {
+			"post": {
+				"operationId": "testAdminSMTP",
+				"summary": "Send an SMTP test email",
+				"parameters": [],
+				"responses": {
+					"204": {
+						"description": "There is no content to send for this request, but the headers may be useful. "
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"503": {
+						"description": "Service unavailable.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Admin"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
 		"/admin/system-admins": {
 			"get": {
 				"operationId": "listSystemAdmins",
@@ -8789,6 +8847,36 @@
 				]
 			}
 		},
+		"/system/config": {
+			"get": {
+				"operationId": "getRuntimeConfig",
+				"summary": "Get public runtime configuration",
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PublicRuntimeConfig"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["System"]
+			}
+		},
 		"/users/me": {
 			"patch": {
 				"operationId": "updateCurrentUser",
@@ -10226,6 +10314,53 @@
 					}
 				}
 			},
+			"AdminAccessSettings": {
+				"type": "object",
+				"required": ["registrationEnabled", "emailVerificationRequired", "projectCreationEnabled", "credentialChangesEnabled"],
+				"properties": {
+					"registrationEnabled": {
+						"type": "boolean"
+					},
+					"emailVerificationRequired": {
+						"type": "boolean"
+					},
+					"projectCreationEnabled": {
+						"type": "boolean"
+					},
+					"credentialChangesEnabled": {
+						"type": "boolean"
+					}
+				}
+			},
+			"AdminAuthenticationProviders": {
+				"type": "object",
+				"required": ["oidc", "google", "github"],
+				"properties": {
+					"oidc": {
+						"$ref": "#/components/schemas/AdminExternalProviderSettings"
+					},
+					"google": {
+						"$ref": "#/components/schemas/AdminExternalProviderSettings"
+					},
+					"github": {
+						"$ref": "#/components/schemas/AdminGitHubProviderSettings"
+					}
+				}
+			},
+			"AdminAuthenticationProvidersPatch": {
+				"type": "object",
+				"properties": {
+					"oidc": {
+						"$ref": "#/components/schemas/AdminExternalProviderSettingsPatch"
+					},
+					"google": {
+						"$ref": "#/components/schemas/AdminExternalProviderSettingsPatch"
+					},
+					"github": {
+						"$ref": "#/components/schemas/AdminGitHubProviderSettingsPatch"
+					}
+				}
+			},
 			"AdminDataExport": {
 				"type": "object",
 				"required": ["format", "exportedAt", "tables"],
@@ -10285,13 +10420,96 @@
 					}
 				}
 			},
+			"AdminExternalProviderSettings": {
+				"type": "object",
+				"required": ["enabled", "issuerUrl", "clientId", "clientSecretSet", "displayName", "jitEnabled", "allowedDomains"],
+				"properties": {
+					"enabled": {
+						"type": "boolean"
+					},
+					"issuerUrl": {
+						"type": "string"
+					},
+					"clientId": {
+						"type": "string"
+					},
+					"clientSecretSet": {
+						"type": "boolean"
+					},
+					"displayName": {
+						"type": "string"
+					},
+					"jitEnabled": {
+						"type": "boolean"
+					},
+					"allowedDomains": {
+						"type": "string"
+					}
+				}
+			},
+			"AdminExternalProviderSettingsPatch": {
+				"type": "object",
+				"properties": {
+					"enabled": {
+						"type": "boolean"
+					},
+					"issuerUrl": {
+						"type": "string"
+					},
+					"clientId": {
+						"type": "string"
+					},
+					"clientSecret": {
+						"type": "string",
+						"format": "password"
+					},
+					"clearClientSecret": {
+						"type": "boolean"
+					},
+					"displayName": {
+						"type": "string"
+					},
+					"jitEnabled": {
+						"type": "boolean"
+					},
+					"allowedDomains": {
+						"type": "string"
+					}
+				}
+			},
+			"AdminGitHubProviderSettings": {
+				"type": "object",
+				"required": ["allowSignup"],
+				"properties": {
+					"allowSignup": {
+						"type": "boolean"
+					}
+				},
+				"allOf": [
+					{
+						"$ref": "#/components/schemas/AdminExternalProviderSettings"
+					}
+				]
+			},
+			"AdminGitHubProviderSettingsPatch": {
+				"type": "object",
+				"properties": {
+					"allowSignup": {
+						"type": "boolean"
+					}
+				},
+				"allOf": [
+					{
+						"$ref": "#/components/schemas/AdminExternalProviderSettingsPatch"
+					}
+				]
+			},
 			"AdminSMTPSettings": {
 				"type": "object",
 				"required": ["host", "port", "username", "passwordSet", "from", "tlsMode", "timeoutSeconds", "configured"],
 				"properties": {
 					"host": {
-						"type": "string",
-						"description": "SMTP server hostname. Empty means email delivery is disabled unless an environment fallback is still active."
+						"type": "string"
 					},
 					"port": {
 						"type": "integer",
@@ -10300,16 +10518,13 @@
 						"maximum": 65535
 					},
 					"username": {
-						"type": "string",
-						"description": "SMTP username. Empty means no SMTP AUTH."
+						"type": "string"
 					},
 					"passwordSet": {
-						"type": "boolean",
-						"description": "Whether a password is configured. The password value is never returned."
+						"type": "boolean"
 					},
 					"from": {
-						"type": "string",
-						"description": "Envelope sender email address."
+						"type": "string"
 					},
 					"tlsMode": {
 						"type": "string",
@@ -10321,22 +10536,9 @@
 						"minimum": 1
 					},
 					"configured": {
-						"type": "boolean",
-						"description": "Whether Netstamp has enough SMTP settings to attempt email delivery."
+						"type": "boolean"
 					}
-				},
-				"examples": [
-					{
-						"host": "smtp.example.com",
-						"port": 587,
-						"username": "netstamp",
-						"passwordSet": true,
-						"from": "alerts@example.com",
-						"tlsMode": "starttls",
-						"timeoutSeconds": 10,
-						"configured": true
-					}
-				]
+				}
 			},
 			"AdminSMTPSettingsPatch": {
 				"type": "object",
@@ -10355,12 +10557,10 @@
 					},
 					"password": {
 						"type": "string",
-						"format": "password",
-						"description": "New SMTP password. Omit to keep the stored password unchanged."
+						"format": "password"
 					},
 					"clearPassword": {
-						"type": "boolean",
-						"description": "Clear the stored SMTP password and override any environment fallback with no password."
+						"type": "boolean"
 					},
 					"from": {
 						"type": "string"
@@ -10378,42 +10578,21 @@
 			},
 			"AdminSettings": {
 				"type": "object",
-				"required": ["registrationEnabled", "emailVerificationRequired", "backendBaseUrl", "publicWebBaseUrl", "smtp"],
+				"required": ["access", "smtp", "authenticationProviders", "tracking"],
 				"properties": {
-					"registrationEnabled": {
-						"type": "boolean"
-					},
-					"emailVerificationRequired": {
-						"type": "boolean"
-					},
-					"backendBaseUrl": {
-						"type": "string"
-					},
-					"publicWebBaseUrl": {
-						"type": "string"
+					"access": {
+						"$ref": "#/components/schemas/AdminAccessSettings"
 					},
 					"smtp": {
 						"$ref": "#/components/schemas/AdminSMTPSettings"
+					},
+					"authenticationProviders": {
+						"$ref": "#/components/schemas/AdminAuthenticationProviders"
+					},
+					"tracking": {
+						"$ref": "#/components/schemas/TrackingSettings"
 					}
-				},
-				"examples": [
-					{
-						"registrationEnabled": true,
-						"emailVerificationRequired": false,
-						"backendBaseUrl": "https://app.netstamp.dev",
-						"publicWebBaseUrl": "https://app.netstamp.dev",
-						"smtp": {
-							"host": "smtp.example.com",
-							"port": 587,
-							"username": "netstamp",
-							"passwordSet": true,
-							"from": "alerts@example.com",
-							"tlsMode": "starttls",
-							"timeoutSeconds": 10,
-							"configured": true
-						}
-					}
-				]
+				}
 			},
 			"AdminSettingsResponse": {
 				"type": "object",
@@ -14271,6 +14450,36 @@
 					}
 				]
 			},
+			"PublicCapabilities": {
+				"type": "object",
+				"required": ["registrationEnabled", "projectCreationEnabled", "credentialChangesEnabled"],
+				"properties": {
+					"registrationEnabled": {
+						"type": "boolean"
+					},
+					"projectCreationEnabled": {
+						"type": "boolean"
+					},
+					"credentialChangesEnabled": {
+						"type": "boolean"
+					}
+				}
+			},
+			"PublicRuntimeConfig": {
+				"type": "object",
+				"required": ["demoMode", "capabilities", "tracking"],
+				"properties": {
+					"demoMode": {
+						"type": "boolean"
+					},
+					"capabilities": {
+						"$ref": "#/components/schemas/PublicCapabilities"
+					},
+					"tracking": {
+						"$ref": "#/components/schemas/TrackingSettings"
+					}
+				}
+			},
 			"PublicStatusChart": {
 				"type": "object",
 				"required": ["range", "series"],
@@ -16532,41 +16741,74 @@
 					}
 				]
 			},
+			"TrackingSettings": {
+				"type": "object",
+				"required": [
+					"googleTagId",
+					"clarityProjectId",
+					"metaPixelId",
+					"postHogKey",
+					"postHogHost",
+					"plausibleDomain",
+					"plausibleScriptUrl",
+					"umamiWebsiteId",
+					"umamiScriptUrl",
+					"consentMode",
+					"consentCountries"
+				],
+				"properties": {
+					"googleTagId": {
+						"type": "string"
+					},
+					"clarityProjectId": {
+						"type": "string"
+					},
+					"metaPixelId": {
+						"type": "string"
+					},
+					"postHogKey": {
+						"type": "string"
+					},
+					"postHogHost": {
+						"type": "string"
+					},
+					"plausibleDomain": {
+						"type": "string"
+					},
+					"plausibleScriptUrl": {
+						"type": "string"
+					},
+					"umamiWebsiteId": {
+						"type": "string"
+					},
+					"umamiScriptUrl": {
+						"type": "string"
+					},
+					"consentMode": {
+						"type": "string",
+						"enum": ["regional", "always", "never"]
+					},
+					"consentCountries": {
+						"type": "string"
+					}
+				}
+			},
 			"UpdateAdminSettingsRequest": {
 				"type": "object",
 				"properties": {
-					"registrationEnabled": {
-						"type": "boolean"
-					},
-					"emailVerificationRequired": {
-						"type": "boolean"
-					},
-					"backendBaseUrl": {
-						"type": "string"
-					},
-					"publicWebBaseUrl": {
-						"type": "string"
+					"access": {
+						"$ref": "#/components/schemas/AdminAccessSettings"
 					},
 					"smtp": {
 						"$ref": "#/components/schemas/AdminSMTPSettingsPatch"
+					},
+					"authenticationProviders": {
+						"$ref": "#/components/schemas/AdminAuthenticationProvidersPatch"
+					},
+					"tracking": {
+						"$ref": "#/components/schemas/TrackingSettings"
 					}
-				},
-				"examples": [
-					{
-						"registrationEnabled": false,
-						"emailVerificationRequired": true,
-						"backendBaseUrl": "https://app.netstamp.dev",
-						"publicWebBaseUrl": "https://app.netstamp.dev",
-						"smtp": {
-							"host": "smtp.example.com",
-							"port": 587,
-							"username": "netstamp",
-							"from": "alerts@example.com",
-							"tlsMode": "starttls",
-							"timeoutSeconds": 10
-						}
-					}
-				]
+				}
 			},
 			"UpdateAlertRuleRequest": {
 				"type": "object",

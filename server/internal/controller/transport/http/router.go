@@ -142,13 +142,10 @@ func routeMetrics(apiRouter, metricsHandler http.Handler) http.Handler {
 }
 
 func registerAPIRoutes(api chi.Router, dep Dependencies) {
-	registerSystemRoutes(api, dep.ReadinessCheck)
+	registerSystemRoutes(api, dep.ReadinessCheck, dep.AdminService, dep.DemoMode)
 	registerOpenAPIRoutes(api, dep)
 
 	installHandler := installhttp.NewHandler(dep.AgentBinaryDir, dep.BackendBaseURL, dep.basePath())
-	if dep.AdminService != nil {
-		installHandler = installhttp.NewHandler(dep.AgentBinaryDir, dep.BackendBaseURL, dep.basePath(), dep.AdminService)
-	}
 	installHandler.RegisterRoutes(api)
 
 	authhttp.NewHandler(dep.AuthService, dep.AuthVerifier, dep.AdminService, dep.AuthCookieName, dep.AuthCookieSecure, !dep.AuthRegistrationDisabled).
@@ -181,7 +178,7 @@ func effectiveAuthCookieName(name string) string {
 
 func registerOpenAPIRoutes(api chi.Router, dep Dependencies) {
 	api.Get("/openapi.json", func(w http.ResponseWriter, r *http.Request) {
-		data, err := openapi.Spec(dep.APIVersion, effectiveBackendBaseURL(r.Context(), dep))
+		data, err := openapi.Spec(dep.APIVersion, strings.TrimRight(dep.BackendBaseURL, "/"))
 		if err != nil {
 			httpmiddleware.WriteProblem(w, r, http.StatusInternalServerError, "openapi unavailable")
 			return
@@ -200,21 +197,6 @@ func registerOpenAPIRoutes(api chi.Router, dep Dependencies) {
 			return
 		}
 	})
-}
-
-func effectiveBackendBaseURL(ctx context.Context, dep Dependencies) string {
-	if dep.AdminService == nil {
-		return dep.BackendBaseURL
-	}
-	value, err := dep.AdminService.BackendBaseURL(ctx)
-	if err != nil {
-		return dep.BackendBaseURL
-	}
-	value = strings.TrimRight(strings.TrimSpace(value), "/")
-	if value == "" {
-		return dep.BackendBaseURL
-	}
-	return value
 }
 
 func (d *Dependencies) basePath() string {

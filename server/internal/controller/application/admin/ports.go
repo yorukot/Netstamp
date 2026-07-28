@@ -1,6 +1,10 @@
 package admin
 
-import "context"
+import (
+	"context"
+
+	"github.com/yorukot/netstamp/internal/domain/identity"
+)
 
 type Repository interface {
 	IsSystemAdmin(ctx context.Context, userID string) (bool, error)
@@ -42,4 +46,12 @@ type ManagedPasswordRepository interface {
 
 type AuthenticationMethodRepository interface {
 	CountUserAuthenticationMethods(ctx context.Context, userID string) (bool, int64, error)
+}
+
+type SMTPTestUserRepository interface {
+	GetUserByID(ctx context.Context, userID string) (identity.User, error)
+}
+
+type SMTPTester interface {
+	SendTestEmail(ctx context.Context, recipient string) error
 }

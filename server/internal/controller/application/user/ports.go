@@ -81,6 +81,7 @@ const (
 	UserReasonUserLookupFailed   UserEventReason = "user_lookup_failed"
 	UserReasonUserUpdateFailed   UserEventReason = "user_update_failed"
 	UserReasonPasswordHashFailed UserEventReason = "password_hash_failed"
+	UserReasonForbidden          UserEventReason = "forbidden"
 )
 
 type UserEvent struct {

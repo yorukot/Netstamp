@@ -85,6 +85,23 @@ export interface paths {
 		patch: operations["updateAdminSettings"];
 		trace?: never;
 	};
+	"/admin/settings/smtp/test": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/** Send an SMTP test email */
+		post: operations["testAdminSMTP"];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	"/admin/system-admins": {
 		parameters: {
 			query?: never;
@@ -1532,6 +1549,23 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	"/system/config": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Get public runtime configuration */
+		get: operations["getRuntimeConfig"];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	"/users/me": {
 		parameters: {
 			query?: never;
@@ -1693,6 +1727,22 @@ export interface components {
 		APITokenListResponse: {
 			tokens: components["schemas"]["APIToken"][];
 		};
+		AdminAccessSettings: {
+			registrationEnabled: boolean;
+			emailVerificationRequired: boolean;
+			projectCreationEnabled: boolean;
+			credentialChangesEnabled: boolean;
+		};
+		AdminAuthenticationProviders: {
+			oidc: components["schemas"]["AdminExternalProviderSettings"];
+			google: components["schemas"]["AdminExternalProviderSettings"];
+			github: components["schemas"]["AdminGitHubProviderSettings"];
+		};
+		AdminAuthenticationProvidersPatch: {
+			oidc?: components["schemas"]["AdminExternalProviderSettingsPatch"];
+			google?: components["schemas"]["AdminExternalProviderSettingsPatch"];
+			github?: components["schemas"]["AdminGitHubProviderSettingsPatch"];
+		};
 		/**
 		 * @example {
 		 *       "format": "netstamp.admin.data.v4",
@@ -1725,34 +1775,43 @@ export interface components {
 			/** Format: int32 */
 			importedRows: number;
 		};
-		/**
-		 * @example {
-		 *       "host": "smtp.example.com",
-		 *       "port": 587,
-		 *       "username": "netstamp",
-		 *       "passwordSet": true,
-		 *       "from": "alerts@example.com",
-		 *       "tlsMode": "starttls",
-		 *       "timeoutSeconds": 10,
-		 *       "configured": true
-		 *     }
-		 */
+		AdminExternalProviderSettings: {
+			enabled: boolean;
+			issuerUrl: string;
+			clientId: string;
+			clientSecretSet: boolean;
+			displayName: string;
+			jitEnabled: boolean;
+			allowedDomains: string;
+		};
+		AdminExternalProviderSettingsPatch: {
+			enabled?: boolean;
+			issuerUrl?: string;
+			clientId?: string;
+			/** Format: password */
+			clientSecret?: string;
+			clearClientSecret?: boolean;
+			displayName?: string;
+			jitEnabled?: boolean;
+			allowedDomains?: string;
+		};
+		AdminGitHubProviderSettings: {
+			allowSignup: boolean;
+		} & components["schemas"]["AdminExternalProviderSettings"];
+		AdminGitHubProviderSettingsPatch: {
+			allowSignup?: boolean;
+		} & components["schemas"]["AdminExternalProviderSettingsPatch"];
 		AdminSMTPSettings: {
-			/** @description SMTP server hostname. Empty means email delivery is disabled unless an environment fallback is still active. */
 			host: string;
 			/** Format: int32 */
 			port: number;
-			/** @description SMTP username. Empty means no SMTP AUTH. */
 			username: string;
-			/** @description Whether a password is configured. The password value is never returned. */
 			passwordSet: boolean;
-			/** @description Envelope sender email address. */
 			from: string;
 			/** @enum {string} */
 			tlsMode: "starttls" | "implicit" | "none";
 			/** Format: int32 */
 			timeoutSeconds: number;
-			/** @description Whether Netstamp has enough SMTP settings to attempt email delivery. */
 			configured: boolean;
 		};
 		AdminSMTPSettingsPatch: {
@@ -1760,12 +1819,8 @@ export interface components {
 			/** Format: int32 */
 			port?: number;
 			username?: string;
-			/**
-			 * Format: password
-			 * @description New SMTP password. Omit to keep the stored password unchanged.
-			 */
+			/** Format: password */
 			password?: string;
-			/** @description Clear the stored SMTP password and override any environment fallback with no password. */
 			clearPassword?: boolean;
 			from?: string;
 			/** @enum {string} */
@@ -1773,30 +1828,11 @@ export interface components {
 			/** Format: int32 */
 			timeoutSeconds?: number;
 		};
-		/**
-		 * @example {
-		 *       "registrationEnabled": true,
-		 *       "emailVerificationRequired": false,
-		 *       "backendBaseUrl": "https://app.netstamp.dev",
-		 *       "publicWebBaseUrl": "https://app.netstamp.dev",
-		 *       "smtp": {
-		 *         "host": "smtp.example.com",
-		 *         "port": 587,
-		 *         "username": "netstamp",
-		 *         "passwordSet": true,
-		 *         "from": "alerts@example.com",
-		 *         "tlsMode": "starttls",
-		 *         "timeoutSeconds": 10,
-		 *         "configured": true
-		 *       }
-		 *     }
-		 */
 		AdminSettings: {
-			registrationEnabled: boolean;
-			emailVerificationRequired: boolean;
-			backendBaseUrl: string;
-			publicWebBaseUrl: string;
+			access: components["schemas"]["AdminAccessSettings"];
 			smtp: components["schemas"]["AdminSMTPSettings"];
+			authenticationProviders: components["schemas"]["AdminAuthenticationProviders"];
+			tracking: components["schemas"]["TrackingSettings"];
 		};
 		AdminSettingsResponse: {
 			settings: components["schemas"]["AdminSettings"];
@@ -4063,6 +4099,16 @@ export interface components {
 		ProjectResponse: {
 			project: components["schemas"]["Project"];
 		};
+		PublicCapabilities: {
+			registrationEnabled: boolean;
+			projectCreationEnabled: boolean;
+			credentialChangesEnabled: boolean;
+		};
+		PublicRuntimeConfig: {
+			demoMode: boolean;
+			capabilities: components["schemas"]["PublicCapabilities"];
+			tracking: components["schemas"]["TrackingSettings"];
+		};
 		PublicStatusChart: {
 			/** @enum {string} */
 			range: "24h" | "7d" | "30d";
@@ -5200,28 +5246,25 @@ export interface components {
 			edges: components["schemas"]["TracerouteTopologyEdge"][];
 			query: components["schemas"]["TracerouteTopologyQueryMetadata"];
 		};
-		/**
-		 * @example {
-		 *       "registrationEnabled": false,
-		 *       "emailVerificationRequired": true,
-		 *       "backendBaseUrl": "https://app.netstamp.dev",
-		 *       "publicWebBaseUrl": "https://app.netstamp.dev",
-		 *       "smtp": {
-		 *         "host": "smtp.example.com",
-		 *         "port": 587,
-		 *         "username": "netstamp",
-		 *         "from": "alerts@example.com",
-		 *         "tlsMode": "starttls",
-		 *         "timeoutSeconds": 10
-		 *       }
-		 *     }
-		 */
+		TrackingSettings: {
+			googleTagId: string;
+			clarityProjectId: string;
+			metaPixelId: string;
+			postHogKey: string;
+			postHogHost: string;
+			plausibleDomain: string;
+			plausibleScriptUrl: string;
+			umamiWebsiteId: string;
+			umamiScriptUrl: string;
+			/** @enum {string} */
+			consentMode: "regional" | "always" | "never";
+			consentCountries: string;
+		};
 		UpdateAdminSettingsRequest: {
-			registrationEnabled?: boolean;
-			emailVerificationRequired?: boolean;
-			backendBaseUrl?: string;
-			publicWebBaseUrl?: string;
+			access?: components["schemas"]["AdminAccessSettings"];
 			smtp?: components["schemas"]["AdminSMTPSettingsPatch"];
+			authenticationProviders?: components["schemas"]["AdminAuthenticationProvidersPatch"];
+			tracking?: components["schemas"]["TrackingSettings"];
 		};
 		/**
 		 * @description Full replacement patch for an alert rule in the current beta API.
@@ -5839,6 +5882,60 @@ export interface operations {
 			};
 			/** @description Server error */
 			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	testAdminSMTP: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description There is no content to send for this request, but the headers may be useful. */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Service unavailable. */
+			503: {
 				headers: {
 					[name: string]: unknown;
 				};
@@ -12702,6 +12799,35 @@ export interface operations {
 				};
 				content: {
 					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	getRuntimeConfig: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description The request has succeeded. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["PublicRuntimeConfig"];
 				};
 			};
 			/** @description Server error */

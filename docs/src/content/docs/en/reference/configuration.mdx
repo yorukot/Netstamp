@@ -83,7 +83,6 @@ Use TLS verification when the database connection crosses an untrusted network. 
 | `AUTH_SESSION_ABSOLUTE_TTL`             | `168h`                  | Maximum session lifetime                             |
 | `AUTH_SESSION_TOUCH_INTERVAL`           | `5m`                    | Minimum interval between session activity writes     |
 | `AUTH_SUDO_TTL`                         | `5m`                    | Recent-authentication validity for sensitive actions |
-| `AUTH_REGISTRATION_ENABLED`             | `true`                  | Environment fallback for local account registration  |
 | `AUTH_EXTERNAL_FLOW_TTL`                | `10m`                   | OAuth/OIDC flow lifetime                             |
 | `AUTH_PASSWORD_RESET_TOKEN_TTL`         | `30m`                   | Password-reset link lifetime                         |
 | `AUTH_PASSWORD_RESET_RATE_LIMIT_WINDOW` | `1h`                    | Password-reset rate-limit window                     |
@@ -93,40 +92,7 @@ Use TLS verification when the database connection crosses an untrusted network. 
 | `AUTH_ARGON2ID_ITERATIONS`              | `3`                     | Argon2id iteration cost                              |
 | `AUTH_ARGON2ID_PARALLELISM`             | `4`                     | Argon2id parallelism                                 |
 
-Stored Admin settings can override registration policy. Changing a hash key invalidates existing credentials protected by that key.
-
-## Generic OIDC
-
-| Variable                             | Default          | Purpose                                               |
-| ------------------------------------ | ---------------- | ----------------------------------------------------- |
-| `AUTH_OIDC_ENABLED`                  | `false`          | Enable generic OIDC                                   |
-| `AUTH_OIDC_ISSUER_URL`               | empty            | OIDC issuer and discovery origin                      |
-| `AUTH_OIDC_CLIENT_ID`                | empty            | Client ID                                             |
-| `AUTH_OIDC_CLIENT_SECRET`            | empty            | Client secret                                         |
-| `AUTH_OIDC_DISPLAY_NAME`             | `Single sign-on` | Login-button label                                    |
-| `AUTH_OIDC_JIT_PROVISIONING_ENABLED` | `false`          | Create users from previously unknown valid identities |
-
-## Google authentication
-
-| Variable                               | Default  | Purpose                                           |
-| -------------------------------------- | -------- | ------------------------------------------------- |
-| `AUTH_GOOGLE_ENABLED`                  | `false`  | Enable Google OpenID Connect                      |
-| `AUTH_GOOGLE_CLIENT_ID`                | empty    | Google client ID                                  |
-| `AUTH_GOOGLE_CLIENT_SECRET`            | empty    | Google client secret                              |
-| `AUTH_GOOGLE_DISPLAY_NAME`             | `Google` | Login-button label                                |
-| `AUTH_GOOGLE_JIT_PROVISIONING_ENABLED` | `false`  | Create users from accepted Google identities      |
-| `AUTH_GOOGLE_ALLOWED_HOSTED_DOMAINS`   | empty    | Comma-separated Workspace hosted-domain allowlist |
-
-## GitHub authentication
-
-| Variable                               | Default  | Purpose                                                   |
-| -------------------------------------- | -------- | --------------------------------------------------------- |
-| `AUTH_GITHUB_ENABLED`                  | `false`  | Enable GitHub OAuth                                       |
-| `AUTH_GITHUB_CLIENT_ID`                | empty    | GitHub OAuth client ID                                    |
-| `AUTH_GITHUB_CLIENT_SECRET`            | empty    | GitHub OAuth client secret                                |
-| `AUTH_GITHUB_DISPLAY_NAME`             | `GitHub` | Login-button label                                        |
-| `AUTH_GITHUB_JIT_PROVISIONING_ENABLED` | `false`  | Create users from accepted GitHub identities              |
-| `AUTH_GITHUB_ALLOW_SIGNUP`             | `true`   | Permit GitHub's OAuth flow to offer GitHub account signup |
+Changing a hash key invalidates existing credentials protected by that key. Registration, email verification, project creation, credential changes, and external authentication providers are configured in **Admin → System settings**.
 
 ## Assignment, alert, and notification workers
 
@@ -145,19 +111,7 @@ Stored Admin settings can override registration policy. Changing a hash key inva
 
 Disabling a worker pauses its work; it does not delete configuration or already queued jobs.
 
-## SMTP
-
-| Variable        | Default    | Purpose                                                       |
-| --------------- | ---------- | ------------------------------------------------------------- |
-| `SMTP_HOST`     | empty      | SMTP host; email is unconfigured when host or sender is empty |
-| `SMTP_PORT`     | `587`      | SMTP port                                                     |
-| `SMTP_USERNAME` | empty      | Optional SMTP AUTH user                                       |
-| `SMTP_PASSWORD` | empty      | Optional SMTP AUTH password                                   |
-| `SMTP_FROM`     | empty      | Envelope sender address                                       |
-| `SMTP_TLS_MODE` | `starttls` | `starttls`, `implicit`, or `none`                             |
-| `SMTP_TIMEOUT`  | `10s`      | Connect and delivery timeout                                  |
-
-Admin-stored SMTP values override these environment fallbacks.
+SMTP and web-application analytics are configured exclusively in **Admin → System settings**. Secret values are encrypted with `SYSTEM_SETTINGS_ENCRYPTION_KEY`.
 
 ## Tracing
 
@@ -198,20 +152,14 @@ All numeric capacities and durations must be greater than zero. Maximum backoff 
 
 These are compiled into the static frontend. Runtime container environment changes do not modify an already-built bundle.
 
-| Variable                                        | Default                 | Purpose                                                  |
-| ----------------------------------------------- | ----------------------- | -------------------------------------------------------- |
-| `VITE_NETSTAMP_API_BASE_URL`                    | `/api/v1`               | Browser API base URL                                     |
-| `VITE_NETSTAMP_API_PROXY_TARGET`                | `http://localhost:8080` | Vite development proxy target                            |
-| `VITE_NETSTAMP_REGISTRATION_ENABLED`            | `true`                  | Show registration UI when backend policy also permits it |
-| `VITE_NETSTAMP_PROJECT_CREATION_ENABLED`        | `true`                  | Show project-creation UI                                 |
-| `VITE_NETSTAMP_USER_CREDENTIAL_CHANGES_ENABLED` | `true`                  | Show credential-management UI                            |
-| `VITE_NETSTAMP_DEMO_MODE`                       | `false`                 | Enable read-only demo presentation                       |
-| `VITE_NETSTAMP_DEMO_EMAIL`                      | empty                   | Optional demo login email                                |
-| `VITE_NETSTAMP_DEMO_PASSWORD`                   | empty                   | Optional demo login password                             |
+| Variable                         | Default                 | Purpose                       |
+| -------------------------------- | ----------------------- | ----------------------------- |
+| `VITE_NETSTAMP_API_BASE_URL`     | `/api/v1`               | Browser API base URL          |
+| `VITE_NETSTAMP_API_PROXY_TARGET` | `http://localhost:8080` | Vite development proxy target |
+| `VITE_NETSTAMP_DEMO_EMAIL`       | empty                   | Optional demo login email     |
+| `VITE_NETSTAMP_DEMO_PASSWORD`    | empty                   | Optional demo login password  |
 
-Analytics integrations are optional: `VITE_NETSTAMP_GA_MEASUREMENT_ID`, `VITE_NETSTAMP_GOOGLE_TAG_ID`, `VITE_NETSTAMP_CLARITY_PROJECT_ID`, `VITE_NETSTAMP_META_PIXEL_ID` or its `FACEBOOK` alias, `VITE_NETSTAMP_POSTHOG_KEY` and host, `VITE_NETSTAMP_PLAUSIBLE_DOMAIN` and script URL, and `VITE_NETSTAMP_UMAMI_WEBSITE_ID` and script URL.
-
-`VITE_NETSTAMP_TRACKING_CONSENT_MODE` accepts `regional`, `always`, or `never`; `VITE_NETSTAMP_TRACKING_CONSENT_COUNTRIES` is the regional country list.
+The web app loads access policies, demo mode, analytics, and consent configuration from the controller at runtime.
 
 ## Documentation build variables
 

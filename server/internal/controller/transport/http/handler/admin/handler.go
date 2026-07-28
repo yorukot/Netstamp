@@ -45,6 +45,7 @@ func (h *Handler) RegisterRoutes(api chi.Router) {
 			sensitive.Get("/admin/data-export", h.handleExportData)
 			sensitive.Post("/admin/data-import", h.handleImportData)
 			sensitive.Patch("/admin/settings", h.handleUpdateSettings)
+			sensitive.Post("/admin/settings/smtp/test", h.handleTestSMTP)
 		}
 		if h.sudo != nil {
 			r.Group(func(sensitive chi.Router) {
@@ -55,6 +56,27 @@ func (h *Handler) RegisterRoutes(api chi.Router) {
 			registerSensitive(r)
 		}
 	})
+}
+
+func (h *Handler) handleTestSMTP(w http.ResponseWriter, r *http.Request) {
+	if h.service == nil || h.sudo == nil {
+		httpx.WriteProblem(w, r, httpx.ServiceUnavailable("SMTP test is unavailable"))
+		return
+	}
+	userID, err := currentUserID(r)
+	if err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	if err := h.service.TestSMTP(r.Context(), appadmin.TestSMTPInput{CurrentUserID: userID}); err != nil {
+		if errors.Is(err, appadmin.ErrSMTPTestFailed) {
+			httpx.WriteProblem(w, r, httpx.ServiceUnavailable("SMTP test delivery failed"))
+			return
+		}
+		httpx.WriteProblem(w, r, mapAdminError(err, "SMTP test failed"))
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *Handler) handleGetSettings(w http.ResponseWriter, r *http.Request) {

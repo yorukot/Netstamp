@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/yorukot/netstamp/internal/domain/identity"
@@ -16,6 +17,8 @@ type Service struct {
 	cipher      SecretCipher
 	hasher      PasswordHasher
 	authMethods AuthenticationMethodRepository
+	smtpUsers   SMTPTestUserRepository
+	smtpTester  SMTPTester
 	defaults    Defaults
 }
 
@@ -33,6 +36,21 @@ func NewService(repo Repository, cipher SecretCipher, defaults Defaults, hashers
 	if defaults.SMTP.TimeoutSeconds == 0 {
 		defaults.SMTP.TimeoutSeconds = 10
 	}
+	if defaults.OIDC.DisplayName == "" {
+		defaults.OIDC.DisplayName = "Single sign-on"
+	}
+	if defaults.Google.DisplayName == "" {
+		defaults.Google.DisplayName = "Google"
+	}
+	if defaults.GitHub.DisplayName == "" {
+		defaults.GitHub.DisplayName = "GitHub"
+	}
+	if defaults.Tracking.ConsentMode == "" {
+		defaults.Tracking.ConsentMode = "regional"
+	}
+	if defaults.Tracking.PostHogHost == "" {
+		defaults.Tracking.PostHogHost = "https://us.i.posthog.com"
+	}
 	defaults.SMTP.PasswordSet = defaults.SMTP.Password != ""
 	var hasher PasswordHasher
 	if len(hashers) > 0 {
@@ -47,11 +65,37 @@ func (s *Service) ConfigureSessions(repo SessionRepository) {
 
 func (s *Service) ConfigureAPITokens(revoker APITokenRevoker) { s.apiTokens = revoker }
 
+func (s *Service) ConfigureSMTPTest(users SMTPTestUserRepository, tester SMTPTester) {
+	s.smtpUsers = users
+	s.smtpTester = tester
+}
+
 func (s *Service) GetSettings(ctx context.Context, input GetSettingsInput) (Settings, error) {
 	if err := s.requireSystemAdmin(ctx, input.CurrentUserID); err != nil {
 		return Settings{}, err
 	}
 	return s.EffectiveSettings(ctx)
+}
+
+func (s *Service) TestSMTP(ctx context.Context, input TestSMTPInput) error {
+	if err := s.requireSystemAdmin(ctx, input.CurrentUserID); err != nil {
+		return err
+	}
+	if s.smtpUsers == nil || s.smtpTester == nil {
+		return ErrSMTPTestFailed
+	}
+
+	user, err := s.smtpUsers.GetUserByID(ctx, input.CurrentUserID)
+	if err != nil {
+		return err
+	}
+	if user.DisabledAt != nil {
+		return ErrForbidden
+	}
+	if err := s.smtpTester.SendTestEmail(ctx, user.Email); err != nil {
+		return fmt.Errorf("%w: %w", ErrSMTPTestFailed, err)
+	}
+	return nil
 }
 
 func (s *Service) ListSystemAdmins(ctx context.Context, input ListSystemAdminsInput) ([]SystemAdmin, error) {
@@ -441,9 +485,13 @@ func (s *Service) EffectiveSettings(ctx context.Context) (Settings, error) {
 	settings := Settings{
 		RegistrationEnabled:       s.defaults.RegistrationEnabled,
 		EmailVerificationRequired: s.defaults.EmailVerificationRequired,
-		BackendBaseURL:            s.defaults.BackendBaseURL,
-		PublicWebBaseURL:          s.defaults.PublicWebBaseURL,
+		ProjectCreationEnabled:    s.defaults.ProjectCreationEnabled,
+		CredentialChangesEnabled:  s.defaults.CredentialChangesEnabled,
 		SMTP:                      s.defaults.SMTP,
+		OIDC:                      s.defaults.OIDC,
+		Google:                    s.defaults.Google,
+		GitHub:                    s.defaults.GitHub,
+		Tracking:                  s.defaults.Tracking,
 	}
 	values, err := s.storedSettings(ctx)
 	if err != nil {
@@ -452,8 +500,8 @@ func (s *Service) EffectiveSettings(ctx context.Context) (Settings, error) {
 
 	applyBool(values, keyRegistrationEnabled, &settings.RegistrationEnabled)
 	applyBool(values, keyEmailVerificationRequired, &settings.EmailVerificationRequired)
-	applyString(values, keyBackendBaseURL, &settings.BackendBaseURL)
-	applyString(values, keyPublicWebBaseURL, &settings.PublicWebBaseURL)
+	applyBool(values, keyProjectCreationEnabled, &settings.ProjectCreationEnabled)
+	applyBool(values, keyCredentialChangesEnabled, &settings.CredentialChangesEnabled)
 	applyString(values, keySMTPHost, &settings.SMTP.Host)
 	applyInt32(values, keySMTPPort, &settings.SMTP.Port)
 	applyString(values, keySMTPUsername, &settings.SMTP.Username)
@@ -463,7 +511,23 @@ func (s *Service) EffectiveSettings(ctx context.Context) (Settings, error) {
 	applyString(values, keySMTPFrom, &settings.SMTP.From)
 	applyString(values, keySMTPTLSMode, &settings.SMTP.TLSMode)
 	applyInt32(values, keySMTPTimeoutSeconds, &settings.SMTP.TimeoutSeconds)
+	applyJSON(values, keyOIDCSettings, &settings.OIDC)
+	applyJSON(values, keyGoogleSettings, &settings.Google)
+	applyJSON(values, keyGitHubSettings, &settings.GitHub)
+	applyJSON(values, keyTrackingSettings, &settings.Tracking)
+	if err := applySecretString(values, keyOIDCClientSecret, &settings.OIDC.ClientSecret, s.cipher); err != nil {
+		return Settings{}, err
+	}
+	if err := applySecretString(values, keyGoogleClientSecret, &settings.Google.ClientSecret, s.cipher); err != nil {
+		return Settings{}, err
+	}
+	if err := applySecretString(values, keyGitHubClientSecret, &settings.GitHub.ClientSecret, s.cipher); err != nil {
+		return Settings{}, err
+	}
 	settings.SMTP.PasswordSet = settings.SMTP.Password != ""
+	settings.OIDC.ClientSecretSet = settings.OIDC.ClientSecret != ""
+	settings.Google.ClientSecretSet = settings.Google.ClientSecret != ""
+	settings.GitHub.ClientSecretSet = settings.GitHub.ClientSecret != ""
 
 	if settings.SMTP.Port == 0 {
 		settings.SMTP.Port = 587
@@ -486,20 +550,22 @@ func (s *Service) EffectiveSMTP(ctx context.Context) (SMTPSettings, error) {
 	return settings.SMTP, nil
 }
 
-func (s *Service) BackendBaseURL(ctx context.Context) (string, error) {
-	settings, err := s.EffectiveSettings(ctx)
-	if err != nil {
-		return "", err
-	}
-	return settings.BackendBaseURL, nil
-}
-
 func (s *Service) SMTPConfigured(ctx context.Context) bool {
 	smtpSettings, err := s.EffectiveSMTP(ctx)
 	if err != nil {
 		return false
 	}
 	return smtpSettings.Host != "" && smtpSettings.From != ""
+}
+
+func (s *Service) ProjectCreationEnabled(ctx context.Context) bool {
+	settings, err := s.EffectiveSettings(ctx)
+	return err == nil && settings.ProjectCreationEnabled
+}
+
+func (s *Service) CredentialChangesEnabled(ctx context.Context) bool {
+	settings, err := s.EffectiveSettings(ctx)
+	return err == nil && settings.CredentialChangesEnabled
 }
 
 func (s *Service) IsSystemAdmin(ctx context.Context, userID string) (bool, error) {
@@ -545,13 +611,13 @@ func applyUpdate(settings Settings, input UpdateSettingsInput) (Settings, map[st
 		settings.EmailVerificationRequired = *input.EmailVerificationRequired
 		changed[keyEmailVerificationRequired] = settings.EmailVerificationRequired
 	}
-	if value := trimStringPointer(input.BackendBaseURL); value != nil {
-		settings.BackendBaseURL = *value
-		changed[keyBackendBaseURL] = settings.BackendBaseURL
+	if input.ProjectCreationEnabled != nil {
+		settings.ProjectCreationEnabled = *input.ProjectCreationEnabled
+		changed[keyProjectCreationEnabled] = settings.ProjectCreationEnabled
 	}
-	if value := trimStringPointer(input.PublicWebBaseURL); value != nil {
-		settings.PublicWebBaseURL = *value
-		changed[keyPublicWebBaseURL] = settings.PublicWebBaseURL
+	if input.CredentialChangesEnabled != nil {
+		settings.CredentialChangesEnabled = *input.CredentialChangesEnabled
+		changed[keyCredentialChangesEnabled] = settings.CredentialChangesEnabled
 	}
 
 	if value := trimStringPointer(input.SMTP.Host); value != nil {
@@ -587,12 +653,67 @@ func applyUpdate(settings Settings, input UpdateSettingsInput) (Settings, map[st
 		settings.SMTP.TimeoutSeconds = *input.SMTP.TimeoutSeconds
 		changed[keySMTPTimeoutSeconds] = settings.SMTP.TimeoutSeconds
 	}
+	settings.OIDC = applyProviderUpdate(settings.OIDC, input.OIDC, keyOIDCSettings, keyOIDCClientSecret, changed)
+	settings.Google = applyProviderUpdate(settings.Google, input.Google, keyGoogleSettings, keyGoogleClientSecret, changed)
+	settings.GitHub.ExternalProviderSettings = applyProviderUpdate(settings.GitHub.ExternalProviderSettings, input.GitHub.UpdateExternalProviderSettingsInput, keyGitHubSettings, keyGitHubClientSecret, changed)
+	if input.GitHub.AllowSignup != nil {
+		settings.GitHub.AllowSignup = *input.GitHub.AllowSignup
+		publicSettings := settings.GitHub
+		publicSettings.ClientSecret = ""
+		publicSettings.ClientSecretSet = false
+		changed[keyGitHubSettings] = publicSettings
+	}
+	if input.Tracking != nil {
+		settings.Tracking = *input.Tracking
+		changed[keyTrackingSettings] = settings.Tracking
+	}
 	return settings, changed
+}
+
+func applyProviderUpdate(settings ExternalProviderSettings, input UpdateExternalProviderSettingsInput, settingsKey, secretKey string, changed map[string]any) ExternalProviderSettings {
+	if !hasProviderUpdate(input) {
+		return settings
+	}
+	if input.Enabled != nil {
+		settings.Enabled = *input.Enabled
+	}
+	if value := trimStringPointer(input.IssuerURL); value != nil {
+		settings.IssuerURL = *value
+	}
+	if value := trimStringPointer(input.ClientID); value != nil {
+		settings.ClientID = *value
+	}
+	if value := trimStringPointer(input.DisplayName); value != nil {
+		settings.DisplayName = *value
+	}
+	if input.JITEnabled != nil {
+		settings.JITEnabled = *input.JITEnabled
+	}
+	if value := trimStringPointer(input.AllowedDomains); value != nil {
+		settings.AllowedDomains = *value
+	}
+	if input.ClearClientSecret {
+		settings.ClientSecret = ""
+		changed[secretKey] = ""
+	} else if input.ClientSecret != nil {
+		settings.ClientSecret = *input.ClientSecret
+		changed[secretKey] = settings.ClientSecret
+	}
+	settings.ClientSecretSet = settings.ClientSecret != ""
+	publicSettings := settings
+	publicSettings.ClientSecret = ""
+	publicSettings.ClientSecretSet = false
+	changed[settingsKey] = publicSettings
+	return settings
+}
+
+func hasProviderUpdate(input UpdateExternalProviderSettingsInput) bool {
+	return input.Enabled != nil || input.IssuerURL != nil || input.ClientID != nil || input.ClientSecret != nil || input.ClearClientSecret || input.DisplayName != nil || input.JITEnabled != nil || input.AllowedDomains != nil
 }
 
 func (s *Service) settingFor(key string, value any, actor *string) (StoredSetting, error) {
 	setting := StoredSetting{Key: key, UpdatedByUserID: actor}
-	if key == keySMTPPassword {
+	if isSecretSettingKey(key) {
 		if s.cipher == nil {
 			return StoredSetting{}, errors.New("secret cipher is unavailable")
 		}
@@ -611,6 +732,15 @@ func (s *Service) settingFor(key string, value any, actor *string) (StoredSettin
 	}
 	setting.Value = jsonValue(value)
 	return setting, nil
+}
+
+func isSecretSettingKey(key string) bool {
+	switch key {
+	case keySMTPPassword, keyOIDCClientSecret, keyGoogleClientSecret, keyGitHubClientSecret:
+		return true
+	default:
+		return false
+	}
 }
 
 func applyBool(values map[string]StoredSetting, key string, target *bool) {
@@ -643,6 +773,16 @@ func applyInt32(values map[string]StoredSetting, key string, target *int32) {
 	var value int32
 	if err := json.Unmarshal(setting.Value, &value); err == nil {
 		*target = value
+	}
+}
+
+func applyJSON(values map[string]StoredSetting, key string, target any) {
+	setting, ok := values[key]
+	if !ok || setting.Secret || len(setting.Value) == 0 {
+		return
+	}
+	if err := json.Unmarshal(setting.Value, target); err != nil {
+		return
 	}
 }
 

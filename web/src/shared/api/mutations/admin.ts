@@ -9,6 +9,11 @@ export function updateAdminSettings(body: UpdateAdminSettingsInput) {
 	return readApiData(apiClient.PATCH("/admin/settings", { body }));
 }
 
+export function testAdminSMTP() {
+	requireWritableAccess();
+	return readEmptyApiResponse(apiClient.POST("/admin/settings/smtp/test"));
+}
+
 export function grantSystemAdmin(body: GrantSystemAdminInput) {
 	requireWritableAccess();
 	return readApiData(apiClient.POST("/admin/system-admins", { body }));
@@ -54,6 +59,10 @@ export function useUpdateAdminSettingsMutation() {
 			queryClient.invalidateQueries({ queryKey: apiQueryKeys.auth.me() });
 		}
 	});
+}
+
+export function useTestAdminSMTPMutation() {
+	return useMutation({ mutationFn: testAdminSMTP });
 }
 
 export function useGrantSystemAdminMutation() {

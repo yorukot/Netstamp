@@ -113,4 +113,10 @@ interface AdminService {
 		| ForbiddenProblem
 		| UnprocessableEntityProblem
 		| InternalServerProblem;
+
+	@operationId("testAdminSMTP")
+	@summary("Send an SMTP test email")
+	@post
+	@route("/settings/smtp/test")
+	testAdminSMTP(): NoContent | UnauthorizedProblem | ForbiddenProblem | ServiceUnavailableProblem | InternalServerProblem;
 }

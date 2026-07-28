@@ -31,8 +31,18 @@ type Service struct {
 	externalAuthTokens      ExternalAuthFlowTokenManager
 	externalAuthConfig      ExternalAuthConfig
 	externalProviders       map[string]configuredExternalProvider
+	externalProviderSource  ExternalProviderSource
+	instancePolicy          interface{ CredentialChangesEnabled(context.Context) bool }
 	tx                      apptx.Transactor
 	now                     func() time.Time
+}
+
+func (s *Service) ConfigureInstancePolicy(policy interface{ CredentialChangesEnabled(context.Context) bool }) {
+	s.instancePolicy = policy
+}
+
+func (s *Service) ConfigureExternalAuthProviderSource(source ExternalProviderSource) {
+	s.externalProviderSource = source
 }
 
 type configuredExternalProvider struct {

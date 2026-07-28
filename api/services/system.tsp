@@ -16,6 +16,18 @@ model HealthResponse {
 	status: "ok";
 }
 
+model PublicCapabilities {
+	registrationEnabled: boolean;
+	projectCreationEnabled: boolean;
+	credentialChangesEnabled: boolean;
+}
+
+model PublicRuntimeConfig {
+	demoMode: boolean;
+	capabilities: PublicCapabilities;
+	tracking: TrackingSettings;
+}
+
 @tag("System")
 interface SystemService {
 	@operationId("getAPIStatus")
@@ -29,4 +41,10 @@ interface SystemService {
 	@get
 	@route("/healthz")
 	getHealth(): OkJson<HealthResponse> | ServiceUnavailableProblem;
+
+	@operationId("getRuntimeConfig")
+	@summary("Get public runtime configuration")
+	@get
+	@route("/system/config")
+	getRuntimeConfig(): OkJson<PublicRuntimeConfig> | InternalServerProblem;
 }

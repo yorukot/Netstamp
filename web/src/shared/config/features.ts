@@ -1,37 +1,25 @@
-function booleanFeature(value: string | undefined, defaultValue: boolean) {
-	const normalized = value?.trim().toLowerCase();
+import type { components } from "@/shared/api/openapi";
 
-	if (!normalized) {
-		return defaultValue;
-	}
+type RuntimeConfig = components["schemas"]["PublicRuntimeConfig"];
 
-	if (["1", "true", "yes", "on"].includes(normalized)) {
-		return true;
-	}
-
-	if (["0", "false", "no", "off"].includes(normalized)) {
-		return false;
-	}
-
-	return defaultValue;
-}
-
-export const demoMode = booleanFeature(import.meta.env.VITE_NETSTAMP_DEMO_MODE, false);
-export const readOnlyMode = demoMode;
+export let demoMode = false;
+export let readOnlyMode = false;
 
 export const appFeatures = {
-	registration: !readOnlyMode && booleanFeature(import.meta.env.VITE_NETSTAMP_REGISTRATION_ENABLED, true),
-	projectCreation: !readOnlyMode && booleanFeature(import.meta.env.VITE_NETSTAMP_PROJECT_CREATION_ENABLED, true),
-	userCredentialChanges: !readOnlyMode && booleanFeature(import.meta.env.VITE_NETSTAMP_USER_CREDENTIAL_CHANGES_ENABLED, true)
-} as const;
+	registration: true,
+	projectCreation: true,
+	userCredentialChanges: true
+};
+
+export const applyRuntimeFeatures = (config: RuntimeConfig) => {
+	demoMode = config.demoMode;
+	readOnlyMode = config.demoMode;
+	appFeatures.registration = !config.demoMode && config.capabilities.registrationEnabled;
+	appFeatures.projectCreation = !config.demoMode && config.capabilities.projectCreationEnabled;
+	appFeatures.userCredentialChanges = !config.demoMode && config.capabilities.credentialChangesEnabled;
+};
 
 const demoEmail = import.meta.env.VITE_NETSTAMP_DEMO_EMAIL?.trim();
 const demoPassword = import.meta.env.VITE_NETSTAMP_DEMO_PASSWORD?.trim();
 
-export const demoCredentials =
-	demoEmail && demoPassword
-		? {
-				email: demoEmail,
-				password: demoPassword
-			}
-		: null;
+export const demoCredentials = demoEmail && demoPassword ? { email: demoEmail, password: demoPassword } : null;

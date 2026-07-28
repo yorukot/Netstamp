@@ -22,8 +22,20 @@ const (
 )
 
 func (s *Service) ExternalProviderMethods() []ExternalProviderMethod {
-	methods := make([]ExternalProviderMethod, 0, len(s.externalProviders))
-	for _, provider := range s.externalProviders {
+	return s.externalProviderMethods(s.externalProviders)
+}
+
+func (s *Service) ExternalProviderMethodsContext(ctx context.Context) []ExternalProviderMethod {
+	providers, err := s.resolvedExternalProviders(ctx)
+	if err != nil {
+		return nil
+	}
+	return s.externalProviderMethods(providers)
+}
+
+func (s *Service) externalProviderMethods(providers map[string]configuredExternalProvider) []ExternalProviderMethod {
+	methods := make([]ExternalProviderMethod, 0, len(providers))
+	for _, provider := range providers {
 		methods = append(methods, ExternalProviderMethod{
 			ID: provider.config.ID, DisplayName: provider.config.DisplayName, SudoCapable: provider.config.SudoCapable,
 		})
@@ -45,6 +57,26 @@ func (s *Service) ExternalProviderMethods() []ExternalProviderMethod {
 		return methods[i].ID < methods[j].ID
 	})
 	return methods
+}
+
+func (s *Service) resolvedExternalProviders(ctx context.Context) (map[string]configuredExternalProvider, error) {
+	if s.externalProviderSource == nil {
+		return s.externalProviders, nil
+	}
+	registrations, err := s.externalProviderSource.ExternalProviderRegistrations(ctx)
+	if err != nil {
+		return nil, err
+	}
+	providers := make(map[string]configuredExternalProvider, len(registrations))
+	for _, provider := range registrations {
+		id := strings.ToLower(strings.TrimSpace(provider.Config.ID))
+		if id == "" || provider.Client == nil {
+			continue
+		}
+		provider.Config.ID = id
+		providers[id] = configuredExternalProvider{config: provider.Config, client: provider.Client}
+	}
+	return providers, nil
 }
 
 func (s *Service) StartExternalAuth(ctx context.Context, input StartExternalAuthInput) (StartExternalAuthResult, error) {
@@ -84,9 +116,13 @@ type externalAuthFlowSecrets struct {
 	pkceVerifier string
 }
 
-func (s *Service) prepareExternalAuthStart(ctx context.Context, input *StartExternalAuthInput) (configuredExternalProvider, error) {
+func (s *Service) prepareExternalAuthStart(ctx context.Context, input *StartExternalAuthInput) (configuredExternalProvider, error) { //nolint:cyclop // Intent-specific policy is clearest in one switch.
 	input.Provider = strings.ToLower(strings.TrimSpace(input.Provider))
-	provider, ok := s.externalProviders[input.Provider]
+	providers, err := s.resolvedExternalProviders(ctx)
+	if err != nil {
+		return configuredExternalProvider{}, ErrExternalAuthUnavailable
+	}
+	provider, ok := providers[input.Provider]
 	if !ok || !s.externalAuthAvailable() {
 		return configuredExternalProvider{}, ErrExternalAuthUnavailable
 	}
@@ -105,6 +141,9 @@ func (s *Service) prepareExternalAuthStart(ctx context.Context, input *StartExte
 		}
 		return provider, nil
 	case ExternalAuthIntentLink:
+		if s.instancePolicy != nil && !s.instancePolicy.CredentialChangesEnabled(ctx) {
+			return configuredExternalProvider{}, ErrExternalAuthUnavailable
+		}
 		if input.SessionID == "" || s.recentAuth == nil {
 			return configuredExternalProvider{}, ErrSessionInvalid
 		}
@@ -142,7 +181,11 @@ func optionalSessionID(value string) *string {
 
 func (s *Service) CompleteExternalAuth(ctx context.Context, input CompleteExternalAuthInput) (CompleteExternalAuthResult, error) {
 	input.Provider = strings.ToLower(strings.TrimSpace(input.Provider))
-	provider, ok := s.externalProviders[input.Provider]
+	providers, resolveErr := s.resolvedExternalProviders(ctx)
+	if resolveErr != nil {
+		return CompleteExternalAuthResult{}, ErrExternalAuthUnavailable
+	}
+	provider, ok := providers[input.Provider]
 	if !ok || !s.externalAuthAvailable() {
 		return CompleteExternalAuthResult{}, ErrExternalAuthUnavailable
 	}
@@ -273,7 +316,7 @@ func validExternalAuthenticationFlowTime(flowCreatedAt, sessionCreatedAt, now ti
 }
 
 func (s *Service) externalAuthAvailable() bool {
-	return s.externalAuthRepo != nil && s.externalAuthTokens != nil && len(s.externalProviders) > 0
+	return s.externalAuthRepo != nil && s.externalAuthTokens != nil && (s.externalProviderSource != nil || len(s.externalProviders) > 0)
 }
 
 func recentExternalAuthenticationTime(authTime, flowCreatedAt, sessionCreatedAt, now time.Time, skew time.Duration) (time.Time, bool) {

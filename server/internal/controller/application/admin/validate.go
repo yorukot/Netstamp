@@ -16,8 +16,8 @@ import (
 const (
 	keyRegistrationEnabled       = "auth.registration_enabled"
 	keyEmailVerificationRequired = "auth.email_verification_required"
-	keyBackendBaseURL            = "http.backend_base_url"
-	keyPublicWebBaseURL          = "http.public_web_base_url"
+	keyProjectCreationEnabled    = "access.project_creation_enabled"
+	keyCredentialChangesEnabled  = "access.credential_changes_enabled"
 	keySMTPHost                  = "smtp.host"
 	keySMTPPort                  = "smtp.port"
 	keySMTPUsername              = "smtp.username"
@@ -25,6 +25,13 @@ const (
 	keySMTPFrom                  = "smtp.from"
 	keySMTPTLSMode               = "smtp.tls_mode"
 	keySMTPTimeoutSeconds        = "smtp.timeout_seconds"
+	keyOIDCSettings              = "auth.provider.oidc"
+	keyOIDCClientSecret          = "auth.provider.oidc.client_secret" //nolint:gosec // This is a setting key name, not credential material.
+	keyGoogleSettings            = "auth.provider.google"
+	keyGoogleClientSecret        = "auth.provider.google.client_secret" //nolint:gosec // This is a setting key name, not credential material.
+	keyGitHubSettings            = "auth.provider.github"
+	keyGitHubClientSecret        = "auth.provider.github.client_secret" //nolint:gosec // This is a setting key name, not credential material.
+	keyTrackingSettings          = "tracking"
 
 	auditActionGrantSystemAdmin  = "grant_system_admin"
 	auditActionRevokeSystemAdmin = "revoke_system_admin"
@@ -38,13 +45,13 @@ const (
 
 func validateSettings(settings Settings) error {
 	var errs []error
-	if err := validateOptionalHTTPOrigin("backendBaseUrl", settings.BackendBaseURL); err != nil {
-		errs = append(errs, err)
-	}
-	if err := validateOptionalHTTPOrigin("publicWebBaseUrl", settings.PublicWebBaseURL); err != nil {
-		errs = append(errs, err)
-	}
 	if err := validateSMTP(settings.SMTP); err != nil {
+		errs = append(errs, err)
+	}
+	errs = append(errs, validateExternalProvider("oidc", settings.OIDC, true)...)
+	errs = append(errs, validateExternalProvider("google", settings.Google, false)...)
+	errs = append(errs, validateExternalProvider("github", settings.GitHub.ExternalProviderSettings, false)...)
+	if err := validateTracking(settings.Tracking); err != nil {
 		errs = append(errs, err)
 	}
 	if settings.EmailVerificationRequired && !smtpDeliveryConfigured(settings.SMTP) {
@@ -56,20 +63,53 @@ func validateSettings(settings Settings) error {
 	return nil
 }
 
-func validateOptionalHTTPOrigin(field, value string) error {
-	trimmed := strings.TrimSpace(value)
-	if trimmed == "" {
+func validateExternalProvider(name string, settings ExternalProviderSettings, issuerRequired bool) []error {
+	if !settings.Enabled {
 		return nil
 	}
-	parsed, err := url.Parse(trimmed)
-	if err != nil || !parsed.IsAbs() || parsed.Host == "" {
-		return fmt.Errorf("%s must be a valid HTTP origin", field)
+	var errs []error
+	if issuerRequired {
+		if strings.TrimSpace(settings.IssuerURL) == "" {
+			errs = append(errs, fmt.Errorf("%s.issuerUrl is required when enabled", name))
+		} else if err := validateHTTPURL(name+".issuerUrl", settings.IssuerURL); err != nil {
+			errs = append(errs, err)
+		}
 	}
-	if parsed.Scheme != "http" && parsed.Scheme != "https" {
-		return fmt.Errorf("%s must use http or https", field)
+	if strings.TrimSpace(settings.ClientID) == "" {
+		errs = append(errs, fmt.Errorf("%s.clientId is required when enabled", name))
 	}
-	if parsed.User != nil || (parsed.Path != "" && parsed.Path != "/") || parsed.RawQuery != "" || parsed.Fragment != "" {
-		return fmt.Errorf("%s must be an origin without path, query, fragment, or credentials", field)
+	if settings.ClientSecret == "" {
+		errs = append(errs, fmt.Errorf("%s.clientSecret is required when enabled", name))
+	}
+	if strings.TrimSpace(settings.DisplayName) == "" {
+		errs = append(errs, fmt.Errorf("%s.displayName is required when enabled", name))
+	}
+	return errs
+}
+
+func validateTracking(settings TrackingSettings) error {
+	var errs []error
+	for field, value := range map[string]string{
+		"tracking.postHogHost":        settings.PostHogHost,
+		"tracking.plausibleScriptUrl": settings.PlausibleScriptURL,
+		"tracking.umamiScriptUrl":     settings.UmamiScriptURL,
+	} {
+		if strings.TrimSpace(value) != "" {
+			errs = append(errs, validateHTTPURL(field, value))
+		}
+	}
+	switch settings.ConsentMode {
+	case "regional", "always", "never":
+	default:
+		errs = append(errs, errors.New("tracking.consentMode must be regional, always, or never"))
+	}
+	return errors.Join(errs...)
+}
+
+func validateHTTPURL(field, value string) error {
+	parsed, err := url.ParseRequestURI(strings.TrimSpace(value))
+	if err != nil || parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") {
+		return fmt.Errorf("%s must be a valid HTTP URL", field)
 	}
 	return nil
 }

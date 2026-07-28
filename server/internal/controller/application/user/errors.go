@@ -8,4 +8,5 @@ var (
 	ErrLastSystemAdmin    = errors.New("system must keep an administrator")
 	ErrLastCredential     = errors.New("account must keep an authentication method")
 	ErrIdentityNotFound   = errors.New("identity not found")
+	ErrForbidden          = errors.New("credential changes are disabled")
 )

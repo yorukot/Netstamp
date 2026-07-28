@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -24,15 +25,60 @@ func TestGetSettingsRequiresSystemAdmin(t *testing.T) {
 	}
 }
 
+func TestTestSMTPRequiresSystemAdmin(t *testing.T) {
+	repo := &fakeAdminRepository{admins: map[string]bool{testAdminUserID: false}}
+	users := &fakeSMTPTestUserRepository{user: identity.User{ID: testAdminUserID, Email: "admin@example.com"}}
+	tester := &fakeSMTPTester{}
+	svc := NewService(repo, fakeSecretCipher{}, Defaults{})
+	svc.ConfigureSMTPTest(users, tester)
+
+	err := svc.TestSMTP(context.Background(), TestSMTPInput{CurrentUserID: testAdminUserID})
+	if !errors.Is(err, ErrForbidden) {
+		t.Fatalf("expected forbidden error, got %v", err)
+	}
+	if users.calls != 0 || tester.calls != 0 {
+		t.Fatalf("expected authorization failure before SMTP work, lookups=%d sends=%d", users.calls, tester.calls)
+	}
+}
+
+func TestTestSMTPSendsToCurrentAdministrator(t *testing.T) {
+	repo := &fakeAdminRepository{admins: map[string]bool{testAdminUserID: true}}
+	users := &fakeSMTPTestUserRepository{user: identity.User{ID: testAdminUserID, Email: "admin@example.com"}}
+	tester := &fakeSMTPTester{}
+	svc := NewService(repo, fakeSecretCipher{}, Defaults{})
+	svc.ConfigureSMTPTest(users, tester)
+
+	err := svc.TestSMTP(context.Background(), TestSMTPInput{CurrentUserID: testAdminUserID})
+	if err != nil {
+		t.Fatalf("test SMTP: %v", err)
+	}
+	if users.userID != testAdminUserID || tester.recipient != users.user.Email {
+		t.Fatalf("unexpected SMTP test target: user=%q recipient=%q", users.userID, tester.recipient)
+	}
+}
+
+func TestTestSMTPMapsDeliveryFailure(t *testing.T) {
+	repo := &fakeAdminRepository{admins: map[string]bool{testAdminUserID: true}}
+	users := &fakeSMTPTestUserRepository{user: identity.User{ID: testAdminUserID, Email: "admin@example.com"}}
+	tester := &fakeSMTPTester{err: errors.New("delivery failed")}
+	svc := NewService(repo, fakeSecretCipher{}, Defaults{})
+	svc.ConfigureSMTPTest(users, tester)
+
+	err := svc.TestSMTP(context.Background(), TestSMTPInput{CurrentUserID: testAdminUserID})
+	if !errors.Is(err, ErrSMTPTestFailed) {
+		t.Fatalf("expected SMTP test failure, got %v", err)
+	}
+}
+
 func TestUpdateSettingsStoresEncryptedPasswordAndAuditEvents(t *testing.T) {
 	repo := &fakeAdminRepository{
 		admins:   map[string]bool{"admin-1": true},
 		settings: map[string]StoredSetting{},
 	}
 	svc := NewService(repo, fakeSecretCipher{}, Defaults{
-		RegistrationEnabled: true,
-		BackendBaseURL:      "https://api.example.com",
-		PublicWebBaseURL:    "https://app.example.com",
+		RegistrationEnabled:      true,
+		ProjectCreationEnabled:   true,
+		CredentialChangesEnabled: true,
 		SMTP: SMTPSettings{
 			Port:           587,
 			TLSMode:        "starttls",
@@ -41,8 +87,8 @@ func TestUpdateSettingsStoresEncryptedPasswordAndAuditEvents(t *testing.T) {
 	})
 
 	registrationEnabled := false
-	backendBaseURL := "https://controller.netstamp.test"
-	publicWebBaseURL := "https://console.netstamp.test"
+	projectCreationEnabled := false
+	credentialChangesEnabled := false
 	host := "smtp.netstamp.test"
 	port := int32(465)
 	username := "netstamp"
@@ -52,10 +98,10 @@ func TestUpdateSettingsStoresEncryptedPasswordAndAuditEvents(t *testing.T) {
 	timeoutSeconds := int32(15)
 
 	settings, err := svc.UpdateSettings(context.Background(), UpdateSettingsInput{
-		CurrentUserID:       "admin-1",
-		RegistrationEnabled: &registrationEnabled,
-		BackendBaseURL:      &backendBaseURL,
-		PublicWebBaseURL:    &publicWebBaseURL,
+		CurrentUserID:            "admin-1",
+		RegistrationEnabled:      &registrationEnabled,
+		ProjectCreationEnabled:   &projectCreationEnabled,
+		CredentialChangesEnabled: &credentialChangesEnabled,
 		SMTP: UpdateSMTPSettingsInput{
 			Host:           &host,
 			Port:           &port,
@@ -73,8 +119,8 @@ func TestUpdateSettingsStoresEncryptedPasswordAndAuditEvents(t *testing.T) {
 	if settings.RegistrationEnabled {
 		t.Fatal("expected registration to be disabled")
 	}
-	if settings.BackendBaseURL != backendBaseURL {
-		t.Fatalf("expected backend base URL override, got %q", settings.BackendBaseURL)
+	if settings.ProjectCreationEnabled || settings.CredentialChangesEnabled {
+		t.Fatal("expected instance access policies to be disabled")
 	}
 	if settings.SMTP.Password != password || !settings.SMTP.PasswordSet {
 		t.Fatal("expected decrypted SMTP password in effective internal settings")
@@ -94,7 +140,7 @@ func TestUpdateSettingsStoresEncryptedPasswordAndAuditEvents(t *testing.T) {
 		t.Fatal("expected secret setting to omit public JSON value")
 	}
 
-	for _, key := range []string{keyRegistrationEnabled, keyBackendBaseURL, keyPublicWebBaseURL, keySMTPPassword} {
+	for _, key := range []string{keyRegistrationEnabled, keyProjectCreationEnabled, keyCredentialChangesEnabled, keySMTPPassword} {
 		if !slices.Contains(repo.auditKeys, key) {
 			t.Fatalf("expected audit event for %s, got %#v", key, repo.auditKeys)
 		}
@@ -117,6 +163,31 @@ func TestEffectiveSettingsReturnsErrorWhenSecretCannotDecrypt(t *testing.T) {
 	_, err := svc.EffectiveSettings(context.Background())
 	if err == nil {
 		t.Fatal("expected decrypt error")
+	}
+}
+
+func TestUpdateSettingsStoresProviderSecretEncrypted(t *testing.T) {
+	repo := &fakeAdminRepository{admins: map[string]bool{"admin-1": true}, settings: map[string]StoredSetting{}}
+	svc := NewService(repo, fakeSecretCipher{}, Defaults{})
+	enabled := true
+	issuerURL := "https://identity.example.com"
+	clientID := "netstamp"
+	clientSecret := "provider-secret"
+	displayName := "Company SSO"
+
+	settings, err := svc.UpdateSettings(context.Background(), UpdateSettingsInput{CurrentUserID: "admin-1", OIDC: UpdateExternalProviderSettingsInput{Enabled: &enabled, IssuerURL: &issuerURL, ClientID: &clientID, ClientSecret: &clientSecret, DisplayName: &displayName}})
+	if err != nil {
+		t.Fatalf("update provider settings: %v", err)
+	}
+	if !settings.OIDC.Enabled || settings.OIDC.ClientSecret != clientSecret || !settings.OIDC.ClientSecretSet {
+		t.Fatalf("unexpected effective OIDC settings: %#v", settings.OIDC)
+	}
+	stored := repo.settings[keyOIDCClientSecret]
+	if !stored.Secret || string(stored.EncryptedValue) == clientSecret || len(stored.Value) != 0 {
+		t.Fatalf("expected encrypted provider secret, got %#v", stored)
+	}
+	if strings.Contains(string(repo.settings[keyOIDCSettings].Value), clientSecret) {
+		t.Fatal("provider public settings must not contain the client secret")
 	}
 }
 
@@ -400,6 +471,31 @@ func (r *fakeAdminRepository) CreateSystemSettingAuditEvent(_ context.Context, k
 }
 
 type fakeSecretCipher struct{}
+
+type fakeSMTPTestUserRepository struct {
+	user   identity.User
+	err    error
+	userID string
+	calls  int
+}
+
+func (r *fakeSMTPTestUserRepository) GetUserByID(_ context.Context, userID string) (identity.User, error) {
+	r.calls++
+	r.userID = userID
+	return r.user, r.err
+}
+
+type fakeSMTPTester struct {
+	recipient string
+	err       error
+	calls     int
+}
+
+func (t *fakeSMTPTester) SendTestEmail(_ context.Context, recipient string) error {
+	t.calls++
+	t.recipient = recipient
+	return t.err
+}
 
 type fakeAuthenticationMethodRepository struct {
 	hasPassword   bool

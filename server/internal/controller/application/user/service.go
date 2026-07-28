@@ -15,6 +15,11 @@ type Service struct {
 	hasher      PasswordHasher
 	events      EventRecorder
 	authMethods AuthenticationRepository
+	policy      interface{ CredentialChangesEnabled(context.Context) bool }
+}
+
+func (s *Service) ConfigureInstancePolicy(policy interface{ CredentialChangesEnabled(context.Context) bool }) {
+	s.policy = policy
 }
 
 func (s *Service) ConfigureAuthenticationMethods(repo AuthenticationRepository) { s.authMethods = repo }
@@ -62,6 +67,9 @@ func (s *Service) UpdateCurrentUser(ctx context.Context, input UpdateCurrentUser
 func (s *Service) ChangeCurrentUserEmail(ctx context.Context, input ChangeCurrentUserEmailInput) (UserOutput, error) {
 	ctx, flow := s.startUserFlow(ctx, "user.email.change", UserActionChangeEmail, input.CurrentUserID)
 	defer flow.end()
+	if s.policy != nil && !s.policy.CredentialChangesEnabled(ctx) {
+		return UserOutput{}, flow.businessFailure(UserEventChangeEmailFailure, UserReasonForbidden, ErrForbidden)
+	}
 
 	input, err := normalizeChangeCurrentUserEmailInput(input)
 	if err != nil {
@@ -92,6 +100,9 @@ func (s *Service) ChangeCurrentUserEmail(ctx context.Context, input ChangeCurren
 func (s *Service) ChangeCurrentUserPassword(ctx context.Context, input ChangeCurrentUserPasswordInput) error {
 	ctx, flow := s.startUserFlow(ctx, "user.password.change", UserActionChangePassword, input.CurrentUserID)
 	defer flow.end()
+	if s.policy != nil && !s.policy.CredentialChangesEnabled(ctx) {
+		return flow.businessFailure(UserEventChangePasswordFailure, UserReasonForbidden, ErrForbidden)
+	}
 
 	input, err := normalizeChangeCurrentUserPasswordInput(input)
 	if err != nil {
@@ -147,6 +158,9 @@ func (s *Service) ListAuthenticationMethods(ctx context.Context, userID string) 
 }
 
 func (s *Service) RemoveCurrentUserPassword(ctx context.Context, userID, sessionID string) error {
+	if s.policy != nil && !s.policy.CredentialChangesEnabled(ctx) {
+		return ErrForbidden
+	}
 	if s.authMethods == nil || userID == "" {
 		return ErrInvalidInput
 	}
@@ -172,6 +186,9 @@ func (s *Service) RemoveCurrentUserPassword(ctx context.Context, userID, session
 }
 
 func (s *Service) RemoveCurrentUserIdentity(ctx context.Context, userID, sessionID, identityID string) error {
+	if s.policy != nil && !s.policy.CredentialChangesEnabled(ctx) {
+		return ErrForbidden
+	}
 	if s.authMethods == nil || userID == "" || sessionID == "" || identityID == "" {
 		return ErrInvalidInput
 	}

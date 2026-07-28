@@ -26,6 +26,10 @@ type ExternalAuthRepository interface {
 	DeleteExpiredExternalAuthFlows(ctx context.Context, now time.Time) error
 }
 
+type ExternalProviderSource interface {
+	ExternalProviderRegistrations(ctx context.Context) ([]ExternalProviderRegistration, error)
+}
+
 type SystemAdminRepository interface {
 	GrantFirstSystemAdminIfNone(ctx context.Context, userID string) (bool, error)
 }

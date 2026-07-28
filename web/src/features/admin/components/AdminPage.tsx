@@ -6,6 +6,7 @@ import {
 	useExportAdminDataMutation,
 	useImportAdminDataMutation,
 	useSetManagedUserPasswordMutation,
+	useTestAdminSMTPMutation,
 	useUpdateAdminSettingsMutation,
 	useUpdateManagedUserMutation
 } from "@/shared/api/mutations";
@@ -15,6 +16,7 @@ import { useConfirm, usePromptDialog } from "@/shared/components/confirmContext"
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { UnsavedChangesBar } from "@/shared/components/UnsavedChangesBar";
+import { loadRuntimeConfig } from "@/shared/config/runtime";
 import { pushToast } from "@/shared/toast/toastStore";
 import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
 import { Badge, BodyCopy, Button, Checkbox, DataTable, Panel, SelectField, Spinner, TextField, type DataColumn } from "@netstamp/ui";
@@ -27,8 +29,8 @@ import styles from "./AdminPage.module.css";
 interface AdminFormState {
 	registrationEnabled: boolean;
 	emailVerificationRequired: boolean;
-	backendBaseUrl: string;
-	publicWebBaseUrl: string;
+	projectCreationEnabled: boolean;
+	credentialChangesEnabled: boolean;
 	smtpHost: string;
 	smtpPort: string;
 	smtpUsername: string;
@@ -37,13 +39,45 @@ interface AdminFormState {
 	smtpFrom: string;
 	smtpTLSMode: "starttls" | "implicit" | "none";
 	smtpTimeoutSeconds: string;
+	oidcEnabled: boolean;
+	oidcIssuerUrl: string;
+	oidcClientId: string;
+	oidcClientSecret: string;
+	oidcClearClientSecret: boolean;
+	oidcDisplayName: string;
+	oidcJitEnabled: boolean;
+	googleEnabled: boolean;
+	googleClientId: string;
+	googleClientSecret: string;
+	googleClearClientSecret: boolean;
+	googleDisplayName: string;
+	googleJitEnabled: boolean;
+	googleAllowedDomains: string;
+	githubEnabled: boolean;
+	githubClientId: string;
+	githubClientSecret: string;
+	githubClearClientSecret: boolean;
+	githubDisplayName: string;
+	githubJitEnabled: boolean;
+	githubAllowSignup: boolean;
+	googleTagId: string;
+	clarityProjectId: string;
+	metaPixelId: string;
+	postHogKey: string;
+	postHogHost: string;
+	plausibleDomain: string;
+	plausibleScriptUrl: string;
+	umamiWebsiteId: string;
+	umamiScriptUrl: string;
+	consentMode: "regional" | "always" | "never";
+	consentCountries: string;
 }
 
 const defaultForm: AdminFormState = {
 	registrationEnabled: true,
 	emailVerificationRequired: false,
-	backendBaseUrl: "",
-	publicWebBaseUrl: "",
+	projectCreationEnabled: true,
+	credentialChangesEnabled: true,
 	smtpHost: "",
 	smtpPort: "587",
 	smtpUsername: "",
@@ -51,15 +85,47 @@ const defaultForm: AdminFormState = {
 	smtpClearPassword: false,
 	smtpFrom: "",
 	smtpTLSMode: "starttls",
-	smtpTimeoutSeconds: "10"
+	smtpTimeoutSeconds: "10",
+	oidcEnabled: false,
+	oidcIssuerUrl: "",
+	oidcClientId: "",
+	oidcClientSecret: "",
+	oidcClearClientSecret: false,
+	oidcDisplayName: "Single sign-on",
+	oidcJitEnabled: false,
+	googleEnabled: false,
+	googleClientId: "",
+	googleClientSecret: "",
+	googleClearClientSecret: false,
+	googleDisplayName: "Google",
+	googleJitEnabled: false,
+	googleAllowedDomains: "",
+	githubEnabled: false,
+	githubClientId: "",
+	githubClientSecret: "",
+	githubClearClientSecret: false,
+	githubDisplayName: "GitHub",
+	githubJitEnabled: false,
+	githubAllowSignup: true,
+	googleTagId: "",
+	clarityProjectId: "",
+	metaPixelId: "",
+	postHogKey: "",
+	postHogHost: "https://us.i.posthog.com",
+	plausibleDomain: "",
+	plausibleScriptUrl: "",
+	umamiWebsiteId: "",
+	umamiScriptUrl: "",
+	consentMode: "regional",
+	consentCountries: ""
 };
 
 function formFromSettings(settings: ApiAdminSettings): AdminFormState {
 	return {
-		registrationEnabled: settings.registrationEnabled,
-		emailVerificationRequired: settings.emailVerificationRequired,
-		backendBaseUrl: settings.backendBaseUrl,
-		publicWebBaseUrl: settings.publicWebBaseUrl,
+		registrationEnabled: settings.access.registrationEnabled,
+		emailVerificationRequired: settings.access.emailVerificationRequired,
+		projectCreationEnabled: settings.access.projectCreationEnabled,
+		credentialChangesEnabled: settings.access.credentialChangesEnabled,
 		smtpHost: settings.smtp.host,
 		smtpPort: String(settings.smtp.port),
 		smtpUsername: settings.smtp.username,
@@ -67,7 +133,39 @@ function formFromSettings(settings: ApiAdminSettings): AdminFormState {
 		smtpClearPassword: false,
 		smtpFrom: settings.smtp.from,
 		smtpTLSMode: settings.smtp.tlsMode,
-		smtpTimeoutSeconds: String(settings.smtp.timeoutSeconds)
+		smtpTimeoutSeconds: String(settings.smtp.timeoutSeconds),
+		oidcEnabled: settings.authenticationProviders.oidc.enabled,
+		oidcIssuerUrl: settings.authenticationProviders.oidc.issuerUrl,
+		oidcClientId: settings.authenticationProviders.oidc.clientId,
+		oidcClientSecret: "",
+		oidcClearClientSecret: false,
+		oidcDisplayName: settings.authenticationProviders.oidc.displayName,
+		oidcJitEnabled: settings.authenticationProviders.oidc.jitEnabled,
+		googleEnabled: settings.authenticationProviders.google.enabled,
+		googleClientId: settings.authenticationProviders.google.clientId,
+		googleClientSecret: "",
+		googleClearClientSecret: false,
+		googleDisplayName: settings.authenticationProviders.google.displayName,
+		googleJitEnabled: settings.authenticationProviders.google.jitEnabled,
+		googleAllowedDomains: settings.authenticationProviders.google.allowedDomains,
+		githubEnabled: settings.authenticationProviders.github.enabled,
+		githubClientId: settings.authenticationProviders.github.clientId,
+		githubClientSecret: "",
+		githubClearClientSecret: false,
+		githubDisplayName: settings.authenticationProviders.github.displayName,
+		githubJitEnabled: settings.authenticationProviders.github.jitEnabled,
+		githubAllowSignup: settings.authenticationProviders.github.allowSignup,
+		googleTagId: settings.tracking.googleTagId,
+		clarityProjectId: settings.tracking.clarityProjectId,
+		metaPixelId: settings.tracking.metaPixelId,
+		postHogKey: settings.tracking.postHogKey,
+		postHogHost: settings.tracking.postHogHost,
+		plausibleDomain: settings.tracking.plausibleDomain,
+		plausibleScriptUrl: settings.tracking.plausibleScriptUrl,
+		umamiWebsiteId: settings.tracking.umamiWebsiteId,
+		umamiScriptUrl: settings.tracking.umamiScriptUrl,
+		consentMode: settings.tracking.consentMode,
+		consentCountries: settings.tracking.consentCountries
 	};
 }
 
@@ -140,6 +238,7 @@ export function AdminPage() {
 	const settingsQuery = useQuery({ ...adminQueries.settings(), enabled: Boolean(session?.user.isSystemAdmin) });
 	const usersQuery = useQuery({ ...adminQueries.users(), enabled: Boolean(session?.user.isSystemAdmin) });
 	const updateSettingsMutation = useUpdateAdminSettingsMutation();
+	const testSMTPMutation = useTestAdminSMTPMutation();
 	const updateManagedUserMutation = useUpdateManagedUserMutation();
 	const setManagedUserPasswordMutation = useSetManagedUserPasswordMutation();
 	const clearManagedUserPasswordMutation = useClearManagedUserPasswordMutation();
@@ -252,10 +351,12 @@ export function AdminPage() {
 		void requireSudo(() =>
 			updateSettingsMutation.mutate(
 				{
-					registrationEnabled: form.registrationEnabled,
-					emailVerificationRequired: form.emailVerificationRequired,
-					backendBaseUrl: form.backendBaseUrl,
-					publicWebBaseUrl: form.publicWebBaseUrl,
+					access: {
+						registrationEnabled: form.registrationEnabled,
+						emailVerificationRequired: form.emailVerificationRequired,
+						projectCreationEnabled: form.projectCreationEnabled,
+						credentialChangesEnabled: form.credentialChangesEnabled
+					},
 					smtp: {
 						host: form.smtpHost,
 						port: numberValue(form.smtpPort, 587),
@@ -265,10 +366,53 @@ export function AdminPage() {
 						from: form.smtpFrom,
 						tlsMode: form.smtpTLSMode,
 						timeoutSeconds: numberValue(form.smtpTimeoutSeconds, 10)
+					},
+					authenticationProviders: {
+						oidc: {
+							enabled: form.oidcEnabled,
+							issuerUrl: form.oidcIssuerUrl,
+							clientId: form.oidcClientId,
+							...(form.oidcClientSecret ? { clientSecret: form.oidcClientSecret } : {}),
+							clearClientSecret: form.oidcClearClientSecret,
+							displayName: form.oidcDisplayName,
+							jitEnabled: form.oidcJitEnabled
+						},
+						google: {
+							enabled: form.googleEnabled,
+							clientId: form.googleClientId,
+							...(form.googleClientSecret ? { clientSecret: form.googleClientSecret } : {}),
+							clearClientSecret: form.googleClearClientSecret,
+							displayName: form.googleDisplayName,
+							jitEnabled: form.googleJitEnabled,
+							allowedDomains: form.googleAllowedDomains
+						},
+						github: {
+							enabled: form.githubEnabled,
+							clientId: form.githubClientId,
+							...(form.githubClientSecret ? { clientSecret: form.githubClientSecret } : {}),
+							clearClientSecret: form.githubClearClientSecret,
+							displayName: form.githubDisplayName,
+							jitEnabled: form.githubJitEnabled,
+							allowSignup: form.githubAllowSignup
+						}
+					},
+					tracking: {
+						googleTagId: form.googleTagId,
+						clarityProjectId: form.clarityProjectId,
+						metaPixelId: form.metaPixelId,
+						postHogKey: form.postHogKey,
+						postHogHost: form.postHogHost,
+						plausibleDomain: form.plausibleDomain,
+						plausibleScriptUrl: form.plausibleScriptUrl,
+						umamiWebsiteId: form.umamiWebsiteId,
+						umamiScriptUrl: form.umamiScriptUrl,
+						consentMode: form.consentMode,
+						consentCountries: form.consentCountries
 					}
 				},
 				{
 					onSuccess: () => {
+						void loadRuntimeConfig();
 						setEditedForm(null);
 						pushToast({ title: t("settings.saved"), message: t("settings.savedDescription"), tone: "success" });
 					},
@@ -508,28 +652,175 @@ export function AdminPage() {
 									<small>{t("settings.verificationDescription")}</small>
 								</span>
 							</label>
-						</Panel>
-
-						<Panel tone="glass" title={t("settings.publicOrigins")}>
-							<div className={styles.fieldStack}>
-								<TextField
-									label={t("settings.backendUrl")}
-									value={form.backendBaseUrl}
-									placeholder="https://app.netstamp.dev"
-									onChange={event => update("backendBaseUrl", event.currentTarget.value)}
-								/>
-								<TextField
-									label={t("settings.webUrl")}
-									value={form.publicWebBaseUrl}
-									placeholder="https://app.netstamp.dev"
-									helper={t("settings.webUrlHelper")}
-									onChange={event => update("publicWebBaseUrl", event.currentTarget.value)}
-								/>
-							</div>
+							<label className={styles.checkboxRow}>
+								<Checkbox checked={form.projectCreationEnabled} onChange={event => update("projectCreationEnabled", event.currentTarget.checked)} />
+								<span>
+									<strong>{t("settings.projectCreation")}</strong>
+									<small>{t("settings.projectCreationDescription")}</small>
+								</span>
+							</label>
+							<label className={styles.checkboxRow}>
+								<Checkbox checked={form.credentialChangesEnabled} onChange={event => update("credentialChangesEnabled", event.currentTarget.checked)} />
+								<span>
+									<strong>{t("settings.credentialChanges")}</strong>
+									<small>{t("settings.credentialChangesDescription")}</small>
+								</span>
+							</label>
 						</Panel>
 					</div>
 
-					<Panel tone="glass" title={t("settings.smtpDelivery")}>
+					<Panel tone="glass" title={t("settings.authenticationProviders")}>
+						<div className={styles.grid}>
+							<Panel tone="deep" title="OIDC">
+								<label className={styles.checkboxRow}>
+									<Checkbox checked={form.oidcEnabled} onChange={event => update("oidcEnabled", event.currentTarget.checked)} />
+									<span>
+										<strong>{t("settings.enabled")}</strong>
+									</span>
+								</label>
+								<div className={styles.fieldStack}>
+									<TextField label={t("settings.issuerUrl")} value={form.oidcIssuerUrl} onChange={event => update("oidcIssuerUrl", event.currentTarget.value)} />
+									<TextField label={t("settings.clientId")} value={form.oidcClientId} onChange={event => update("oidcClientId", event.currentTarget.value)} />
+									<TextField
+										label={t("settings.clientSecret")}
+										type="password"
+										value={form.oidcClientSecret}
+										helper={settingsQuery.data?.settings.authenticationProviders.oidc.clientSecretSet ? t("settings.clientSecretStored") : t("settings.clientSecretEmpty")}
+										disabled={form.oidcClearClientSecret}
+										onChange={event => update("oidcClientSecret", event.currentTarget.value)}
+									/>
+									<TextField label={t("settings.displayName")} value={form.oidcDisplayName} onChange={event => update("oidcDisplayName", event.currentTarget.value)} />
+								</div>
+								<label className={styles.checkboxRow}>
+									<Checkbox checked={form.oidcJitEnabled} onChange={event => update("oidcJitEnabled", event.currentTarget.checked)} />
+									<span>
+										<strong>{t("settings.jitProvisioning")}</strong>
+									</span>
+								</label>
+								<label className={styles.checkboxRow}>
+									<Checkbox
+										checked={form.oidcClearClientSecret}
+										onChange={event => {
+											update("oidcClearClientSecret", event.currentTarget.checked);
+											if (event.currentTarget.checked) update("oidcClientSecret", "");
+										}}
+									/>
+									<span>
+										<strong>{t("settings.clearClientSecret")}</strong>
+										<small>{t("settings.clearClientSecretDescription")}</small>
+									</span>
+								</label>
+							</Panel>
+							<Panel tone="deep" title="Google">
+								<label className={styles.checkboxRow}>
+									<Checkbox checked={form.googleEnabled} onChange={event => update("googleEnabled", event.currentTarget.checked)} />
+									<span>
+										<strong>{t("settings.enabled")}</strong>
+									</span>
+								</label>
+								<div className={styles.fieldStack}>
+									<TextField label={t("settings.clientId")} value={form.googleClientId} onChange={event => update("googleClientId", event.currentTarget.value)} />
+									<TextField
+										label={t("settings.clientSecret")}
+										type="password"
+										value={form.googleClientSecret}
+										helper={settingsQuery.data?.settings.authenticationProviders.google.clientSecretSet ? t("settings.clientSecretStored") : t("settings.clientSecretEmpty")}
+										disabled={form.googleClearClientSecret}
+										onChange={event => update("googleClientSecret", event.currentTarget.value)}
+									/>
+									<TextField label={t("settings.displayName")} value={form.googleDisplayName} onChange={event => update("googleDisplayName", event.currentTarget.value)} />
+									<TextField label={t("settings.allowedDomains")} value={form.googleAllowedDomains} onChange={event => update("googleAllowedDomains", event.currentTarget.value)} />
+								</div>
+								<label className={styles.checkboxRow}>
+									<Checkbox checked={form.googleJitEnabled} onChange={event => update("googleJitEnabled", event.currentTarget.checked)} />
+									<span>
+										<strong>{t("settings.jitProvisioning")}</strong>
+									</span>
+								</label>
+								<label className={styles.checkboxRow}>
+									<Checkbox
+										checked={form.googleClearClientSecret}
+										onChange={event => {
+											update("googleClearClientSecret", event.currentTarget.checked);
+											if (event.currentTarget.checked) update("googleClientSecret", "");
+										}}
+									/>
+									<span>
+										<strong>{t("settings.clearClientSecret")}</strong>
+										<small>{t("settings.clearClientSecretDescription")}</small>
+									</span>
+								</label>
+							</Panel>
+							<Panel tone="deep" title="GitHub">
+								<label className={styles.checkboxRow}>
+									<Checkbox checked={form.githubEnabled} onChange={event => update("githubEnabled", event.currentTarget.checked)} />
+									<span>
+										<strong>{t("settings.enabled")}</strong>
+									</span>
+								</label>
+								<div className={styles.fieldStack}>
+									<TextField label={t("settings.clientId")} value={form.githubClientId} onChange={event => update("githubClientId", event.currentTarget.value)} />
+									<TextField
+										label={t("settings.clientSecret")}
+										type="password"
+										value={form.githubClientSecret}
+										helper={settingsQuery.data?.settings.authenticationProviders.github.clientSecretSet ? t("settings.clientSecretStored") : t("settings.clientSecretEmpty")}
+										disabled={form.githubClearClientSecret}
+										onChange={event => update("githubClientSecret", event.currentTarget.value)}
+									/>
+									<TextField label={t("settings.displayName")} value={form.githubDisplayName} onChange={event => update("githubDisplayName", event.currentTarget.value)} />
+								</div>
+								<label className={styles.checkboxRow}>
+									<Checkbox checked={form.githubJitEnabled} onChange={event => update("githubJitEnabled", event.currentTarget.checked)} />
+									<span>
+										<strong>{t("settings.jitProvisioning")}</strong>
+									</span>
+								</label>
+								<label className={styles.checkboxRow}>
+									<Checkbox
+										checked={form.githubClearClientSecret}
+										onChange={event => {
+											update("githubClearClientSecret", event.currentTarget.checked);
+											if (event.currentTarget.checked) update("githubClientSecret", "");
+										}}
+									/>
+									<span>
+										<strong>{t("settings.clearClientSecret")}</strong>
+										<small>{t("settings.clearClientSecretDescription")}</small>
+									</span>
+								</label>
+								<label className={styles.checkboxRow}>
+									<Checkbox checked={form.githubAllowSignup} onChange={event => update("githubAllowSignup", event.currentTarget.checked)} />
+									<span>
+										<strong>{t("settings.allowSignup")}</strong>
+									</span>
+								</label>
+							</Panel>
+						</div>
+					</Panel>
+
+					<Panel
+						tone="glass"
+						title={t("settings.smtpDelivery")}
+						actions={
+							<Button
+								type="button"
+								size="sm"
+								variant="outline"
+								disabled={!settingsQuery.data?.settings.smtp.configured || testSMTPMutation.isPending}
+								onClick={() =>
+									void requireSudo(() =>
+										testSMTPMutation.mutate(undefined, {
+											onSuccess: () => pushToast({ title: t("settings.testEmailSent"), message: t("settings.testEmailSentDescription"), tone: "success" }),
+											onError: error => pushToast({ title: t("settings.testEmailFailed"), message: requestErrorMessage(error, t("settings.testEmailError")), tone: "critical" })
+										})
+									)
+								}
+							>
+								{testSMTPMutation.isPending ? t("settings.testingEmail") : t("settings.testEmail")}
+							</Button>
+						}
+					>
 						<div className={styles.smtpGrid}>
 							<TextField label={t("settings.host")} value={form.smtpHost} placeholder="smtp.example.com" onChange={event => update("smtpHost", event.currentTarget.value)} />
 							<TextField label={t("settings.port")} type="number" min={1} max={65535} value={form.smtpPort} onChange={event => update("smtpPort", event.currentTarget.value)} />
@@ -571,6 +862,31 @@ export function AdminPage() {
 								<small>{t("settings.clearPasswordDescription")}</small>
 							</span>
 						</label>
+					</Panel>
+
+					<Panel tone="glass" title={t("settings.analyticsPrivacy")}>
+						<div className={styles.smtpGrid}>
+							<TextField label={t("settings.googleTagId")} value={form.googleTagId} onChange={event => update("googleTagId", event.currentTarget.value)} />
+							<TextField label={t("settings.clarityProjectId")} value={form.clarityProjectId} onChange={event => update("clarityProjectId", event.currentTarget.value)} />
+							<TextField label={t("settings.metaPixelId")} value={form.metaPixelId} onChange={event => update("metaPixelId", event.currentTarget.value)} />
+							<TextField label={t("settings.postHogKey")} value={form.postHogKey} onChange={event => update("postHogKey", event.currentTarget.value)} />
+							<TextField label={t("settings.postHogHost")} value={form.postHogHost} onChange={event => update("postHogHost", event.currentTarget.value)} />
+							<TextField label={t("settings.plausibleDomain")} value={form.plausibleDomain} onChange={event => update("plausibleDomain", event.currentTarget.value)} />
+							<TextField label={t("settings.plausibleScriptUrl")} value={form.plausibleScriptUrl} onChange={event => update("plausibleScriptUrl", event.currentTarget.value)} />
+							<TextField label={t("settings.umamiWebsiteId")} value={form.umamiWebsiteId} onChange={event => update("umamiWebsiteId", event.currentTarget.value)} />
+							<TextField label={t("settings.umamiScriptUrl")} value={form.umamiScriptUrl} onChange={event => update("umamiScriptUrl", event.currentTarget.value)} />
+							<SelectField
+								label={t("settings.consentMode")}
+								value={form.consentMode}
+								options={[
+									{ value: "regional", label: t("settings.regional") },
+									{ value: "always", label: t("settings.always") },
+									{ value: "never", label: t("settings.never") }
+								]}
+								onChange={event => update("consentMode", event.currentTarget.value as AdminFormState["consentMode"])}
+							/>
+							<TextField label={t("settings.consentCountries")} value={form.consentCountries} onChange={event => update("consentCountries", event.currentTarget.value)} />
+						</div>
 					</Panel>
 
 					<UnsavedChangesBar show={hasAdminSettingsChanges} saveType="submit" saving={updateSettingsMutation.isPending} onReset={() => setEditedForm(null)} />

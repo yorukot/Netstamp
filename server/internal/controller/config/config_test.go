@@ -64,23 +64,11 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.Database.ConnectionString() != testDatabaseConnectionString {
 		t.Fatalf("expected connection string, got %q", cfg.Database.ConnectionString())
 	}
-	if !cfg.Auth.RegistrationEnabled {
-		t.Fatal("expected registration to be enabled by default")
-	}
 	if cfg.Auth.SudoTTL != 5*time.Minute {
 		t.Fatalf("expected five-minute sudo TTL, got %s", cfg.Auth.SudoTTL)
 	}
-	if cfg.Auth.OIDCEnabled {
-		t.Fatal("expected OIDC to be disabled by default")
-	}
-	if cfg.Auth.GoogleEnabled || cfg.Auth.GitHubEnabled {
-		t.Fatal("expected Google and GitHub authentication to be disabled by default")
-	}
 	if cfg.Auth.ExternalFlowTTL != 10*time.Minute {
 		t.Fatalf("expected ten-minute external auth flow TTL, got %s", cfg.Auth.ExternalFlowTTL)
-	}
-	if cfg.Alerting.SMTP.Configured() {
-		t.Fatal("expected SMTP to be unconfigured by default")
 	}
 	if !cfg.AssignmentRefresh.WorkerEnabled {
 		t.Fatal("expected assignment refresh worker to be enabled by default")
@@ -93,15 +81,6 @@ func TestLoadDefaults(t *testing.T) {
 	}
 	if cfg.AssignmentRefresh.WorkerStaleTimeout != time.Minute {
 		t.Fatalf("expected default assignment refresh stale timeout, got %s", cfg.AssignmentRefresh.WorkerStaleTimeout)
-	}
-	if cfg.Alerting.SMTP.Port != 587 {
-		t.Fatalf("expected default SMTP port, got %d", cfg.Alerting.SMTP.Port)
-	}
-	if cfg.Alerting.SMTP.TLSMode != "starttls" {
-		t.Fatalf("expected default SMTP TLS mode, got %q", cfg.Alerting.SMTP.TLSMode)
-	}
-	if cfg.Alerting.SMTP.Timeout != 10*time.Second {
-		t.Fatalf("expected default SMTP timeout, got %s", cfg.Alerting.SMTP.Timeout)
 	}
 }
 
@@ -126,39 +105,13 @@ func TestLoadFromEnvironment(t *testing.T) {
 	t.Setenv(keyDatabaseName, "netstamp_prod")
 	t.Setenv(keyDatabaseSSLMode, "require")
 	t.Setenv(keyDBMaxConns, "12")
-	t.Setenv(keyAuthRegistrationEnabled, "false")
 	t.Setenv(keyAuthSudoTTL, "4m")
-	t.Setenv(keyAuthOIDCEnabled, "true")
-	t.Setenv(keyAuthOIDCIssuerURL, "https://identity.example.com")
-	t.Setenv(keyAuthOIDCClientID, "netstamp")
-	t.Setenv(keyAuthOIDCClientSecret, "oidc-secret")
-	t.Setenv(keyAuthOIDCDisplayName, "Company SSO")
-	t.Setenv(keyAuthOIDCJITEnabled, "true")
 	t.Setenv(keyAuthExternalFlowTTL, "8m")
-	t.Setenv(keyAuthGoogleEnabled, "true")
-	t.Setenv(keyAuthGoogleClientID, "google-client")
-	t.Setenv(keyAuthGoogleClientSecret, "google-secret")
-	t.Setenv(keyAuthGoogleDisplayName, "Google Workspace")
-	t.Setenv(keyAuthGoogleJITEnabled, "true")
-	t.Setenv(keyAuthGoogleAllowedHostedDomains, "example.com, example.org")
-	t.Setenv(keyAuthGitHubEnabled, "true")
-	t.Setenv(keyAuthGitHubClientID, "github-client")
-	t.Setenv(keyAuthGitHubClientSecret, "github-secret")
-	t.Setenv(keyAuthGitHubDisplayName, "GitHub Enterprise Team")
-	t.Setenv(keyAuthGitHubJITEnabled, "true")
-	t.Setenv(keyAuthGitHubAllowSignup, "false")
 	t.Setenv(keyOTLPTracesEndpoint, "http://victoria-traces:10428/insert/opentelemetry/v1/traces")
 	t.Setenv(keyAssignmentRefreshWorkerEnabled, "false")
 	t.Setenv(keyAssignmentRefreshWorkerInterval, "7s")
 	t.Setenv(keyAssignmentRefreshWorkerBatchSize, "9")
 	t.Setenv(keyAssignmentRefreshWorkerStaleTimeout, "2m")
-	t.Setenv(keySMTPHost, "smtp.example.com")
-	t.Setenv(keySMTPPort, "465")
-	t.Setenv(keySMTPUsername, "netstamp")
-	t.Setenv(keySMTPPassword, "secret")
-	t.Setenv(keySMTPFrom, "alerts@example.com")
-	t.Setenv(keySMTPTLSMode, "implicit")
-	t.Setenv(keySMTPTimeout, "3s")
 
 	cfg, err := Load()
 	if err != nil {
@@ -226,23 +179,11 @@ func TestLoadFromEnvironment(t *testing.T) {
 	if cfg.Database.MaxConns != 12 {
 		t.Fatalf("expected DB max conns override, got %d", cfg.Database.MaxConns)
 	}
-	if cfg.Auth.RegistrationEnabled {
-		t.Fatal("expected registration to be disabled from environment")
-	}
 	if cfg.Auth.SudoTTL != 4*time.Minute {
 		t.Fatalf("expected sudo TTL override, got %s", cfg.Auth.SudoTTL)
 	}
-	if !cfg.Auth.OIDCEnabled || !cfg.Auth.OIDCJITEnabled {
-		t.Fatal("expected OIDC and JIT provisioning to be enabled from environment")
-	}
-	if cfg.Auth.OIDCIssuerURL != "https://identity.example.com" || cfg.Auth.OIDCClientID != "netstamp" || cfg.Auth.OIDCDisplayName != "Company SSO" {
-		t.Fatalf("unexpected OIDC configuration: %#v", cfg.Auth)
-	}
-	if cfg.Auth.ExternalFlowTTL != 8*time.Minute || !cfg.Auth.GoogleEnabled || !cfg.Auth.GoogleJITEnabled || cfg.Auth.GoogleHostedDomains != "example.com, example.org" {
-		t.Fatalf("unexpected Google configuration: %#v", cfg.Auth)
-	}
-	if !cfg.Auth.GitHubEnabled || !cfg.Auth.GitHubJITEnabled || cfg.Auth.GitHubAllowSignup || cfg.Auth.GitHubClientID != "github-client" {
-		t.Fatalf("unexpected GitHub configuration: %#v", cfg.Auth)
+	if cfg.Auth.ExternalFlowTTL != 8*time.Minute {
+		t.Fatalf("unexpected external auth flow TTL: %#v", cfg.Auth)
 	}
 	if cfg.Tracing.OTLPTracesEndpoint != "http://victoria-traces:10428/insert/opentelemetry/v1/traces" {
 		t.Fatalf("expected OTLP traces endpoint override, got %q", cfg.Tracing.OTLPTracesEndpoint)
@@ -258,30 +199,6 @@ func TestLoadFromEnvironment(t *testing.T) {
 	}
 	if cfg.AssignmentRefresh.WorkerStaleTimeout != 2*time.Minute {
 		t.Fatalf("expected assignment refresh worker stale timeout override, got %s", cfg.AssignmentRefresh.WorkerStaleTimeout)
-	}
-	if !cfg.Alerting.SMTP.Configured() {
-		t.Fatal("expected SMTP to be configured from environment")
-	}
-	if cfg.Alerting.SMTP.Host != "smtp.example.com" {
-		t.Fatalf("expected SMTP host override, got %q", cfg.Alerting.SMTP.Host)
-	}
-	if cfg.Alerting.SMTP.Port != 465 {
-		t.Fatalf("expected SMTP port override, got %d", cfg.Alerting.SMTP.Port)
-	}
-	if cfg.Alerting.SMTP.Username != "netstamp" {
-		t.Fatalf("expected SMTP username override, got %q", cfg.Alerting.SMTP.Username)
-	}
-	if cfg.Alerting.SMTP.Password != "secret" {
-		t.Fatal("expected SMTP password override")
-	}
-	if cfg.Alerting.SMTP.From != "alerts@example.com" {
-		t.Fatalf("expected SMTP from override, got %q", cfg.Alerting.SMTP.From)
-	}
-	if cfg.Alerting.SMTP.TLSMode != "implicit" {
-		t.Fatalf("expected SMTP TLS mode override, got %q", cfg.Alerting.SMTP.TLSMode)
-	}
-	if cfg.Alerting.SMTP.Timeout != 3*time.Second {
-		t.Fatalf("expected SMTP timeout override, got %s", cfg.Alerting.SMTP.Timeout)
 	}
 }
 
@@ -384,11 +301,6 @@ func TestValidateReturnsErrorsForInvalidValues(t *testing.T) {
 	cfg.AssignmentRefresh.WorkerInterval = 0
 	cfg.AssignmentRefresh.WorkerBatchSize = 0
 	cfg.AssignmentRefresh.WorkerStaleTimeout = -time.Second
-	cfg.Alerting.SMTP.Port = 0
-	cfg.Alerting.SMTP.Timeout = 0
-	cfg.Alerting.SMTP.TLSMode = "ssl"
-	cfg.Alerting.SMTP.Username = "netstamp"
-	cfg.Alerting.SMTP.From = "alerts"
 
 	err := errors.Join(validate(cfg)...)
 	if err == nil {
@@ -425,12 +337,6 @@ func TestValidateReturnsErrorsForInvalidValues(t *testing.T) {
 		"ASSIGNMENT_REFRESH_WORKER_INTERVAL must be greater than 0",
 		"ASSIGNMENT_REFRESH_WORKER_STALE_TIMEOUT must be greater than 0",
 		"ASSIGNMENT_REFRESH_WORKER_BATCH_SIZE must be greater than 0",
-		"SMTP_PORT must be between 1 and 65535",
-		"SMTP_TIMEOUT must be greater than 0",
-		"SMTP_TLS_MODE must be one of starttls, implicit, or none",
-		"SMTP_HOST must not be empty",
-		"SMTP_FROM must be a valid email address",
-		"SMTP_USERNAME and SMTP_PASSWORD must be set together",
 	} {
 		if !strings.Contains(message, want) {
 			t.Fatalf("expected error to contain %q, got %q", want, message)
@@ -531,7 +437,6 @@ func validConfig() Config {
 			SessionIdleTTL:       24 * time.Hour,
 			SessionAbsoluteTTL:   7 * 24 * time.Hour,
 			SessionTouchInterval: 5 * time.Minute,
-			RegistrationEnabled:  true,
 			Argon2idMemoryKiB:    64 * 1024,
 			Argon2idIterations:   3,
 			Argon2idParallelism:  4,
@@ -550,11 +455,6 @@ func validConfig() Config {
 			NotificationWorkerBatchSize:    25,
 			NotificationWorkerStaleTimeout: time.Minute,
 			NotificationHTTPTimeout:        10 * time.Second,
-			SMTP: SMTPConfig{
-				Port:    587,
-				TLSMode: "starttls",
-				Timeout: 10 * time.Second,
-			},
 		},
 	}
 }

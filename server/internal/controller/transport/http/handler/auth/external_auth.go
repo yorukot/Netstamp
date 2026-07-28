@@ -22,7 +22,7 @@ func (h *Handler) handleAuthMethods(w http.ResponseWriter, r *http.Request) {
 			registrationEnabled = settings.RegistrationEnabled
 		}
 	}
-	providers := h.service.ExternalProviderMethods()
+	providers := h.service.ExternalProviderMethodsContext(r.Context())
 	providerResponses := make([]externalProviderMethodResponse, 0, len(providers))
 	oidc := map[string]any{"enabled": false, "displayName": "Single sign-on"}
 	for _, provider := range providers {
