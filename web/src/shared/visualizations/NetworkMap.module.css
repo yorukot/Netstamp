@@ -29,7 +29,7 @@
 	width: 3.5rem;
 	height: 3.5rem;
 	border: 1px solid var(--ns-border-faint);
-	background: var(--ns-glass-dark);
+	background: var(--ns-surface-raised);
 }
 
 .map :global(.maplibregl-canvas:focus-visible) {
@@ -47,7 +47,7 @@
 
 .map :global(.maplibregl-ctrl-group) {
 	border: 1px solid var(--ns-border);
-	background: var(--ns-glass-dark);
+	background: var(--ns-surface-raised);
 }
 
 .map :global(.maplibregl-ctrl button) {
@@ -55,13 +55,13 @@
 	filter: invert(1) grayscale(1);
 }
 
-:root[data-theme="light"] .map :global(.maplibregl-ctrl button) {
+.map[data-map-theme="light"] :global(.maplibregl-ctrl button) {
 	filter: none;
 }
 
 .map :global(.maplibregl-ctrl-attrib) {
 	color: var(--ns-text-low);
-	background: var(--ns-glass-dark);
+	background: var(--ns-surface-raised);
 	font-family: var(--ns-font-code);
 	font-size: 0.5625rem;
 }
@@ -92,7 +92,7 @@
 	margin-bottom: 0.5rem;
 	padding: 0.25rem 0.5rem;
 	color: var(--ns-text);
-	background: var(--ns-glass-dark);
+	background: var(--ns-surface-raised);
 	border: 1px solid var(--ns-border);
 	font-size: 0.6875rem;
 	font-weight: 700;

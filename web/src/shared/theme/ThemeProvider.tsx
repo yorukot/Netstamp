@@ -1,7 +1,7 @@
-import { useEffect, useLayoutEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { defaultTheme, isAppTheme, ThemeContext, themeStorageKey, type AppTheme, type ThemeContextValue } from "./themeContext";
 
-function readStoredTheme(): AppTheme {
+const readStoredTheme = (): AppTheme => {
 	if (typeof window === "undefined") {
 		return defaultTheme;
 	}
@@ -12,13 +12,35 @@ function readStoredTheme(): AppTheme {
 	} catch {
 		return defaultTheme;
 	}
-}
+};
 
-export function ThemeProvider({ children }: { children: ReactNode }) {
-	const [theme, setTheme] = useState<AppTheme>(readStoredTheme);
+const applyDocumentTheme = (theme: AppTheme) => {
+	if (typeof document !== "undefined") {
+		document.documentElement.dataset.theme = theme;
+	}
+};
+
+export const ThemeProvider = ({ children }: { children: ReactNode }) => {
+	const [theme, setThemeState] = useState<AppTheme>(() => {
+		const initialTheme = readStoredTheme();
+		applyDocumentTheme(initialTheme);
+		return initialTheme;
+	});
+	const themeRef = useRef(theme);
+
+	const setTheme = useCallback((nextTheme: AppTheme) => {
+		themeRef.current = nextTheme;
+		applyDocumentTheme(nextTheme);
+		setThemeState(nextTheme);
+	}, []);
+
+	const toggleTheme = useCallback(() => {
+		setTheme(themeRef.current === "dark" ? "light" : "dark");
+	}, [setTheme]);
 
 	useLayoutEffect(() => {
-		document.documentElement.dataset.theme = theme;
+		themeRef.current = theme;
+		applyDocumentTheme(theme);
 	}, [theme]);
 
 	useEffect(() => {
@@ -33,10 +55,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 		() => ({
 			theme,
 			setTheme,
-			toggleTheme: () => setTheme(currentTheme => (currentTheme === "dark" ? "light" : "dark"))
+			toggleTheme
 		}),
-		[theme]
+		[setTheme, theme, toggleTheme]
 	);
 
 	return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
-}
+};

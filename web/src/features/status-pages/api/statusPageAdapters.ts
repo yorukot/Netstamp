@@ -2,7 +2,7 @@ import { i18n } from "@/i18n";
 import { formatDateTime as formatLocaleDateTime } from "@/i18n/format";
 import type { ApiPublicStatusPublicElement, ApiSeries, PublicStatusState } from "@/shared/api/types";
 import type { ChartOption } from "@/shared/visualizations/chartOptions";
-import { chartAxisLabel, chartTheme, chartTooltipTextStyle } from "@/shared/visualizations/chartTheme";
+import { chartAxisLabel, chartTooltipTextStyle, type ChartTheme } from "@/shared/visualizations/chartTheme";
 import type { BadgeTone } from "@netstamp/ui";
 
 const statusT = i18n.getFixedT(null, "status") as (key: string, options?: Record<string, unknown>) => string;
@@ -114,9 +114,8 @@ function tooltipTimestamp(value: unknown) {
 	return formatDateTime(new Date(value[0]).toISOString());
 }
 
-export function publicStatusChartOption(element: ApiPublicStatusPublicElement): ChartOption {
+export function publicStatusChartOption(element: ApiPublicStatusPublicElement, theme: ChartTheme): ChartOption {
 	const series = element.chart?.series ?? [];
-	const theme = chartTheme();
 	const splitLine = { lineStyle: { color: theme.splitLine } };
 
 	return {
@@ -126,7 +125,7 @@ export function publicStatusChartOption(element: ApiPublicStatusPublicElement): 
 			trigger: "axis",
 			backgroundColor: theme.tooltipBackground,
 			borderColor: theme.tooltipBorder,
-			textStyle: chartTooltipTextStyle(),
+			textStyle: chartTooltipTextStyle(theme),
 			formatter: (params: unknown) => {
 				const items = (Array.isArray(params) ? params : [params]) as Array<{ marker?: string; seriesName?: string; value?: unknown }>;
 				const lines = [tooltipTimestamp(items[0]?.value)].filter(Boolean);
@@ -142,8 +141,8 @@ export function publicStatusChartOption(element: ApiPublicStatusPublicElement): 
 			}
 		},
 		grid: { top: 12, right: 14, bottom: 24, left: 42 },
-		xAxis: { type: "time", axisLabel: chartAxisLabel(), axisTick: { show: false }, axisLine: { lineStyle: { color: theme.axisLine } } },
-		yAxis: { type: "value", axisLabel: chartAxisLabel(), splitLine, axisTick: { show: false }, axisLine: { show: false } },
+		xAxis: { type: "time", axisLabel: chartAxisLabel(theme), axisTick: { show: false }, axisLine: { lineStyle: { color: theme.axisLine } } },
+		yAxis: { type: "value", axisLabel: chartAxisLabel(theme), splitLine, axisTick: { show: false }, axisLine: { show: false } },
 		series: series.map(item => ({
 			name: seriesDisplayName(item),
 			type: "line",

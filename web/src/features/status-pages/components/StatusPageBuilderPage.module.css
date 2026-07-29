@@ -364,18 +364,6 @@
 	padding: 0 0 2.5rem;
 }
 
-:root[data-theme="dark"] .previewViewport[data-preview-theme="light"],
-:root[data-theme="light"] .previewViewport[data-preview-theme="dark"] {
-	--status-preview-bg: var(--ns-text);
-	--status-preview-surface: color-mix(in srgb, var(--ns-text) 94%, var(--ns-bg));
-	--status-preview-raised: color-mix(in srgb, var(--ns-text) 97%, var(--ns-bg));
-	--status-preview-deep: color-mix(in srgb, var(--ns-text) 88%, var(--ns-bg));
-	--status-preview-text: var(--ns-bg);
-	--status-preview-muted: color-mix(in srgb, var(--ns-bg) 60%, var(--ns-text));
-	--status-preview-border: color-mix(in srgb, var(--ns-bg) 20%, transparent);
-	--status-preview-border-faint: color-mix(in srgb, var(--ns-bg) 10%, transparent);
-}
-
 .publicShell {
 	display: grid;
 	width: 100%;

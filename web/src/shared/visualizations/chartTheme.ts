@@ -7,6 +7,7 @@ export interface ChartTheme {
 	critical: string;
 	criticalBand: string;
 	criticalBandStrong: string;
+	fontFamily: string;
 	metal: string;
 	primary: string;
 	primaryBrush: string;
@@ -25,15 +26,19 @@ export interface ChartTheme {
 	warningBand: string;
 }
 
-function tokenValue(name: string, fallback: string) {
+const tokenValue = (scope: Element | undefined, name: string, fallback: string) => {
 	if (typeof document === "undefined") {
 		return fallback;
 	}
 
-	return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
-}
+	return (
+		getComputedStyle(scope ?? document.documentElement)
+			.getPropertyValue(name)
+			.trim() || fallback
+	);
+};
 
-function rgba(color: string, alpha: number, fallback: string) {
+const rgba = (color: string, alpha: number, fallback: string) => {
 	const hex = color.match(/^#([0-9a-f]{6})$/i);
 	if (hex) {
 		const value = hex[1];
@@ -53,27 +58,31 @@ function rgba(color: string, alpha: number, fallback: string) {
 	}
 
 	return fallback;
-}
+};
 
-export function chartFontFamily() {
+export const chartFontFamily = (scope?: Element) => {
 	if (typeof document === "undefined") {
 		return fallbackSansFont;
 	}
 
-	return getComputedStyle(document.documentElement).getPropertyValue(sansFontToken).trim() || fallbackSansFont;
-}
+	return (
+		getComputedStyle(scope ?? document.documentElement)
+			.getPropertyValue(sansFontToken)
+			.trim() || fallbackSansFont
+	);
+};
 
-export function chartTheme(): ChartTheme {
-	const primary = tokenValue("--ns-primary", "#fb923c");
-	const secondary = tokenValue("--ns-secondary", "#38bdf8");
-	const success = tokenValue("--ns-success", "#34c77b");
-	const warning = tokenValue("--ns-warning", "#facc15");
-	const critical = tokenValue("--ns-critical", "#ff6b63");
-	const metal = tokenValue("--ns-metal", "#c4ccd9");
-	const textMuted = tokenValue("--ns-text-muted", "#d8dce8");
-	const text = tokenValue("--ns-text", "#f8fafc");
-	const surface = tokenValue("--ns-surface", "#070707");
-	const border = tokenValue("--ns-border", "#2d3035");
+export const chartTheme = (scope?: Element): ChartTheme => {
+	const primary = tokenValue(scope, "--ns-primary", "#fb923c");
+	const secondary = tokenValue(scope, "--ns-secondary", "#38bdf8");
+	const success = tokenValue(scope, "--ns-success", "#34c77b");
+	const warning = tokenValue(scope, "--ns-warning", "#facc15");
+	const critical = tokenValue(scope, "--ns-critical", "#ff6b63");
+	const metal = tokenValue(scope, "--ns-metal", "#c4ccd9");
+	const textMuted = tokenValue(scope, "--ns-text-muted", "#d8dce8");
+	const text = tokenValue(scope, "--ns-text", "#f8fafc");
+	const surface = tokenValue(scope, "--ns-surface", "#070707");
+	const border = tokenValue(scope, "--ns-border", "#2d3035");
 
 	return {
 		axisLine: rgba(metal, 0.16, "rgba(196, 204, 217, 0.16)"),
@@ -81,13 +90,14 @@ export function chartTheme(): ChartTheme {
 		critical,
 		criticalBand: rgba(critical, 0.14, "rgba(255, 107, 99, 0.14)"),
 		criticalBandStrong: rgba(critical, 0.2, "rgba(255, 107, 99, 0.2)"),
+		fontFamily: chartFontFamily(scope),
 		metal,
 		primary,
 		primaryBrush: rgba(primary, 0.12, "rgba(251, 146, 60, 0.12)"),
 		primaryBrushBorder: rgba(primary, 0.72, "rgba(251, 146, 60, 0.72)"),
 		primaryFill: rgba(primary, 0.12, "rgba(251, 146, 60, 0.12)"),
 		secondary,
-		seriesPalette: [primary, secondary, success, warning, metal, critical, tokenValue("--ns-primary-hover", "#fdba74"), tokenValue("--ns-secondary-hover", "#7dd3fc")],
+		seriesPalette: [primary, secondary, success, warning, metal, critical, tokenValue(scope, "--ns-primary-hover", "#fdba74"), tokenValue(scope, "--ns-secondary-hover", "#7dd3fc")],
 		spreadFill: rgba(metal, 0.08, "rgba(196, 204, 217, 0.08)"),
 		splitLine: rgba(metal, 0.18, "rgba(196, 204, 217, 0.18)"),
 		success,
@@ -98,20 +108,14 @@ export function chartTheme(): ChartTheme {
 		warning,
 		warningBand: rgba(warning, 0.12, "rgba(250, 204, 21, 0.12)")
 	};
-}
+};
 
-export function chartAxisLabel(fontSize = 10) {
-	return { color: chartTheme().textMuted, fontFamily: chartFontFamily(), fontSize };
-}
+export const chartAxisLabel = (theme: ChartTheme, fontSize = 10) => ({ color: theme.textMuted, fontFamily: theme.fontFamily, fontSize });
 
-export function chartMutedTextStyle(fontSize = 10) {
-	return { color: chartTheme().textMuted, fontFamily: chartFontFamily(), fontSize };
-}
+export const chartMutedTextStyle = (theme: ChartTheme, fontSize = 10) => ({ color: theme.textMuted, fontFamily: theme.fontFamily, fontSize });
 
-export function chartTooltipTextStyle(fontSize?: number) {
-	return {
-		color: chartTheme().tooltipText,
-		fontFamily: chartFontFamily(),
-		...(fontSize ? { fontSize } : {})
-	};
-}
+export const chartTooltipTextStyle = (theme: ChartTheme, fontSize?: number) => ({
+	color: theme.tooltipText,
+	fontFamily: theme.fontFamily,
+	...(fontSize ? { fontSize } : {})
+});

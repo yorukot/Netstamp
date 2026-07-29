@@ -44,6 +44,38 @@
 	box-shadow: none;
 }
 
+.legendSwatch[data-color-index="0"] {
+	background: var(--ns-primary);
+}
+
+.legendSwatch[data-color-index="1"] {
+	background: var(--ns-secondary);
+}
+
+.legendSwatch[data-color-index="2"] {
+	background: var(--ns-success);
+}
+
+.legendSwatch[data-color-index="3"] {
+	background: var(--ns-warning);
+}
+
+.legendSwatch[data-color-index="4"] {
+	background: var(--ns-metal);
+}
+
+.legendSwatch[data-color-index="5"] {
+	background: var(--ns-critical);
+}
+
+.legendSwatch[data-color-index="6"] {
+	background: var(--ns-primary-hover);
+}
+
+.legendSwatch[data-color-index="7"] {
+	background: var(--ns-secondary-hover);
+}
+
 .legendText {
 	display: grid;
 	gap: 0.15rem;

@@ -71,7 +71,7 @@ export function PingInsightPanel({ selectedProbe, selectedTarget, insightData, s
 					<span>{sourceLabel}</span>
 				</div>
 				{hasChartData ? (
-					<ChartPanel option={pingInsightChartOption(chartData)} height="27rem" onTimeRangeSelect={onSelectTimeWindow} timeRangeBounds={queryWindow} />
+					<ChartPanel getOption={theme => pingInsightChartOption(chartData, theme)} height="27rem" onTimeRangeSelect={onSelectTimeWindow} timeRangeBounds={queryWindow} />
 				) : isSeriesLoading || isFetching ? (
 					<Spinner label={t("panel.loadingPingSeries")} layout="panel" size="lg" />
 				) : (

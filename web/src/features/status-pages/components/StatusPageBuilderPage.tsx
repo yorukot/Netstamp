@@ -1105,7 +1105,7 @@ function StatusPageCanvas({
 
 	return (
 		<section className={styles.canvas} aria-label={t("builder.previewAria")}>
-			<div className={`${styles.previewViewport} ns-status-page`} data-preview-theme={previewTheme} data-status-preview>
+			<div className={`${styles.previewViewport} ns-status-page ns-theme-${previewTheme}`} data-preview-theme={previewTheme} data-status-preview>
 				{previewCSS ? <style>{previewCSS}</style> : null}
 				<div className={styles.publicShell}>
 					<header className={`${styles.previewHero} ns-status-hero`}>

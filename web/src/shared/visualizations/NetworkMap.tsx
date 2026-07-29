@@ -173,7 +173,7 @@ export function NetworkMap({
 	const themeRef = useRef(mapTheme);
 	const appliedThemeRef = useRef<MapTheme | null>(null);
 	const [mapReady, setMapReady] = useState(false);
-	const classes = [styles.map, className].filter(Boolean).join(" ");
+	const classes = [styles.map, `ns-theme-${mapTheme}`, className].filter(Boolean).join(" ");
 	const markerClickable = Boolean(onSelect);
 	const showLoadingOverlay = isLoading || !mapReady;
 	const positionedProbes = useMemo(() => {
@@ -397,7 +397,7 @@ export function NetworkMap({
 	}, [fleetFitPadding, fleetMaxZoom, mapReady, mode, positionedProbes]);
 
 	return (
-		<div className={classes}>
+		<div className={classes} data-map-theme={mapTheme}>
 			<div ref={mapContainerRef} className={styles.canvas} />
 			{showLoadingOverlay ? (
 				<div className={styles.loadingOverlay}>

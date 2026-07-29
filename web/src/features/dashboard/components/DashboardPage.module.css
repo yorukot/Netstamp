@@ -90,10 +90,6 @@
 	background: var(--ns-surface-deep);
 }
 
-:root[data-theme="light"] .worldMap :global(.maplibregl-ctrl button) {
-	filter: invert(1) grayscale(1);
-}
-
 .mapReadout {
 	position: absolute;
 	left: 1rem;

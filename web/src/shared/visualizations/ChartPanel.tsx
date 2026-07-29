@@ -1,5 +1,8 @@
+import type { AppTheme } from "@/shared/theme/themeContext";
+import { useTheme } from "@/shared/theme/useTheme";
 import type { ChartOption } from "@/shared/visualizations/chartOptions";
-import { useEffect, useRef, useState } from "react";
+import { chartTheme, type ChartTheme } from "@/shared/visualizations/chartTheme";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import styles from "./ChartPanel.module.css";
 
 export interface ChartTimeRange {
@@ -8,7 +11,9 @@ export interface ChartTimeRange {
 }
 
 interface ChartPanelProps {
-	option: ChartOption;
+	getOption: (theme: ChartTheme) => ChartOption;
+	/** Effective document theme when a surface overrides the app theme. */
+	theme?: AppTheme;
 	height?: string;
 	className?: string;
 	onTimeRangeSelect?: (range: ChartTimeRange) => void;
@@ -147,24 +152,48 @@ function setDataZoomSelectActive(chart: ChartInstance, active: boolean) {
 	});
 }
 
-export function ChartPanel({ option, height = "16rem", className, onTimeRangeSelect, timeRangeBounds, minTimeRangeMs = 1000 }: ChartPanelProps) {
+export const ChartPanel = ({ getOption, theme: themeOverride, height = "16rem", className, onTimeRangeSelect, timeRangeBounds, minTimeRangeMs = 1000 }: ChartPanelProps) => {
+	const { theme: appTheme } = useTheme();
+	const effectiveTheme = themeOverride ?? appTheme;
 	const rootRef = useRef<HTMLDivElement | null>(null);
 	const chartRef = useRef<HTMLDivElement | null>(null);
 	const instanceRef = useRef<ChartInstance | null>(null);
-	const optionRef = useRef(option);
+	const optionRef = useRef<ChartOption | null>(null);
+	const getOptionRef = useRef(getOption);
 	const onTimeRangeSelectRef = useRef(onTimeRangeSelect);
 	const timeRangeBoundsRef = useRef(timeRangeBounds);
 	const minTimeRangeMsRef = useRef(minTimeRangeMs);
 	const [chartReadyKey, setChartReadyKey] = useState(0);
 	const isTimeRangeSelectable = Boolean(onTimeRangeSelect);
 
-	useEffect(() => {
-		optionRef.current = option;
-		instanceRef.current?.setOption(option, { notMerge: true });
-		if (instanceRef.current && isTimeRangeSelectable) {
-			setDataZoomSelectActive(instanceRef.current, true);
+	useLayoutEffect(() => {
+		getOptionRef.current = getOption;
+		const rebuildOption = () => {
+			if (!rootRef.current) {
+				return;
+			}
+
+			const nextOption = getOption(chartTheme(rootRef.current));
+			optionRef.current = nextOption;
+			instanceRef.current?.setOption(nextOption, { notMerge: true });
+			if (instanceRef.current && isTimeRangeSelectable) {
+				setDataZoomSelectActive(instanceRef.current, true);
+			}
+		};
+
+		rebuildOption();
+		if (!themeOverride || typeof MutationObserver === "undefined") {
+			return undefined;
 		}
-	}, [isTimeRangeSelectable, option]);
+
+		const observer = new MutationObserver(rebuildOption);
+		observer.observe(document.documentElement, {
+			attributeFilter: ["data-theme"],
+			attributes: true
+		});
+
+		return () => observer.disconnect();
+	}, [effectiveTheme, getOption, isTimeRangeSelectable, themeOverride]);
 
 	useEffect(() => {
 		onTimeRangeSelectRef.current = onTimeRangeSelect;
@@ -188,7 +217,9 @@ export function ChartPanel({ option, height = "16rem", className, onTimeRangeSel
 			}
 
 			const chart = echarts.init(chartRef.current, null, { renderer: "canvas" }) as unknown as ChartInstance;
-			chart.setOption(optionRef.current, { notMerge: true });
+			const initialOption = optionRef.current ?? getOptionRef.current(chartTheme(rootRef.current ?? undefined));
+			optionRef.current = initialOption;
+			chart.setOption(initialOption, { notMerge: true });
 			instanceRef.current = chart;
 			setChartReadyKey(key => key + 1);
 
@@ -235,4 +266,4 @@ export function ChartPanel({ option, height = "16rem", className, onTimeRangeSel
 			<div ref={chartRef} className={styles.chartSurface} />
 		</div>
 	);
-}
+};
