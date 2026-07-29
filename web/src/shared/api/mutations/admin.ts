@@ -1,17 +1,71 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+	readAdminSettingsValidation,
+	readVersionedAdminSettings,
+	type AdminAccessSettings,
+	type AdminAccessSettingsPatch,
+	type AdminGitHubProviderSettings,
+	type AdminGitHubProviderSettingsPatch,
+	type AdminGoogleProviderSettings,
+	type AdminGoogleProviderSettingsPatch,
+	type AdminOIDCProviderSettings,
+	type AdminOIDCProviderSettingsPatch,
+	type AdminSMTPSettings,
+	type AdminSMTPSettingsPatch
+} from "../adminSettings";
 import { apiClient, readApiData, readEmptyApiResponse } from "../client";
 import { apiQueryKeys } from "../queryKeys";
-import type { ApiAdminDataExport, GrantSystemAdminInput, SetManagedUserPasswordInput, UpdateAdminSettingsInput, UpdateManagedUserInput } from "../types";
+import type { ApiAdminDataExport, GrantSystemAdminInput, SetManagedUserPasswordInput, UpdateManagedUserInput } from "../types";
 import { requireWritableAccess } from "./shared";
 
-export function updateAdminSettings(body: UpdateAdminSettingsInput) {
-	requireWritableAccess();
-	return readApiData(apiClient.PATCH("/admin/settings", { body }));
+interface VersionedSettingsMutation<TPatch> {
+	body: TPatch;
+	etag: string;
 }
 
-export function testAdminSMTP() {
+export function updateAdminAccessSettings({ body, etag }: VersionedSettingsMutation<AdminAccessSettingsPatch>) {
 	requireWritableAccess();
-	return readEmptyApiResponse(apiClient.POST("/admin/settings/smtp/test"));
+	return readVersionedAdminSettings<AdminAccessSettings>(apiClient.PATCH("/admin/settings/access", { body, params: { header: { "If-Match": etag } } }));
+}
+
+export function updateAdminSMTPSettings({ body, etag }: VersionedSettingsMutation<AdminSMTPSettingsPatch>) {
+	requireWritableAccess();
+	return readVersionedAdminSettings<AdminSMTPSettings>(apiClient.PATCH("/admin/settings/smtp", { body, params: { header: { "If-Match": etag } } }));
+}
+
+export function updateAdminOIDCSettings({ body, etag }: VersionedSettingsMutation<AdminOIDCProviderSettingsPatch>) {
+	requireWritableAccess();
+	return readVersionedAdminSettings<AdminOIDCProviderSettings>(apiClient.PATCH("/admin/settings/authentication-providers/oidc", { body, params: { header: { "If-Match": etag } } }));
+}
+
+export function updateAdminGoogleSettings({ body, etag }: VersionedSettingsMutation<AdminGoogleProviderSettingsPatch>) {
+	requireWritableAccess();
+	return readVersionedAdminSettings<AdminGoogleProviderSettings>(apiClient.PATCH("/admin/settings/authentication-providers/google", { body, params: { header: { "If-Match": etag } } }));
+}
+
+export function updateAdminGitHubSettings({ body, etag }: VersionedSettingsMutation<AdminGitHubProviderSettingsPatch>) {
+	requireWritableAccess();
+	return readVersionedAdminSettings<AdminGitHubProviderSettings>(apiClient.PATCH("/admin/settings/authentication-providers/github", { body, params: { header: { "If-Match": etag } } }));
+}
+
+export function validateAdminOIDCSettings({ body, etag }: VersionedSettingsMutation<AdminOIDCProviderSettingsPatch>) {
+	requireWritableAccess();
+	return readAdminSettingsValidation(apiClient.POST("/admin/settings/authentication-providers/oidc/validate", { body, params: { header: { "If-Match": etag } } }));
+}
+
+export function validateAdminGoogleSettings({ body, etag }: VersionedSettingsMutation<AdminGoogleProviderSettingsPatch>) {
+	requireWritableAccess();
+	return readAdminSettingsValidation(apiClient.POST("/admin/settings/authentication-providers/google/validate", { body, params: { header: { "If-Match": etag } } }));
+}
+
+export function validateAdminGitHubSettings({ body, etag }: VersionedSettingsMutation<AdminGitHubProviderSettingsPatch>) {
+	requireWritableAccess();
+	return readAdminSettingsValidation(apiClient.POST("/admin/settings/authentication-providers/github/validate", { body, params: { header: { "If-Match": etag } } }));
+}
+
+export function testAdminSMTP(etag: string) {
+	requireWritableAccess();
+	return readAdminSettingsValidation(apiClient.POST("/admin/settings/smtp/test", { params: { header: { "If-Match": etag } } }));
 }
 
 export function grantSystemAdmin(body: GrantSystemAdminInput) {
@@ -49,16 +103,79 @@ export function importAdminData(body: ApiAdminDataExport) {
 	return readApiData(apiClient.POST("/admin/data-import", { body: body as never }));
 }
 
-export function useUpdateAdminSettingsMutation() {
+export function useUpdateAdminAccessSettingsMutation() {
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		mutationFn: updateAdminSettings,
+		mutationFn: updateAdminAccessSettings,
 		onSuccess: data => {
-			queryClient.setQueryData(apiQueryKeys.admin.settings(), data);
+			queryClient.setQueryData(apiQueryKeys.admin.accessSettings(), data);
 			queryClient.invalidateQueries({ queryKey: apiQueryKeys.auth.me() });
+			queryClient.invalidateQueries({ queryKey: apiQueryKeys.auth.methods() });
 		}
 	});
+}
+
+export function useUpdateAdminSMTPSettingsMutation() {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: updateAdminSMTPSettings,
+		onSuccess: data => {
+			queryClient.setQueryData(apiQueryKeys.admin.smtpSettings(), data);
+		}
+	});
+}
+
+export function useUpdateAdminOIDCSettingsMutation() {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: updateAdminOIDCSettings,
+		onSuccess: data => {
+			queryClient.setQueryData(apiQueryKeys.admin.providerSettings("oidc"), data);
+			queryClient.invalidateQueries({ queryKey: apiQueryKeys.auth.methods() });
+			queryClient.invalidateQueries({ queryKey: apiQueryKeys.auth.sudo() });
+		}
+	});
+}
+
+export function useUpdateAdminGoogleSettingsMutation() {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: updateAdminGoogleSettings,
+		onSuccess: data => {
+			queryClient.setQueryData(apiQueryKeys.admin.providerSettings("google"), data);
+			queryClient.invalidateQueries({ queryKey: apiQueryKeys.auth.methods() });
+			queryClient.invalidateQueries({ queryKey: apiQueryKeys.auth.sudo() });
+		}
+	});
+}
+
+export function useUpdateAdminGitHubSettingsMutation() {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: updateAdminGitHubSettings,
+		onSuccess: data => {
+			queryClient.setQueryData(apiQueryKeys.admin.providerSettings("github"), data);
+			queryClient.invalidateQueries({ queryKey: apiQueryKeys.auth.methods() });
+			queryClient.invalidateQueries({ queryKey: apiQueryKeys.auth.sudo() });
+		}
+	});
+}
+
+export function useValidateAdminOIDCSettingsMutation() {
+	return useMutation({ mutationFn: validateAdminOIDCSettings });
+}
+
+export function useValidateAdminGoogleSettingsMutation() {
+	return useMutation({ mutationFn: validateAdminGoogleSettings });
+}
+
+export function useValidateAdminGitHubSettingsMutation() {
+	return useMutation({ mutationFn: validateAdminGitHubSettings });
 }
 
 export function useTestAdminSMTPMutation() {

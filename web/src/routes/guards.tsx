@@ -2,7 +2,7 @@ import { useSession } from "@/features/auth/session/SessionContext";
 import { AppShell } from "@/layouts/AppShell";
 import { projectQueries } from "@/shared/api/queries";
 import { useCurrentProject, useProjectSelection } from "@/shared/api/useCurrentProject";
-import { appFeatures } from "@/shared/config/features";
+import { useRuntimeFeatures } from "@/shared/config/features";
 import { Spinner } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
@@ -27,6 +27,7 @@ const RouteSpinner = ({ labelKey }: { labelKey: "loadingProject" | "loadingProje
 export function AuthRoute({ mode }: AuthRouteProps) {
 	const { loading, session } = useSession();
 	const navigate = useRouteNavigate();
+	const { appFeatures } = useRuntimeFeatures();
 
 	if (loading) {
 		return <RouteSpinner labelKey="loadingSession" />;
@@ -46,6 +47,7 @@ export function AuthRoute({ mode }: AuthRouteProps) {
 export function PasswordResetRoute({ mode }: { mode: "forgot" | "reset" }) {
 	const { loading, session } = useSession();
 	const navigate = useRouteNavigate();
+	const { appFeatures } = useRuntimeFeatures();
 
 	if (loading) {
 		return <RouteSpinner labelKey="loadingSession" />;
@@ -53,6 +55,10 @@ export function PasswordResetRoute({ mode }: { mode: "forgot" | "reset" }) {
 
 	if (session) {
 		return <RouterNavigate to={pathForRoute("dashboard")} replace />;
+	}
+
+	if (!appFeatures.userCredentialChanges) {
+		return <RouterNavigate to={pathForRoute("login")} replace />;
 	}
 
 	return mode === "forgot" ? lazyRoute(<ForgotPasswordPage />) : lazyRoute(<ResetPasswordPage navigate={navigate} />);

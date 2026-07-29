@@ -10,20 +10,11 @@ import (
 )
 
 func (h *Handler) login(ctx context.Context, r *http.Request, input *loginInput) (*loginOutput, error) {
-	emailVerificationRequired := false
-	if h.settings != nil {
-		settings, err := h.settings.EffectiveSettings(ctx)
-		if err != nil {
-			return nil, httpx.InternalServerError("login failed")
-		}
-		emailVerificationRequired = settings.EmailVerificationRequired
-	}
-
 	result, err := h.service.Login(ctx, appauth.LoginInput{
 		Email:                    input.Body.Email,
 		Password:                 input.Body.Password,
 		UserAgent:                r.UserAgent(),
-		RequireEmailVerification: emailVerificationRequired,
+		RequireEmailVerification: false,
 	})
 	if err != nil {
 		switch {

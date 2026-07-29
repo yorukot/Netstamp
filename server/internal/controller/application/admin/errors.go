@@ -13,6 +13,5 @@ var (
 	ErrSelfSystemAdminRemoval = errors.New("system administrator cannot remove self")
 	ErrSelfAccountDisable     = errors.New("system administrator cannot disable self from admin settings")
 	ErrSystemAdminNotFound    = errors.New("system administrator not found")
-	ErrSMTPTestFailed         = errors.New("SMTP test failed")
 	ErrDataImportInvalid      = domainsystem.ErrDataImportInvalid
 )

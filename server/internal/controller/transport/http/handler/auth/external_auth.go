@@ -16,11 +16,10 @@ import (
 const localExternalAuthFlowCookieName = "netstamp_external_auth_flow"
 
 func (h *Handler) handleAuthMethods(w http.ResponseWriter, r *http.Request) {
-	registrationEnabled := h.registrationEnabled
-	if h.settings != nil {
-		if settings, err := h.settings.EffectiveSettings(r.Context()); err == nil {
-			registrationEnabled = settings.RegistrationEnabled
-		}
+	accountCreationEnabled, err := h.service.AccountCreationEnabled(r.Context())
+	if err != nil {
+		httpx.WriteProblem(w, r, httpx.InternalServerError("list authentication methods failed"))
+		return
 	}
 	providers := h.service.ExternalProviderMethodsContext(r.Context())
 	providerResponses := make([]externalProviderMethodResponse, 0, len(providers))
@@ -35,7 +34,7 @@ func (h *Handler) handleAuthMethods(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	httpx.WriteJSON(w, http.StatusOK, map[string]any{
-		"password":  map[string]any{"enabled": true, "registrationEnabled": registrationEnabled},
+		"password":  map[string]any{"enabled": true, "registrationEnabled": accountCreationEnabled},
 		"providers": providerResponses,
 		"oidc":      oidc,
 	})
@@ -81,9 +80,11 @@ func (h *Handler) handleExternalAuthStartForProvider(w http.ResponseWriter, r *h
 		switch {
 		case errors.Is(err, appauth.ErrSudoRequired):
 			httpx.WriteProblem(w, r, httpx.ForbiddenCode(httpx.CodeAuthSudoRequired, "recent authentication required"))
+		case errors.Is(err, appauth.ErrCredentialChangesDisabled):
+			httpx.WriteProblem(w, r, httpx.ForbiddenCode(httpx.CodeAuthCredentialChangesDisabled, "credential changes are disabled"))
 		case errors.Is(err, appauth.ErrExternalAuthSudoUnsupported):
 			httpx.WriteProblem(w, r, httpx.BadRequest("this provider cannot be used for recent authentication"))
-		case errors.Is(err, appauth.ErrExternalAuthUnavailable):
+		case errors.Is(err, appauth.ErrExternalAuthUnavailable), errors.Is(err, appauth.ErrInstancePolicyUnavailable):
 			httpx.WriteProblem(w, r, httpx.ServiceUnavailableCode(httpx.CodeAuthOIDCUnavailable, "external authentication is unavailable"))
 		default:
 			httpx.WriteProblem(w, r, httpx.BadRequest("invalid external authentication request"))
@@ -122,6 +123,12 @@ func (h *Handler) handleExternalAuthCallbackForProvider(w http.ResponseWriter, r
 			code = "identity_conflict"
 		case errors.Is(err, appauth.ErrJITProvisioningDisabled):
 			code = "jit_disabled"
+		case errors.Is(err, appauth.ErrAccountCreationDisabled):
+			code = "registration_disabled"
+		case errors.Is(err, appauth.ErrCredentialChangesDisabled):
+			code = "credential_changes_disabled"
+		case errors.Is(err, appauth.ErrInstancePolicyUnavailable):
+			code = "temporarily_unavailable"
 		case errors.Is(err, appauth.ErrAccountDisabled):
 			code = "account_disabled"
 		case errors.Is(err, appauth.ErrSudoRequired):

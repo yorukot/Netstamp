@@ -45,7 +45,7 @@ AUTH_SESSION_HASH_KEY=<random value>
 AUTH_API_TOKEN_HASH_KEY=<random value>
 ```
 
-The values must remain stable across restarts and upgrades. Changing a hash key invalidates the associated credentials; changing the settings encryption key can make stored SMTP credentials unreadable.
+The values must remain stable across restarts and upgrades. Changing a hash key invalidates the associated credentials; changing the settings encryption key can make stored SMTP or external-provider credentials unreadable.
 
 ## Start the stack
 
@@ -101,7 +101,24 @@ docker build -f deployments/docker/Dockerfile -t netstamp:local .
 NETSTAMP_IMAGE=netstamp NETSTAMP_VERSION=local docker compose up -d
 ```
 
-Frontend `VITE_NETSTAMP_*` feature flags are build-time values. Change them with Docker build arguments when producing a custom image; they cannot be changed by adding runtime variables to an already-built container.
+The published image is built with every web-tracker identifier blank, so analytics are disabled by default. Tracking is not configured in **Admin → System settings** or through the runtime configuration API.
+
+To enable a tracker, rebuild the image and pass the corresponding web build variables as Docker build arguments:
+
+```bash
+docker build \
+  -f deployments/docker/Dockerfile \
+  --build-arg VITE_NETSTAMP_POSTHOG_KEY=phc_example \
+  --build-arg VITE_NETSTAMP_POSTHOG_HOST=https://us.i.posthog.com \
+  --build-arg VITE_NETSTAMP_TRACKING_CONSENT_MODE=always \
+  -t netstamp:tracked .
+```
+
+All supported Google Tag, Clarity, Meta Pixel, PostHog, Plausible, Umami, and consent arguments are listed in [Configuration reference](/docs/reference/configuration/). `VITE_NETSTAMP_GA_MEASUREMENT_ID` is a legacy alias for `VITE_NETSTAMP_GOOGLE_TAG_ID`, and `VITE_NETSTAMP_FACEBOOK_PIXEL_ID` is a legacy alias for `VITE_NETSTAMP_META_PIXEL_ID`; the preferred names win when both are set.
+
+Consent mode accepts `regional`, `always`, or `immediate`. Regional mode prompts only in the configured countries, always mode prompts every visitor, and immediate mode loads configured trackers without showing the prompt.
+
+These values are statically compiled into the web bundle. Adding `VITE_NETSTAMP_*` entries under Compose `environment:` or changing the runtime environment of an already-built container has no effect. Every `VITE_*` value is public to browsers, so never use one for a private API key, client secret, password, or other confidential value.
 
 ## Next steps
 

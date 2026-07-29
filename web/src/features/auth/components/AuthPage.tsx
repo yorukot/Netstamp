@@ -4,7 +4,7 @@ import type { Navigate } from "@/routes/routeTypes";
 import { absoluteExternalAuthStartUrl, hasApiProblemCode } from "@/shared/api/client";
 import { useCreateEmailVerificationMutation } from "@/shared/api/mutations";
 import { authQueries } from "@/shared/api/queries";
-import { appFeatures, demoCredentials, demoMode } from "@/shared/config/features";
+import { demoCredentials, useRuntimeFeatures } from "@/shared/config/features";
 import { pushErrorToast, pushToast } from "@/shared/toast/toastStore";
 import { Button, TextField } from "@netstamp/ui";
 import { GithubLogoIcon } from "@phosphor-icons/react/dist/csr/GithubLogo";
@@ -29,6 +29,7 @@ export function AuthPage({ mode = "login", navigate }: AuthPageProps) {
 	const { t } = useTranslation("auth");
 	const isRegister = mode === "register";
 	const { submitting, login, register } = useAuth();
+	const { appFeatures, demoMode } = useRuntimeFeatures();
 	const createEmailVerification = useCreateEmailVerificationMutation();
 	const methodsQuery = useQuery(authQueries.methods());
 	const [email, setEmail] = useState("");
@@ -172,7 +173,7 @@ export function AuthPage({ mode = "login", navigate }: AuthPageProps) {
 						autoComplete={isRegister ? "new-password" : "current-password"}
 						onChange={event => setPassword(event.currentTarget.value)}
 					/>
-					{!isRegister ? (
+					{!isRegister && appFeatures.userCredentialChanges ? (
 						<Link className={styles.inlineLink} to={pathForRoute("forgotPassword")} onFocus={preloadForgotPasswordPage} onPointerEnter={preloadForgotPasswordPage}>
 							{t("login.forgotPassword")}
 						</Link>

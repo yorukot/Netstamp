@@ -5,7 +5,7 @@ import { useAcceptProjectInviteMutation, useCreateProjectInviteForRefMutation, u
 import { projectQueries } from "@/shared/api/queries";
 import type { ApiProjectInvite, ProjectMemberRole } from "@/shared/api/types";
 import { useProjectSelection } from "@/shared/api/useCurrentProject";
-import { appFeatures } from "@/shared/config/features";
+import { useRuntimeFeatures } from "@/shared/config/features";
 import { pushErrorToast } from "@/shared/toast/toastStore";
 import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
 import { Button, Input, PageShell, Spinner } from "@netstamp/ui";
@@ -83,6 +83,7 @@ function shouldCreateProjectFromDecision(value: string) {
 export function OnboardingPage({ navigate }: OnboardingPageProps) {
 	const { t } = useTranslation(["auth", "project"]);
 	const { session, loading, submitting, logout } = useAuth();
+	const { appFeatures, readOnlyMode } = useRuntimeFeatures();
 	const createProjectMutation = useCreateProjectMutation({ suppressGlobalErrorToast: true });
 	const createInviteMutation = useCreateProjectInviteForRefMutation({ suppressGlobalErrorToast: true });
 	const acceptInviteMutation = useAcceptProjectInviteMutation();
@@ -274,6 +275,10 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 	async function handleCreateProjectDecisionSubmit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 
+		if (readOnlyMode) {
+			return;
+		}
+
 		const shouldCreateProject = shouldCreateProjectFromDecision(createProjectDecision);
 
 		if (shouldCreateProject === null) {
@@ -300,7 +305,7 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 	async function handleSubmit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 
-		if (!membersPromptReady) {
+		if (!membersPromptReady || readOnlyMode) {
 			return;
 		}
 
@@ -408,12 +413,12 @@ export function OnboardingPage({ navigate }: OnboardingPageProps) {
 										placeholder="Y"
 										onChange={event => setCreateProjectDecision(event.currentTarget.value)}
 										autoComplete="off"
-										disabled={acceptingInvites}
+										disabled={readOnlyMode || acceptingInvites}
 									/>
 									<small>{t("onboarding.decisionHelp")}</small>
 								</label>
 
-								<Button variant="plain" className={styles.tuiButton} type="submit" disabled={acceptingInvites}>
+								<Button variant="plain" className={styles.tuiButton} type="submit" disabled={readOnlyMode || acceptingInvites}>
 									{acceptingInvites ? t("onboarding.accepting") : t("onboarding.continue")}
 								</Button>
 							</form>

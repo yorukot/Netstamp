@@ -31,6 +31,10 @@ type UserLookup interface {
 	GetUserByEmail(ctx context.Context, email string) (identity.User, error)
 }
 
+type ProjectCreationPolicy interface {
+	ProjectCreationEnabled(ctx context.Context) (bool, error)
+}
+
 type EventRecorder interface {
 	RecordProjectEvent(ctx context.Context, event ProjectEvent)
 }
@@ -103,6 +107,7 @@ const (
 	ProjectReasonUserNotFound           ProjectEventReason = "user_not_found"
 	ProjectReasonLastOwner              ProjectEventReason = "last_owner"
 	ProjectReasonProjectCreateFailed    ProjectEventReason = "project_create_failed"
+	ProjectReasonPolicyLookupFailed     ProjectEventReason = "policy_lookup_failed"
 	ProjectReasonProjectListFailed      ProjectEventReason = "project_list_failed"
 	ProjectReasonProjectLookupFailed    ProjectEventReason = "project_lookup_failed"
 	ProjectReasonProjectUpdateFailed    ProjectEventReason = "project_update_failed"

@@ -1,11 +1,6 @@
 package admin
 
 import (
-	"encoding/json"
-	"errors"
-	"fmt"
-	"net/mail"
-	"net/url"
 	"strings"
 
 	appvalidation "github.com/yorukot/netstamp/internal/controller/application/validation"
@@ -14,25 +9,6 @@ import (
 )
 
 const (
-	keyRegistrationEnabled       = "auth.registration_enabled"
-	keyEmailVerificationRequired = "auth.email_verification_required"
-	keyProjectCreationEnabled    = "access.project_creation_enabled"
-	keyCredentialChangesEnabled  = "access.credential_changes_enabled"
-	keySMTPHost                  = "smtp.host"
-	keySMTPPort                  = "smtp.port"
-	keySMTPUsername              = "smtp.username"
-	keySMTPPassword              = "smtp.password"
-	keySMTPFrom                  = "smtp.from"
-	keySMTPTLSMode               = "smtp.tls_mode"
-	keySMTPTimeoutSeconds        = "smtp.timeout_seconds"
-	keyOIDCSettings              = "auth.provider.oidc"
-	keyOIDCClientSecret          = "auth.provider.oidc.client_secret" //nolint:gosec // This is a setting key name, not credential material.
-	keyGoogleSettings            = "auth.provider.google"
-	keyGoogleClientSecret        = "auth.provider.google.client_secret" //nolint:gosec // This is a setting key name, not credential material.
-	keyGitHubSettings            = "auth.provider.github"
-	keyGitHubClientSecret        = "auth.provider.github.client_secret" //nolint:gosec // This is a setting key name, not credential material.
-	keyTrackingSettings          = "tracking"
-
 	auditActionGrantSystemAdmin  = "grant_system_admin"
 	auditActionRevokeSystemAdmin = "revoke_system_admin"
 	auditActionDisableUser       = "disable_user"
@@ -40,134 +16,7 @@ const (
 	auditActionSetPassword       = "set_user_password"
 	auditActionClearPassword     = "clear_user_password"
 	auditActionDataImport        = "data_import"
-	auditActionUpdate            = "update"
 )
-
-func validateSettings(settings Settings) error {
-	var errs []error
-	if err := validateSMTP(settings.SMTP); err != nil {
-		errs = append(errs, err)
-	}
-	errs = append(errs, validateExternalProvider("oidc", settings.OIDC, true)...)
-	errs = append(errs, validateExternalProvider("google", settings.Google, false)...)
-	errs = append(errs, validateExternalProvider("github", settings.GitHub.ExternalProviderSettings, false)...)
-	if err := validateTracking(settings.Tracking); err != nil {
-		errs = append(errs, err)
-	}
-	if settings.EmailVerificationRequired && !smtpDeliveryConfigured(settings.SMTP) {
-		errs = append(errs, errors.New("emailVerificationRequired requires smtp.host and smtp.from"))
-	}
-	if len(errs) > 0 {
-		return errors.Join(append([]error{ErrInvalidInput}, errs...)...)
-	}
-	return nil
-}
-
-func validateExternalProvider(name string, settings ExternalProviderSettings, issuerRequired bool) []error {
-	if !settings.Enabled {
-		return nil
-	}
-	var errs []error
-	if issuerRequired {
-		if strings.TrimSpace(settings.IssuerURL) == "" {
-			errs = append(errs, fmt.Errorf("%s.issuerUrl is required when enabled", name))
-		} else if err := validateHTTPURL(name+".issuerUrl", settings.IssuerURL); err != nil {
-			errs = append(errs, err)
-		}
-	}
-	if strings.TrimSpace(settings.ClientID) == "" {
-		errs = append(errs, fmt.Errorf("%s.clientId is required when enabled", name))
-	}
-	if settings.ClientSecret == "" {
-		errs = append(errs, fmt.Errorf("%s.clientSecret is required when enabled", name))
-	}
-	if strings.TrimSpace(settings.DisplayName) == "" {
-		errs = append(errs, fmt.Errorf("%s.displayName is required when enabled", name))
-	}
-	return errs
-}
-
-func validateTracking(settings TrackingSettings) error {
-	var errs []error
-	for field, value := range map[string]string{
-		"tracking.postHogHost":        settings.PostHogHost,
-		"tracking.plausibleScriptUrl": settings.PlausibleScriptURL,
-		"tracking.umamiScriptUrl":     settings.UmamiScriptURL,
-	} {
-		if strings.TrimSpace(value) != "" {
-			errs = append(errs, validateHTTPURL(field, value))
-		}
-	}
-	switch settings.ConsentMode {
-	case "regional", "always", "never":
-	default:
-		errs = append(errs, errors.New("tracking.consentMode must be regional, always, or never"))
-	}
-	return errors.Join(errs...)
-}
-
-func validateHTTPURL(field, value string) error {
-	parsed, err := url.ParseRequestURI(strings.TrimSpace(value))
-	if err != nil || parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") {
-		return fmt.Errorf("%s must be a valid HTTP URL", field)
-	}
-	return nil
-}
-
-func validateSMTP(settings SMTPSettings) error {
-	var errs []error
-	errs = append(errs, validateSMTPBasics(settings)...)
-	errs = append(errs, validateSMTPConfiguredFields(settings)...)
-	if len(errs) > 0 {
-		return errors.Join(errs...)
-	}
-	return nil
-}
-
-func validateSMTPBasics(settings SMTPSettings) []error {
-	var errs []error
-	if settings.Port < 1 || settings.Port > 65535 {
-		errs = append(errs, errors.New("smtp.port must be between 1 and 65535"))
-	}
-	if settings.TimeoutSeconds <= 0 {
-		errs = append(errs, errors.New("smtp.timeoutSeconds must be greater than 0"))
-	}
-	switch strings.TrimSpace(settings.TLSMode) {
-	case "starttls", "implicit", "none":
-	default:
-		errs = append(errs, errors.New("smtp.tlsMode must be one of starttls, implicit, or none"))
-	}
-	return errs
-}
-
-func validateSMTPConfiguredFields(settings SMTPSettings) []error {
-	if !smtpPartiallyConfigured(settings) {
-		return nil
-	}
-
-	var errs []error
-	if strings.TrimSpace(settings.Host) == "" {
-		errs = append(errs, errors.New("smtp.host must not be empty when SMTP is configured"))
-	}
-	if err := validateSMTPFrom(settings.From); err != nil {
-		errs = append(errs, err)
-	}
-	if (strings.TrimSpace(settings.Username) == "") != (settings.Password == "") {
-		errs = append(errs, errors.New("smtp.username and smtp.password must be set together"))
-	}
-	return errs
-}
-
-func smtpPartiallyConfigured(settings SMTPSettings) bool {
-	return strings.TrimSpace(settings.Host) != "" ||
-		strings.TrimSpace(settings.Username) != "" ||
-		settings.Password != "" ||
-		strings.TrimSpace(settings.From) != ""
-}
-
-func smtpDeliveryConfigured(settings SMTPSettings) bool {
-	return strings.TrimSpace(settings.Host) != "" && strings.TrimSpace(settings.From) != ""
-}
 
 func normalizeGrantSystemAdminInput(input GrantSystemAdminInput) (GrantSystemAdminInput, error) {
 	currentUserID, currentUserErr := identity.VNUserID(input.CurrentUserID)
@@ -284,32 +133,4 @@ func systemAdminAuditKey(admin domainsystem.AdminUser) string {
 
 func managedUserAuditKey(user ManagedUser) string {
 	return "user:" + user.ID
-}
-
-func validateSMTPFrom(value string) error {
-	trimmed := strings.TrimSpace(value)
-	if trimmed == "" {
-		return errors.New("smtp.from must not be empty when SMTP is configured")
-	}
-	address, err := mail.ParseAddress(trimmed)
-	if err != nil || address.Address != trimmed || address.Name != "" {
-		return errors.New("smtp.from must be a valid email address")
-	}
-	return nil
-}
-
-func trimStringPointer(value *string) *string {
-	if value == nil {
-		return nil
-	}
-	trimmed := strings.TrimSpace(*value)
-	return &trimmed
-}
-
-func jsonValue(value any) json.RawMessage {
-	data, err := json.Marshal(value)
-	if err != nil {
-		return nil
-	}
-	return data
 }

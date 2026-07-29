@@ -9,22 +9,23 @@ import (
 )
 
 func TestDynamicExternalProviderSourceBuildsConfiguredProviders(t *testing.T) {
-	settings := ExternalProvidersSettings{
-		OIDC: ExternalProviderSettings{
+	settings := map[string]ExternalProviderSettings{
+		identity.AuthenticationMethodOIDC: {
 			Enabled: true, IssuerURL: "https://idp.example.com", ClientID: "oidc-client",
 			ClientSecret: "oidc-secret", DisplayName: "Company SSO", JITEnabled: true,
 		},
-		Google: ExternalProviderSettings{
+		identity.AuthenticationMethodGoogle: {
 			Enabled: true, ClientID: "google-client", ClientSecret: "google-secret",
-			DisplayName: "Google Workspace", AllowedDomains: "example.com, second.example.com",
+			DisplayName: "Google Workspace", AllowedDomains: []string{"example.com", "second.example.com"},
 		},
-		GitHub: ExternalProviderSettings{
+		identity.AuthenticationMethodGitHub: {
 			Enabled: true, ClientID: "github-client", ClientSecret: "github-secret",
 			DisplayName: "GitHub", JITEnabled: true, AllowSignup: false,
 		},
 	}
+	provider := &externalProviderSettingsFake{settings: settings}
 	source := NewDynamicExternalProviderSource(
-		&externalProviderSettingsFake{settings: settings},
+		provider,
 		ExternalProviderCallbackURLs{
 			OIDC:   "https://netstamp.example.com/oidc/callback",
 			Google: "https://netstamp.example.com/google/callback",
@@ -32,73 +33,230 @@ func TestDynamicExternalProviderSourceBuildsConfiguredProviders(t *testing.T) {
 		},
 	)
 
-	registrations, err := source.ExternalProviderRegistrations(context.Background())
+	oidcRegistration, err := source.ExternalProviderRegistration(context.Background(), identity.AuthenticationMethodOIDC)
 	if err != nil {
-		t.Fatalf("resolve external providers: %v", err)
+		t.Fatalf("resolve OIDC provider: %v", err)
 	}
-	if len(registrations) != 3 {
-		t.Fatalf("expected three providers, got %d", len(registrations))
+	if oidcRegistration.Config.ID != identity.AuthenticationMethodOIDC ||
+		oidcRegistration.Config.DisplayName != "Company SSO" ||
+		!oidcRegistration.Config.JITEnabled {
+		t.Fatalf("unexpected OIDC registration: %#v", oidcRegistration.Config)
 	}
-	if registrations[0].Config.ID != identity.AuthenticationMethodOIDC || registrations[0].Config.DisplayName != "Company SSO" || !registrations[0].Config.JITEnabled {
-		t.Fatalf("unexpected OIDC registration: %#v", registrations[0].Config)
+	oidcClient, ok := oidcRegistration.Client.(*OIDCClient)
+	if !ok ||
+		oidcClient.cfg.IssuerURL != settings[identity.AuthenticationMethodOIDC].IssuerURL ||
+		oidcClient.cfg.RedirectURL != source.callbackURLs.OIDC {
+		t.Fatalf("unexpected OIDC client: %#v", oidcRegistration.Client)
 	}
-	oidcClient, ok := registrations[0].Client.(*OIDCClient)
-	if !ok || oidcClient.cfg.IssuerURL != settings.OIDC.IssuerURL || oidcClient.cfg.RedirectURL != source.callbackURLs.OIDC {
-		t.Fatalf("unexpected OIDC client: %#v", registrations[0].Client)
+
+	googleRegistration, err := source.ExternalProviderRegistration(context.Background(), identity.AuthenticationMethodGoogle)
+	if err != nil {
+		t.Fatalf("resolve Google provider: %v", err)
 	}
-	googleClient, ok := registrations[1].Client.(*OIDCClient)
-	if !ok || googleClient.cfg.RedirectURL != source.callbackURLs.Google || len(googleClient.cfg.AllowedHostedDomains) != 2 {
-		t.Fatalf("unexpected Google client: %#v", registrations[1].Client)
+	googleClient, ok := googleRegistration.Client.(*OIDCClient)
+	if !ok ||
+		googleClient.cfg.RedirectURL != source.callbackURLs.Google ||
+		len(googleClient.cfg.AllowedHostedDomains) != 2 {
+		t.Fatalf("unexpected Google client: %#v", googleRegistration.Client)
 	}
-	githubClient, ok := registrations[2].Client.(*GitHubOAuthClient)
+
+	githubRegistration, err := source.ExternalProviderRegistration(context.Background(), identity.AuthenticationMethodGitHub)
+	if err != nil {
+		t.Fatalf("resolve GitHub provider: %v", err)
+	}
+	githubClient, ok := githubRegistration.Client.(*GitHubOAuthClient)
 	if !ok || githubClient.oauth2Config.RedirectURL != source.callbackURLs.GitHub || githubClient.allowSignup {
-		t.Fatalf("unexpected GitHub client: %#v", registrations[2].Client)
+		t.Fatalf("unexpected GitHub client: %#v", githubRegistration.Client)
+	}
+
+	if len(provider.calls) != 3 {
+		t.Fatalf("expected one settings lookup per provider, got %#v", provider.calls)
 	}
 }
 
-func TestDynamicExternalProviderSourceCachesUntilSettingsChange(t *testing.T) {
-	provider := &externalProviderSettingsFake{settings: ExternalProvidersSettings{
-		OIDC: ExternalProviderSettings{Enabled: true, IssuerURL: "https://idp.example.com", ClientID: "client", ClientSecret: "secret"},
+func TestDynamicExternalProviderSourceResolvesOnlyRequestedProvider(t *testing.T) {
+	expectedOIDCError := errors.New("OIDC secret cannot be decrypted")
+	provider := &externalProviderSettingsFake{
+		settings: map[string]ExternalProviderSettings{
+			identity.AuthenticationMethodGoogle: {
+				Enabled: true, ClientID: "google-client", ClientSecret: "google-secret", DisplayName: "Google",
+			},
+		},
+		errs: map[string]error{
+			identity.AuthenticationMethodOIDC: expectedOIDCError,
+		},
+	}
+	source := NewDynamicExternalProviderSource(provider, ExternalProviderCallbackURLs{
+		Google: "https://netstamp.example.com/api/v1/auth/external/google/callback",
+	})
+
+	googleRegistration, err := source.ExternalProviderRegistration(context.Background(), identity.AuthenticationMethodGoogle)
+	if err != nil {
+		t.Fatalf("resolve Google provider: %v", err)
+	}
+	if googleRegistration.Config.ID != identity.AuthenticationMethodGoogle {
+		t.Fatalf("unexpected Google registration: %#v", googleRegistration.Config)
+	}
+	if len(provider.calls) != 1 || provider.calls[0] != identity.AuthenticationMethodGoogle {
+		t.Fatalf("expected only Google settings lookup, got %#v", provider.calls)
+	}
+
+	_, err = source.ExternalProviderRegistration(context.Background(), identity.AuthenticationMethodOIDC)
+	if !errors.Is(err, expectedOIDCError) {
+		t.Fatalf("expected OIDC settings error, got %v", err)
+	}
+}
+
+func TestDynamicExternalProviderSourceCachesEachProviderUntilItsSettingsChange(t *testing.T) {
+	provider := &externalProviderSettingsFake{settings: map[string]ExternalProviderSettings{
+		identity.AuthenticationMethodOIDC: {
+			Enabled: true, IssuerURL: "https://idp.example.com", ClientID: "client", ClientSecret: "secret",
+		},
+		identity.AuthenticationMethodGoogle: {
+			Enabled: true, ClientID: "google-client", ClientSecret: "google-secret",
+		},
 	}}
-	source := NewDynamicExternalProviderSource(provider, ExternalProviderCallbackURLs{OIDC: "https://netstamp.example.com/callback"})
+	source := NewDynamicExternalProviderSource(provider, ExternalProviderCallbackURLs{
+		OIDC:   "https://netstamp.example.com/api/v1/auth/external/oidc/callback",
+		Google: "https://netstamp.example.com/api/v1/auth/external/google/callback",
+	})
 
-	first, err := source.ExternalProviderRegistrations(context.Background())
+	firstOIDC, err := source.ExternalProviderRegistration(context.Background(), identity.AuthenticationMethodOIDC)
 	if err != nil {
-		t.Fatalf("resolve first external providers: %v", err)
+		t.Fatalf("resolve first OIDC provider: %v", err)
 	}
-	second, err := source.ExternalProviderRegistrations(context.Background())
+	firstGoogle, err := source.ExternalProviderRegistration(context.Background(), identity.AuthenticationMethodGoogle)
 	if err != nil {
-		t.Fatalf("resolve second external providers: %v", err)
+		t.Fatalf("resolve first Google provider: %v", err)
 	}
-	if first[0].Client != second[0].Client {
-		t.Fatal("expected unchanged settings to reuse the provider client")
+	secondOIDC, err := source.ExternalProviderRegistration(context.Background(), identity.AuthenticationMethodOIDC)
+	if err != nil {
+		t.Fatalf("resolve second OIDC provider: %v", err)
+	}
+	if firstOIDC.Client != secondOIDC.Client {
+		t.Fatal("expected unchanged OIDC settings to reuse the provider client")
 	}
 
-	provider.settings.OIDC.ClientSecret = "rotated-secret"
-	third, err := source.ExternalProviderRegistrations(context.Background())
+	updated := provider.settings[identity.AuthenticationMethodOIDC]
+	updated.ClientSecret = "rotated-secret"
+	provider.settings[identity.AuthenticationMethodOIDC] = updated
+	thirdOIDC, err := source.ExternalProviderRegistration(context.Background(), identity.AuthenticationMethodOIDC)
 	if err != nil {
-		t.Fatalf("resolve changed external providers: %v", err)
+		t.Fatalf("resolve changed OIDC provider: %v", err)
 	}
-	if second[0].Client == third[0].Client {
-		t.Fatal("expected changed settings to rebuild the provider client")
+	if secondOIDC.Client == thirdOIDC.Client {
+		t.Fatal("expected changed OIDC settings to rebuild the provider client")
+	}
+
+	secondGoogle, err := source.ExternalProviderRegistration(context.Background(), identity.AuthenticationMethodGoogle)
+	if err != nil {
+		t.Fatalf("resolve second Google provider: %v", err)
+	}
+	if firstGoogle.Client != secondGoogle.Client {
+		t.Fatal("expected an OIDC change not to rebuild the Google client")
 	}
 }
 
-func TestDynamicExternalProviderSourcePropagatesSettingsFailure(t *testing.T) {
-	expected := errors.New("settings unavailable")
-	source := NewDynamicExternalProviderSource(&externalProviderSettingsFake{err: expected}, ExternalProviderCallbackURLs{})
+func TestDynamicExternalProviderSourceReturnsZeroRegistrationWhenDisabled(t *testing.T) {
+	source := NewDynamicExternalProviderSource(
+		&externalProviderSettingsFake{settings: map[string]ExternalProviderSettings{
+			identity.AuthenticationMethodGitHub: {Enabled: false},
+		}},
+		ExternalProviderCallbackURLs{},
+	)
 
-	_, err := source.ExternalProviderRegistrations(context.Background())
-	if !errors.Is(err, expected) {
-		t.Fatalf("expected settings error, got %v", err)
+	registration, err := source.ExternalProviderRegistration(context.Background(), identity.AuthenticationMethodGitHub)
+	if err != nil {
+		t.Fatalf("resolve disabled provider: %v", err)
+	}
+	if registration.Config.ID != "" || registration.Client != nil {
+		t.Fatalf("expected zero registration, got %#v", registration)
+	}
+}
+
+func TestDynamicExternalProviderSourceRejectsEnabledProviderWithoutAbsoluteHTTPCallback(t *testing.T) {
+	tests := []struct {
+		name        string
+		callbackURL string
+	}{
+		{name: "missing"},
+		{name: "relative path", callbackURL: "/api/v1/auth/external/google/callback"},
+		{name: "missing scheme", callbackURL: "netstamp.example.com/api/v1/auth/external/google/callback"},
+		{name: "unsupported scheme", callbackURL: "ftp://netstamp.example.com/google/callback"},
+		{name: "credentials", callbackURL: "https://user:pass@netstamp.example.com/google/callback"},
+		{name: "query", callbackURL: "https://netstamp.example.com/google/callback?next=1"},
+		{name: "fragment", callbackURL: "https://netstamp.example.com/google/callback#fragment"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			provider := &externalProviderSettingsFake{settings: map[string]ExternalProviderSettings{
+				identity.AuthenticationMethodGoogle: {
+					Enabled: true, ClientID: "google-client", ClientSecret: "google-secret",
+				},
+			}}
+			source := NewDynamicExternalProviderSource(provider, ExternalProviderCallbackURLs{
+				Google: test.callbackURL,
+			})
+
+			registration, err := source.ExternalProviderRegistration(
+				context.Background(),
+				identity.AuthenticationMethodGoogle,
+			)
+			if err == nil {
+				t.Fatal("expected invalid callback URL to make the provider unavailable")
+			}
+			if registration.Config.ID != "" || registration.Client != nil {
+				t.Fatalf("expected zero registration, got %#v", registration)
+			}
+			if len(provider.calls) != 1 || provider.calls[0] != identity.AuthenticationMethodGoogle {
+				t.Fatalf("expected one Google settings lookup, got %#v", provider.calls)
+			}
+		})
+	}
+}
+
+func TestDynamicExternalProviderSourceReturnsIndependentProviderIDs(t *testing.T) {
+	source := NewDynamicExternalProviderSource(&externalProviderSettingsFake{}, ExternalProviderCallbackURLs{})
+
+	first := source.ExternalProviderIDs()
+	if len(first) != 3 {
+		t.Fatalf("expected three provider IDs, got %#v", first)
+	}
+	first[0] = "changed"
+
+	second := source.ExternalProviderIDs()
+	if second[0] != identity.AuthenticationMethodGoogle {
+		t.Fatalf("expected caller mutation not to affect provider IDs, got %#v", second)
+	}
+}
+
+func TestDynamicExternalProviderSourceRejectsUnknownProviderWithoutReadingSettings(t *testing.T) {
+	provider := &externalProviderSettingsFake{}
+	source := NewDynamicExternalProviderSource(provider, ExternalProviderCallbackURLs{})
+
+	_, err := source.ExternalProviderRegistration(context.Background(), "unknown")
+	if err == nil {
+		t.Fatal("expected an unsupported provider error")
+	}
+	if len(provider.calls) != 0 {
+		t.Fatalf("expected no settings lookup, got %#v", provider.calls)
 	}
 }
 
 type externalProviderSettingsFake struct {
-	settings ExternalProvidersSettings
-	err      error
+	settings map[string]ExternalProviderSettings
+	errs     map[string]error
+	calls    []string
 }
 
-func (p *externalProviderSettingsFake) ExternalProviderSettings(context.Context) (ExternalProvidersSettings, error) {
-	return p.settings, p.err
+func (p *externalProviderSettingsFake) ExternalProviderSettings(
+	_ context.Context,
+	provider string,
+) (ExternalProviderSettings, error) {
+	p.calls = append(p.calls, provider)
+	if err := p.errs[provider]; err != nil {
+		return ExternalProviderSettings{}, err
+	}
+	return p.settings[provider], nil
 }

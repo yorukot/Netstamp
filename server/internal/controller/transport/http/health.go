@@ -7,7 +7,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	appadmin "github.com/yorukot/netstamp/internal/controller/application/admin"
 	"github.com/yorukot/netstamp/internal/controller/transport/http/httpx"
 )
 
@@ -19,7 +18,28 @@ type healthBody struct {
 	Status string `json:"status"`
 }
 
-func registerSystemRoutes(api chi.Router, readinessCheck func(context.Context) error, settings *appadmin.Service, demoMode bool) {
+type PublicAccessSettings struct {
+	AccountCreationEnabled   bool
+	ProjectCreationEnabled   bool
+	CredentialChangesEnabled bool
+}
+
+type PublicAccessSettingsProvider interface {
+	PublicAccessSettings(ctx context.Context) (PublicAccessSettings, error)
+}
+
+type publicRuntimeConfigBody struct {
+	DemoMode     bool                   `json:"demoMode"`
+	Capabilities publicCapabilitiesBody `json:"capabilities"`
+}
+
+type publicCapabilitiesBody struct {
+	AccountCreationEnabled   bool `json:"accountCreationEnabled"`
+	ProjectCreationEnabled   bool `json:"projectCreationEnabled"`
+	CredentialChangesEnabled bool `json:"credentialChangesEnabled"`
+}
+
+func registerSystemRoutes(api chi.Router, readinessCheck func(context.Context) error, settings PublicAccessSettingsProvider, demoMode bool) {
 	api.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteJSON(w, http.StatusOK, rootBody{
 			Message: "Netstamp API is running",
@@ -48,29 +68,24 @@ func registerSystemRoutes(api chi.Router, readinessCheck func(context.Context) e
 	})
 
 	api.Get("/system/config", func(w http.ResponseWriter, r *http.Request) {
-		config := appadmin.Settings{RegistrationEnabled: true, ProjectCreationEnabled: true, CredentialChangesEnabled: true}
-		if settings != nil {
-			if effective, err := settings.EffectiveSettings(r.Context()); err == nil {
-				config = effective
-			}
+		w.Header().Set("Cache-Control", "no-store")
+		if settings == nil {
+			httpx.WriteProblem(w, r, httpx.InternalServerError("system settings unavailable"))
+			return
 		}
-		registrationEnabled := config.RegistrationEnabled && !demoMode
-		projectCreationEnabled := config.ProjectCreationEnabled && !demoMode
-		credentialChangesEnabled := config.CredentialChangesEnabled && !demoMode
-		httpx.WriteJSON(w, http.StatusOK, map[string]any{
-			"demoMode": demoMode,
-			"capabilities": map[string]bool{
-				"registrationEnabled":      registrationEnabled,
-				"projectCreationEnabled":   projectCreationEnabled,
-				"credentialChangesEnabled": credentialChangesEnabled,
-			},
-			"tracking": map[string]string{
-				"googleTagId": config.Tracking.GoogleTagID, "clarityProjectId": config.Tracking.ClarityProjectID,
-				"metaPixelId": config.Tracking.MetaPixelID, "postHogKey": config.Tracking.PostHogKey,
-				"postHogHost": config.Tracking.PostHogHost, "plausibleDomain": config.Tracking.PlausibleDomain,
-				"plausibleScriptUrl": config.Tracking.PlausibleScriptURL, "umamiWebsiteId": config.Tracking.UmamiWebsiteID,
-				"umamiScriptUrl": config.Tracking.UmamiScriptURL, "consentMode": config.Tracking.ConsentMode,
-				"consentCountries": config.Tracking.ConsentCountries,
+
+		access, err := settings.PublicAccessSettings(r.Context())
+		if err != nil {
+			httpx.WriteProblem(w, r, httpx.InternalServerError("system settings unavailable"))
+			return
+		}
+
+		httpx.WriteJSON(w, http.StatusOK, publicRuntimeConfigBody{
+			DemoMode: demoMode,
+			Capabilities: publicCapabilitiesBody{
+				AccountCreationEnabled:   access.AccountCreationEnabled && !demoMode,
+				ProjectCreationEnabled:   access.ProjectCreationEnabled && !demoMode,
+				CredentialChangesEnabled: access.CredentialChangesEnabled && !demoMode,
 			},
 		})
 	})

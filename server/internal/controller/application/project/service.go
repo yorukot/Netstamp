@@ -12,10 +12,10 @@ type Service struct {
 	repo       Repository
 	userLookup UserLookup
 	events     EventRecorder
-	policy     interface{ ProjectCreationEnabled(context.Context) bool }
+	policy     ProjectCreationPolicy
 }
 
-func (s *Service) ConfigureInstancePolicy(policy interface{ ProjectCreationEnabled(context.Context) bool }) {
+func (s *Service) ConfigureInstancePolicy(policy ProjectCreationPolicy) {
 	s.policy = policy
 }
 
@@ -32,11 +32,15 @@ func NewService(repo Repository, userLookup UserLookup, events EventRecorder) *S
 func (s *Service) CreateProject(ctx context.Context, input CreateProjectInput) (domainproject.Project, error) {
 	ctx, flow := s.startProjectFlow(ctx, "project.create", ProjectActionCreate, input.CurrentUserID)
 	defer flow.end()
-	if s.policy != nil && !s.policy.ProjectCreationEnabled(ctx) {
+	projectCreationEnabled, err := s.projectCreationEnabled(ctx)
+	if err != nil {
+		return domainproject.Project{}, flow.technicalFailure(ProjectEventCreateFailure, ProjectReasonPolicyLookupFailed, err)
+	}
+	if !projectCreationEnabled {
 		return domainproject.Project{}, flow.businessFailure(ProjectEventCreateFailure, ProjectReasonForbidden, ErrForbidden)
 	}
 
-	input, err := normalizeCreateProjectInput(input)
+	input, err = normalizeCreateProjectInput(input)
 	if err != nil {
 		return domainproject.Project{}, flow.businessFailure(ProjectEventCreateFailure, ProjectReasonInvalidInput, err)
 	}
@@ -54,6 +58,14 @@ func (s *Service) CreateProject(ctx context.Context, input CreateProjectInput) (
 	flow.success(ProjectEventCreateSuccess)
 
 	return project, nil
+}
+
+func (s *Service) projectCreationEnabled(ctx context.Context) (bool, error) {
+	if s.policy == nil {
+		return true, nil
+	}
+
+	return s.policy.ProjectCreationEnabled(ctx)
 }
 
 func (s *Service) ListProjects(ctx context.Context, input ListProjectsInput) ([]domainproject.Project, error) {

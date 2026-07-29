@@ -54,6 +54,7 @@ func TestNewRouterServesOpenAPIWithoutRuntimeServices(t *testing.T) {
 
 	assertOpenAPIOperation(t, spec, http.MethodGet, "/", "getAPIStatus")
 	assertOpenAPIOperation(t, spec, http.MethodGet, "/healthz", "getHealth")
+	assertOpenAPIOperation(t, spec, http.MethodGet, "/system/config", "getRuntimeConfig")
 	assertOpenAPIPathAbsent(t, spec, "/livez")
 	assertOpenAPIPathAbsent(t, spec, "/readyz")
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/auth/register", "registerUser")
@@ -82,8 +83,21 @@ func TestNewRouterServesOpenAPIWithoutRuntimeServices(t *testing.T) {
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/admin/users/{user_id}/password", "setManagedUserPassword")
 	assertOpenAPIOperation(t, spec, http.MethodGet, "/admin/data-export", "exportAdminData")
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/admin/data-import", "importAdminData")
-	assertOpenAPIOperation(t, spec, http.MethodGet, "/admin/settings", "getAdminSettings")
-	assertOpenAPIOperation(t, spec, http.MethodPatch, "/admin/settings", "updateAdminSettings")
+	assertOpenAPIPathAbsent(t, spec, "/admin/settings")
+	assertOpenAPIOperation(t, spec, http.MethodGet, "/admin/settings/access", "getAdminAccessSettings")
+	assertOpenAPIOperation(t, spec, http.MethodPatch, "/admin/settings/access", "updateAdminAccessSettings")
+	assertOpenAPIOperation(t, spec, http.MethodGet, "/admin/settings/smtp", "getAdminSMTPSettings")
+	assertOpenAPIOperation(t, spec, http.MethodPatch, "/admin/settings/smtp", "updateAdminSMTPSettings")
+	assertOpenAPIOperation(t, spec, http.MethodPost, "/admin/settings/smtp/test", "testAdminSMTP")
+	assertOpenAPIOperation(t, spec, http.MethodGet, "/admin/settings/authentication-providers/oidc", "getAdminOIDCProviderSettings")
+	assertOpenAPIOperation(t, spec, http.MethodPatch, "/admin/settings/authentication-providers/oidc", "updateAdminOIDCProviderSettings")
+	assertOpenAPIOperation(t, spec, http.MethodPost, "/admin/settings/authentication-providers/oidc/validate", "validateAdminOIDCProviderSettings")
+	assertOpenAPIOperation(t, spec, http.MethodGet, "/admin/settings/authentication-providers/google", "getAdminGoogleProviderSettings")
+	assertOpenAPIOperation(t, spec, http.MethodPatch, "/admin/settings/authentication-providers/google", "updateAdminGoogleProviderSettings")
+	assertOpenAPIOperation(t, spec, http.MethodPost, "/admin/settings/authentication-providers/google/validate", "validateAdminGoogleProviderSettings")
+	assertOpenAPIOperation(t, spec, http.MethodGet, "/admin/settings/authentication-providers/github", "getAdminGitHubProviderSettings")
+	assertOpenAPIOperation(t, spec, http.MethodPatch, "/admin/settings/authentication-providers/github", "updateAdminGitHubProviderSettings")
+	assertOpenAPIOperation(t, spec, http.MethodPost, "/admin/settings/authentication-providers/github/validate", "validateAdminGitHubProviderSettings")
 	assertOpenAPISessionCookieAuth(t, spec)
 	assertOpenAPIProbeAuth(t, spec)
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/projects", "createProject")
@@ -255,8 +269,20 @@ func TestNewRouterProtectedRoutesRequireSessionCookie(t *testing.T) {
 		{method: http.MethodPost, path: "/api/v1/admin/users/user-1/password"},
 		{method: http.MethodGet, path: "/api/v1/admin/data-export"},
 		{method: http.MethodPost, path: "/api/v1/admin/data-import"},
-		{method: http.MethodGet, path: "/api/v1/admin/settings"},
-		{method: http.MethodPatch, path: "/api/v1/admin/settings"},
+		{method: http.MethodGet, path: "/api/v1/admin/settings/access"},
+		{method: http.MethodPatch, path: "/api/v1/admin/settings/access"},
+		{method: http.MethodGet, path: "/api/v1/admin/settings/smtp"},
+		{method: http.MethodPatch, path: "/api/v1/admin/settings/smtp"},
+		{method: http.MethodPost, path: "/api/v1/admin/settings/smtp/test"},
+		{method: http.MethodGet, path: "/api/v1/admin/settings/authentication-providers/oidc"},
+		{method: http.MethodPatch, path: "/api/v1/admin/settings/authentication-providers/oidc"},
+		{method: http.MethodPost, path: "/api/v1/admin/settings/authentication-providers/oidc/validate"},
+		{method: http.MethodGet, path: "/api/v1/admin/settings/authentication-providers/google"},
+		{method: http.MethodPatch, path: "/api/v1/admin/settings/authentication-providers/google"},
+		{method: http.MethodPost, path: "/api/v1/admin/settings/authentication-providers/google/validate"},
+		{method: http.MethodGet, path: "/api/v1/admin/settings/authentication-providers/github"},
+		{method: http.MethodPatch, path: "/api/v1/admin/settings/authentication-providers/github"},
+		{method: http.MethodPost, path: "/api/v1/admin/settings/authentication-providers/github/validate"},
 		{method: http.MethodPost, path: "/api/v1/projects/vector-ix/selector-previews"},
 		{method: http.MethodGet, path: "/api/v1/projects/vector-ix/assignments"},
 		{method: http.MethodGet, path: "/api/v1/projects/vector-ix/labels"},

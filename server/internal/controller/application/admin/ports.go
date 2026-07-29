@@ -2,8 +2,6 @@ package admin
 
 import (
 	"context"
-
-	"github.com/yorukot/netstamp/internal/domain/identity"
 )
 
 type Repository interface {
@@ -18,8 +16,6 @@ type Repository interface {
 	SetManagedUserPasswordHash(ctx context.Context, userID, passwordHash string) (ManagedUser, error)
 	ExportData(ctx context.Context) (DataExport, error)
 	ImportData(ctx context.Context, export DataExport) (DataImportResult, error)
-	ListSystemSettings(ctx context.Context) ([]StoredSetting, error)
-	UpsertSystemSetting(ctx context.Context, setting StoredSetting) (StoredSetting, error)
 	CreateSystemSettingAuditEvent(ctx context.Context, key, action string, updatedByUserID *string) error
 }
 
@@ -29,11 +25,6 @@ type SessionRepository interface {
 
 type APITokenRevoker interface {
 	RevokeUserTokens(ctx context.Context, userID, reason string) error
-}
-
-type SecretCipher interface {
-	Encrypt(plaintext string) (ciphertext, nonce []byte, err error)
-	Decrypt(ciphertext, nonce []byte) (string, error)
 }
 
 type PasswordHasher interface {
@@ -46,12 +37,4 @@ type ManagedPasswordRepository interface {
 
 type AuthenticationMethodRepository interface {
 	CountUserAuthenticationMethods(ctx context.Context, userID string) (bool, int64, error)
-}
-
-type SMTPTestUserRepository interface {
-	GetUserByID(ctx context.Context, userID string) (identity.User, error)
-}
-
-type SMTPTester interface {
-	SendTestEmail(ctx context.Context, recipient string) error
 }

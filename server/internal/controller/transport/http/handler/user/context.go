@@ -27,7 +27,7 @@ func currentSessionID(ctx context.Context) string {
 func mapUserError(err error, fallback string) error {
 	switch {
 	case errors.Is(err, appuser.ErrForbidden):
-		return httpx.Forbidden("credential changes are disabled by the instance administrator")
+		return httpx.ForbiddenCode(httpx.CodeAuthCredentialChangesDisabled, "credential changes are disabled by the instance administrator")
 	case errors.Is(err, identity.ErrUserNotFound):
 		return httpx.UnauthorizedCode(httpx.CodeAuthInvalidSession, "invalid session")
 	case errors.Is(err, appuser.ErrCredentialsInvalid):

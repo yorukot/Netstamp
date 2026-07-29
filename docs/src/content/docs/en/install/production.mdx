@@ -86,11 +86,13 @@ Probe agents initiate outbound HTTP(S) connections to the controller. The contro
 
 The first successfully registered account is granted system administrator access. Create that account before opening registration broadly, then use **Admin → System settings** to:
 
-1. verify backend and public web origins;
-2. configure SMTP if needed;
-3. decide whether registration remains enabled;
-4. decide whether new accounts must verify email;
+1. configure and test SMTP if needed;
+2. decide whether account creation remains enabled;
+3. decide whether new accounts must verify email;
+4. configure and test each required external authentication provider;
 5. add at least one additional system administrator for recovery.
+
+Verify `BACKEND_BASE_URL` and `PUBLIC_WEB_BASE_URL` in the deployment environment. Public origins and other infrastructure settings are not editable in Admin.
 
 System administrators do not automatically gain access to projects. Project owners must invite them when project access is required.
 
@@ -103,7 +105,7 @@ System administrators do not automatically gain access to projects. Project owne
 - [ ] HTTPS is valid and HTTP redirects to HTTPS.
 - [ ] `BACKEND_BASE_URL` and `PUBLIC_WEB_BASE_URL` match the public origin.
 - [ ] Trusted proxy ranges are no broader than necessary.
-- [ ] Registration and email-verification policy are intentional.
+- [ ] Account-creation and email-verification policy are intentional.
 - [ ] SMTP and every alert notification are tested.
 - [ ] `/healthz` and `/api/v1/healthz` are monitored.
 - [ ] A database backup was created and restored in a test environment.

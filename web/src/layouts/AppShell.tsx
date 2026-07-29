@@ -1,5 +1,5 @@
 import { useSession } from "@/features/auth/session/SessionContext";
-import { demoMode } from "@/shared/config/features";
+import { useRuntimeFeatures } from "@/shared/config/features";
 import { classNames } from "@/shared/utils/classNames";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -12,6 +12,7 @@ const sidebarCollapsedStorageKey = "netstamp:sidebar-collapsed";
 export const AppShell = () => {
 	const { t } = useTranslation("common");
 	const { session, logout } = useSession();
+	const { demoMode } = useRuntimeFeatures();
 	const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
 		if (typeof window === "undefined") {
 			return false;

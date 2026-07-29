@@ -12,6 +12,8 @@ const (
 	CodeAuthInvalidCredentials            = "AUTH_INVALID_CREDENTIALS" // #nosec G101 -- public problem code, not credential material.
 	CodeAuthEmailVerificationRequired     = "AUTH_EMAIL_VERIFICATION_REQUIRED"
 	CodeAuthRegistrationDisabled          = "AUTH_REGISTRATION_DISABLED"
+	CodeAuthAccountCreationDisabled       = "AUTH_ACCOUNT_CREATION_DISABLED"
+	CodeAuthCredentialChangesDisabled     = "AUTH_CREDENTIAL_CHANGES_DISABLED" // #nosec G101 -- public problem code, not credential material.
 	CodeAuthEmailVerificationUnavailable  = "AUTH_EMAIL_VERIFICATION_UNAVAILABLE"
 	CodeAuthPasswordResetUnavailable      = "AUTH_PASSWORD_RESET_UNAVAILABLE"
 	CodeAuthEmailVerificationTokenInvalid = "AUTH_EMAIL_VERIFICATION_TOKEN_INVALID" // #nosec G101 -- public problem code, not token material.
@@ -30,12 +32,14 @@ const (
 )
 
 const (
-	CodeUserNotFound           = "USER_NOT_FOUND"
-	CodeEmailAlreadyExists     = "EMAIL_ALREADY_EXISTS"
-	CodeLastSystemAdmin        = "LAST_SYSTEM_ADMIN"
-	CodeSystemAdminRequired    = "SYSTEM_ADMIN_REQUIRED"
-	CodeSelfSystemAdminAction  = "SELF_SYSTEM_ADMIN_ACTION"
-	CodeInvalidAdminDataImport = "INVALID_ADMIN_DATA_IMPORT"
+	CodeUserNotFound            = "USER_NOT_FOUND"
+	CodeEmailAlreadyExists      = "EMAIL_ALREADY_EXISTS"
+	CodeLastSystemAdmin         = "LAST_SYSTEM_ADMIN"
+	CodeSystemAdminRequired     = "SYSTEM_ADMIN_REQUIRED"
+	CodeSelfSystemAdminAction   = "SELF_SYSTEM_ADMIN_ACTION"
+	CodeInvalidAdminDataImport  = "INVALID_ADMIN_DATA_IMPORT"
+	CodePreconditionRequired    = "PRECONDITION_REQUIRED"
+	CodeSettingsVersionConflict = "SETTINGS_VERSION_CONFLICT"
 )
 
 const (

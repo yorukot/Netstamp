@@ -140,7 +140,7 @@ func TestRevokeAllSessionsReturnsInternalError(t *testing.T) {
 func sessionRegistryTestRouter(manager *sessionRegistryTestManager) http.Handler {
 	router := chi.NewRouter()
 	service := appauth.NewService(nil, nil, manager, nil)
-	NewHandler(service, manager, nil, "netstamp_session", true, true).RegisterRoutes(router)
+	NewHandler(service, manager, "netstamp_session", true).RegisterRoutes(router)
 	return router
 }
 

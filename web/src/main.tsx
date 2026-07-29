@@ -13,7 +13,9 @@ if (!root) {
 }
 
 await initializeI18n();
-await loadRuntimeConfig().catch(() => undefined);
+await loadRuntimeConfig().catch(() => {
+	// Runtime feature defaults are fail-closed so an unavailable API cannot enable gated actions.
+});
 
 createRoot(root).render(
 	<StrictMode>

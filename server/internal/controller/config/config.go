@@ -261,7 +261,7 @@ func validate(cfg Config) []error {
 
 	// HTTP settings
 	errs = append(errs, validateOptionalHTTPOrigin(keyBackendBaseURL, cfg.HTTP.BackendBaseURL)...)
-	errs = append(errs, validateOptionalHTTPOrigin(keyPublicWebBaseURL, cfg.HTTP.PublicWebBaseURL)...)
+	errs = append(errs, validatePublicWebBaseURL(cfg.Env, cfg.HTTP.PublicWebBaseURL)...)
 	errs = append(errs, validateListenAddr(keyHTTPAddr, cfg.HTTP.Addr)...)
 	errs = append(errs, validatePositiveDuration(keyRequestTimeout, cfg.HTTP.RequestTimeout)...)
 	errs = append(errs, validatePositiveDuration(keyHTTPReadHeaderTimeout, cfg.HTTP.ReadHeaderTimeout)...)

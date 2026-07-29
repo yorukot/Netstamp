@@ -15,10 +15,10 @@ type Service struct {
 	hasher      PasswordHasher
 	events      EventRecorder
 	authMethods AuthenticationRepository
-	policy      interface{ CredentialChangesEnabled(context.Context) bool }
+	policy      CredentialChangesPolicy
 }
 
-func (s *Service) ConfigureInstancePolicy(policy interface{ CredentialChangesEnabled(context.Context) bool }) {
+func (s *Service) ConfigureInstancePolicy(policy CredentialChangesPolicy) {
 	s.policy = policy
 }
 
@@ -67,11 +67,15 @@ func (s *Service) UpdateCurrentUser(ctx context.Context, input UpdateCurrentUser
 func (s *Service) ChangeCurrentUserEmail(ctx context.Context, input ChangeCurrentUserEmailInput) (UserOutput, error) {
 	ctx, flow := s.startUserFlow(ctx, "user.email.change", UserActionChangeEmail, input.CurrentUserID)
 	defer flow.end()
-	if s.policy != nil && !s.policy.CredentialChangesEnabled(ctx) {
+	credentialChangesEnabled, err := s.credentialChangesEnabled(ctx)
+	if err != nil {
+		return UserOutput{}, flow.technicalFailure(UserEventChangeEmailFailure, UserReasonPolicyLookupFailed, err)
+	}
+	if !credentialChangesEnabled {
 		return UserOutput{}, flow.businessFailure(UserEventChangeEmailFailure, UserReasonForbidden, ErrForbidden)
 	}
 
-	input, err := normalizeChangeCurrentUserEmailInput(input)
+	input, err = normalizeChangeCurrentUserEmailInput(input)
 	if err != nil {
 		return UserOutput{}, flow.businessFailure(UserEventChangeEmailFailure, UserReasonInvalidInput, err)
 	}
@@ -100,11 +104,15 @@ func (s *Service) ChangeCurrentUserEmail(ctx context.Context, input ChangeCurren
 func (s *Service) ChangeCurrentUserPassword(ctx context.Context, input ChangeCurrentUserPasswordInput) error {
 	ctx, flow := s.startUserFlow(ctx, "user.password.change", UserActionChangePassword, input.CurrentUserID)
 	defer flow.end()
-	if s.policy != nil && !s.policy.CredentialChangesEnabled(ctx) {
+	credentialChangesEnabled, err := s.credentialChangesEnabled(ctx)
+	if err != nil {
+		return flow.technicalFailure(UserEventChangePasswordFailure, UserReasonPolicyLookupFailed, err)
+	}
+	if !credentialChangesEnabled {
 		return flow.businessFailure(UserEventChangePasswordFailure, UserReasonForbidden, ErrForbidden)
 	}
 
-	input, err := normalizeChangeCurrentUserPasswordInput(input)
+	input, err = normalizeChangeCurrentUserPasswordInput(input)
 	if err != nil {
 		return flow.businessFailure(UserEventChangePasswordFailure, UserReasonInvalidInput, err)
 	}
@@ -158,7 +166,11 @@ func (s *Service) ListAuthenticationMethods(ctx context.Context, userID string) 
 }
 
 func (s *Service) RemoveCurrentUserPassword(ctx context.Context, userID, sessionID string) error {
-	if s.policy != nil && !s.policy.CredentialChangesEnabled(ctx) {
+	credentialChangesEnabled, err := s.credentialChangesEnabled(ctx)
+	if err != nil {
+		return err
+	}
+	if !credentialChangesEnabled {
 		return ErrForbidden
 	}
 	if s.authMethods == nil || userID == "" {
@@ -186,7 +198,11 @@ func (s *Service) RemoveCurrentUserPassword(ctx context.Context, userID, session
 }
 
 func (s *Service) RemoveCurrentUserIdentity(ctx context.Context, userID, sessionID, identityID string) error {
-	if s.policy != nil && !s.policy.CredentialChangesEnabled(ctx) {
+	credentialChangesEnabled, err := s.credentialChangesEnabled(ctx)
+	if err != nil {
+		return err
+	}
+	if !credentialChangesEnabled {
 		return ErrForbidden
 	}
 	if s.authMethods == nil || userID == "" || sessionID == "" || identityID == "" {
@@ -214,6 +230,14 @@ func (s *Service) RemoveCurrentUserIdentity(ctx context.Context, userID, session
 		return s.apiTokens.RevokeUserTokens(ctx, userID, "identity_removed")
 	}
 	return nil
+}
+
+func (s *Service) credentialChangesEnabled(ctx context.Context) (bool, error) {
+	if s.policy == nil {
+		return true, nil
+	}
+
+	return s.policy.CredentialChangesEnabled(ctx)
 }
 
 func (s *Service) DeactivateCurrentUser(ctx context.Context, input DeactivateCurrentUserInput) error {

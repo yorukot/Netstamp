@@ -257,6 +257,19 @@ SELECT key,
 FROM system_settings
 ORDER BY key ASC;
 
+-- name: GetSystemSettingsByKeys :many
+SELECT key,
+       value,
+       encrypted_value,
+       encrypted_value_nonce,
+       secret,
+       updated_by_user_id,
+       created_at,
+       updated_at
+FROM system_settings
+WHERE key = ANY(sqlc.arg(keys)::text[])
+ORDER BY key ASC;
+
 -- name: UpsertSystemSetting :one
 INSERT INTO system_settings (
     key,
@@ -288,6 +301,45 @@ RETURNING key,
           created_at,
           updated_at;
 
+-- name: DeleteSystemSetting :exec
+DELETE FROM system_settings
+WHERE key = sqlc.arg(key);
+
+-- name: DeleteLegacyEmptySystemSettingSecrets :exec
+DELETE FROM system_settings
+WHERE secret = true
+  AND octet_length(encrypted_value) = 16
+  AND key IN (
+      'smtp.password',
+      'auth.provider.oidc.client_secret',
+      'auth.provider.google.client_secret',
+      'auth.provider.github.client_secret'
+  );
+
 -- name: CreateSystemSettingAuditEvent :exec
 INSERT INTO system_setting_audit_events (key, action, updated_by_user_id)
 VALUES ($1, $2, sqlc.narg(updated_by_user_id));
+
+-- name: GetSystemSettingRevision :one
+SELECT revision
+FROM system_setting_revisions
+WHERE resource = sqlc.arg(resource);
+
+-- name: LockSystemSettingRevision :one
+SELECT revision
+FROM system_setting_revisions
+WHERE resource = sqlc.arg(resource)
+FOR UPDATE;
+
+-- name: BumpSystemSettingRevision :one
+UPDATE system_setting_revisions
+SET revision = revision + 1
+WHERE resource = sqlc.arg(resource)
+RETURNING revision;
+
+-- name: BumpSystemSettingRevisions :many
+UPDATE system_setting_revisions
+SET revision = revision + 1
+WHERE resource = ANY(sqlc.arg(resources)::text[])
+RETURNING resource,
+          revision;

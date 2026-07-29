@@ -120,6 +120,56 @@ func TestSessionManagerSupportsGitHubRecentAuthentication(t *testing.T) {
 	}
 }
 
+func TestSessionManagerExternalReauthenticationActivatesExistingSession(t *testing.T) {
+	now := time.Date(2026, time.July, 29, 10, 0, 0, 0, time.UTC)
+	identityID := "33333333-3333-3333-3333-333333333333"
+	repo := &sessionRepositoryRecorder{active: identity.AuthSession{
+		ID:                   "22222222-2222-2222-2222-222222222222",
+		UserID:               "11111111-1111-1111-1111-111111111111",
+		AuthenticatedAt:      now.Add(-time.Hour),
+		AuthenticationMethod: identity.AuthenticationMethodGoogle,
+		SudoEligible:         false,
+		IdentityID:           &identityID,
+	}}
+	manager := NewSessionManager(repo, SessionConfig{
+		HashKey: "test-session-hash-key",
+		SudoTTL: 5 * time.Minute,
+	})
+	manager.now = func() time.Time { return now }
+
+	before, err := manager.SudoStatus(context.Background(), repo.active.ID)
+	if err != nil {
+		t.Fatalf("get sudo status before reauthentication: %v", err)
+	}
+	if before.Active {
+		t.Fatal("expected external login session to require a fresh provider authentication")
+	}
+	err = manager.ElevateSession(
+		context.Background(),
+		repo.active.ID,
+		identity.AuthenticationMethodGoogle,
+		&identityID,
+		now,
+	)
+	if err != nil {
+		t.Fatalf("elevate external login session: %v", err)
+	}
+
+	after, err := manager.SudoStatus(context.Background(), repo.active.ID)
+	if err != nil {
+		t.Fatalf("get sudo status after reauthentication: %v", err)
+	}
+	if !after.Active {
+		t.Fatal("expected provider reauthentication to activate recent authentication")
+	}
+	if repo.active.AuthenticationMethod != identity.AuthenticationMethodGoogle ||
+		!repo.active.SudoEligible ||
+		repo.active.IdentityID == nil ||
+		*repo.active.IdentityID != identityID {
+		t.Fatalf("unexpected elevated session state: %#v", repo.active)
+	}
+}
+
 func createSessionInput(userAgent string, now time.Time) appauth.CreateSessionInput {
 	return appauth.CreateSessionInput{
 		UserID:    "11111111-1111-1111-1111-111111111111",
@@ -165,6 +215,12 @@ func (r *sessionRepositoryRecorder) UpdateSessionAuthentication(_ context.Contex
 	r.updatedAuthenticatedAt = authenticatedAt
 	r.updatedMethod = method
 	r.updatedIdentityID = identityID
+	if r.active.ID == sessionID {
+		r.active.AuthenticatedAt = authenticatedAt
+		r.active.AuthenticationMethod = method
+		r.active.SudoEligible = true
+		r.active.IdentityID = identityID
+	}
 	return nil
 }
 

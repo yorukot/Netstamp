@@ -25,6 +25,7 @@ import (
 	appproject "github.com/yorukot/netstamp/internal/controller/application/project"
 	apppublicstatus "github.com/yorukot/netstamp/internal/controller/application/publicstatus"
 	appresult "github.com/yorukot/netstamp/internal/controller/application/result"
+	appsystemsettings "github.com/yorukot/netstamp/internal/controller/application/systemsettings"
 	appuser "github.com/yorukot/netstamp/internal/controller/application/user"
 	"github.com/yorukot/netstamp/internal/controller/config"
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/notify"
@@ -58,6 +59,7 @@ type controllerServices struct {
 	authVerifier        appauth.SessionManager
 	apiTokenService     *appapitoken.Service
 	adminService        *appadmin.Service
+	systemSettings      *appsystemsettings.Service
 	userService         *appuser.Service
 	alertService        *appalert.Service
 	assignmentService   *appassignment.Service
@@ -157,16 +159,41 @@ func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool
 	if err != nil {
 		return controllerServices{}, fmt.Errorf("create system settings cipher: %w", err)
 	}
-	adminSvc := appadmin.NewService(systemRepo, secretCipher, appadmin.Defaults{
-		RegistrationEnabled: true, ProjectCreationEnabled: true, CredentialChangesEnabled: true,
-		SMTP:     appadmin.SMTPSettings{Port: 587, TLSMode: "starttls", TimeoutSeconds: 10},
-		GitHub:   appadmin.GitHubProviderSettings{AllowSignup: true},
-		Tracking: appadmin.TrackingSettings{ConsentMode: "regional", PostHogHost: "https://us.i.posthog.com"},
-	}, passwordHasher)
+	backendBaseURL := strings.TrimRight(strings.TrimSpace(cfg.HTTP.BackendBaseURL), "/")
+	externalAuthCallbackBaseURL := ""
+	externalAuthCallbackURLs := security.ExternalProviderCallbackURLs{}
+	if backendBaseURL != "" {
+		externalAuthCallbackBaseURL = backendBaseURL + "/api/" + cfg.APIVersion + "/auth/external"
+		externalAuthCallbackURLs = security.ExternalProviderCallbackURLs{
+			OIDC:   externalAuthCallbackBaseURL + "/oidc/callback",
+			Google: externalAuthCallbackBaseURL + "/google/callback",
+			GitHub: externalAuthCallbackBaseURL + "/github/callback",
+		}
+	}
+	settingsSvc := appsystemsettings.NewService(
+		systemRepo,
+		systemRepo,
+		secretCipher,
+		security.NewOIDCReadinessChecker(),
+		appsystemsettings.Defaults{
+			Access: appsystemsettings.AccessSettings{
+				AccountCreationEnabled:   true,
+				ProjectCreationEnabled:   true,
+				CredentialChangesEnabled: true,
+			},
+			SMTP:   appsystemsettings.SMTPSettings{Port: 587, TLSMode: "starttls", TimeoutSeconds: 10},
+			OIDC:   appsystemsettings.OIDCSettings{DisplayName: "Single sign-on"},
+			Google: appsystemsettings.GoogleSettings{DisplayName: "Google"},
+			GitHub: appsystemsettings.GitHubSettings{DisplayName: "GitHub", AllowSignup: true},
+		},
+		externalAuthCallbackBaseURL,
+		dbTx,
+	)
+	adminSvc := appadmin.NewService(systemRepo, passwordHasher)
 	adminSvc.ConfigureSessions(sessionManager)
 	adminSvc.ConfigureAuthenticationMethods(userRepo)
-	smtpProvider := adminSMTPProvider{service: adminSvc}
-	adminSvc.ConfigureSMTPTest(userRepo, notify.NewSMTPTester(notify.NewDynamicSMTPSender(smtpProvider)))
+	smtpProvider := systemSettingsSMTPProvider{service: settingsSvc}
+	settingsSvc.ConfigureSMTPTest(userRepo, systemSettingsSMTPTester{})
 	notificationSender := notify.NewDynamicSender(cfg.Alerting.NotificationHTTPTimeout, smtpProvider)
 
 	authSvc := appauth.NewService(userRepo, passwordHasher, sessionManager, authEvents, dbTx)
@@ -180,16 +207,11 @@ func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool
 	authSvc.ConfigureExternalAuth(userRepo, security.NewPasswordResetTokenManager(), appauth.ExternalAuthConfig{
 		FlowTTL: cfg.Auth.ExternalFlowTTL, AuthTimeSkew: time.Minute,
 	})
-	externalAuthCallbackBaseURL := strings.TrimRight(cfg.HTTP.BackendBaseURL, "/") + "/api/" + cfg.APIVersion + "/auth/external/"
 	authSvc.ConfigureExternalAuthProviderSource(security.NewDynamicExternalProviderSource(
-		adminExternalProviderSettingsProvider{service: adminSvc},
-		security.ExternalProviderCallbackURLs{
-			OIDC:   externalAuthCallbackBaseURL + "oidc/callback",
-			Google: externalAuthCallbackBaseURL + "google/callback",
-			GitHub: externalAuthCallbackBaseURL + "github/callback",
-		},
+		systemSettingsExternalProvider{service: settingsSvc},
+		externalAuthCallbackURLs,
 	))
-	authSvc.ConfigureInstancePolicy(adminSvc)
+	authSvc.ConfigureInstancePolicy(settingsSvc)
 
 	userSvc := appuser.NewService(userRepo, passwordHasher, userEvents)
 	apiTokenSvc := appapitoken.NewService(apiTokenRepo, apiTokenManager, apiTokenEvents)
@@ -200,8 +222,8 @@ func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool
 	userSvc.ConfigureSystemAdmin(systemRepo)
 	userSvc.ConfigureSessions(sessionManager)
 	projectSvc := appproject.NewService(projectRepo, userRepo, projectEvents)
-	projectSvc.ConfigureInstancePolicy(adminSvc)
-	userSvc.ConfigureInstancePolicy(adminSvc)
+	projectSvc.ConfigureInstancePolicy(settingsSvc)
+	userSvc.ConfigureInstancePolicy(settingsSvc)
 	alertSvc := appalert.NewService(alertRepo, projectRepo, alertEvents, notificationSender)
 	assignmentSvc := appassignment.NewService(assignmentRepo, projectRepo, assignmentEvents, dbTx)
 	labelSvc := applabel.NewService(labelRepo, projectRepo, labelEvents, assignmentSvc, dbTx)
@@ -233,6 +255,7 @@ func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool
 		authVerifier:        sessionManager,
 		apiTokenService:     apiTokenSvc,
 		adminService:        adminSvc,
+		systemSettings:      settingsSvc,
 		userService:         userSvc,
 		alertService:        alertSvc,
 		assignmentService:   assignmentSvc,
@@ -265,9 +288,11 @@ func buildHTTPHandler(cfg config.Config, log *zap.Logger, dbPool *pgxpool.Pool, 
 		APITokenService:             services.apiTokenService,
 		APITokenVerifier:            services.apiTokenService,
 		AdminService:                services.adminService,
+		SystemSettingsService:       services.systemSettings,
+		PublicAccessSettings:        systemSettingsPublicAccessProvider{service: services.systemSettings},
+		SMTPStatus:                  systemSettingsSMTPProvider{service: services.systemSettings},
 		AuthCookieName:              authCookieName(cfg),
 		AuthCookieSecure:            authCookieSecure(cfg),
-		AuthRegistrationDisabled:    false,
 		AuthPasswordResetRateWindow: cfg.Auth.PasswordResetRateWindow,
 		AuthPasswordResetIPLimit:    cfg.Auth.PasswordResetIPLimit,
 		AuthPasswordResetEmailLimit: cfg.Auth.PasswordResetEmailLimit,

@@ -10,6 +10,22 @@ navOrder: 30
 
 時間長度使用 Go 語法，例如 `250ms`、`5s`、`30m` 或 `168h`。布林值使用 `true` 或 `false`。機密值必須保持穩定、彼此不同，而且不能放進版本控制。
 
+## 設定的管理位置
+
+基礎設施設定只由環境變數管理，包括資料庫連線、加密與雜湊金鑰、公開來源網址、HTTP 監聽位址、背景工作參數，以及其他行程層級的設定；變更後必須重新啟動控制器。
+
+需要在 Netstamp 執行期間調整的營運設定會由控制器儲存。**管理 → 系統設定** 提供五個彼此獨立的區段：
+
+| 區段   | 執行階段設定                                                    |
+| ------ | --------------------------------------------------------------- |
+| 存取   | 帳號建立、電子郵件驗證、專案建立，以及使用者憑證變更            |
+| SMTP   | 郵件伺服器、寄件者、TLS、逾時時間，以及加密憑證                 |
+| OIDC   | 通用 OpenID Connect 提供者與加密的 client secret                |
+| Google | Google 提供者、受允許的 hosted domain，以及加密的 client secret |
+| GitHub | GitHub 提供者、註冊行為，以及加密的 client secret               |
+
+網頁分析與追蹤同意不是管理介面的系統設定，也不會由執行階段設定 API 回傳。它們會透過下方的 `VITE_NETSTAMP_*` 建置變數編譯進靜態網頁應用程式。
+
 ## Compose 部署變數
 
 這些值用來選擇映像檔與主機對外開放方式，不會直接設定控制器。
@@ -37,7 +53,7 @@ navOrder: 30
 | `SYSTEM_SETTINGS_ENCRYPTION_KEY` | development placeholder | 加密系統管理機密設定時使用的穩定金鑰                           |
 | `SHUTDOWN_TIMEOUT`               | `10s`                   | 控制器正常關閉的期限                                           |
 
-所有非本機部署都必須更換這兩個開發用預留金鑰。變更設定加密金鑰可能使已儲存的 SMTP 機密值無法解密。
+所有非本機部署都必須更換這兩個開發用預留金鑰。變更設定加密金鑰可能使已儲存的 SMTP 或外部驗證提供者機密值無法解密。
 
 ## HTTP 與公開來源網址
 
@@ -92,7 +108,7 @@ navOrder: 30
 | `AUTH_ARGON2ID_ITERATIONS`              | `3`                     | Argon2id 迭代成本                        |
 | `AUTH_ARGON2ID_PARALLELISM`             | `4`                     | Argon2id 平行處理數                      |
 
-變更雜湊金鑰會使受該金鑰保護的既有憑證失效。註冊、電子郵件驗證、專案建立、憑證變更與外部驗證提供者皆在 **Admin → System settings** 中設定。
+變更雜湊金鑰會使受該金鑰保護的既有憑證失效。帳號建立、電子郵件驗證、專案建立、憑證變更與外部驗證提供者，分別在 **管理 → 系統設定** 的存取、OIDC、Google 與 GitHub 區段中設定。
 
 ## 指派、警示與通知背景工作
 
@@ -111,7 +127,7 @@ navOrder: 30
 
 停用背景工作只會暫停處理，不會刪除設定或已排入佇列的工作。
 
-SMTP 與網頁分析設定只在 **Admin → System settings** 中管理。機密值會使用 `SYSTEM_SETTINGS_ENCRYPTION_KEY` 加密。
+SMTP 在 **管理 → 系統設定** 中管理。SMTP 密碼與外部驗證提供者的 client secret 會使用 `SYSTEM_SETTINGS_ENCRYPTION_KEY` 加密。網頁分析則是建置期設定。
 
 ## Tracing
 
@@ -150,16 +166,37 @@ Systemd 安裝程式會寫入前三個值，其餘都是本機執行參數的覆
 
 ## Web 應用程式建置變數
 
-這些值會編譯進靜態前端。容器啟動後再變更執行環境，不會修改已建置的程式套件。
+這些值會編譯進靜態前端。容器啟動後再變更執行階段環境，不會修改已建置的程式套件。
 
-| 變數                             | 預設值                  | 用途                    |
-| -------------------------------- | ----------------------- | ----------------------- |
-| `VITE_NETSTAMP_API_BASE_URL`     | `/api/v1`               | 瀏覽器 API 基底網址     |
-| `VITE_NETSTAMP_API_PROXY_TARGET` | `http://localhost:8080` | Vite 開發用反向代理目標 |
-| `VITE_NETSTAMP_DEMO_EMAIL`       | empty                   | 選用的示範帳號電子郵件  |
-| `VITE_NETSTAMP_DEMO_PASSWORD`    | empty                   | 選用的示範帳號密碼      |
+| 變數                                       | 預設值                              | 用途                                           |
+| ------------------------------------------ | ----------------------------------- | ---------------------------------------------- |
+| `VITE_NETSTAMP_API_BASE_URL`               | `/api/v1`                           | 瀏覽器 API 基底網址                            |
+| `VITE_NETSTAMP_API_PROXY_TARGET`           | `http://localhost:8080`             | Vite 開發用反向代理目標                        |
+| `VITE_NETSTAMP_DEMO_EMAIL`                 | empty                               | 選用的示範帳號電子郵件                         |
+| `VITE_NETSTAMP_DEMO_PASSWORD`              | empty                               | 選用的示範帳號密碼                             |
+| `VITE_NETSTAMP_GOOGLE_TAG_ID`              | empty                               | Google tag ID；留空即可停用                    |
+| `VITE_NETSTAMP_GA_MEASUREMENT_ID`          | empty                               | `VITE_NETSTAMP_GOOGLE_TAG_ID` 的舊版別名       |
+| `VITE_NETSTAMP_CLARITY_PROJECT_ID`         | empty                               | Microsoft Clarity project ID；留空即可停用     |
+| `VITE_NETSTAMP_META_PIXEL_ID`              | empty                               | Meta Pixel ID；留空即可停用                    |
+| `VITE_NETSTAMP_FACEBOOK_PIXEL_ID`          | empty                               | `VITE_NETSTAMP_META_PIXEL_ID` 的舊版別名       |
+| `VITE_NETSTAMP_POSTHOG_KEY`                | empty                               | 公開的 PostHog project key；留空即可停用       |
+| `VITE_NETSTAMP_POSTHOG_HOST`               | `https://us.i.posthog.com`          | PostHog 資料接收主機                           |
+| `VITE_NETSTAMP_PLAUSIBLE_DOMAIN`           | empty                               | 回報給 Plausible 的網域；留空即可停用          |
+| `VITE_NETSTAMP_PLAUSIBLE_SCRIPT_URL`       | `https://plausible.io/js/script.js` | Plausible script URL                           |
+| `VITE_NETSTAMP_UMAMI_WEBSITE_ID`           | empty                               | Umami website ID；留空即可停用                 |
+| `VITE_NETSTAMP_UMAMI_SCRIPT_URL`           | `https://cloud.umami.is/script.js`  | Umami script URL                               |
+| `VITE_NETSTAMP_TRACKING_CONSENT_MODE`      | `regional`                          | `regional`、`always` 或 `immediate`            |
+| `VITE_NETSTAMP_TRACKING_CONSENT_COUNTRIES` | 內建地區清單                        | 以逗號或空白分隔的 ISO 3166-1 alpha-2 國家代碼 |
 
-Web 應用程式會在執行時從控制器載入存取政策、示範模式、分析服務與同意設定；這些項目皆在 **管理 → 系統設定** 中管理。
+同時設定 Google 或 Meta 的主要名稱與舊版別名時，主要名稱優先。Tracker 識別碼、主機、URL、同意規則及其他所有 `VITE_*` 值都會出現在瀏覽器程式套件中；絕對不要在這些變數中放入私有 API key、client secret、密碼或其他機密值。
+
+同意模式的行為如下：
+
+- `regional`：只對指定國家及無法判斷所在國家的訪客要求同意；
+- `always`：所有訪客都必須先同意，才載入已設定的 tracker；
+- `immediate`：不顯示同意提示，立即載入已設定的 tracker。
+
+同意國家變數留空時會使用 Netstamp 的內建地區清單。存取政策與示範模式仍會在執行時從控制器載入，但分析及同意設定不會。
 
 ## 說明文件建置變數
 

@@ -16,7 +16,7 @@ declare global {
 		readonly PUBLIC_NETSTAMP_PLAUSIBLE_SCRIPT_URL?: string;
 		readonly PUBLIC_NETSTAMP_UMAMI_WEBSITE_ID?: string;
 		readonly PUBLIC_NETSTAMP_UMAMI_SCRIPT_URL?: string;
-		readonly PUBLIC_NETSTAMP_TRACKING_CONSENT_MODE?: "regional" | "always" | "never";
+		readonly PUBLIC_NETSTAMP_TRACKING_CONSENT_MODE?: "regional" | "always" | "immediate";
 		readonly PUBLIC_NETSTAMP_TRACKING_CONSENT_COUNTRIES?: string;
 	}
 }

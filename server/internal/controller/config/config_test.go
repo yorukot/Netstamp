@@ -43,6 +43,9 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.HTTP.BackendBaseURL != "" {
 		t.Fatalf("expected empty backend base URL, got %q", cfg.HTTP.BackendBaseURL)
 	}
+	if cfg.HTTP.PublicWebBaseURL != "" {
+		t.Fatalf("expected empty public web base URL, got %q", cfg.HTTP.PublicWebBaseURL)
+	}
 	if cfg.HTTP.Addr != ":8080" {
 		t.Fatalf("expected default HTTP addr, got %q", cfg.HTTP.Addr)
 	}
@@ -94,6 +97,7 @@ func TestLoadFromEnvironment(t *testing.T) {
 	t.Setenv(keyLogPseudonymKey, "production-log-pseudonym-key")
 	t.Setenv(keySystemSettingsEncryptionKey, "production-system-settings-key")
 	t.Setenv(keyBackendBaseURL, "https://app.netstamp.dev")
+	t.Setenv(keyPublicWebBaseURL, "https://app.netstamp.dev")
 	t.Setenv(keyHTTPAddr, ":8181")
 	t.Setenv(keyWebDir, "/app/web")
 	t.Setenv(keyHTTPTrustedProxies, "10.0.0.0/8,127.0.0.1")
@@ -141,6 +145,9 @@ func TestLoadFromEnvironment(t *testing.T) {
 	}
 	if cfg.HTTP.BackendBaseURL != "https://app.netstamp.dev" {
 		t.Fatalf("expected backend base URL override, got %q", cfg.HTTP.BackendBaseURL)
+	}
+	if cfg.HTTP.PublicWebBaseURL != "https://app.netstamp.dev" {
+		t.Fatalf("expected public web base URL override, got %q", cfg.HTTP.PublicWebBaseURL)
 	}
 	if cfg.HTTP.Addr != ":8181" {
 		t.Fatalf("expected HTTP addr override, got %q", cfg.HTTP.Addr)
@@ -211,6 +218,7 @@ func TestLoadFromDotEnv(t *testing.T) {
 	err := os.WriteFile(filepath.Join(dir, ".env"), []byte(strings.Join([]string{
 		"APP_ENV=staging",
 		"SERVICE_NAME=netstamp-staging",
+		"PUBLIC_WEB_BASE_URL=https://staging.netstamp.dev",
 		"HTTP_ADDR=:8282",
 		"REQUEST_TIMEOUT=2s",
 		"DATABASE_HOST=db.staging.internal",
@@ -231,6 +239,9 @@ func TestLoadFromDotEnv(t *testing.T) {
 	}
 	if cfg.ServiceName != "netstamp-staging" {
 		t.Fatalf("expected service from .env, got %q", cfg.ServiceName)
+	}
+	if cfg.HTTP.PublicWebBaseURL != "https://staging.netstamp.dev" {
+		t.Fatalf("expected public web base URL from .env, got %q", cfg.HTTP.PublicWebBaseURL)
 	}
 	if cfg.HTTP.Addr != ":8282" {
 		t.Fatalf("expected HTTP addr from .env, got %q", cfg.HTTP.Addr)
@@ -268,6 +279,19 @@ func TestLoadReturnsValidationErrors(t *testing.T) {
 		if !strings.Contains(message, want) {
 			t.Fatalf("expected error to contain %q, got %q", want, message)
 		}
+	}
+}
+
+func TestLoadRequiresPublicWebBaseURLOutsideLocal(t *testing.T) {
+	clearConfigEnv(t)
+	t.Setenv(keyAppEnv, "production")
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("expected missing public web base URL error")
+	}
+	if !strings.Contains(err.Error(), "PUBLIC_WEB_BASE_URL must not be empty when APP_ENV is not local") {
+		t.Fatalf("expected missing public web base URL error, got %q", err.Error())
 	}
 }
 
@@ -317,6 +341,7 @@ func TestValidateReturnsErrorsForInvalidValues(t *testing.T) {
 		"SYSTEM_SETTINGS_ENCRYPTION_KEY must not be empty",
 		"SHUTDOWN_TIMEOUT must be greater than 0",
 		"BACKEND_BASE_URL must be an origin without path, query, fragment, or credentials",
+		"PUBLIC_WEB_BASE_URL must not be empty when APP_ENV is not local",
 		"HTTP_ADDR must be a host:port address",
 		"REQUEST_TIMEOUT must be greater than 0",
 		"HTTP_READ_HEADER_TIMEOUT must be greater than 0",
@@ -366,6 +391,55 @@ func TestValidateOptionalHTTPOrigin(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			errs := validateOptionalHTTPOrigin(keyBackendBaseURL, tt.value)
 			err := errors.Join(errs...)
+			if tt.wantError == "" {
+				if err != nil {
+					t.Fatalf("expected no error, got %v", err)
+				}
+				return
+			}
+			if err == nil {
+				t.Fatalf("expected error %q", tt.wantError)
+			}
+			if !strings.Contains(err.Error(), tt.wantError) {
+				t.Fatalf("expected error to contain %q, got %q", tt.wantError, err.Error())
+			}
+		})
+	}
+}
+
+func TestValidatePublicWebBaseURL(t *testing.T) {
+	tests := []struct {
+		name      string
+		appEnv    string
+		value     string
+		wantError string
+	}{
+		{name: "local may omit origin", appEnv: "local"},
+		{name: "local configured origin", appEnv: "local", value: "http://localhost:5173"},
+		{
+			name:      "production requires origin",
+			appEnv:    "production",
+			wantError: "PUBLIC_WEB_BASE_URL must not be empty when APP_ENV is not local",
+		},
+		{
+			name:      "staging requires origin",
+			appEnv:    "staging",
+			value:     " ",
+			wantError: "PUBLIC_WEB_BASE_URL must not be empty when APP_ENV is not local",
+		},
+		{name: "production HTTP origin", appEnv: "production", value: "http://app.netstamp.dev"},
+		{name: "production HTTPS origin", appEnv: "production", value: "https://app.netstamp.dev"},
+		{
+			name:      "production rejects path",
+			appEnv:    "production",
+			value:     "https://app.netstamp.dev/reset",
+			wantError: "PUBLIC_WEB_BASE_URL must be an origin without path, query, fragment, or credentials",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := errors.Join(validatePublicWebBaseURL(tt.appEnv, tt.value)...)
 			if tt.wantError == "" {
 				if err != nil {
 					t.Fatalf("expected no error, got %v", err)

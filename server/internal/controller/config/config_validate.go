@@ -137,6 +137,18 @@ func validateOptionalHTTPOrigin(key, value string) []error {
 	return nil
 }
 
+func validatePublicWebBaseURL(appEnv, value string) []error {
+	if strings.TrimSpace(value) == "" {
+		if strings.TrimSpace(appEnv) == "local" {
+			return nil
+		}
+
+		return []error{errors.New("PUBLIC_WEB_BASE_URL must not be empty when APP_ENV is not local")}
+	}
+
+	return validateOptionalHTTPOrigin(keyPublicWebBaseURL, value)
+}
+
 func validateTrustedProxyPrefixes(key, value string) []error {
 	if _, err := parseTrustedProxyPrefixes(value); err != nil {
 		return []error{fmt.Errorf("%s %w", key, err)}

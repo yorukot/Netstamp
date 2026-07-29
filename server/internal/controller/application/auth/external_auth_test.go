@@ -76,6 +76,211 @@ func TestSudoStatusIncludesGitHubProvider(t *testing.T) {
 	}
 }
 
+func TestSudoStatusUsesDynamicProviderSource(t *testing.T) {
+	userID := "11111111-1111-1111-1111-111111111111"
+	users := &externalAuthUserRepositoryFake{userByID: identity.User{ID: userID}}
+	repo := &externalAuthRepositoryFake{identities: []identity.UserIdentity{
+		{Provider: identity.AuthenticationMethodGitHub},
+	}}
+	source := &externalProviderSourceFake{
+		ids: []string{identity.AuthenticationMethodGitHub},
+		registrations: map[string]ExternalProviderRegistration{
+			identity.AuthenticationMethodGitHub: {
+				Config: ExternalProviderConfig{ID: identity.AuthenticationMethodGitHub, SudoCapable: true},
+				Client: &externalAuthClientFake{},
+			},
+		},
+	}
+	service := NewService(users, passwordResetHasher{}, nil, nil)
+	service.recentAuth = &recentAuthenticationFake{}
+	service.ConfigureExternalAuth(repo, &externalAuthTokenManagerFake{}, ExternalAuthConfig{})
+	service.ConfigureExternalAuthProviderSource(source)
+
+	status, err := service.SudoStatus(context.Background(), userID, "session-id")
+	if err != nil {
+		t.Fatalf("get dynamic sudo status: %v", err)
+	}
+	if len(status.Methods) != 1 || status.Methods[0] != identity.AuthenticationMethodGitHub {
+		t.Fatalf("expected dynamic GitHub sudo method, got %#v", status.Methods)
+	}
+}
+
+func TestSudoStatusIsolatesBrokenDynamicProvider(t *testing.T) {
+	userID := "11111111-1111-1111-1111-111111111111"
+	users := &externalAuthUserRepositoryFake{userByID: identity.User{ID: userID}}
+	repo := &externalAuthRepositoryFake{identities: []identity.UserIdentity{
+		{Provider: identity.AuthenticationMethodOIDC},
+		{Provider: identity.AuthenticationMethodGoogle},
+	}}
+	source := &externalProviderSourceFake{
+		ids: []string{identity.AuthenticationMethodOIDC, identity.AuthenticationMethodGoogle},
+		registrations: map[string]ExternalProviderRegistration{
+			identity.AuthenticationMethodGoogle: {
+				Config: ExternalProviderConfig{ID: identity.AuthenticationMethodGoogle, SudoCapable: true},
+				Client: &externalAuthClientFake{},
+			},
+		},
+		errs: map[string]error{identity.AuthenticationMethodOIDC: errors.New("corrupt OIDC secret")},
+	}
+	service := NewService(users, passwordResetHasher{}, nil, nil)
+	service.recentAuth = &recentAuthenticationFake{}
+	service.ConfigureExternalAuth(repo, &externalAuthTokenManagerFake{}, ExternalAuthConfig{})
+	service.ConfigureExternalAuthProviderSource(source)
+
+	status, err := service.SudoStatus(context.Background(), userID, "session-id")
+	if err != nil {
+		t.Fatalf("get sudo status with one broken provider: %v", err)
+	}
+	if len(status.Methods) != 1 || status.Methods[0] != identity.AuthenticationMethodGoogle {
+		t.Fatalf("expected only healthy Google sudo method, got %#v", status.Methods)
+	}
+}
+
+func TestStartExternalAuthResolvesOnlyRequestedDynamicProvider(t *testing.T) {
+	repo := &externalAuthRepositoryFake{}
+	source := &externalProviderSourceFake{
+		ids: []string{
+			identity.AuthenticationMethodGoogle,
+			identity.AuthenticationMethodGitHub,
+			identity.AuthenticationMethodOIDC,
+		},
+		registrations: map[string]ExternalProviderRegistration{
+			identity.AuthenticationMethodGitHub: {
+				Config: ExternalProviderConfig{ID: identity.AuthenticationMethodGitHub},
+				Client: &externalAuthClientFake{authorizationURL: "https://github.com/login/oauth/authorize"},
+			},
+		},
+		errs: map[string]error{
+			identity.AuthenticationMethodGoogle: errors.New("corrupt Google secret"),
+			identity.AuthenticationMethodOIDC:   errors.New("corrupt OIDC secret"),
+		},
+	}
+	service := NewService(&externalAuthUserRepositoryFake{}, passwordResetHasher{}, nil, nil)
+	service.ConfigureExternalAuth(repo, &externalAuthTokenManagerFake{
+		tokens: []string{"state", "browser", "nonce", "pkce"},
+	}, ExternalAuthConfig{})
+	service.ConfigureExternalAuthProviderSource(source)
+
+	if _, err := service.StartExternalAuth(context.Background(), StartExternalAuthInput{
+		Provider: identity.AuthenticationMethodGitHub,
+	}); err != nil {
+		t.Fatalf("start healthy dynamic GitHub provider: %v", err)
+	}
+	if len(source.resolved) != 1 || source.resolved[0] != identity.AuthenticationMethodGitHub {
+		t.Fatalf("expected only GitHub resolution, got %#v", source.resolved)
+	}
+}
+
+func TestDynamicExternalProviderReauthenticationElevatesExternalLoginSession(t *testing.T) {
+	tests := []struct {
+		provider string
+		issuer   string
+	}{
+		{provider: identity.AuthenticationMethodOIDC, issuer: "https://idp.example.com"},
+		{provider: identity.AuthenticationMethodGoogle, issuer: "https://accounts.google.com"},
+		{provider: identity.AuthenticationMethodGitHub, issuer: "https://github.com"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.provider, func(t *testing.T) {
+			now := time.Date(2026, time.July, 29, 10, 0, 0, 0, time.UTC)
+			userID := "11111111-1111-1111-1111-111111111111"
+			sessionID := "22222222-2222-2222-2222-222222222222"
+			identityID := "33333333-3333-3333-3333-333333333333"
+			users := &externalAuthUserRepositoryFake{userByID: identity.User{ID: userID}}
+			repo := &externalAuthRepositoryFake{
+				identities: []identity.UserIdentity{{
+					ID: identityID, UserID: userID, Provider: test.provider,
+				}},
+				linkedIdentity: identity.UserIdentity{
+					ID: identityID, UserID: userID, Provider: test.provider,
+				},
+			}
+			client := &externalAuthClientFake{
+				authorizationURL: "https://provider.example.com/authorize",
+				claims: ExternalIdentityClaims{
+					Issuer: test.issuer, Subject: "provider-subject", AuthTime: now,
+				},
+			}
+			source := &externalProviderSourceFake{
+				ids: []string{test.provider},
+				registrations: map[string]ExternalProviderRegistration{
+					test.provider: {
+						Config: ExternalProviderConfig{
+							ID: test.provider, DisplayName: test.provider, SudoCapable: true,
+						},
+						Client: client,
+					},
+				},
+			}
+			recent := &statefulRecentAuthenticationFake{session: identity.AuthSession{
+				ID: sessionID, UserID: userID, AuthenticationMethod: test.provider,
+				SudoEligible: false, IdentityID: &identityID, CreatedAt: now.Add(-time.Hour),
+			}}
+			service := NewService(users, passwordResetHasher{}, nil, nil)
+			service.now = func() time.Time { return now }
+			service.recentAuth = recent
+			service.ConfigureExternalAuth(
+				repo,
+				&externalAuthTokenManagerFake{tokens: []string{"state", "browser", "nonce", "pkce"}},
+				ExternalAuthConfig{FlowTTL: 10 * time.Minute, AuthTimeSkew: time.Minute},
+			)
+			service.ConfigureExternalAuthProviderSource(source)
+
+			status, err := service.SudoStatus(context.Background(), userID, sessionID)
+			if err != nil {
+				t.Fatalf("get sudo status before reauthentication: %v", err)
+			}
+			if status.Active || len(status.Methods) != 1 || status.Methods[0] != test.provider {
+				t.Fatalf("expected inactive session with linked dynamic %s method, got %#v", test.provider, status)
+			}
+			err = service.RequireSudo(context.Background(), sessionID)
+			if !errors.Is(err, ErrSudoRequired) {
+				t.Fatalf("expected sensitive operation to require reauthentication, got %v", err)
+			}
+
+			start, err := service.StartExternalAuth(context.Background(), StartExternalAuthInput{
+				Provider: test.provider, Intent: ExternalAuthIntentSudo, SessionID: sessionID, ReturnTo: "/admin",
+			})
+			if err != nil {
+				t.Fatalf("start dynamic %s reauthentication: %v", test.provider, err)
+			}
+			if start.AuthorizationURL != client.authorizationURL {
+				t.Fatalf("unexpected authorization URL %q", start.AuthorizationURL)
+			}
+			repo.flow = repo.createdFlow
+
+			result, err := service.CompleteExternalAuth(context.Background(), CompleteExternalAuthInput{
+				Provider: test.provider, Code: "code", State: "state", BrowserToken: "browser",
+			})
+			if err != nil {
+				t.Fatalf("complete dynamic %s reauthentication: %v", test.provider, err)
+			}
+			if result.Intent != ExternalAuthIntentSudo || result.ReturnTo != "/admin" || result.Access != nil {
+				t.Fatalf("unexpected reauthentication result: %#v", result)
+			}
+			if err := service.RequireSudo(context.Background(), sessionID); err != nil {
+				t.Fatalf("expected sensitive operation after reauthentication to pass: %v", err)
+			}
+			if !recent.elevated ||
+				recent.elevatedMethod != test.provider ||
+				recent.elevatedIdentityID == nil ||
+				*recent.elevatedIdentityID != identityID ||
+				!recent.elevatedAt.Equal(now) {
+				t.Fatalf("unexpected session elevation: %#v", recent)
+			}
+			if len(source.resolved) != 3 {
+				t.Fatalf("expected status, start, and callback to resolve DB runtime provider, got %#v", source.resolved)
+			}
+			for _, provider := range source.resolved {
+				if provider != test.provider {
+					t.Fatalf("expected only %s resolution, got %#v", test.provider, source.resolved)
+				}
+			}
+		})
+	}
+}
+
 func TestCompleteExternalAuthDoesNotAutoLinkExistingEmail(t *testing.T) {
 	now := time.Date(2026, time.July, 16, 10, 0, 0, 0, time.UTC)
 	users := &externalAuthUserRepositoryFake{userByEmail: identity.User{
@@ -268,12 +473,13 @@ func (*externalAuthUserRepositoryFake) UpdateUserPasswordHash(context.Context, i
 }
 
 type externalAuthRepositoryFake struct {
-	createdFlow     identity.ExternalAuthFlow
-	flow            identity.ExternalAuthFlow
-	linkedIdentity  identity.UserIdentity
-	identities      []identity.UserIdentity
-	identityErr     error
-	createUserCalls int
+	createdFlow         identity.ExternalAuthFlow
+	flow                identity.ExternalAuthFlow
+	linkedIdentity      identity.UserIdentity
+	identities          []identity.UserIdentity
+	identityErr         error
+	createUserCalls     int
+	createIdentityCalls int
 }
 
 func (r *externalAuthRepositoryFake) CreateExternalAuthUser(context.Context, string, string, identity.UserIdentity, time.Time) (identity.User, identity.UserIdentity, error) {
@@ -281,7 +487,8 @@ func (r *externalAuthRepositoryFake) CreateExternalAuthUser(context.Context, str
 	return identity.User{}, identity.UserIdentity{}, nil
 }
 
-func (*externalAuthRepositoryFake) CreateUserIdentity(_ context.Context, input identity.UserIdentity) (identity.UserIdentity, error) {
+func (r *externalAuthRepositoryFake) CreateUserIdentity(_ context.Context, input identity.UserIdentity) (identity.UserIdentity, error) {
+	r.createIdentityCalls++
 	return input, nil
 }
 
@@ -350,6 +557,25 @@ func (m *externalAuthTokenManagerFake) Generate(context.Context) (string, error)
 }
 func (*externalAuthTokenManagerFake) Hash(value string) string { return "hash:" + value }
 
+type externalProviderSourceFake struct {
+	ids           []string
+	registrations map[string]ExternalProviderRegistration
+	errs          map[string]error
+	resolved      []string
+}
+
+func (s *externalProviderSourceFake) ExternalProviderIDs() []string {
+	return s.ids
+}
+
+func (s *externalProviderSourceFake) ExternalProviderRegistration(_ context.Context, provider string) (ExternalProviderRegistration, error) {
+	s.resolved = append(s.resolved, provider)
+	if err := s.errs[provider]; err != nil {
+		return ExternalProviderRegistration{}, err
+	}
+	return s.registrations[provider], nil
+}
+
 type recentAuthenticationFake struct {
 	session        identity.AuthSession
 	elevated       bool
@@ -369,5 +595,44 @@ func (r *recentAuthenticationFake) ElevateSession(_ context.Context, _, method s
 }
 
 func (r *recentAuthenticationFake) GetSession(context.Context, string) (identity.AuthSession, error) {
+	return r.session, nil
+}
+
+type statefulRecentAuthenticationFake struct {
+	session            identity.AuthSession
+	elevated           bool
+	elevatedAt         time.Time
+	elevatedMethod     string
+	elevatedIdentityID *string
+}
+
+func (r *statefulRecentAuthenticationFake) SudoStatus(context.Context, string) (identity.SudoStatus, error) {
+	return identity.SudoStatus{Active: r.elevated}, nil
+}
+
+func (r *statefulRecentAuthenticationFake) ElevateSession(
+	_ context.Context,
+	sessionID string,
+	method string,
+	identityID *string,
+	authenticatedAt time.Time,
+) error {
+	if sessionID != r.session.ID {
+		return ErrSessionInvalid
+	}
+	r.elevated = true
+	r.elevatedAt = authenticatedAt
+	r.elevatedMethod = method
+	r.elevatedIdentityID = identityID
+	return nil
+}
+
+func (r *statefulRecentAuthenticationFake) GetSession(
+	_ context.Context,
+	sessionID string,
+) (identity.AuthSession, error) {
+	if sessionID != r.session.ID {
+		return identity.AuthSession{}, ErrSessionInvalid
+	}
 	return r.session, nil
 }

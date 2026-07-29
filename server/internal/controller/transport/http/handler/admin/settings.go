@@ -1,108 +1,130 @@
 package admin
 
-import appadmin "github.com/yorukot/netstamp/internal/controller/application/admin"
+import (
+	"bytes"
+	"encoding/json"
+	"errors"
+)
 
-type settingsBody struct {
-	Access                  *accessBody    `json:"access,omitempty"`
-	SMTP                    *smtpBody      `json:"smtp,omitempty"`
-	AuthenticationProviders *providersBody `json:"authenticationProviders,omitempty"`
-	Tracking                *trackingBody  `json:"tracking,omitempty"`
-}
-
-type accessBody struct {
-	RegistrationEnabled       *bool `json:"registrationEnabled,omitempty"`
-	EmailVerificationRequired *bool `json:"emailVerificationRequired,omitempty"`
-	ProjectCreationEnabled    *bool `json:"projectCreationEnabled,omitempty"`
-	CredentialChangesEnabled  *bool `json:"credentialChangesEnabled,omitempty"`
+type optionalNullableString struct {
+	Present bool
+	Value   *string
 }
 
-type smtpBody struct {
-	Host           *string `json:"host,omitempty"`
-	Port           *int32  `json:"port,omitempty"`
-	Username       *string `json:"username,omitempty"`
-	Password       *string `json:"password,omitempty"`
-	ClearPassword  bool    `json:"clearPassword,omitempty"`
-	From           *string `json:"from,omitempty"`
-	TLSMode        *string `json:"tlsMode,omitempty"`
-	TimeoutSeconds *int32  `json:"timeoutSeconds,omitempty"`
+type optionalNonNull[T any] struct {
+	Value *T
 }
 
-type providersBody struct {
-	OIDC   *providerBody       `json:"oidc,omitempty"`
-	Google *providerBody       `json:"google,omitempty"`
-	GitHub *githubProviderBody `json:"github,omitempty"`
-}
-type providerBody struct {
-	Enabled           *bool   `json:"enabled,omitempty"`
-	IssuerURL         *string `json:"issuerUrl,omitempty"`
-	ClientID          *string `json:"clientId,omitempty"`
-	ClientSecret      *string `json:"clientSecret,omitempty"`
-	ClearClientSecret bool    `json:"clearClientSecret,omitempty"`
-	DisplayName       *string `json:"displayName,omitempty"`
-	JITEnabled        *bool   `json:"jitEnabled,omitempty"`
-	AllowedDomains    *string `json:"allowedDomains,omitempty"`
-}
-type githubProviderBody struct {
-	providerBody
-	AllowSignup *bool `json:"allowSignup,omitempty"`
-}
-
-type trackingBody struct {
-	GoogleTagID        string `json:"googleTagId"`
-	ClarityProjectID   string `json:"clarityProjectId"`
-	MetaPixelID        string `json:"metaPixelId"`
-	PostHogKey         string `json:"postHogKey"`
-	PostHogHost        string `json:"postHogHost"`
-	PlausibleDomain    string `json:"plausibleDomain"`
-	PlausibleScriptURL string `json:"plausibleScriptUrl"`
-	UmamiWebsiteID     string `json:"umamiWebsiteId"`
-	UmamiScriptURL     string `json:"umamiScriptUrl"`
-	ConsentMode        string `json:"consentMode"`
-	ConsentCountries   string `json:"consentCountries"`
-}
-
-func providerInput(body *providerBody) appadmin.UpdateExternalProviderSettingsInput {
-	if body == nil {
-		return appadmin.UpdateExternalProviderSettingsInput{}
+func (value *optionalNonNull[T]) UnmarshalJSON(data []byte) error {
+	if bytes.Equal(bytes.TrimSpace(data), []byte("null")) {
+		return errors.New("settings patch field must not be null")
 	}
-	return appadmin.UpdateExternalProviderSettingsInput{Enabled: body.Enabled, IssuerURL: body.IssuerURL, ClientID: body.ClientID, ClientSecret: body.ClientSecret, ClearClientSecret: body.ClearClientSecret, DisplayName: body.DisplayName, JITEnabled: body.JITEnabled, AllowedDomains: body.AllowedDomains}
+
+	var decoded T
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return err
+	}
+	value.Value = &decoded
+	return nil
 }
 
-func (b settingsBody) updateInput(userID string) appadmin.UpdateSettingsInput {
-	input := appadmin.UpdateSettingsInput{CurrentUserID: userID}
-	if b.Access != nil {
-		input.RegistrationEnabled = b.Access.RegistrationEnabled
-		input.EmailVerificationRequired = b.Access.EmailVerificationRequired
-		input.ProjectCreationEnabled = b.Access.ProjectCreationEnabled
-		input.CredentialChangesEnabled = b.Access.CredentialChangesEnabled
+func (value *optionalNullableString) UnmarshalJSON(data []byte) error {
+	value.Present = true
+	if bytes.Equal(bytes.TrimSpace(data), []byte("null")) {
+		value.Value = nil
+		return nil
 	}
-	if b.SMTP != nil {
-		input.SMTP = appadmin.UpdateSMTPSettingsInput{Host: b.SMTP.Host, Port: b.SMTP.Port, Username: b.SMTP.Username, Password: b.SMTP.Password, ClearPassword: b.SMTP.ClearPassword, From: b.SMTP.From, TLSMode: b.SMTP.TLSMode, TimeoutSeconds: b.SMTP.TimeoutSeconds}
+
+	var decoded string
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return err
 	}
-	if b.AuthenticationProviders != nil {
-		input.OIDC = providerInput(b.AuthenticationProviders.OIDC)
-		input.Google = providerInput(b.AuthenticationProviders.Google)
-		if b.AuthenticationProviders.GitHub != nil {
-			input.GitHub = appadmin.UpdateGitHubProviderSettingsInput{UpdateExternalProviderSettingsInput: providerInput(&b.AuthenticationProviders.GitHub.providerBody), AllowSignup: b.AuthenticationProviders.GitHub.AllowSignup}
-		}
-	}
-	if b.Tracking != nil {
-		input.Tracking = &appadmin.TrackingSettings{GoogleTagID: b.Tracking.GoogleTagID, ClarityProjectID: b.Tracking.ClarityProjectID, MetaPixelID: b.Tracking.MetaPixelID, PostHogKey: b.Tracking.PostHogKey, PostHogHost: b.Tracking.PostHogHost, PlausibleDomain: b.Tracking.PlausibleDomain, PlausibleScriptURL: b.Tracking.PlausibleScriptURL, UmamiWebsiteID: b.Tracking.UmamiWebsiteID, UmamiScriptURL: b.Tracking.UmamiScriptURL, ConsentMode: b.Tracking.ConsentMode, ConsentCountries: b.Tracking.ConsentCountries}
-	}
-	return input
+	value.Value = &decoded
+	return nil
 }
 
-func providerResponse(value appadmin.ExternalProviderSettings) map[string]any {
-	return map[string]any{"enabled": value.Enabled, "issuerUrl": value.IssuerURL, "clientId": value.ClientID, "clientSecretSet": value.ClientSecretSet, "displayName": value.DisplayName, "jitEnabled": value.JITEnabled, "allowedDomains": value.AllowedDomains}
+type accessSettingsPatchBody struct {
+	AccountCreationEnabled    optionalNonNull[bool] `json:"accountCreationEnabled"`
+	EmailVerificationRequired optionalNonNull[bool] `json:"emailVerificationRequired"`
+	ProjectCreationEnabled    optionalNonNull[bool] `json:"projectCreationEnabled"`
+	CredentialChangesEnabled  optionalNonNull[bool] `json:"credentialChangesEnabled"`
 }
 
-func settingsResponse(settings appadmin.Settings) map[string]any {
-	github := providerResponse(settings.GitHub.ExternalProviderSettings)
-	github["allowSignup"] = settings.GitHub.AllowSignup
-	return map[string]any{
-		"access":                  map[string]any{"registrationEnabled": settings.RegistrationEnabled, "emailVerificationRequired": settings.EmailVerificationRequired, "projectCreationEnabled": settings.ProjectCreationEnabled, "credentialChangesEnabled": settings.CredentialChangesEnabled},
-		"smtp":                    map[string]any{"host": settings.SMTP.Host, "port": settings.SMTP.Port, "username": settings.SMTP.Username, "passwordSet": settings.SMTP.PasswordSet, "from": settings.SMTP.From, "tlsMode": settings.SMTP.TLSMode, "timeoutSeconds": settings.SMTP.TimeoutSeconds, "configured": settings.SMTP.Host != "" && settings.SMTP.From != ""},
-		"authenticationProviders": map[string]any{"oidc": providerResponse(settings.OIDC), "google": providerResponse(settings.Google), "github": github},
-		"tracking":                trackingBody{GoogleTagID: settings.Tracking.GoogleTagID, ClarityProjectID: settings.Tracking.ClarityProjectID, MetaPixelID: settings.Tracking.MetaPixelID, PostHogKey: settings.Tracking.PostHogKey, PostHogHost: settings.Tracking.PostHogHost, PlausibleDomain: settings.Tracking.PlausibleDomain, PlausibleScriptURL: settings.Tracking.PlausibleScriptURL, UmamiWebsiteID: settings.Tracking.UmamiWebsiteID, UmamiScriptURL: settings.Tracking.UmamiScriptURL, ConsentMode: settings.Tracking.ConsentMode, ConsentCountries: settings.Tracking.ConsentCountries},
-	}
+type smtpSettingsPatchBody struct {
+	Host           optionalNonNull[string] `json:"host"`
+	Port           optionalNonNull[int32]  `json:"port"`
+	Username       optionalNonNull[string] `json:"username"`
+	Password       optionalNullableString  `json:"password"`
+	From           optionalNonNull[string] `json:"from"`
+	TLSMode        optionalNonNull[string] `json:"tlsMode"`
+	TimeoutSeconds optionalNonNull[int32]  `json:"timeoutSeconds"`
+}
+
+type providerSettingsPatchBody struct {
+	Enabled      optionalNonNull[bool]   `json:"enabled"`
+	ClientID     optionalNonNull[string] `json:"clientId"`
+	ClientSecret optionalNullableString  `json:"clientSecret"`
+	DisplayName  optionalNonNull[string] `json:"displayName"`
+	JITEnabled   optionalNonNull[bool]   `json:"jitEnabled"`
+}
+
+type oidcProviderSettingsPatchBody struct {
+	providerSettingsPatchBody
+	IssuerURL optionalNonNull[string] `json:"issuerUrl"`
+}
+
+type googleProviderSettingsPatchBody struct {
+	providerSettingsPatchBody
+	AllowedDomains optionalNonNull[[]string] `json:"allowedDomains"`
+}
+
+type githubProviderSettingsPatchBody struct {
+	providerSettingsPatchBody
+	AllowSignup optionalNonNull[bool] `json:"allowSignup"`
+}
+
+type settingsEnvelope[T any] struct {
+	Settings T `json:"settings"`
+}
+
+type accessSettingsResponseBody struct {
+	AccountCreationEnabled    bool `json:"accountCreationEnabled"`
+	EmailVerificationRequired bool `json:"emailVerificationRequired"`
+	ProjectCreationEnabled    bool `json:"projectCreationEnabled"`
+	CredentialChangesEnabled  bool `json:"credentialChangesEnabled"`
+}
+
+type smtpSettingsResponseBody struct {
+	Host           string `json:"host"`
+	Port           int32  `json:"port"`
+	Username       string `json:"username"`
+	PasswordSet    bool   `json:"passwordSet"`
+	From           string `json:"from"`
+	TLSMode        string `json:"tlsMode"`
+	TimeoutSeconds int32  `json:"timeoutSeconds"`
+	Configured     bool   `json:"configured"`
+}
+
+type providerSettingsResponseBody struct {
+	Enabled         bool    `json:"enabled"`
+	ClientID        string  `json:"clientId"`
+	ClientSecretSet bool    `json:"clientSecretSet"`
+	DisplayName     string  `json:"displayName"`
+	JITEnabled      bool    `json:"jitEnabled"`
+	CallbackURL     *string `json:"callbackUrl,omitempty"`
+}
+
+type oidcProviderSettingsResponseBody struct {
+	providerSettingsResponseBody
+	IssuerURL string `json:"issuerUrl"`
+}
+
+type googleProviderSettingsResponseBody struct {
+	providerSettingsResponseBody
+	AllowedDomains []string `json:"allowedDomains"`
+}
+
+type githubProviderSettingsResponseBody struct {
+	providerSettingsResponseBody
+	AllowSignup bool `json:"allowSignup"`
 }
