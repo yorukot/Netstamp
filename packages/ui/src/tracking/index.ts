@@ -38,7 +38,7 @@ export const DEFAULT_TRACKING_CONSENT_COUNTRIES = [
 	"GB"
 ];
 
-export type TrackingConsentMode = "regional" | "always" | "never";
+export type TrackingConsentMode = "regional" | "always" | "immediate";
 export type TrackingConsentState = "accepted" | "declined";
 
 export interface RawTrackerConfig {
@@ -201,11 +201,11 @@ export function isTrackingAllowed(config: TrackerConfig): boolean {
 		return false;
 	}
 
-	return runtimeAllowedStorageKeys.has(config.storageKey) || config.consentMode === "never";
+	return runtimeAllowedStorageKeys.has(config.storageKey) || config.consentMode === "immediate";
 }
 
 export async function shouldRequestTrackingConsent(config: TrackerConfig): Promise<boolean> {
-	if (!hasEnabledTrackers(config) || config.consentMode === "never") {
+	if (!hasEnabledTrackers(config) || config.consentMode === "immediate") {
 		return false;
 	}
 
@@ -727,7 +727,7 @@ function cleanValue(value: string | null | undefined): string | undefined {
 function normalizeConsentMode(value: string | null | undefined): TrackingConsentMode {
 	const mode = cleanValue(value)?.toLowerCase();
 
-	if (mode === "always" || mode === "never") {
+	if (mode === "always" || mode === "immediate") {
 		return mode;
 	}
 

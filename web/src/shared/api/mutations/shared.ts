@@ -1,4 +1,4 @@
-import { demoMode } from "../../config/features";
+import { getRuntimeFeaturesSnapshot } from "../../config/features";
 import { ApiError } from "../client";
 
 export interface AppMutationOptions {
@@ -24,7 +24,13 @@ export function projectCacheRef(project: { id: string; slug?: string }) {
 }
 
 export function requireWritableAccess() {
-	if (demoMode) {
+	const runtimeFeatures = getRuntimeFeaturesSnapshot();
+
+	if (runtimeFeatures.status !== "ready") {
+		throw new ApiError("Runtime configuration is unavailable.", 503);
+	}
+
+	if (runtimeFeatures.readOnlyMode) {
 		throw new ApiError("Demo mode is read-only.", 403);
 	}
 }

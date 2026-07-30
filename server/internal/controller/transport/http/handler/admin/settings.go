@@ -1,35 +1,100 @@
 package admin
 
-import appadmin "github.com/yorukot/netstamp/internal/controller/application/admin"
+import (
+	"bytes"
+	"encoding/json"
+	"errors"
+)
 
-type settingsBody struct {
-	RegistrationEnabled       *bool     `json:"registrationEnabled,omitempty"`
-	EmailVerificationRequired *bool     `json:"emailVerificationRequired,omitempty"`
-	BackendBaseURL            *string   `json:"backendBaseUrl,omitempty"`
-	PublicWebBaseURL          *string   `json:"publicWebBaseUrl,omitempty"`
-	SMTP                      *smtpBody `json:"smtp,omitempty"`
+type optionalNullableString struct {
+	Present bool
+	Value   *string
 }
 
-type smtpBody struct {
-	Host           *string `json:"host,omitempty"`
-	Port           *int32  `json:"port,omitempty"`
-	Username       *string `json:"username,omitempty"`
-	Password       *string `json:"password,omitempty"`
-	ClearPassword  bool    `json:"clearPassword,omitempty"`
-	From           *string `json:"from,omitempty"`
-	TLSMode        *string `json:"tlsMode,omitempty"`
-	TimeoutSeconds *int32  `json:"timeoutSeconds,omitempty"`
+type optionalNonNull[T any] struct {
+	Value *T
 }
 
-type settingsResponseBody struct {
-	RegistrationEnabled       bool             `json:"registrationEnabled"`
-	EmailVerificationRequired bool             `json:"emailVerificationRequired"`
-	BackendBaseURL            string           `json:"backendBaseUrl"`
-	PublicWebBaseURL          string           `json:"publicWebBaseUrl"`
-	SMTP                      smtpResponseBody `json:"smtp"`
+func (value *optionalNonNull[T]) UnmarshalJSON(data []byte) error {
+	if bytes.Equal(bytes.TrimSpace(data), []byte("null")) {
+		return errors.New("settings patch field must not be null")
+	}
+
+	var decoded T
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return err
+	}
+	value.Value = &decoded
+	return nil
 }
 
-type smtpResponseBody struct {
+func (value *optionalNullableString) UnmarshalJSON(data []byte) error {
+	value.Present = true
+	if bytes.Equal(bytes.TrimSpace(data), []byte("null")) {
+		value.Value = nil
+		return nil
+	}
+
+	var decoded string
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return err
+	}
+	value.Value = &decoded
+	return nil
+}
+
+type accessSettingsPatchBody struct {
+	AccountCreationEnabled    optionalNonNull[bool] `json:"accountCreationEnabled"`
+	EmailVerificationRequired optionalNonNull[bool] `json:"emailVerificationRequired"`
+	ProjectCreationEnabled    optionalNonNull[bool] `json:"projectCreationEnabled"`
+	CredentialChangesEnabled  optionalNonNull[bool] `json:"credentialChangesEnabled"`
+}
+
+type smtpSettingsPatchBody struct {
+	Host           optionalNonNull[string] `json:"host"`
+	Port           optionalNonNull[int32]  `json:"port"`
+	Username       optionalNonNull[string] `json:"username"`
+	Password       optionalNullableString  `json:"password"`
+	From           optionalNonNull[string] `json:"from"`
+	TLSMode        optionalNonNull[string] `json:"tlsMode"`
+	TimeoutSeconds optionalNonNull[int32]  `json:"timeoutSeconds"`
+}
+
+type providerSettingsPatchBody struct {
+	Enabled      optionalNonNull[bool]   `json:"enabled"`
+	ClientID     optionalNonNull[string] `json:"clientId"`
+	ClientSecret optionalNullableString  `json:"clientSecret"`
+	DisplayName  optionalNonNull[string] `json:"displayName"`
+	JITEnabled   optionalNonNull[bool]   `json:"jitEnabled"`
+}
+
+type oidcProviderSettingsPatchBody struct {
+	providerSettingsPatchBody
+	IssuerURL optionalNonNull[string] `json:"issuerUrl"`
+}
+
+type googleProviderSettingsPatchBody struct {
+	providerSettingsPatchBody
+	AllowedDomains optionalNonNull[[]string] `json:"allowedDomains"`
+}
+
+type githubProviderSettingsPatchBody struct {
+	providerSettingsPatchBody
+	AllowSignup optionalNonNull[bool] `json:"allowSignup"`
+}
+
+type settingsEnvelope[T any] struct {
+	Settings T `json:"settings"`
+}
+
+type accessSettingsResponseBody struct {
+	AccountCreationEnabled    bool `json:"accountCreationEnabled"`
+	EmailVerificationRequired bool `json:"emailVerificationRequired"`
+	ProjectCreationEnabled    bool `json:"projectCreationEnabled"`
+	CredentialChangesEnabled  bool `json:"credentialChangesEnabled"`
+}
+
+type smtpSettingsResponseBody struct {
 	Host           string `json:"host"`
 	Port           int32  `json:"port"`
 	Username       string `json:"username"`
@@ -40,44 +105,26 @@ type smtpResponseBody struct {
 	Configured     bool   `json:"configured"`
 }
 
-func (b settingsBody) updateInput(userID string) appadmin.UpdateSettingsInput {
-	input := appadmin.UpdateSettingsInput{
-		CurrentUserID:             userID,
-		RegistrationEnabled:       b.RegistrationEnabled,
-		EmailVerificationRequired: b.EmailVerificationRequired,
-		BackendBaseURL:            b.BackendBaseURL,
-		PublicWebBaseURL:          b.PublicWebBaseURL,
-	}
-	if b.SMTP != nil {
-		input.SMTP = appadmin.UpdateSMTPSettingsInput{
-			Host:           b.SMTP.Host,
-			Port:           b.SMTP.Port,
-			Username:       b.SMTP.Username,
-			Password:       b.SMTP.Password,
-			ClearPassword:  b.SMTP.ClearPassword,
-			From:           b.SMTP.From,
-			TLSMode:        b.SMTP.TLSMode,
-			TimeoutSeconds: b.SMTP.TimeoutSeconds,
-		}
-	}
-	return input
+type providerSettingsResponseBody struct {
+	Enabled         bool    `json:"enabled"`
+	ClientID        string  `json:"clientId"`
+	ClientSecretSet bool    `json:"clientSecretSet"`
+	DisplayName     string  `json:"displayName"`
+	JITEnabled      bool    `json:"jitEnabled"`
+	CallbackURL     *string `json:"callbackUrl,omitempty"`
 }
 
-func settingsResponse(settings appadmin.Settings) settingsResponseBody {
-	return settingsResponseBody{
-		RegistrationEnabled:       settings.RegistrationEnabled,
-		EmailVerificationRequired: settings.EmailVerificationRequired,
-		BackendBaseURL:            settings.BackendBaseURL,
-		PublicWebBaseURL:          settings.PublicWebBaseURL,
-		SMTP: smtpResponseBody{
-			Host:           settings.SMTP.Host,
-			Port:           settings.SMTP.Port,
-			Username:       settings.SMTP.Username,
-			PasswordSet:    settings.SMTP.PasswordSet,
-			From:           settings.SMTP.From,
-			TLSMode:        settings.SMTP.TLSMode,
-			TimeoutSeconds: settings.SMTP.TimeoutSeconds,
-			Configured:     settings.SMTP.Host != "" && settings.SMTP.From != "",
-		},
-	}
+type oidcProviderSettingsResponseBody struct {
+	providerSettingsResponseBody
+	IssuerURL string `json:"issuerUrl"`
+}
+
+type googleProviderSettingsResponseBody struct {
+	providerSettingsResponseBody
+	AllowedDomains []string `json:"allowedDomains"`
+}
+
+type githubProviderSettingsResponseBody struct {
+	providerSettingsResponseBody
+	AllowSignup bool `json:"allowSignup"`
 }

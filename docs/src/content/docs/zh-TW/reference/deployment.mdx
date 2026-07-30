@@ -45,7 +45,7 @@ AUTH_SESSION_HASH_KEY=<random value>
 AUTH_API_TOKEN_HASH_KEY=<random value>
 ```
 
-重新啟動或升級時必須沿用這些值。變更 hash key 會讓對應憑證失效；變更系統設定加密金鑰，則可能導致已儲存的 SMTP 憑證無法解密。
+重新啟動或升級時必須沿用這些值。變更 hash key 會讓對應憑證失效；變更系統設定加密金鑰，則可能導致已儲存的 SMTP 或外部驗證提供者憑證無法解密。
 
 ## 啟動服務
 
@@ -101,7 +101,24 @@ docker build -f deployments/docker/Dockerfile -t netstamp:local .
 NETSTAMP_IMAGE=netstamp NETSTAMP_VERSION=local docker compose up -d
 ```
 
-前端的 `VITE_NETSTAMP_*` 功能旗標會在建置時寫入。製作自訂映像檔時，請透過 Docker 建置參數修改；在已建置完成的容器中新增執行階段環境變數，不會改變前端內容。
+官方發布的映像檔會將所有網頁 tracker 識別碼留空，因此預設不會啟用分析功能。Tracking 不會在 **管理 → 系統設定** 或執行階段設定 API 中管理。
+
+若要啟用 tracker，請重新建置映像檔，並以 Docker 建置參數傳入對應的網頁建置變數：
+
+```bash
+docker build \
+  -f deployments/docker/Dockerfile \
+  --build-arg VITE_NETSTAMP_POSTHOG_KEY=phc_example \
+  --build-arg VITE_NETSTAMP_POSTHOG_HOST=https://us.i.posthog.com \
+  --build-arg VITE_NETSTAMP_TRACKING_CONSENT_MODE=always \
+  -t netstamp:tracked .
+```
+
+所有支援的 Google Tag、Clarity、Meta Pixel、PostHog、Plausible、Umami 與同意設定參數，都列在[設定參考](/zh-TW/docs/reference/configuration/)中。`VITE_NETSTAMP_GA_MEASUREMENT_ID` 是 `VITE_NETSTAMP_GOOGLE_TAG_ID` 的舊版別名，而 `VITE_NETSTAMP_FACEBOOK_PIXEL_ID` 是 `VITE_NETSTAMP_META_PIXEL_ID` 的舊版別名；兩者同時設定時會採用主要名稱。
+
+同意模式可使用 `regional`、`always` 或 `immediate`。Regional 模式只會在指定國家顯示提示，always 模式會提示每一位訪客，immediate 模式則不顯示提示並直接載入已設定的 tracker。
+
+這些值會靜態編譯進網頁程式套件。在 Compose 的 `environment:` 加入 `VITE_NETSTAMP_*`，或變更已建置容器的執行階段環境，都不會產生效果。所有 `VITE_*` 值都會公開給瀏覽器，因此不得用來儲存私有 API key、client secret、密碼或其他機密值。
 
 ## 接下來
 

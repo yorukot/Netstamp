@@ -1,80 +1,21 @@
 import { useRequireSudo } from "@/features/auth/hooks/useRequireSudo";
 import { useSession } from "@/features/auth/session/SessionContext";
 import { formatDateTime } from "@/i18n/format";
-import {
-	useClearManagedUserPasswordMutation,
-	useExportAdminDataMutation,
-	useImportAdminDataMutation,
-	useSetManagedUserPasswordMutation,
-	useUpdateAdminSettingsMutation,
-	useUpdateManagedUserMutation
-} from "@/shared/api/mutations";
+import { useClearManagedUserPasswordMutation, useExportAdminDataMutation, useImportAdminDataMutation, useSetManagedUserPasswordMutation, useUpdateManagedUserMutation } from "@/shared/api/mutations";
 import { adminQueries } from "@/shared/api/queries";
-import type { ApiAdminDataExport, ApiAdminSettings, ApiManagedUser } from "@/shared/api/types";
+import type { ApiAdminDataExport, ApiManagedUser } from "@/shared/api/types";
 import { useConfirm, usePromptDialog } from "@/shared/components/confirmContext";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
-import { UnsavedChangesBar } from "@/shared/components/UnsavedChangesBar";
 import { pushToast } from "@/shared/toast/toastStore";
 import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
-import { Badge, BodyCopy, Button, Checkbox, DataTable, Panel, SelectField, Spinner, TextField, type DataColumn } from "@netstamp/ui";
+import { Badge, BodyCopy, Button, DataTable, Panel, Spinner, TextField, type DataColumn } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
-import type { ChangeEvent, FormEvent } from "react";
+import type { ChangeEvent } from "react";
 import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import styles from "./AdminPage.module.css";
-
-interface AdminFormState {
-	registrationEnabled: boolean;
-	emailVerificationRequired: boolean;
-	backendBaseUrl: string;
-	publicWebBaseUrl: string;
-	smtpHost: string;
-	smtpPort: string;
-	smtpUsername: string;
-	smtpPassword: string;
-	smtpClearPassword: boolean;
-	smtpFrom: string;
-	smtpTLSMode: "starttls" | "implicit" | "none";
-	smtpTimeoutSeconds: string;
-}
-
-const defaultForm: AdminFormState = {
-	registrationEnabled: true,
-	emailVerificationRequired: false,
-	backendBaseUrl: "",
-	publicWebBaseUrl: "",
-	smtpHost: "",
-	smtpPort: "587",
-	smtpUsername: "",
-	smtpPassword: "",
-	smtpClearPassword: false,
-	smtpFrom: "",
-	smtpTLSMode: "starttls",
-	smtpTimeoutSeconds: "10"
-};
-
-function formFromSettings(settings: ApiAdminSettings): AdminFormState {
-	return {
-		registrationEnabled: settings.registrationEnabled,
-		emailVerificationRequired: settings.emailVerificationRequired,
-		backendBaseUrl: settings.backendBaseUrl,
-		publicWebBaseUrl: settings.publicWebBaseUrl,
-		smtpHost: settings.smtp.host,
-		smtpPort: String(settings.smtp.port),
-		smtpUsername: settings.smtp.username,
-		smtpPassword: "",
-		smtpClearPassword: false,
-		smtpFrom: settings.smtp.from,
-		smtpTLSMode: settings.smtp.tlsMode,
-		smtpTimeoutSeconds: String(settings.smtp.timeoutSeconds)
-	};
-}
-
-function numberValue(value: string, fallback: number) {
-	const parsed = Number(value);
-	return Number.isFinite(parsed) ? parsed : fallback;
-}
+import { AdminSettingsPanels } from "./AdminSettingsPanels";
 
 function formatTimestamp(value: string | undefined) {
 	if (!value) {
@@ -126,10 +67,6 @@ function filterManagedUsers(users: ApiManagedUser[], search: string, labels: (us
 	return users.filter(user => managedUserSearchText(user, labels(user)).includes(needle));
 }
 
-function sameValue(left: unknown, right: unknown) {
-	return JSON.stringify(left) === JSON.stringify(right);
-}
-
 export function AdminPage() {
 	const { t } = useTranslation("admin");
 	const { session } = useSession();
@@ -137,25 +74,13 @@ export function AdminPage() {
 	const prompt = usePromptDialog();
 	const requireSudo = useRequireSudo();
 	const importInputRef = useRef<HTMLInputElement | null>(null);
-	const settingsQuery = useQuery({ ...adminQueries.settings(), enabled: Boolean(session?.user.isSystemAdmin) });
 	const usersQuery = useQuery({ ...adminQueries.users(), enabled: Boolean(session?.user.isSystemAdmin) });
-	const updateSettingsMutation = useUpdateAdminSettingsMutation();
 	const updateManagedUserMutation = useUpdateManagedUserMutation();
 	const setManagedUserPasswordMutation = useSetManagedUserPasswordMutation();
 	const clearManagedUserPasswordMutation = useClearManagedUserPasswordMutation();
 	const exportDataMutation = useExportAdminDataMutation();
 	const importDataMutation = useImportAdminDataMutation();
-	const loadedSettings = settingsQuery.data?.settings;
 	const [userSearch, setUserSearch] = useState("");
-	const serverForm = useMemo(() => {
-		if (!loadedSettings) {
-			return defaultForm;
-		}
-		return formFromSettings(loadedSettings);
-	}, [loadedSettings]);
-	const [editedForm, setEditedForm] = useState<AdminFormState | null>(null);
-	const form = editedForm ?? serverForm;
-	const hasAdminSettingsChanges = Boolean(editedForm && !sameValue(editedForm, serverForm));
 	const userRows = useMemo(() => usersQuery.data?.users ?? [], [usersQuery.data?.users]);
 	const filteredUserRows = useMemo(
 		() =>
@@ -168,13 +93,6 @@ export function AdminPage() {
 	);
 	const userCountLabel = userSearch.trim() ? t("filteredUsersCount", { filtered: filteredUserRows.length, total: userRows.length }) : t("usersCount", { count: userRows.length });
 	const activeAdminCount = userRows.filter(user => user.isSystemAdmin && !user.disabledAt).length;
-
-	const smtpPasswordLabel = useMemo(() => {
-		if (!settingsQuery.data?.settings.smtp.passwordSet) {
-			return t("smtpPasswordEmpty");
-		}
-		return t("smtpPasswordStored");
-	}, [settingsQuery.data?.settings.smtp.passwordSet, t]);
 
 	const userColumns = useMemo<DataColumn<ApiManagedUser>[]>(
 		() => [
@@ -242,43 +160,6 @@ export function AdminPage() {
 		);
 	}
 	const currentUserID = session.user.id;
-
-	function update<K extends keyof AdminFormState>(key: K, value: AdminFormState[K]) {
-		setEditedForm(current => ({ ...(current ?? serverForm), [key]: value }));
-	}
-
-	function handleSubmit(event: FormEvent<HTMLFormElement>) {
-		event.preventDefault();
-		void requireSudo(() =>
-			updateSettingsMutation.mutate(
-				{
-					registrationEnabled: form.registrationEnabled,
-					emailVerificationRequired: form.emailVerificationRequired,
-					backendBaseUrl: form.backendBaseUrl,
-					publicWebBaseUrl: form.publicWebBaseUrl,
-					smtp: {
-						host: form.smtpHost,
-						port: numberValue(form.smtpPort, 587),
-						username: form.smtpUsername,
-						...(form.smtpPassword ? { password: form.smtpPassword } : {}),
-						clearPassword: form.smtpClearPassword,
-						from: form.smtpFrom,
-						tlsMode: form.smtpTLSMode,
-						timeoutSeconds: numberValue(form.smtpTimeoutSeconds, 10)
-					}
-				},
-				{
-					onSuccess: () => {
-						setEditedForm(null);
-						pushToast({ title: t("settings.saved"), message: t("settings.savedDescription"), tone: "success" });
-					},
-					onError: error => {
-						pushToast({ title: t("settings.saveFailed"), message: requestErrorMessage(error, t("settings.saveError")), tone: "critical" });
-					}
-				}
-			)
-		);
-	}
 
 	async function toggleDisabled(user: ApiManagedUser) {
 		const nextDisabled = !user.disabledAt;
@@ -479,104 +360,9 @@ export function AdminPage() {
 
 	return (
 		<PageStack>
-			<ScreenHeader
-				title={t("title")}
-				actions={settingsQuery.data?.settings.smtp.configured ? <Badge tone="success">{t("smtpConfigured")}</Badge> : <Badge tone="warning">{t("smtpDisabled")}</Badge>}
-			/>
+			<ScreenHeader title={t("title")} />
 
-			{settingsQuery.isLoading ? (
-				<Spinner label={t("loading")} layout="panel" size="lg" />
-			) : settingsQuery.isError ? (
-				<Panel tone="deep" title={t("unavailable")}>
-					<BodyCopy>{requestErrorMessage(settingsQuery.error, t("loadError"))}</BodyCopy>
-				</Panel>
-			) : (
-				<form className={styles.form} onSubmit={handleSubmit}>
-					<div className={styles.grid}>
-						<Panel tone="glass" title={t("settings.instanceAccess")} bodyClassName={styles.instanceAccessOptions}>
-							<label className={styles.checkboxRow}>
-								<Checkbox checked={form.registrationEnabled} onChange={event => update("registrationEnabled", event.currentTarget.checked)} />
-								<span>
-									<strong>{t("settings.registration")}</strong>
-									<small>{t("settings.registrationDescription")}</small>
-								</span>
-							</label>
-							<label className={styles.checkboxRow}>
-								<Checkbox checked={form.emailVerificationRequired} onChange={event => update("emailVerificationRequired", event.currentTarget.checked)} />
-								<span>
-									<strong>{t("settings.verification")}</strong>
-									<small>{t("settings.verificationDescription")}</small>
-								</span>
-							</label>
-						</Panel>
-
-						<Panel tone="glass" title={t("settings.publicOrigins")}>
-							<div className={styles.fieldStack}>
-								<TextField
-									label={t("settings.backendUrl")}
-									value={form.backendBaseUrl}
-									placeholder="https://app.netstamp.dev"
-									onChange={event => update("backendBaseUrl", event.currentTarget.value)}
-								/>
-								<TextField
-									label={t("settings.webUrl")}
-									value={form.publicWebBaseUrl}
-									placeholder="https://app.netstamp.dev"
-									helper={t("settings.webUrlHelper")}
-									onChange={event => update("publicWebBaseUrl", event.currentTarget.value)}
-								/>
-							</div>
-						</Panel>
-					</div>
-
-					<Panel tone="glass" title={t("settings.smtpDelivery")}>
-						<div className={styles.smtpGrid}>
-							<TextField label={t("settings.host")} value={form.smtpHost} placeholder="smtp.example.com" onChange={event => update("smtpHost", event.currentTarget.value)} />
-							<TextField label={t("settings.port")} type="number" min={1} max={65535} value={form.smtpPort} onChange={event => update("smtpPort", event.currentTarget.value)} />
-							<TextField label={t("settings.username")} value={form.smtpUsername} autoComplete="off" onChange={event => update("smtpUsername", event.currentTarget.value)} />
-							<TextField
-								label={t("settings.password")}
-								type="password"
-								value={form.smtpPassword}
-								autoComplete="new-password"
-								helper={smtpPasswordLabel}
-								disabled={form.smtpClearPassword}
-								onChange={event => update("smtpPassword", event.currentTarget.value)}
-							/>
-							<TextField label={t("settings.from")} type="email" value={form.smtpFrom} placeholder="alerts@example.com" onChange={event => update("smtpFrom", event.currentTarget.value)} />
-							<SelectField
-								label={t("settings.tlsMode")}
-								value={form.smtpTLSMode}
-								options={[
-									{ value: "starttls", label: "STARTTLS" },
-									{ value: "implicit", label: t("settings.implicitTls") },
-									{ value: "none", label: t("settings.none") }
-								]}
-								onChange={event => update("smtpTLSMode", event.currentTarget.value as AdminFormState["smtpTLSMode"])}
-							/>
-							<TextField label={t("settings.timeout")} type="number" min={1} value={form.smtpTimeoutSeconds} onChange={event => update("smtpTimeoutSeconds", event.currentTarget.value)} />
-						</div>
-						<label className={styles.checkboxRow}>
-							<Checkbox
-								checked={form.smtpClearPassword}
-								onChange={event => {
-									update("smtpClearPassword", event.currentTarget.checked);
-									if (event.currentTarget.checked) {
-										update("smtpPassword", "");
-									}
-								}}
-							/>
-							<span>
-								<strong>{t("settings.clearPassword")}</strong>
-								<small>{t("settings.clearPasswordDescription")}</small>
-							</span>
-						</label>
-					</Panel>
-
-					<UnsavedChangesBar show={hasAdminSettingsChanges} saveType="submit" saving={updateSettingsMutation.isPending} onReset={() => setEditedForm(null)} />
-				</form>
-			)}
-
+			<AdminSettingsPanels />
 			<Panel
 				tone="glass"
 				title={t("data.title")}

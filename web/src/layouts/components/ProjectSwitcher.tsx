@@ -1,7 +1,7 @@
 import { CreateProjectModal } from "@/features/project/components/CreateProjectModal";
 import { pathForProjectSwitch } from "@/routes/routePaths";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
-import { appFeatures } from "@/shared/config/features";
+import { useRuntimeFeatures } from "@/shared/config/features";
 import { classNames } from "@/shared/utils/classNames";
 import { Select } from "@netstamp/ui";
 import { FolderOpenIcon } from "@phosphor-icons/react/dist/csr/FolderOpen";
@@ -39,9 +39,11 @@ const projectOptionLabel = (name: string) => {
 export function ProjectSwitcher({ collapsed = false, variant = "sidebar" }: ProjectSwitcherProps) {
 	const { t } = useTranslation("project");
 	const { projectRef, projectsQuery, setSelectedProjectRef } = useCurrentProject();
+	const { appFeatures } = useRuntimeFeatures();
 	const location = useLocation();
 	const navigate = useNavigate();
-	const [createModalOpen, setCreateModalOpen] = useState(false);
+	const [createModalFeatures, setCreateModalFeatures] = useState<typeof appFeatures | null>(null);
+	const createModalOpen = appFeatures.projectCreation && createModalFeatures === appFeatures;
 	const projects = projectsQuery.data?.projects ?? [];
 
 	function navigateAfterProjectChange(nextProjectRef: string) {
@@ -58,7 +60,7 @@ export function ProjectSwitcher({ collapsed = false, variant = "sidebar" }: Proj
 				return;
 			}
 
-			setCreateModalOpen(true);
+			setCreateModalFeatures(appFeatures);
 			return;
 		}
 
@@ -94,7 +96,7 @@ export function ProjectSwitcher({ collapsed = false, variant = "sidebar" }: Proj
 					</div>
 				</div>
 			</div>
-			{createModalOpen && appFeatures.projectCreation ? <CreateProjectModal onClose={() => setCreateModalOpen(false)} onCreatedProject={navigateAfterProjectChange} /> : null}
+			{createModalOpen ? <CreateProjectModal onClose={() => setCreateModalFeatures(null)} onCreatedProject={navigateAfterProjectChange} /> : null}
 		</>
 	);
 }

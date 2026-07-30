@@ -29,10 +29,14 @@ func (s *Service) SudoStatus(ctx context.Context, userID, sessionID string) (Sud
 		}
 		seen := make(map[string]bool)
 		for _, linked := range identities {
-			provider, enabled := s.externalProviders[linked.Provider]
-			if enabled && provider.config.SudoCapable && !seen[linked.Provider] {
-				methods = append(methods, linked.Provider)
-				seen[linked.Provider] = true
+			providerID := linked.Provider
+			if seen[providerID] {
+				continue
+			}
+			seen[providerID] = true
+			provider, resolveErr := s.resolvedExternalProvider(ctx, providerID)
+			if resolveErr == nil && provider.config.SudoCapable {
+				methods = append(methods, providerID)
 			}
 		}
 	}

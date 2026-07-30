@@ -49,26 +49,7 @@ const (
 	keyAuthSessionAbsoluteTTL              = "AUTH_SESSION_ABSOLUTE_TTL"
 	keyAuthSessionTouchInterval            = "AUTH_SESSION_TOUCH_INTERVAL"
 	keyAuthSudoTTL                         = "AUTH_SUDO_TTL"
-	keyAuthRegistrationEnabled             = "AUTH_REGISTRATION_ENABLED"
 	keyAuthExternalFlowTTL                 = "AUTH_EXTERNAL_FLOW_TTL"
-	keyAuthOIDCEnabled                     = "AUTH_OIDC_ENABLED"
-	keyAuthOIDCIssuerURL                   = "AUTH_OIDC_ISSUER_URL"
-	keyAuthOIDCClientID                    = "AUTH_OIDC_CLIENT_ID"
-	keyAuthOIDCClientSecret                = "AUTH_OIDC_CLIENT_SECRET" //nolint:gosec // This is a configuration key name, not credential material.
-	keyAuthOIDCDisplayName                 = "AUTH_OIDC_DISPLAY_NAME"
-	keyAuthOIDCJITEnabled                  = "AUTH_OIDC_JIT_PROVISIONING_ENABLED"
-	keyAuthGoogleEnabled                   = "AUTH_GOOGLE_ENABLED"
-	keyAuthGoogleClientID                  = "AUTH_GOOGLE_CLIENT_ID"
-	keyAuthGoogleClientSecret              = "AUTH_GOOGLE_CLIENT_SECRET" //nolint:gosec // This is a configuration key name, not credential material.
-	keyAuthGoogleDisplayName               = "AUTH_GOOGLE_DISPLAY_NAME"
-	keyAuthGoogleJITEnabled                = "AUTH_GOOGLE_JIT_PROVISIONING_ENABLED"
-	keyAuthGoogleAllowedHostedDomains      = "AUTH_GOOGLE_ALLOWED_HOSTED_DOMAINS"
-	keyAuthGitHubEnabled                   = "AUTH_GITHUB_ENABLED"
-	keyAuthGitHubClientID                  = "AUTH_GITHUB_CLIENT_ID"
-	keyAuthGitHubClientSecret              = "AUTH_GITHUB_CLIENT_SECRET" //nolint:gosec // This is a configuration key name, not credential material.
-	keyAuthGitHubDisplayName               = "AUTH_GITHUB_DISPLAY_NAME"
-	keyAuthGitHubJITEnabled                = "AUTH_GITHUB_JIT_PROVISIONING_ENABLED"
-	keyAuthGitHubAllowSignup               = "AUTH_GITHUB_ALLOW_SIGNUP"
 	keyAuthPasswordResetTokenTTL           = "AUTH_PASSWORD_RESET_TOKEN_TTL"
 	keyAuthPasswordResetRateWindow         = "AUTH_PASSWORD_RESET_RATE_LIMIT_WINDOW"
 	keyAuthPasswordResetIPLimit            = "AUTH_PASSWORD_RESET_IP_LIMIT"
@@ -87,13 +68,6 @@ const (
 	keyNotificationWorkerBatchSize         = "NOTIFICATION_WORKER_BATCH_SIZE"
 	keyNotificationWorkerStaleTimeout      = "NOTIFICATION_WORKER_STALE_TIMEOUT"
 	keyNotificationHTTPTimeout             = "NOTIFICATION_HTTP_TIMEOUT"
-	keySMTPHost                            = "SMTP_HOST"
-	keySMTPPort                            = "SMTP_PORT"
-	keySMTPUsername                        = "SMTP_USERNAME"
-	keySMTPPassword                        = "SMTP_PASSWORD"
-	keySMTPFrom                            = "SMTP_FROM"
-	keySMTPTLSMode                         = "SMTP_TLS_MODE"
-	keySMTPTimeout                         = "SMTP_TIMEOUT"
 )
 
 var defaultSettings = map[string]any{
@@ -132,26 +106,7 @@ var defaultSettings = map[string]any{
 	keyAuthSessionAbsoluteTTL:              7 * 24 * time.Hour,
 	keyAuthSessionTouchInterval:            5 * time.Minute,
 	keyAuthSudoTTL:                         5 * time.Minute,
-	keyAuthRegistrationEnabled:             true,
 	keyAuthExternalFlowTTL:                 10 * time.Minute,
-	keyAuthOIDCEnabled:                     false,
-	keyAuthOIDCIssuerURL:                   "",
-	keyAuthOIDCClientID:                    "",
-	keyAuthOIDCClientSecret:                "",
-	keyAuthOIDCDisplayName:                 "Single sign-on",
-	keyAuthOIDCJITEnabled:                  false,
-	keyAuthGoogleEnabled:                   false,
-	keyAuthGoogleClientID:                  "",
-	keyAuthGoogleClientSecret:              "",
-	keyAuthGoogleDisplayName:               "Google",
-	keyAuthGoogleJITEnabled:                false,
-	keyAuthGoogleAllowedHostedDomains:      "",
-	keyAuthGitHubEnabled:                   false,
-	keyAuthGitHubClientID:                  "",
-	keyAuthGitHubClientSecret:              "",
-	keyAuthGitHubDisplayName:               "GitHub",
-	keyAuthGitHubJITEnabled:                false,
-	keyAuthGitHubAllowSignup:               true,
 	keyAuthPasswordResetTokenTTL:           30 * time.Minute,
 	keyAuthPasswordResetRateWindow:         time.Hour,
 	keyAuthPasswordResetIPLimit:            int32(10),
@@ -170,13 +125,6 @@ var defaultSettings = map[string]any{
 	keyNotificationWorkerBatchSize:         int32(25),
 	keyNotificationWorkerStaleTimeout:      time.Minute,
 	keyNotificationHTTPTimeout:             10 * time.Second,
-	keySMTPHost:                            "",
-	keySMTPPort:                            int32(587),
-	keySMTPUsername:                        "",
-	keySMTPPassword:                        "",
-	keySMTPFrom:                            "",
-	keySMTPTLSMode:                         "starttls",
-	keySMTPTimeout:                         10 * time.Second,
 }
 
 type Config struct {
@@ -230,26 +178,7 @@ type AuthConfig struct {
 	SessionAbsoluteTTL      time.Duration `mapstructure:"AUTH_SESSION_ABSOLUTE_TTL"`
 	SessionTouchInterval    time.Duration `mapstructure:"AUTH_SESSION_TOUCH_INTERVAL"`
 	SudoTTL                 time.Duration `mapstructure:"AUTH_SUDO_TTL"`
-	RegistrationEnabled     bool          `mapstructure:"AUTH_REGISTRATION_ENABLED"`
 	ExternalFlowTTL         time.Duration `mapstructure:"AUTH_EXTERNAL_FLOW_TTL"`
-	OIDCEnabled             bool          `mapstructure:"AUTH_OIDC_ENABLED"`
-	OIDCIssuerURL           string        `mapstructure:"AUTH_OIDC_ISSUER_URL"`
-	OIDCClientID            string        `mapstructure:"AUTH_OIDC_CLIENT_ID"`
-	OIDCClientSecret        string        `mapstructure:"AUTH_OIDC_CLIENT_SECRET"`
-	OIDCDisplayName         string        `mapstructure:"AUTH_OIDC_DISPLAY_NAME"`
-	OIDCJITEnabled          bool          `mapstructure:"AUTH_OIDC_JIT_PROVISIONING_ENABLED"`
-	GoogleEnabled           bool          `mapstructure:"AUTH_GOOGLE_ENABLED"`
-	GoogleClientID          string        `mapstructure:"AUTH_GOOGLE_CLIENT_ID"`
-	GoogleClientSecret      string        `mapstructure:"AUTH_GOOGLE_CLIENT_SECRET"`
-	GoogleDisplayName       string        `mapstructure:"AUTH_GOOGLE_DISPLAY_NAME"`
-	GoogleJITEnabled        bool          `mapstructure:"AUTH_GOOGLE_JIT_PROVISIONING_ENABLED"`
-	GoogleHostedDomains     string        `mapstructure:"AUTH_GOOGLE_ALLOWED_HOSTED_DOMAINS"`
-	GitHubEnabled           bool          `mapstructure:"AUTH_GITHUB_ENABLED"`
-	GitHubClientID          string        `mapstructure:"AUTH_GITHUB_CLIENT_ID"`
-	GitHubClientSecret      string        `mapstructure:"AUTH_GITHUB_CLIENT_SECRET"`
-	GitHubDisplayName       string        `mapstructure:"AUTH_GITHUB_DISPLAY_NAME"`
-	GitHubJITEnabled        bool          `mapstructure:"AUTH_GITHUB_JIT_PROVISIONING_ENABLED"`
-	GitHubAllowSignup       bool          `mapstructure:"AUTH_GITHUB_ALLOW_SIGNUP"`
 	PasswordResetTokenTTL   time.Duration `mapstructure:"AUTH_PASSWORD_RESET_TOKEN_TTL"`
 	PasswordResetRateWindow time.Duration `mapstructure:"AUTH_PASSWORD_RESET_RATE_LIMIT_WINDOW"`
 	PasswordResetIPLimit    int32         `mapstructure:"AUTH_PASSWORD_RESET_IP_LIMIT"`
@@ -270,7 +199,6 @@ type AlertingConfig struct {
 	NotificationWorkerBatchSize    int32         `mapstructure:"NOTIFICATION_WORKER_BATCH_SIZE"`
 	NotificationWorkerStaleTimeout time.Duration `mapstructure:"NOTIFICATION_WORKER_STALE_TIMEOUT"`
 	NotificationHTTPTimeout        time.Duration `mapstructure:"NOTIFICATION_HTTP_TIMEOUT"`
-	SMTP                           SMTPConfig    `mapstructure:",squash"`
 }
 
 type AssignmentRefreshConfig struct {
@@ -278,20 +206,6 @@ type AssignmentRefreshConfig struct {
 	WorkerInterval     time.Duration `mapstructure:"ASSIGNMENT_REFRESH_WORKER_INTERVAL"`
 	WorkerBatchSize    int32         `mapstructure:"ASSIGNMENT_REFRESH_WORKER_BATCH_SIZE"`
 	WorkerStaleTimeout time.Duration `mapstructure:"ASSIGNMENT_REFRESH_WORKER_STALE_TIMEOUT"`
-}
-
-type SMTPConfig struct {
-	Host     string        `mapstructure:"SMTP_HOST"`
-	Port     int32         `mapstructure:"SMTP_PORT"`
-	Username string        `mapstructure:"SMTP_USERNAME"`
-	Password string        `mapstructure:"SMTP_PASSWORD"`
-	From     string        `mapstructure:"SMTP_FROM"`
-	TLSMode  string        `mapstructure:"SMTP_TLS_MODE"`
-	Timeout  time.Duration `mapstructure:"SMTP_TIMEOUT"`
-}
-
-func (cfg SMTPConfig) Configured() bool {
-	return strings.TrimSpace(cfg.Host) != "" && strings.TrimSpace(cfg.From) != ""
 }
 
 func (cfg DatabaseConfig) ConnectionString() string {
@@ -347,7 +261,7 @@ func validate(cfg Config) []error {
 
 	// HTTP settings
 	errs = append(errs, validateOptionalHTTPOrigin(keyBackendBaseURL, cfg.HTTP.BackendBaseURL)...)
-	errs = append(errs, validateOptionalHTTPOrigin(keyPublicWebBaseURL, cfg.HTTP.PublicWebBaseURL)...)
+	errs = append(errs, validatePublicWebBaseURL(cfg.Env, cfg.HTTP.PublicWebBaseURL)...)
 	errs = append(errs, validateListenAddr(keyHTTPAddr, cfg.HTTP.Addr)...)
 	errs = append(errs, validatePositiveDuration(keyRequestTimeout, cfg.HTTP.RequestTimeout)...)
 	errs = append(errs, validatePositiveDuration(keyHTTPReadHeaderTimeout, cfg.HTTP.ReadHeaderTimeout)...)
@@ -386,7 +300,6 @@ func validate(cfg Config) []error {
 	errs = append(errs, validatePositiveDuration(keyAuthSessionTouchInterval, cfg.Auth.SessionTouchInterval)...)
 	errs = append(errs, validatePositiveDuration(keyAuthSudoTTL, cfg.Auth.SudoTTL)...)
 	errs = append(errs, validatePositiveDuration(keyAuthExternalFlowTTL, cfg.Auth.ExternalFlowTTL)...)
-	errs = append(errs, validateExternalAuth(cfg)...)
 	if cfg.Auth.SessionAbsoluteTTL < cfg.Auth.SessionIdleTTL {
 		errs = append(errs, errors.New("AUTH_SESSION_ABSOLUTE_TTL must not be less than AUTH_SESSION_IDLE_TTL"))
 	}
@@ -414,43 +327,10 @@ func validate(cfg Config) []error {
 	errs = append(errs, validatePositiveDuration(keyNotificationWorkerInterval, cfg.Alerting.NotificationWorkerInterval)...)
 	errs = append(errs, validatePositiveDuration(keyNotificationWorkerStaleTimeout, cfg.Alerting.NotificationWorkerStaleTimeout)...)
 	errs = append(errs, validatePositiveDuration(keyNotificationHTTPTimeout, cfg.Alerting.NotificationHTTPTimeout)...)
-	errs = append(errs, validateSMTPConfig(cfg.Alerting.SMTP)...)
 	if cfg.Alerting.NotificationWorkerBatchSize <= 0 {
 		errs = append(errs, errors.New("NOTIFICATION_WORKER_BATCH_SIZE must be greater than 0"))
 	}
 
-	return errs
-}
-
-func validateExternalAuth(cfg Config) []error {
-	var errs []error
-	if cfg.Auth.OIDCEnabled {
-		errs = append(errs, validateRequiredString(keyAuthOIDCIssuerURL, cfg.Auth.OIDCIssuerURL)...)
-		errs = append(errs, validateOptionalHTTPURL(keyAuthOIDCIssuerURL, cfg.Auth.OIDCIssuerURL)...)
-		errs = append(errs, validateRequiredString(keyAuthOIDCClientID, cfg.Auth.OIDCClientID)...)
-		errs = append(errs, validateRequiredString(keyAuthOIDCClientSecret, cfg.Auth.OIDCClientSecret)...)
-		errs = append(errs, validateRequiredString(keyAuthOIDCDisplayName, cfg.Auth.OIDCDisplayName)...)
-		if strings.TrimSpace(cfg.HTTP.BackendBaseURL) == "" {
-			errs = append(errs, errors.New("BACKEND_BASE_URL is required when AUTH_OIDC_ENABLED is true"))
-		}
-	}
-	if cfg.Auth.GoogleEnabled {
-		errs = append(errs, validateRequiredString(keyAuthGoogleClientID, cfg.Auth.GoogleClientID)...)
-		errs = append(errs, validateRequiredString(keyAuthGoogleClientSecret, cfg.Auth.GoogleClientSecret)...)
-		errs = append(errs, validateRequiredString(keyAuthGoogleDisplayName, cfg.Auth.GoogleDisplayName)...)
-		errs = append(errs, validateHostedDomains(keyAuthGoogleAllowedHostedDomains, cfg.Auth.GoogleHostedDomains)...)
-		if strings.TrimSpace(cfg.HTTP.BackendBaseURL) == "" {
-			errs = append(errs, errors.New("BACKEND_BASE_URL is required when AUTH_GOOGLE_ENABLED is true"))
-		}
-	}
-	if cfg.Auth.GitHubEnabled {
-		errs = append(errs, validateRequiredString(keyAuthGitHubClientID, cfg.Auth.GitHubClientID)...)
-		errs = append(errs, validateRequiredString(keyAuthGitHubClientSecret, cfg.Auth.GitHubClientSecret)...)
-		errs = append(errs, validateRequiredString(keyAuthGitHubDisplayName, cfg.Auth.GitHubDisplayName)...)
-		if strings.TrimSpace(cfg.HTTP.BackendBaseURL) == "" {
-			errs = append(errs, errors.New("BACKEND_BASE_URL is required when AUTH_GITHUB_ENABLED is true"))
-		}
-	}
 	return errs
 }
 

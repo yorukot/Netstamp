@@ -26,6 +26,17 @@ type ExternalAuthRepository interface {
 	DeleteExpiredExternalAuthFlows(ctx context.Context, now time.Time) error
 }
 
+type ExternalProviderSource interface {
+	ExternalProviderIDs() []string
+	ExternalProviderRegistration(ctx context.Context, provider string) (ExternalProviderRegistration, error)
+}
+
+type InstancePolicy interface {
+	AccountCreationEnabled(ctx context.Context) (bool, error)
+	CredentialChangesEnabled(ctx context.Context) (bool, error)
+	EmailVerificationRequired(ctx context.Context) (bool, error)
+}
+
 type SystemAdminRepository interface {
 	GrantFirstSystemAdminIfNone(ctx context.Context, userID string) (bool, error)
 }
@@ -161,6 +172,9 @@ const (
 	AuthReasonEmailVerificationMailerFailed      AuthEventReason = "email_verification_mail_failed"
 	AuthReasonEmailVerificationFailed            AuthEventReason = "email_verification_failed"
 	AuthReasonAccountDisabled                    AuthEventReason = "account_disabled"
+	AuthReasonAccountCreationDisabled            AuthEventReason = "account_creation_disabled"
+	AuthReasonCredentialChangesDisabled          AuthEventReason = "credential_changes_disabled" //nolint:gosec // Event reason name, not credential material.
+	AuthReasonPolicyLookupFailed                 AuthEventReason = "policy_lookup_failed"
 	AuthReasonUserCreateFailed                   AuthEventReason = "user_create_failed"
 	AuthReasonUserLookupFailed                   AuthEventReason = "user_lookup_failed"
 	AuthReasonSessionCreateFail                  AuthEventReason = "session_create_failed"

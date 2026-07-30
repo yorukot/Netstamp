@@ -1,6 +1,8 @@
 package admin
 
-import "context"
+import (
+	"context"
+)
 
 type Repository interface {
 	IsSystemAdmin(ctx context.Context, userID string) (bool, error)
@@ -14,8 +16,6 @@ type Repository interface {
 	SetManagedUserPasswordHash(ctx context.Context, userID, passwordHash string) (ManagedUser, error)
 	ExportData(ctx context.Context) (DataExport, error)
 	ImportData(ctx context.Context, export DataExport) (DataImportResult, error)
-	ListSystemSettings(ctx context.Context) ([]StoredSetting, error)
-	UpsertSystemSetting(ctx context.Context, setting StoredSetting) (StoredSetting, error)
 	CreateSystemSettingAuditEvent(ctx context.Context, key, action string, updatedByUserID *string) error
 }
 
@@ -25,11 +25,6 @@ type SessionRepository interface {
 
 type APITokenRevoker interface {
 	RevokeUserTokens(ctx context.Context, userID, reason string) error
-}
-
-type SecretCipher interface {
-	Encrypt(plaintext string) (ciphertext, nonce []byte, err error)
-	Decrypt(ciphertext, nonce []byte) (string, error)
 }
 
 type PasswordHasher interface {

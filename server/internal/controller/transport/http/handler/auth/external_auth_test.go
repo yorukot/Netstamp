@@ -24,7 +24,7 @@ func TestAuthMethodsReturnsLowerCamelProviderMetadata(t *testing.T) {
 			Client: &externalAuthClientStub{},
 		},
 	)
-	handler := NewHandler(service, nil, nil, "netstamp_session", false, true)
+	handler := NewHandler(service, nil, "netstamp_session", false)
 	recorder := httptest.NewRecorder()
 	handler.handleAuthMethods(recorder, httptest.NewRequest(http.MethodGet, "/auth/methods", http.NoBody))
 

@@ -12,6 +12,48 @@ import (
 	"github.com/google/uuid"
 )
 
+const bumpSystemSettingRevision = `-- name: BumpSystemSettingRevision :one
+UPDATE system_setting_revisions
+SET revision = revision + 1
+WHERE resource = $1
+RETURNING revision
+`
+
+func (q *Queries) BumpSystemSettingRevision(ctx context.Context, resource string) (int64, error) {
+	row := q.db.QueryRow(ctx, bumpSystemSettingRevision, resource)
+	var revision int64
+	err := row.Scan(&revision)
+	return revision, err
+}
+
+const bumpSystemSettingRevisions = `-- name: BumpSystemSettingRevisions :many
+UPDATE system_setting_revisions
+SET revision = revision + 1
+WHERE resource = ANY($1::text[])
+RETURNING resource,
+          revision
+`
+
+func (q *Queries) BumpSystemSettingRevisions(ctx context.Context, resources []string) ([]SystemSettingRevision, error) {
+	rows, err := q.db.Query(ctx, bumpSystemSettingRevisions, resources)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SystemSettingRevision
+	for rows.Next() {
+		var i SystemSettingRevision
+		if err := rows.Scan(&i.Resource, &i.Revision); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const clearManagedUserPassword = `-- name: ClearManagedUserPassword :one
 WITH deleted AS (
     DELETE FROM password_credentials
@@ -96,6 +138,89 @@ type CreateSystemSettingAuditEventParams struct {
 func (q *Queries) CreateSystemSettingAuditEvent(ctx context.Context, arg CreateSystemSettingAuditEventParams) error {
 	_, err := q.db.Exec(ctx, createSystemSettingAuditEvent, arg.Key, arg.Action, arg.UpdatedByUserID)
 	return err
+}
+
+const deleteLegacyEmptySystemSettingSecrets = `-- name: DeleteLegacyEmptySystemSettingSecrets :exec
+DELETE FROM system_settings
+WHERE secret = true
+  AND octet_length(encrypted_value) = 16
+  AND key IN (
+      'smtp.password',
+      'auth.provider.oidc.client_secret',
+      'auth.provider.google.client_secret',
+      'auth.provider.github.client_secret'
+  )
+`
+
+func (q *Queries) DeleteLegacyEmptySystemSettingSecrets(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, deleteLegacyEmptySystemSettingSecrets)
+	return err
+}
+
+const deleteSystemSetting = `-- name: DeleteSystemSetting :exec
+DELETE FROM system_settings
+WHERE key = $1
+`
+
+func (q *Queries) DeleteSystemSetting(ctx context.Context, key string) error {
+	_, err := q.db.Exec(ctx, deleteSystemSetting, key)
+	return err
+}
+
+const getSystemSettingRevision = `-- name: GetSystemSettingRevision :one
+SELECT revision
+FROM system_setting_revisions
+WHERE resource = $1
+`
+
+func (q *Queries) GetSystemSettingRevision(ctx context.Context, resource string) (int64, error) {
+	row := q.db.QueryRow(ctx, getSystemSettingRevision, resource)
+	var revision int64
+	err := row.Scan(&revision)
+	return revision, err
+}
+
+const getSystemSettingsByKeys = `-- name: GetSystemSettingsByKeys :many
+SELECT key,
+       value,
+       encrypted_value,
+       encrypted_value_nonce,
+       secret,
+       updated_by_user_id,
+       created_at,
+       updated_at
+FROM system_settings
+WHERE key = ANY($1::text[])
+ORDER BY key ASC
+`
+
+func (q *Queries) GetSystemSettingsByKeys(ctx context.Context, keys []string) ([]SystemSetting, error) {
+	rows, err := q.db.Query(ctx, getSystemSettingsByKeys, keys)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SystemSetting
+	for rows.Next() {
+		var i SystemSetting
+		if err := rows.Scan(
+			&i.Key,
+			&i.Value,
+			&i.EncryptedValue,
+			&i.EncryptedValueNonce,
+			&i.Secret,
+			&i.UpdatedByUserID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const grantFirstSystemAdminIfNone = `-- name: GrantFirstSystemAdminIfNone :one
@@ -429,6 +554,20 @@ func (q *Queries) ListSystemSettings(ctx context.Context) ([]SystemSetting, erro
 		return nil, err
 	}
 	return items, nil
+}
+
+const lockSystemSettingRevision = `-- name: LockSystemSettingRevision :one
+SELECT revision
+FROM system_setting_revisions
+WHERE resource = $1
+FOR UPDATE
+`
+
+func (q *Queries) LockSystemSettingRevision(ctx context.Context, resource string) (int64, error) {
+	row := q.db.QueryRow(ctx, lockSystemSettingRevision, resource)
+	var revision int64
+	err := row.Scan(&revision)
+	return revision, err
 }
 
 const revokeSystemAdminIfNotLast = `-- name: RevokeSystemAdminIfNotLast :one

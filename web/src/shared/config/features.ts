@@ -1,37 +1,98 @@
-function booleanFeature(value: string | undefined, defaultValue: boolean) {
-	const normalized = value?.trim().toLowerCase();
+import type { components } from "@/shared/api/openapi";
+import { useSyncExternalStore } from "react";
 
-	if (!normalized) {
-		return defaultValue;
-	}
+type RuntimeConfig = components["schemas"]["PublicRuntimeConfig"];
 
-	if (["1", "true", "yes", "on"].includes(normalized)) {
-		return true;
-	}
+export type RuntimeFeatureStatus = "unknown" | "loading" | "ready" | "failed";
 
-	if (["0", "false", "no", "off"].includes(normalized)) {
-		return false;
-	}
-
-	return defaultValue;
+interface AppFeatures {
+	readonly registration: boolean;
+	readonly projectCreation: boolean;
+	readonly userCredentialChanges: boolean;
 }
 
-export const demoMode = booleanFeature(import.meta.env.VITE_NETSTAMP_DEMO_MODE, false);
-export const readOnlyMode = demoMode;
+export interface RuntimeFeatureSnapshot {
+	readonly status: RuntimeFeatureStatus;
+	readonly demoMode: boolean;
+	readonly readOnlyMode: boolean;
+	readonly appFeatures: AppFeatures;
+}
 
-export const appFeatures = {
-	registration: !readOnlyMode && booleanFeature(import.meta.env.VITE_NETSTAMP_REGISTRATION_ENABLED, true),
-	projectCreation: !readOnlyMode && booleanFeature(import.meta.env.VITE_NETSTAMP_PROJECT_CREATION_ENABLED, true),
-	userCredentialChanges: !readOnlyMode && booleanFeature(import.meta.env.VITE_NETSTAMP_USER_CREDENTIAL_CHANGES_ENABLED, true)
-} as const;
+const disabledAppFeatures = Object.freeze<AppFeatures>({
+	registration: false,
+	projectCreation: false,
+	userCredentialChanges: false
+});
+
+const failClosedSnapshot = (status: Exclude<RuntimeFeatureStatus, "ready">): RuntimeFeatureSnapshot =>
+	Object.freeze({
+		status,
+		demoMode: false,
+		readOnlyMode: true,
+		appFeatures: disabledAppFeatures
+	});
+
+const initialSnapshot = failClosedSnapshot("unknown");
+let runtimeFeatureSnapshot = initialSnapshot;
+const runtimeFeatureListeners = new Set<() => void>();
+
+const runtimeFeaturesEqual = (left: RuntimeFeatureSnapshot, right: RuntimeFeatureSnapshot) =>
+	left.status === right.status &&
+	left.demoMode === right.demoMode &&
+	left.readOnlyMode === right.readOnlyMode &&
+	left.appFeatures.registration === right.appFeatures.registration &&
+	left.appFeatures.projectCreation === right.appFeatures.projectCreation &&
+	left.appFeatures.userCredentialChanges === right.appFeatures.userCredentialChanges;
+
+const publishRuntimeFeatures = (snapshot: RuntimeFeatureSnapshot) => {
+	if (runtimeFeaturesEqual(runtimeFeatureSnapshot, snapshot)) {
+		return;
+	}
+
+	runtimeFeatureSnapshot = snapshot;
+	[...runtimeFeatureListeners].forEach(listener => listener());
+};
+
+export const getRuntimeFeaturesSnapshot = () => runtimeFeatureSnapshot;
+
+export const subscribeRuntimeFeatures = (listener: () => void) => {
+	runtimeFeatureListeners.add(listener);
+	return () => runtimeFeatureListeners.delete(listener);
+};
+
+export const useRuntimeFeatures = () => useSyncExternalStore(subscribeRuntimeFeatures, getRuntimeFeaturesSnapshot, getRuntimeFeaturesSnapshot);
+
+export const applyRuntimeFeatures = (config: RuntimeConfig) => {
+	const demoMode = config.demoMode === true;
+	const writable = config.demoMode === false;
+
+	publishRuntimeFeatures(
+		Object.freeze({
+			status: "ready",
+			demoMode,
+			readOnlyMode: !writable,
+			appFeatures: Object.freeze({
+				registration: writable && config.capabilities.accountCreationEnabled === true,
+				projectCreation: writable && config.capabilities.projectCreationEnabled === true,
+				userCredentialChanges: writable && config.capabilities.credentialChangesEnabled === true
+			})
+		})
+	);
+};
+
+export const resetRuntimeFeatures = () => {
+	publishRuntimeFeatures(initialSnapshot);
+};
+
+export const markRuntimeFeaturesLoading = () => {
+	publishRuntimeFeatures(failClosedSnapshot("loading"));
+};
+
+export const markRuntimeFeaturesFailed = () => {
+	publishRuntimeFeatures(failClosedSnapshot("failed"));
+};
 
 const demoEmail = import.meta.env.VITE_NETSTAMP_DEMO_EMAIL?.trim();
 const demoPassword = import.meta.env.VITE_NETSTAMP_DEMO_PASSWORD?.trim();
 
-export const demoCredentials =
-	demoEmail && demoPassword
-		? {
-				email: demoEmail,
-				password: demoPassword
-			}
-		: null;
+export const demoCredentials = demoEmail && demoPassword ? { email: demoEmail, password: demoPassword } : null;

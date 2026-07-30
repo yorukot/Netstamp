@@ -23,7 +23,7 @@ import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { UnsavedChangesBar } from "@/shared/components/UnsavedChangesBar";
 import { useConfirm } from "@/shared/components/confirmContext";
-import { appFeatures, demoMode } from "@/shared/config/features";
+import { useRuntimeFeatures } from "@/shared/config/features";
 import { pushToast } from "@/shared/toast/toastStore";
 import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
 import {
@@ -136,6 +136,7 @@ export function SettingsPage() {
 	const { t } = useTranslation(["settings", "common", "project"]);
 	const format = useLocaleFormat();
 	const { session } = useSession();
+	const { appFeatures, demoMode, readOnlyMode } = useRuntimeFeatures();
 	const queryClient = useQueryClient();
 	const { setSelectedProjectRef } = useCurrentProject();
 	const navigate = useNavigate();
@@ -165,6 +166,7 @@ export function SettingsPage() {
 	const [passwordForm, setPasswordForm] = useState<PasswordFormState>(emptyPasswordForm);
 	const [credentialDialog, setCredentialDialog] = useState<CredentialDialog | null>(() => (resumeAction === "set-password" && !authCallbackError ? "password" : null));
 	const [isCredentialDialogDismissed, setIsCredentialDialogDismissed] = useState(false);
+	const credentialChangesDisabled = readOnlyMode || !appFeatures.userCredentialChanges;
 
 	useEffect(() => {
 		if (handledAuthCallbackRef.current || (resumeAction !== "set-password" && !authCallbackError)) {
@@ -201,7 +203,7 @@ export function SettingsPage() {
 	const activeEmailForm = emailForm.userId === user.id ? emailForm : { ...emptyEmailForm, userId: user.id };
 	const activePasswordForm = passwordForm.userId === user.id ? passwordForm : { ...emptyPasswordForm, userId: user.id };
 	const hasIdentityChanges = activeIdentityForm.displayName !== user.name;
-	const isCredentialDialogOpen = credentialDialog !== null && !isCredentialDialogDismissed;
+	const isCredentialDialogOpen = credentialDialog !== null && !isCredentialDialogDismissed && !credentialChangesDisabled;
 	const isCredentialMutationPending = changeEmailMutation.isPending || changePasswordMutation.isPending;
 	const canChangeEmail = Boolean(activeEmailForm.newEmail.trim() && !changeEmailMutation.isPending);
 	const canChangePassword = Boolean(activePasswordForm.newPassword.trim() && activePasswordForm.confirmPassword.trim() && !changePasswordMutation.isPending);
@@ -337,7 +339,7 @@ export function SettingsPage() {
 	}
 
 	async function deactivateAccount() {
-		if (demoMode) {
+		if (readOnlyMode) {
 			return;
 		}
 
@@ -365,7 +367,7 @@ export function SettingsPage() {
 	}
 
 	async function revokeSession(authSession: ApiAuthSession) {
-		if (demoMode) {
+		if (readOnlyMode) {
 			return;
 		}
 
@@ -398,7 +400,7 @@ export function SettingsPage() {
 	}
 
 	async function revokeAllSessions() {
-		if (demoMode) {
+		if (readOnlyMode) {
 			return;
 		}
 
@@ -443,7 +445,7 @@ export function SettingsPage() {
 			key: "actions",
 			label: t("account.invites.actions"),
 			render: row => {
-				if (demoMode) {
+				if (readOnlyMode) {
 					return <Badge tone="muted">{t("account.invites.viewOnly")}</Badge>;
 				}
 
@@ -515,11 +517,13 @@ export function SettingsPage() {
 							label={t("account.profile.displayName")}
 							name="name"
 							value={activeIdentityForm.displayName}
-							disabled={demoMode}
+							disabled={readOnlyMode}
 							onChange={event => setIdentityForm({ userId: user.id, displayName: event.currentTarget.value })}
 						/>
-						{demoMode ? (
-							<BodyCopy>{t("account.profile.demoDisabled")}</BodyCopy>
+						{readOnlyMode ? (
+							demoMode ? (
+								<BodyCopy>{t("account.profile.demoDisabled")}</BodyCopy>
+							) : null
 						) : (
 							<UnsavedChangesBar show={hasIdentityChanges} saveType="submit" saving={updateUserMutation.isPending} onReset={() => setIdentityForm({ userId: user.id, displayName: user.name })} />
 						)}
@@ -529,11 +533,16 @@ export function SettingsPage() {
 
 					{appFeatures.userCredentialChanges ? (
 						<div className={styles.credentialActions}>
-							<Button type="button" variant="outline" disabled={demoMode} onClick={() => void requireSudo(() => openCredentialDialog("email"))}>
+							<Button type="button" variant="outline" disabled={credentialChangesDisabled} onClick={() => void requireSudo(() => openCredentialDialog("email"))}>
 								<EnvelopeSimpleIcon size="1rem" weight="bold" aria-hidden="true" focusable="false" />
 								{t("account.changeEmail")}
 							</Button>
-							<Button type="button" variant="outline" disabled={demoMode} onClick={() => void requireSudo(() => openCredentialDialog("password"), { returnTo: passwordReauthReturnTo })}>
+							<Button
+								type="button"
+								variant="outline"
+								disabled={credentialChangesDisabled}
+								onClick={() => void requireSudo(() => openCredentialDialog("password"), { returnTo: passwordReauthReturnTo })}
+							>
 								<KeyIcon size="1rem" weight="bold" aria-hidden="true" focusable="false" />
 								{passwordActionLabel}
 							</Button>
@@ -547,7 +556,7 @@ export function SettingsPage() {
 				title={t("account.sessions.title")}
 				summary={t("account.sessions.summary")}
 				actions={
-					<Button type="button" variant="danger" size="sm" disabled={demoMode || revokeAllSessionsMutation.isPending} onClick={() => void revokeAllSessions()}>
+					<Button type="button" variant="danger" size="sm" disabled={readOnlyMode || revokeAllSessionsMutation.isPending} onClick={() => void revokeAllSessions()}>
 						<SignOutIcon aria-hidden="true" focusable="false" />
 						{revokeAllSessionsMutation.isPending ? t("account.sessions.loggingOut") : t("account.sessions.logOutAll")}
 					</Button>
@@ -578,7 +587,7 @@ export function SettingsPage() {
 								type="button"
 								variant="danger"
 								size="sm"
-								disabled={demoMode || revokeSessionMutation.isPending}
+								disabled={readOnlyMode || revokeSessionMutation.isPending}
 								aria-label={authSession.isCurrent ? t("account.sessions.revokeCurrentAria") : t("account.sessions.revokeAria", { date: format.dateTime(authSession.createdAt) })}
 								onClick={() => void revokeSession(authSession)}
 							>
@@ -606,11 +615,23 @@ export function SettingsPage() {
 							</div>
 						</div>
 						<div className={styles.loginMethodControls}>
-							<Button type="button" size="sm" variant="outline" disabled={demoMode} onClick={() => void requireSudo(() => openCredentialDialog("password"), { returnTo: passwordReauthReturnTo })}>
+							<Button
+								type="button"
+								size="sm"
+								variant="outline"
+								disabled={credentialChangesDisabled}
+								onClick={() => void requireSudo(() => openCredentialDialog("password"), { returnTo: passwordReauthReturnTo })}
+							>
 								{hasPassword ? t("account.changePassword") : t("account.setPassword")}
 							</Button>
 							{hasPassword && authenticationMethodsQuery.data?.identities.length ? (
-								<Button type="button" size="sm" variant="danger" disabled={demoMode || removePasswordMutation.isPending} onClick={() => void requireSudo(() => removePasswordMutation.mutate())}>
+								<Button
+									type="button"
+									size="sm"
+									variant="danger"
+									disabled={credentialChangesDisabled || removePasswordMutation.isPending}
+									onClick={() => void requireSudo(() => removePasswordMutation.mutate())}
+								>
 									{removePasswordMutation.isPending ? t("account.loginMethods.removing") : t("account.loginMethods.removePassword")}
 								</Button>
 							) : null}
@@ -639,7 +660,7 @@ export function SettingsPage() {
 									type="button"
 									size="sm"
 									variant="danger"
-									disabled={demoMode || removeIdentityMutation.isPending}
+									disabled={credentialChangesDisabled || removeIdentityMutation.isPending}
 									aria-label={t("account.loginMethods.disconnectAria", { provider: configuredProviders.find(provider => provider.id === identity.provider)?.displayName || identity.provider })}
 									onClick={() => void requireSudo(() => removeIdentityMutation.mutate(identity.id))}
 								>
@@ -669,7 +690,7 @@ export function SettingsPage() {
 										type="button"
 										size="sm"
 										variant="outline"
-										disabled={demoMode}
+										disabled={credentialChangesDisabled}
 										onClick={() =>
 											void requireSudo(() => {
 												const url = new URL(absoluteExternalAuthStartUrl(provider.id));
@@ -698,7 +719,7 @@ export function SettingsPage() {
 						<Button
 							type="button"
 							variant="danger"
-							disabled={demoMode || deactivateUserMutation.isPending}
+							disabled={readOnlyMode || deactivateUserMutation.isPending}
 							aria-describedby="deactivate-account-description"
 							onClick={() => void requireSudo(() => void deactivateAccount())}
 						>
@@ -752,7 +773,7 @@ export function SettingsPage() {
 												type="email"
 												placeholder="operator@example.com"
 												value={activeEmailForm.newEmail}
-												disabled={changeEmailMutation.isPending}
+												disabled={credentialChangesDisabled || changeEmailMutation.isPending}
 												onChange={event => updateEmailForm("newEmail", event.currentTarget.value)}
 												autoFocus
 												required
@@ -767,7 +788,7 @@ export function SettingsPage() {
 												autoComplete="new-password"
 												value={activePasswordForm.newPassword}
 												autoFocus
-												disabled={changePasswordMutation.isPending}
+												disabled={credentialChangesDisabled || changePasswordMutation.isPending}
 												onChange={event => updatePasswordForm("newPassword", event.currentTarget.value)}
 												required
 											/>
@@ -778,7 +799,7 @@ export function SettingsPage() {
 												autoComplete="new-password"
 												helper={t("account.credentialDialog.passwordHelper")}
 												value={activePasswordForm.confirmPassword}
-												disabled={changePasswordMutation.isPending}
+												disabled={credentialChangesDisabled || changePasswordMutation.isPending}
 												onChange={event => updatePasswordForm("confirmPassword", event.currentTarget.value)}
 												required
 											/>
@@ -789,7 +810,7 @@ export function SettingsPage() {
 										<Button type="button" variant="ghost" disabled={isCredentialMutationPending} onClick={closeCredentialDialog}>
 											{t("common:actions.cancel")}
 										</Button>
-										<Button type="submit" disabled={credentialDialog === "email" ? !canChangeEmail : !canChangePassword}>
+										<Button type="submit" disabled={credentialChangesDisabled || (credentialDialog === "email" ? !canChangeEmail : !canChangePassword)}>
 											{credentialDialog === "email"
 												? changeEmailMutation.isPending
 													? t("account.credentialDialog.updating")

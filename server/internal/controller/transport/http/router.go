@@ -24,6 +24,7 @@ import (
 	appproject "github.com/yorukot/netstamp/internal/controller/application/project"
 	apppublicstatus "github.com/yorukot/netstamp/internal/controller/application/publicstatus"
 	appresult "github.com/yorukot/netstamp/internal/controller/application/result"
+	appsystemsettings "github.com/yorukot/netstamp/internal/controller/application/systemsettings"
 	appuser "github.com/yorukot/netstamp/internal/controller/application/user"
 	"github.com/yorukot/netstamp/internal/controller/transport/http/clientip"
 	adminhttp "github.com/yorukot/netstamp/internal/controller/transport/http/handler/admin"
@@ -44,6 +45,10 @@ import (
 	httptracing "github.com/yorukot/netstamp/internal/platform/observability/httptrace"
 )
 
+type SMTPStatusProvider interface {
+	SMTPConfigured(ctx context.Context) bool
+}
+
 type Dependencies struct {
 	Log                         *zap.Logger
 	APIVersion                  string
@@ -56,9 +61,11 @@ type Dependencies struct {
 	APITokenService             *appapitoken.Service
 	APITokenVerifier            httpmiddleware.APITokenVerifier
 	AdminService                *appadmin.Service
+	SystemSettingsService       *appsystemsettings.Service
+	PublicAccessSettings        PublicAccessSettingsProvider
+	SMTPStatus                  SMTPStatusProvider
 	AuthCookieName              string
 	AuthCookieSecure            bool
-	AuthRegistrationDisabled    bool
 	AuthPasswordResetRateWindow time.Duration
 	AuthPasswordResetIPLimit    int32
 	AuthPasswordResetEmailLimit int32
@@ -142,16 +149,13 @@ func routeMetrics(apiRouter, metricsHandler http.Handler) http.Handler {
 }
 
 func registerAPIRoutes(api chi.Router, dep Dependencies) {
-	registerSystemRoutes(api, dep.ReadinessCheck)
+	registerSystemRoutes(api, dep.ReadinessCheck, dep.PublicAccessSettings, dep.DemoMode)
 	registerOpenAPIRoutes(api, dep)
 
 	installHandler := installhttp.NewHandler(dep.AgentBinaryDir, dep.BackendBaseURL, dep.basePath())
-	if dep.AdminService != nil {
-		installHandler = installhttp.NewHandler(dep.AgentBinaryDir, dep.BackendBaseURL, dep.basePath(), dep.AdminService)
-	}
 	installHandler.RegisterRoutes(api)
 
-	authhttp.NewHandler(dep.AuthService, dep.AuthVerifier, dep.AdminService, dep.AuthCookieName, dep.AuthCookieSecure, !dep.AuthRegistrationDisabled).
+	authhttp.NewHandler(dep.AuthService, dep.AuthVerifier, dep.AuthCookieName, dep.AuthCookieSecure).
 		ConfigureAPITokens(dep.APITokenService).
 		ConfigurePasswordReset(dep.PublicWebBaseURL, authhttp.NewPasswordResetRateLimiter(authhttp.PasswordResetRateLimitConfig{
 			Window:     dep.AuthPasswordResetRateWindow,
@@ -159,10 +163,14 @@ func registerAPIRoutes(api chi.Router, dep Dependencies) {
 			EmailLimit: dep.AuthPasswordResetEmailLimit,
 		})).
 		RegisterRoutes(api)
-	adminhttp.NewHandler(dep.AdminService, dep.AuthVerifier, dep.AuthCookieName, dep.AuthService).RegisterRoutes(api)
+	adminHandler := adminhttp.NewHandler(dep.AdminService, dep.AuthVerifier, dep.AuthCookieName, dep.AuthService)
+	if dep.SystemSettingsService != nil {
+		adminHandler.ConfigureSettings(dep.SystemSettingsService)
+	}
+	adminHandler.RegisterRoutes(api)
 	userhttp.NewHandler(dep.UserService, dep.AuthVerifier, dep.AuthCookieName, dep.AuthService).RegisterRoutes(api)
 	projecthttp.NewHandler(dep.ProjectService, dep.AuthVerifier, dep.AuthCookieName, dep.APITokenVerifier).RegisterRoutes(api)
-	alerthttp.NewHandler(dep.AlertService, dep.AuthVerifier, dep.AuthCookieName, dep.AdminService, dep.APITokenVerifier).RegisterRoutes(api)
+	alerthttp.NewHandler(dep.AlertService, dep.AuthVerifier, dep.AuthCookieName, dep.SMTPStatus, dep.APITokenVerifier).RegisterRoutes(api)
 	assignmenthttp.NewHandler(dep.AssignmentService, dep.AuthVerifier, dep.AuthCookieName, dep.APITokenVerifier).RegisterRoutes(api)
 	labelhttp.NewHandler(dep.LabelService, dep.AuthVerifier, dep.AuthCookieName, dep.APITokenVerifier).RegisterRoutes(api)
 	checkhttp.NewHandler(dep.CheckService, dep.AuthVerifier, dep.AuthCookieName, dep.APITokenVerifier).RegisterRoutes(api)
@@ -181,7 +189,7 @@ func effectiveAuthCookieName(name string) string {
 
 func registerOpenAPIRoutes(api chi.Router, dep Dependencies) {
 	api.Get("/openapi.json", func(w http.ResponseWriter, r *http.Request) {
-		data, err := openapi.Spec(dep.APIVersion, effectiveBackendBaseURL(r.Context(), dep))
+		data, err := openapi.Spec(dep.APIVersion, strings.TrimRight(dep.BackendBaseURL, "/"))
 		if err != nil {
 			httpmiddleware.WriteProblem(w, r, http.StatusInternalServerError, "openapi unavailable")
 			return
@@ -200,21 +208,6 @@ func registerOpenAPIRoutes(api chi.Router, dep Dependencies) {
 			return
 		}
 	})
-}
-
-func effectiveBackendBaseURL(ctx context.Context, dep Dependencies) string {
-	if dep.AdminService == nil {
-		return dep.BackendBaseURL
-	}
-	value, err := dep.AdminService.BackendBaseURL(ctx)
-	if err != nil {
-		return dep.BackendBaseURL
-	}
-	value = strings.TrimRight(strings.TrimSpace(value), "/")
-	if value == "" {
-		return dep.BackendBaseURL
-	}
-	return value
 }
 
 func (d *Dependencies) basePath() string {

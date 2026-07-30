@@ -1600,6 +1600,11 @@ type SystemSettingAuditEvent struct {
 	CreatedAt       time.Time  `json:"created_at"`
 }
 
+type SystemSettingRevision struct {
+	Resource string `json:"resource"`
+	Revision int64  `json:"revision"`
+}
+
 type SystemUserRole struct {
 	UserID    uuid.UUID  `json:"user_id"`
 	Role      SystemRole `json:"role"`

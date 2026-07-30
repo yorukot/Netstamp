@@ -76,6 +76,18 @@ var dataExportTables = []string{
 	"system_setting_audit_events",
 }
 
+var systemSettingRevisionResources = []string{
+	"access",
+	"smtp",
+	"auth.oidc",
+	"auth.google",
+	"auth.github",
+}
+
+type systemSettingRevisionLocker interface {
+	LockSystemSettingRevision(ctx context.Context, resource string) (int64, error)
+}
+
 func (r *Repository) IsSystemAdmin(ctx context.Context, userIDValue string) (bool, error) {
 	userID, err := postgres.ParseUUID(userIDValue, identity.ErrUserNotFound)
 	if err != nil {
@@ -234,6 +246,10 @@ func (r *Repository) ImportData(ctx context.Context, export domainsystem.DataExp
 
 	var result domainsystem.DataImportResult
 	err = pgx.BeginFunc(ctx, r.pool, func(tx pgx.Tx) error {
+		queries := r.queries.WithTx(tx)
+		if lockErr := lockSystemSettingRevisions(ctx, queries); lockErr != nil {
+			return lockErr
+		}
 		if _, truncateErr := tx.Exec(ctx, truncateDataExportTablesSQL()); truncateErr != nil {
 			return truncateErr
 		}
@@ -255,6 +271,20 @@ func (r *Repository) ImportData(ctx context.Context, export domainsystem.DataExp
 				return importErr
 			}
 		}
+		if cleanupErr := queries.DeleteLegacyEmptySystemSettingSecrets(ctx); cleanupErr != nil {
+			return cleanupErr
+		}
+		revisions, bumpErr := queries.BumpSystemSettingRevisions(ctx, systemSettingRevisionResources)
+		if bumpErr != nil {
+			return bumpErr
+		}
+		if len(revisions) != len(systemSettingRevisionResources) {
+			return fmt.Errorf(
+				"bump system setting revisions: expected %d resources, updated %d",
+				len(systemSettingRevisionResources),
+				len(revisions),
+			)
+		}
 		return nil
 	})
 	if err != nil {
@@ -262,6 +292,15 @@ func (r *Repository) ImportData(ctx context.Context, export domainsystem.DataExp
 	}
 	result.Format = dataExportFormat
 	return result, nil
+}
+
+func lockSystemSettingRevisions(ctx context.Context, locker systemSettingRevisionLocker) error {
+	for _, resource := range systemSettingRevisionResources {
+		if _, err := locker.LockSystemSettingRevision(ctx, resource); err != nil {
+			return fmt.Errorf("lock system setting revision %q: %w", resource, err)
+		}
+	}
+	return nil
 }
 
 func normalizeDataImport(export domainsystem.DataExport) (domainsystem.DataExport, error) {
@@ -388,6 +427,18 @@ func (r *Repository) ListSystemSettings(ctx context.Context) ([]domainsystem.Set
 	return settings, nil
 }
 
+func (r *Repository) GetSystemSettingsByKeys(ctx context.Context, keys []string) ([]domainsystem.Setting, error) {
+	rows, err := postgres.Queries(ctx, r.queries).GetSystemSettingsByKeys(ctx, keys)
+	if err != nil {
+		return nil, err
+	}
+	settings := make([]domainsystem.Setting, 0, len(rows))
+	for _, row := range rows {
+		settings = append(settings, mapSetting(row))
+	}
+	return settings, nil
+}
+
 func (r *Repository) UpsertSystemSetting(ctx context.Context, setting domainsystem.Setting) (domainsystem.Setting, error) {
 	var updatedByUserID *uuid.UUID
 	if setting.UpdatedByUserID != nil {
@@ -412,6 +463,10 @@ func (r *Repository) UpsertSystemSetting(ctx context.Context, setting domainsyst
 	return mapSetting(row), nil
 }
 
+func (r *Repository) DeleteSystemSetting(ctx context.Context, key string) error {
+	return postgres.Queries(ctx, r.queries).DeleteSystemSetting(ctx, key)
+}
+
 func (r *Repository) CreateSystemSettingAuditEvent(ctx context.Context, key, action string, updatedByUserIDValue *string) error {
 	var updatedByUserID *uuid.UUID
 	if updatedByUserIDValue != nil {
@@ -426,6 +481,18 @@ func (r *Repository) CreateSystemSettingAuditEvent(ctx context.Context, key, act
 		Action:          action,
 		UpdatedByUserID: updatedByUserID,
 	})
+}
+
+func (r *Repository) GetSystemSettingRevision(ctx context.Context, resource string) (int64, error) {
+	return postgres.Queries(ctx, r.queries).GetSystemSettingRevision(ctx, resource)
+}
+
+func (r *Repository) LockSystemSettingRevision(ctx context.Context, resource string) (int64, error) {
+	return postgres.Queries(ctx, r.queries).LockSystemSettingRevision(ctx, resource)
+}
+
+func (r *Repository) BumpSystemSettingRevision(ctx context.Context, resource string) (int64, error) {
+	return postgres.Queries(ctx, r.queries).BumpSystemSettingRevision(ctx, resource)
 }
 
 func mapListSystemAdmin(row sqlc.ListSystemAdminsRow) domainsystem.AdminUser {

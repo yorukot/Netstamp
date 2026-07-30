@@ -43,6 +43,9 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.HTTP.BackendBaseURL != "" {
 		t.Fatalf("expected empty backend base URL, got %q", cfg.HTTP.BackendBaseURL)
 	}
+	if cfg.HTTP.PublicWebBaseURL != "" {
+		t.Fatalf("expected empty public web base URL, got %q", cfg.HTTP.PublicWebBaseURL)
+	}
 	if cfg.HTTP.Addr != ":8080" {
 		t.Fatalf("expected default HTTP addr, got %q", cfg.HTTP.Addr)
 	}
@@ -64,23 +67,11 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.Database.ConnectionString() != testDatabaseConnectionString {
 		t.Fatalf("expected connection string, got %q", cfg.Database.ConnectionString())
 	}
-	if !cfg.Auth.RegistrationEnabled {
-		t.Fatal("expected registration to be enabled by default")
-	}
 	if cfg.Auth.SudoTTL != 5*time.Minute {
 		t.Fatalf("expected five-minute sudo TTL, got %s", cfg.Auth.SudoTTL)
 	}
-	if cfg.Auth.OIDCEnabled {
-		t.Fatal("expected OIDC to be disabled by default")
-	}
-	if cfg.Auth.GoogleEnabled || cfg.Auth.GitHubEnabled {
-		t.Fatal("expected Google and GitHub authentication to be disabled by default")
-	}
 	if cfg.Auth.ExternalFlowTTL != 10*time.Minute {
 		t.Fatalf("expected ten-minute external auth flow TTL, got %s", cfg.Auth.ExternalFlowTTL)
-	}
-	if cfg.Alerting.SMTP.Configured() {
-		t.Fatal("expected SMTP to be unconfigured by default")
 	}
 	if !cfg.AssignmentRefresh.WorkerEnabled {
 		t.Fatal("expected assignment refresh worker to be enabled by default")
@@ -94,15 +85,6 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.AssignmentRefresh.WorkerStaleTimeout != time.Minute {
 		t.Fatalf("expected default assignment refresh stale timeout, got %s", cfg.AssignmentRefresh.WorkerStaleTimeout)
 	}
-	if cfg.Alerting.SMTP.Port != 587 {
-		t.Fatalf("expected default SMTP port, got %d", cfg.Alerting.SMTP.Port)
-	}
-	if cfg.Alerting.SMTP.TLSMode != "starttls" {
-		t.Fatalf("expected default SMTP TLS mode, got %q", cfg.Alerting.SMTP.TLSMode)
-	}
-	if cfg.Alerting.SMTP.Timeout != 10*time.Second {
-		t.Fatalf("expected default SMTP timeout, got %s", cfg.Alerting.SMTP.Timeout)
-	}
 }
 
 func TestLoadFromEnvironment(t *testing.T) {
@@ -115,6 +97,7 @@ func TestLoadFromEnvironment(t *testing.T) {
 	t.Setenv(keyLogPseudonymKey, "production-log-pseudonym-key")
 	t.Setenv(keySystemSettingsEncryptionKey, "production-system-settings-key")
 	t.Setenv(keyBackendBaseURL, "https://app.netstamp.dev")
+	t.Setenv(keyPublicWebBaseURL, "https://app.netstamp.dev")
 	t.Setenv(keyHTTPAddr, ":8181")
 	t.Setenv(keyWebDir, "/app/web")
 	t.Setenv(keyHTTPTrustedProxies, "10.0.0.0/8,127.0.0.1")
@@ -126,39 +109,13 @@ func TestLoadFromEnvironment(t *testing.T) {
 	t.Setenv(keyDatabaseName, "netstamp_prod")
 	t.Setenv(keyDatabaseSSLMode, "require")
 	t.Setenv(keyDBMaxConns, "12")
-	t.Setenv(keyAuthRegistrationEnabled, "false")
 	t.Setenv(keyAuthSudoTTL, "4m")
-	t.Setenv(keyAuthOIDCEnabled, "true")
-	t.Setenv(keyAuthOIDCIssuerURL, "https://identity.example.com")
-	t.Setenv(keyAuthOIDCClientID, "netstamp")
-	t.Setenv(keyAuthOIDCClientSecret, "oidc-secret")
-	t.Setenv(keyAuthOIDCDisplayName, "Company SSO")
-	t.Setenv(keyAuthOIDCJITEnabled, "true")
 	t.Setenv(keyAuthExternalFlowTTL, "8m")
-	t.Setenv(keyAuthGoogleEnabled, "true")
-	t.Setenv(keyAuthGoogleClientID, "google-client")
-	t.Setenv(keyAuthGoogleClientSecret, "google-secret")
-	t.Setenv(keyAuthGoogleDisplayName, "Google Workspace")
-	t.Setenv(keyAuthGoogleJITEnabled, "true")
-	t.Setenv(keyAuthGoogleAllowedHostedDomains, "example.com, example.org")
-	t.Setenv(keyAuthGitHubEnabled, "true")
-	t.Setenv(keyAuthGitHubClientID, "github-client")
-	t.Setenv(keyAuthGitHubClientSecret, "github-secret")
-	t.Setenv(keyAuthGitHubDisplayName, "GitHub Enterprise Team")
-	t.Setenv(keyAuthGitHubJITEnabled, "true")
-	t.Setenv(keyAuthGitHubAllowSignup, "false")
 	t.Setenv(keyOTLPTracesEndpoint, "http://victoria-traces:10428/insert/opentelemetry/v1/traces")
 	t.Setenv(keyAssignmentRefreshWorkerEnabled, "false")
 	t.Setenv(keyAssignmentRefreshWorkerInterval, "7s")
 	t.Setenv(keyAssignmentRefreshWorkerBatchSize, "9")
 	t.Setenv(keyAssignmentRefreshWorkerStaleTimeout, "2m")
-	t.Setenv(keySMTPHost, "smtp.example.com")
-	t.Setenv(keySMTPPort, "465")
-	t.Setenv(keySMTPUsername, "netstamp")
-	t.Setenv(keySMTPPassword, "secret")
-	t.Setenv(keySMTPFrom, "alerts@example.com")
-	t.Setenv(keySMTPTLSMode, "implicit")
-	t.Setenv(keySMTPTimeout, "3s")
 
 	cfg, err := Load()
 	if err != nil {
@@ -188,6 +145,9 @@ func TestLoadFromEnvironment(t *testing.T) {
 	}
 	if cfg.HTTP.BackendBaseURL != "https://app.netstamp.dev" {
 		t.Fatalf("expected backend base URL override, got %q", cfg.HTTP.BackendBaseURL)
+	}
+	if cfg.HTTP.PublicWebBaseURL != "https://app.netstamp.dev" {
+		t.Fatalf("expected public web base URL override, got %q", cfg.HTTP.PublicWebBaseURL)
 	}
 	if cfg.HTTP.Addr != ":8181" {
 		t.Fatalf("expected HTTP addr override, got %q", cfg.HTTP.Addr)
@@ -226,23 +186,11 @@ func TestLoadFromEnvironment(t *testing.T) {
 	if cfg.Database.MaxConns != 12 {
 		t.Fatalf("expected DB max conns override, got %d", cfg.Database.MaxConns)
 	}
-	if cfg.Auth.RegistrationEnabled {
-		t.Fatal("expected registration to be disabled from environment")
-	}
 	if cfg.Auth.SudoTTL != 4*time.Minute {
 		t.Fatalf("expected sudo TTL override, got %s", cfg.Auth.SudoTTL)
 	}
-	if !cfg.Auth.OIDCEnabled || !cfg.Auth.OIDCJITEnabled {
-		t.Fatal("expected OIDC and JIT provisioning to be enabled from environment")
-	}
-	if cfg.Auth.OIDCIssuerURL != "https://identity.example.com" || cfg.Auth.OIDCClientID != "netstamp" || cfg.Auth.OIDCDisplayName != "Company SSO" {
-		t.Fatalf("unexpected OIDC configuration: %#v", cfg.Auth)
-	}
-	if cfg.Auth.ExternalFlowTTL != 8*time.Minute || !cfg.Auth.GoogleEnabled || !cfg.Auth.GoogleJITEnabled || cfg.Auth.GoogleHostedDomains != "example.com, example.org" {
-		t.Fatalf("unexpected Google configuration: %#v", cfg.Auth)
-	}
-	if !cfg.Auth.GitHubEnabled || !cfg.Auth.GitHubJITEnabled || cfg.Auth.GitHubAllowSignup || cfg.Auth.GitHubClientID != "github-client" {
-		t.Fatalf("unexpected GitHub configuration: %#v", cfg.Auth)
+	if cfg.Auth.ExternalFlowTTL != 8*time.Minute {
+		t.Fatalf("unexpected external auth flow TTL: %#v", cfg.Auth)
 	}
 	if cfg.Tracing.OTLPTracesEndpoint != "http://victoria-traces:10428/insert/opentelemetry/v1/traces" {
 		t.Fatalf("expected OTLP traces endpoint override, got %q", cfg.Tracing.OTLPTracesEndpoint)
@@ -259,30 +207,6 @@ func TestLoadFromEnvironment(t *testing.T) {
 	if cfg.AssignmentRefresh.WorkerStaleTimeout != 2*time.Minute {
 		t.Fatalf("expected assignment refresh worker stale timeout override, got %s", cfg.AssignmentRefresh.WorkerStaleTimeout)
 	}
-	if !cfg.Alerting.SMTP.Configured() {
-		t.Fatal("expected SMTP to be configured from environment")
-	}
-	if cfg.Alerting.SMTP.Host != "smtp.example.com" {
-		t.Fatalf("expected SMTP host override, got %q", cfg.Alerting.SMTP.Host)
-	}
-	if cfg.Alerting.SMTP.Port != 465 {
-		t.Fatalf("expected SMTP port override, got %d", cfg.Alerting.SMTP.Port)
-	}
-	if cfg.Alerting.SMTP.Username != "netstamp" {
-		t.Fatalf("expected SMTP username override, got %q", cfg.Alerting.SMTP.Username)
-	}
-	if cfg.Alerting.SMTP.Password != "secret" {
-		t.Fatal("expected SMTP password override")
-	}
-	if cfg.Alerting.SMTP.From != "alerts@example.com" {
-		t.Fatalf("expected SMTP from override, got %q", cfg.Alerting.SMTP.From)
-	}
-	if cfg.Alerting.SMTP.TLSMode != "implicit" {
-		t.Fatalf("expected SMTP TLS mode override, got %q", cfg.Alerting.SMTP.TLSMode)
-	}
-	if cfg.Alerting.SMTP.Timeout != 3*time.Second {
-		t.Fatalf("expected SMTP timeout override, got %s", cfg.Alerting.SMTP.Timeout)
-	}
 }
 
 func TestLoadFromDotEnv(t *testing.T) {
@@ -294,6 +218,7 @@ func TestLoadFromDotEnv(t *testing.T) {
 	err := os.WriteFile(filepath.Join(dir, ".env"), []byte(strings.Join([]string{
 		"APP_ENV=staging",
 		"SERVICE_NAME=netstamp-staging",
+		"PUBLIC_WEB_BASE_URL=https://staging.netstamp.dev",
 		"HTTP_ADDR=:8282",
 		"REQUEST_TIMEOUT=2s",
 		"DATABASE_HOST=db.staging.internal",
@@ -314,6 +239,9 @@ func TestLoadFromDotEnv(t *testing.T) {
 	}
 	if cfg.ServiceName != "netstamp-staging" {
 		t.Fatalf("expected service from .env, got %q", cfg.ServiceName)
+	}
+	if cfg.HTTP.PublicWebBaseURL != "https://staging.netstamp.dev" {
+		t.Fatalf("expected public web base URL from .env, got %q", cfg.HTTP.PublicWebBaseURL)
 	}
 	if cfg.HTTP.Addr != ":8282" {
 		t.Fatalf("expected HTTP addr from .env, got %q", cfg.HTTP.Addr)
@@ -354,6 +282,19 @@ func TestLoadReturnsValidationErrors(t *testing.T) {
 	}
 }
 
+func TestLoadRequiresPublicWebBaseURLOutsideLocal(t *testing.T) {
+	clearConfigEnv(t)
+	t.Setenv(keyAppEnv, "production")
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("expected missing public web base URL error")
+	}
+	if !strings.Contains(err.Error(), "PUBLIC_WEB_BASE_URL must not be empty when APP_ENV is not local") {
+		t.Fatalf("expected missing public web base URL error, got %q", err.Error())
+	}
+}
+
 func TestValidateReturnsErrorsForInvalidValues(t *testing.T) {
 	cfg := validConfig()
 	cfg.Env = " "
@@ -384,11 +325,6 @@ func TestValidateReturnsErrorsForInvalidValues(t *testing.T) {
 	cfg.AssignmentRefresh.WorkerInterval = 0
 	cfg.AssignmentRefresh.WorkerBatchSize = 0
 	cfg.AssignmentRefresh.WorkerStaleTimeout = -time.Second
-	cfg.Alerting.SMTP.Port = 0
-	cfg.Alerting.SMTP.Timeout = 0
-	cfg.Alerting.SMTP.TLSMode = "ssl"
-	cfg.Alerting.SMTP.Username = "netstamp"
-	cfg.Alerting.SMTP.From = "alerts"
 
 	err := errors.Join(validate(cfg)...)
 	if err == nil {
@@ -405,6 +341,7 @@ func TestValidateReturnsErrorsForInvalidValues(t *testing.T) {
 		"SYSTEM_SETTINGS_ENCRYPTION_KEY must not be empty",
 		"SHUTDOWN_TIMEOUT must be greater than 0",
 		"BACKEND_BASE_URL must be an origin without path, query, fragment, or credentials",
+		"PUBLIC_WEB_BASE_URL must not be empty when APP_ENV is not local",
 		"HTTP_ADDR must be a host:port address",
 		"REQUEST_TIMEOUT must be greater than 0",
 		"HTTP_READ_HEADER_TIMEOUT must be greater than 0",
@@ -425,12 +362,6 @@ func TestValidateReturnsErrorsForInvalidValues(t *testing.T) {
 		"ASSIGNMENT_REFRESH_WORKER_INTERVAL must be greater than 0",
 		"ASSIGNMENT_REFRESH_WORKER_STALE_TIMEOUT must be greater than 0",
 		"ASSIGNMENT_REFRESH_WORKER_BATCH_SIZE must be greater than 0",
-		"SMTP_PORT must be between 1 and 65535",
-		"SMTP_TIMEOUT must be greater than 0",
-		"SMTP_TLS_MODE must be one of starttls, implicit, or none",
-		"SMTP_HOST must not be empty",
-		"SMTP_FROM must be a valid email address",
-		"SMTP_USERNAME and SMTP_PASSWORD must be set together",
 	} {
 		if !strings.Contains(message, want) {
 			t.Fatalf("expected error to contain %q, got %q", want, message)
@@ -460,6 +391,55 @@ func TestValidateOptionalHTTPOrigin(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			errs := validateOptionalHTTPOrigin(keyBackendBaseURL, tt.value)
 			err := errors.Join(errs...)
+			if tt.wantError == "" {
+				if err != nil {
+					t.Fatalf("expected no error, got %v", err)
+				}
+				return
+			}
+			if err == nil {
+				t.Fatalf("expected error %q", tt.wantError)
+			}
+			if !strings.Contains(err.Error(), tt.wantError) {
+				t.Fatalf("expected error to contain %q, got %q", tt.wantError, err.Error())
+			}
+		})
+	}
+}
+
+func TestValidatePublicWebBaseURL(t *testing.T) {
+	tests := []struct {
+		name      string
+		appEnv    string
+		value     string
+		wantError string
+	}{
+		{name: "local may omit origin", appEnv: "local"},
+		{name: "local configured origin", appEnv: "local", value: "http://localhost:5173"},
+		{
+			name:      "production requires origin",
+			appEnv:    "production",
+			wantError: "PUBLIC_WEB_BASE_URL must not be empty when APP_ENV is not local",
+		},
+		{
+			name:      "staging requires origin",
+			appEnv:    "staging",
+			value:     " ",
+			wantError: "PUBLIC_WEB_BASE_URL must not be empty when APP_ENV is not local",
+		},
+		{name: "production HTTP origin", appEnv: "production", value: "http://app.netstamp.dev"},
+		{name: "production HTTPS origin", appEnv: "production", value: "https://app.netstamp.dev"},
+		{
+			name:      "production rejects path",
+			appEnv:    "production",
+			value:     "https://app.netstamp.dev/reset",
+			wantError: "PUBLIC_WEB_BASE_URL must be an origin without path, query, fragment, or credentials",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := errors.Join(validatePublicWebBaseURL(tt.appEnv, tt.value)...)
 			if tt.wantError == "" {
 				if err != nil {
 					t.Fatalf("expected no error, got %v", err)
@@ -531,7 +511,6 @@ func validConfig() Config {
 			SessionIdleTTL:       24 * time.Hour,
 			SessionAbsoluteTTL:   7 * 24 * time.Hour,
 			SessionTouchInterval: 5 * time.Minute,
-			RegistrationEnabled:  true,
 			Argon2idMemoryKiB:    64 * 1024,
 			Argon2idIterations:   3,
 			Argon2idParallelism:  4,
@@ -550,11 +529,6 @@ func validConfig() Config {
 			NotificationWorkerBatchSize:    25,
 			NotificationWorkerStaleTimeout: time.Minute,
 			NotificationHTTPTimeout:        10 * time.Second,
-			SMTP: SMTPConfig{
-				Port:    587,
-				TLSMode: "starttls",
-				Timeout: 10 * time.Second,
-			},
 		},
 	}
 }

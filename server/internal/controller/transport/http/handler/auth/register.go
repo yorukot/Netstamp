@@ -11,32 +11,20 @@ import (
 )
 
 func (h *Handler) register(ctx context.Context, r *http.Request, input *registerInput) (*registerOutput, error) {
-	registrationEnabled := h.registrationEnabled
-	emailVerificationRequired := false
-	if h.settings != nil {
-		settings, err := h.settings.EffectiveSettings(ctx)
-		if err != nil {
-			return nil, httpx.InternalServerError("register user failed")
-		}
-		registrationEnabled = settings.RegistrationEnabled
-		emailVerificationRequired = settings.EmailVerificationRequired
-	}
-	if !registrationEnabled {
-		return nil, httpx.ForbiddenCode(httpx.CodeAuthRegistrationDisabled, "registration is disabled")
-	}
-
 	result, err := h.service.Register(ctx, appauth.RegisterInput{
 		Email:                    input.Body.Email,
 		DisplayName:              input.Body.DisplayName,
 		Password:                 input.Body.Password,
 		UserAgent:                r.UserAgent(),
-		RequireEmailVerification: emailVerificationRequired,
+		RequireEmailVerification: false,
 		EmailVerificationBaseURL: h.resetBaseURL(r),
 	})
 	if err != nil {
 		switch {
 		case errors.Is(err, appauth.ErrInvalidInput):
 			return nil, invalidAuthInputError(err)
+		case errors.Is(err, appauth.ErrAccountCreationDisabled):
+			return nil, httpx.ForbiddenCode(httpx.CodeAuthAccountCreationDisabled, "account creation is disabled")
 		case errors.Is(err, identity.ErrEmailAlreadyExists):
 			return nil, httpx.ConflictCode(httpx.CodeEmailAlreadyExists, "email already exists")
 		case errors.Is(err, appauth.ErrEmailVerificationUnavailable):

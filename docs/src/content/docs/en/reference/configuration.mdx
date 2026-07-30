@@ -10,6 +10,22 @@ The controller reads environment variables and an optional `.env` file from the 
 
 Durations use Go syntax such as `250ms`, `5s`, `30m`, or `168h`. Boolean values use `true` or `false`. Keep secrets stable, unique, and outside version control.
 
+## Configuration ownership
+
+Infrastructure stays environment-only: database connectivity, encryption and hash keys, public origins, HTTP listeners, worker tuning, and similar process-level settings require a controller restart.
+
+Settings that operators may change while Netstamp is running are stored by the controller. **Admin → System settings** exposes five independent sections:
+
+| Section | Runtime configuration                                                               |
+| ------- | ----------------------------------------------------------------------------------- |
+| Access  | Account creation, email verification, project creation, and user credential changes |
+| SMTP    | Mail server, sender, TLS, timeout, and encrypted credentials                        |
+| OIDC    | Generic OpenID Connect provider and encrypted client secret                         |
+| Google  | Google provider, hosted-domain allowlist, and encrypted client secret               |
+| GitHub  | GitHub provider, signup behavior, and encrypted client secret                       |
+
+Web analytics and tracking consent are not Admin settings and are not returned by the runtime configuration API. They are compiled into the static web application using the `VITE_NETSTAMP_*` build variables below.
+
 ## Compose deployment variables
 
 These values select images and host exposure rather than configuring the controller directly.
@@ -37,7 +53,7 @@ Pin the image values for production. The logical Compose volume is `netstamp-pos
 | `SYSTEM_SETTINGS_ENCRYPTION_KEY` | development placeholder | Stable key used to encrypt stored administrative secret settings      |
 | `SHUTDOWN_TIMEOUT`               | `10s`                   | Graceful controller shutdown deadline                                 |
 
-Replace both placeholder keys in every non-local deployment. Changing the settings key can make stored SMTP secrets unreadable.
+Replace both placeholder keys in every non-local deployment. Changing the settings key can make stored SMTP or external-provider secrets unreadable.
 
 ## HTTP and public origins
 
@@ -83,7 +99,6 @@ Use TLS verification when the database connection crosses an untrusted network. 
 | `AUTH_SESSION_ABSOLUTE_TTL`             | `168h`                  | Maximum session lifetime                             |
 | `AUTH_SESSION_TOUCH_INTERVAL`           | `5m`                    | Minimum interval between session activity writes     |
 | `AUTH_SUDO_TTL`                         | `5m`                    | Recent-authentication validity for sensitive actions |
-| `AUTH_REGISTRATION_ENABLED`             | `true`                  | Environment fallback for local account registration  |
 | `AUTH_EXTERNAL_FLOW_TTL`                | `10m`                   | OAuth/OIDC flow lifetime                             |
 | `AUTH_PASSWORD_RESET_TOKEN_TTL`         | `30m`                   | Password-reset link lifetime                         |
 | `AUTH_PASSWORD_RESET_RATE_LIMIT_WINDOW` | `1h`                    | Password-reset rate-limit window                     |
@@ -93,40 +108,7 @@ Use TLS verification when the database connection crosses an untrusted network. 
 | `AUTH_ARGON2ID_ITERATIONS`              | `3`                     | Argon2id iteration cost                              |
 | `AUTH_ARGON2ID_PARALLELISM`             | `4`                     | Argon2id parallelism                                 |
 
-Stored Admin settings can override registration policy. Changing a hash key invalidates existing credentials protected by that key.
-
-## Generic OIDC
-
-| Variable                             | Default          | Purpose                                               |
-| ------------------------------------ | ---------------- | ----------------------------------------------------- |
-| `AUTH_OIDC_ENABLED`                  | `false`          | Enable generic OIDC                                   |
-| `AUTH_OIDC_ISSUER_URL`               | empty            | OIDC issuer and discovery origin                      |
-| `AUTH_OIDC_CLIENT_ID`                | empty            | Client ID                                             |
-| `AUTH_OIDC_CLIENT_SECRET`            | empty            | Client secret                                         |
-| `AUTH_OIDC_DISPLAY_NAME`             | `Single sign-on` | Login-button label                                    |
-| `AUTH_OIDC_JIT_PROVISIONING_ENABLED` | `false`          | Create users from previously unknown valid identities |
-
-## Google authentication
-
-| Variable                               | Default  | Purpose                                           |
-| -------------------------------------- | -------- | ------------------------------------------------- |
-| `AUTH_GOOGLE_ENABLED`                  | `false`  | Enable Google OpenID Connect                      |
-| `AUTH_GOOGLE_CLIENT_ID`                | empty    | Google client ID                                  |
-| `AUTH_GOOGLE_CLIENT_SECRET`            | empty    | Google client secret                              |
-| `AUTH_GOOGLE_DISPLAY_NAME`             | `Google` | Login-button label                                |
-| `AUTH_GOOGLE_JIT_PROVISIONING_ENABLED` | `false`  | Create users from accepted Google identities      |
-| `AUTH_GOOGLE_ALLOWED_HOSTED_DOMAINS`   | empty    | Comma-separated Workspace hosted-domain allowlist |
-
-## GitHub authentication
-
-| Variable                               | Default  | Purpose                                                   |
-| -------------------------------------- | -------- | --------------------------------------------------------- |
-| `AUTH_GITHUB_ENABLED`                  | `false`  | Enable GitHub OAuth                                       |
-| `AUTH_GITHUB_CLIENT_ID`                | empty    | GitHub OAuth client ID                                    |
-| `AUTH_GITHUB_CLIENT_SECRET`            | empty    | GitHub OAuth client secret                                |
-| `AUTH_GITHUB_DISPLAY_NAME`             | `GitHub` | Login-button label                                        |
-| `AUTH_GITHUB_JIT_PROVISIONING_ENABLED` | `false`  | Create users from accepted GitHub identities              |
-| `AUTH_GITHUB_ALLOW_SIGNUP`             | `true`   | Permit GitHub's OAuth flow to offer GitHub account signup |
+Changing a hash key invalidates existing credentials protected by that key. Account creation, email verification, project creation, credential changes, and external authentication providers are configured in the Access, OIDC, Google, and GitHub sections of **Admin → System settings**.
 
 ## Assignment, alert, and notification workers
 
@@ -145,19 +127,7 @@ Stored Admin settings can override registration policy. Changing a hash key inva
 
 Disabling a worker pauses its work; it does not delete configuration or already queued jobs.
 
-## SMTP
-
-| Variable        | Default    | Purpose                                                       |
-| --------------- | ---------- | ------------------------------------------------------------- |
-| `SMTP_HOST`     | empty      | SMTP host; email is unconfigured when host or sender is empty |
-| `SMTP_PORT`     | `587`      | SMTP port                                                     |
-| `SMTP_USERNAME` | empty      | Optional SMTP AUTH user                                       |
-| `SMTP_PASSWORD` | empty      | Optional SMTP AUTH password                                   |
-| `SMTP_FROM`     | empty      | Envelope sender address                                       |
-| `SMTP_TLS_MODE` | `starttls` | `starttls`, `implicit`, or `none`                             |
-| `SMTP_TIMEOUT`  | `10s`      | Connect and delivery timeout                                  |
-
-Admin-stored SMTP values override these environment fallbacks.
+SMTP is configured in **Admin → System settings**. Its password and external-provider client secrets are encrypted with `SYSTEM_SETTINGS_ENCRYPTION_KEY`. Web-application analytics are build-time settings.
 
 ## Tracing
 
@@ -196,22 +166,37 @@ All numeric capacities and durations must be greater than zero. Maximum backoff 
 
 ## Web application build variables
 
-These are compiled into the static frontend. Runtime container environment changes do not modify an already-built bundle.
+These values are compiled into the static frontend. Changing a container's runtime environment does not modify an already-built bundle.
 
-| Variable                                        | Default                 | Purpose                                                  |
-| ----------------------------------------------- | ----------------------- | -------------------------------------------------------- |
-| `VITE_NETSTAMP_API_BASE_URL`                    | `/api/v1`               | Browser API base URL                                     |
-| `VITE_NETSTAMP_API_PROXY_TARGET`                | `http://localhost:8080` | Vite development proxy target                            |
-| `VITE_NETSTAMP_REGISTRATION_ENABLED`            | `true`                  | Show registration UI when backend policy also permits it |
-| `VITE_NETSTAMP_PROJECT_CREATION_ENABLED`        | `true`                  | Show project-creation UI                                 |
-| `VITE_NETSTAMP_USER_CREDENTIAL_CHANGES_ENABLED` | `true`                  | Show credential-management UI                            |
-| `VITE_NETSTAMP_DEMO_MODE`                       | `false`                 | Enable read-only demo presentation                       |
-| `VITE_NETSTAMP_DEMO_EMAIL`                      | empty                   | Optional demo login email                                |
-| `VITE_NETSTAMP_DEMO_PASSWORD`                   | empty                   | Optional demo login password                             |
+| Variable                                   | Default                             | Purpose                                                         |
+| ------------------------------------------ | ----------------------------------- | --------------------------------------------------------------- |
+| `VITE_NETSTAMP_API_BASE_URL`               | `/api/v1`                           | Browser API base URL                                            |
+| `VITE_NETSTAMP_API_PROXY_TARGET`           | `http://localhost:8080`             | Vite development proxy target                                   |
+| `VITE_NETSTAMP_DEMO_EMAIL`                 | empty                               | Optional demo login email                                       |
+| `VITE_NETSTAMP_DEMO_PASSWORD`              | empty                               | Optional demo login password                                    |
+| `VITE_NETSTAMP_GOOGLE_TAG_ID`              | empty                               | Google tag ID; leave empty to disable                           |
+| `VITE_NETSTAMP_GA_MEASUREMENT_ID`          | empty                               | Legacy alias for `VITE_NETSTAMP_GOOGLE_TAG_ID`                  |
+| `VITE_NETSTAMP_CLARITY_PROJECT_ID`         | empty                               | Microsoft Clarity project ID; leave empty to disable            |
+| `VITE_NETSTAMP_META_PIXEL_ID`              | empty                               | Meta Pixel ID; leave empty to disable                           |
+| `VITE_NETSTAMP_FACEBOOK_PIXEL_ID`          | empty                               | Legacy alias for `VITE_NETSTAMP_META_PIXEL_ID`                  |
+| `VITE_NETSTAMP_POSTHOG_KEY`                | empty                               | Public PostHog project key; leave empty to disable              |
+| `VITE_NETSTAMP_POSTHOG_HOST`               | `https://us.i.posthog.com`          | PostHog ingest host                                             |
+| `VITE_NETSTAMP_PLAUSIBLE_DOMAIN`           | empty                               | Domain reported to Plausible; leave empty to disable            |
+| `VITE_NETSTAMP_PLAUSIBLE_SCRIPT_URL`       | `https://plausible.io/js/script.js` | Plausible script URL                                            |
+| `VITE_NETSTAMP_UMAMI_WEBSITE_ID`           | empty                               | Umami website ID; leave empty to disable                        |
+| `VITE_NETSTAMP_UMAMI_SCRIPT_URL`           | `https://cloud.umami.is/script.js`  | Umami script URL                                                |
+| `VITE_NETSTAMP_TRACKING_CONSENT_MODE`      | `regional`                          | `regional`, `always`, or `immediate`                            |
+| `VITE_NETSTAMP_TRACKING_CONSENT_COUNTRIES` | built-in regional list              | Comma- or whitespace-separated ISO 3166-1 alpha-2 country codes |
 
-Analytics integrations are optional: `VITE_NETSTAMP_GA_MEASUREMENT_ID`, `VITE_NETSTAMP_GOOGLE_TAG_ID`, `VITE_NETSTAMP_CLARITY_PROJECT_ID`, `VITE_NETSTAMP_META_PIXEL_ID` or its `FACEBOOK` alias, `VITE_NETSTAMP_POSTHOG_KEY` and host, `VITE_NETSTAMP_PLAUSIBLE_DOMAIN` and script URL, and `VITE_NETSTAMP_UMAMI_WEBSITE_ID` and script URL.
+The preferred Google and Meta names take precedence when both they and their legacy aliases are set. Tracker identifiers, hosts, URLs, consent rules, and every other `VITE_*` value are visible in the browser bundle; never put a private API key, client secret, password, or other confidential value in them.
 
-`VITE_NETSTAMP_TRACKING_CONSENT_MODE` accepts `regional`, `always`, or `never`; `VITE_NETSTAMP_TRACKING_CONSENT_COUNTRIES` is the regional country list.
+Consent behavior is:
+
+- `regional`: request consent in the configured countries and when the visitor's country cannot be resolved;
+- `always`: request consent from every visitor before loading configured trackers;
+- `immediate`: do not show the consent prompt and load configured trackers immediately.
+
+Leaving the consent-country variable empty uses Netstamp's built-in regional list. Access policies and demo mode are still loaded from the controller at runtime, but analytics and consent are not.
 
 ## Documentation build variables
 

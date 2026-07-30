@@ -4,7 +4,7 @@ import { useCreateAPITokenMutation, useRevokeAPITokenMutation } from "@/shared/a
 import { authQueries } from "@/shared/api/queries";
 import type { ApiToken, ApiTokenScope } from "@/shared/api/types";
 import { useConfirm } from "@/shared/components/confirmContext";
-import { demoMode } from "@/shared/config/features";
+import { useRuntimeFeatures } from "@/shared/config/features";
 import { pushToast } from "@/shared/toast/toastStore";
 import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
 import {
@@ -64,6 +64,7 @@ const emptyForm: TokenForm = { name: "", scopes: defaultScopes, expiryDays: "90"
 export function APITokensPanel({ requireSudo }: { requireSudo?: (action: () => void) => void }) {
 	const { t } = useTranslation(["settings", "common"]);
 	const format = useLocaleFormat();
+	const { readOnlyMode } = useRuntimeFeatures();
 	const query = useQuery(authQueries.apiTokens());
 	const createMutation = useCreateAPITokenMutation();
 	const revokeMutation = useRevokeAPITokenMutation();
@@ -151,7 +152,7 @@ export function APITokensPanel({ requireSudo }: { requireSudo?: (action: () => v
 				title={t("apiTokens.title")}
 				summary={t("apiTokens.summary")}
 				actions={
-					<Button type="button" size="sm" disabled={demoMode} onClick={startCreate}>
+					<Button type="button" size="sm" disabled={readOnlyMode} onClick={startCreate}>
 						<PlusIcon aria-hidden="true" focusable="false" />
 						{t("apiTokens.create")}
 					</Button>
@@ -168,7 +169,7 @@ export function APITokensPanel({ requireSudo }: { requireSudo?: (action: () => v
 					getRowKey={token => token.id}
 					emptyLabel={query.isLoading ? <Spinner label={t("apiTokens.loading")} layout="compact" size="lg" /> : query.isError ? t("apiTokens.loadError") : t("apiTokens.empty")}
 					rowActions={token => (
-						<Button type="button" variant="danger" size="sm" disabled={demoMode || revokeMutation.isPending} onClick={() => void revoke(token)}>
+						<Button type="button" variant="danger" size="sm" disabled={readOnlyMode || revokeMutation.isPending} onClick={() => void revoke(token)}>
 							<TrashIcon aria-hidden="true" focusable="false" />
 							{t("apiTokens.revoke")}
 						</Button>

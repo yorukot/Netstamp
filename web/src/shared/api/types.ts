@@ -3,7 +3,6 @@ import type { components } from "./openapi";
 export type ApiCheck = components["schemas"]["Check"];
 export type ApiAlertIncident = components["schemas"]["AlertIncident"];
 export type ApiAlertRule = components["schemas"]["AlertRule"];
-export type ApiAdminSettings = components["schemas"]["AdminSettings"];
 export type ApiAuthSession = components["schemas"]["AuthSession"];
 export type ApiAuthMethods = components["schemas"]["AuthMethodsResponse"];
 export type ApiSudoStatus = components["schemas"]["SudoStatusResponse"];
@@ -98,7 +97,6 @@ export type TracerouteTopologyEdge = components["schemas"]["TracerouteTopologyEd
 export type TracerouteTopologyNode = components["schemas"]["TracerouteTopologyNode"];
 export type UpdateCheckInput = components["schemas"]["UpdateCheckRequest"];
 export type UpdateAlertRuleInput = components["schemas"]["UpdateAlertRuleRequest"];
-export type UpdateAdminSettingsInput = components["schemas"]["UpdateAdminSettingsRequest"];
 export type UpdateManagedUserInput = components["schemas"]["UpdateManagedUserRequest"];
 export type SetManagedUserPasswordInput = components["schemas"]["SetManagedUserPasswordRequest"];
 export type UpdateCurrentUserInput = components["schemas"]["UpdateCurrentUserRequest"];

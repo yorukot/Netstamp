@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/url"
 	"strings"
 	"time"
@@ -31,8 +32,18 @@ type Service struct {
 	externalAuthTokens      ExternalAuthFlowTokenManager
 	externalAuthConfig      ExternalAuthConfig
 	externalProviders       map[string]configuredExternalProvider
+	externalProviderSource  ExternalProviderSource
+	instancePolicy          InstancePolicy
 	tx                      apptx.Transactor
 	now                     func() time.Time
+}
+
+func (s *Service) ConfigureInstancePolicy(policy InstancePolicy) {
+	s.instancePolicy = policy
+}
+
+func (s *Service) ConfigureExternalAuthProviderSource(source ExternalProviderSource) {
+	s.externalProviderSource = source
 }
 
 type configuredExternalProvider struct {
@@ -119,6 +130,19 @@ func (s *Service) Register(ctx context.Context, input RegisterInput) (AuthAccess
 	if err != nil {
 		return AuthAccessResult{}, flow.businessFailure(AuthEventRegisterFailure, AuthReasonInvalidInput, err)
 	}
+
+	accountCreationEnabled, err := s.accountCreationEnabled(ctx)
+	if err != nil {
+		return AuthAccessResult{}, flow.technicalFailure(AuthEventRegisterFailure, AuthReasonPolicyLookupFailed, err)
+	}
+	if !accountCreationEnabled {
+		return AuthAccessResult{}, flow.businessFailure(AuthEventRegisterFailure, AuthReasonAccountCreationDisabled, ErrAccountCreationDisabled)
+	}
+	emailVerificationRequired, err := s.emailVerificationRequired(ctx, input.RequireEmailVerification)
+	if err != nil {
+		return AuthAccessResult{}, flow.technicalFailure(AuthEventRegisterFailure, AuthReasonPolicyLookupFailed, err)
+	}
+	input.RequireEmailVerification = emailVerificationRequired
 
 	passwordHash, err := s.hashPassword(ctx, input.Password)
 	if err != nil {
@@ -243,6 +267,11 @@ func (s *Service) Login(ctx context.Context, input LoginInput) (AuthAccessResult
 		return AuthAccessResult{}, flow.businessFailure(AuthEventLoginFailure, AuthReasonInvalidInput, err)
 	}
 
+	emailVerificationRequired, err := s.emailVerificationRequired(ctx, input.RequireEmailVerification)
+	if err != nil {
+		return AuthAccessResult{}, flow.technicalFailure(AuthEventLoginFailure, AuthReasonPolicyLookupFailed, err)
+	}
+
 	user, err := s.getUserByEmail(ctx, input.Email)
 	if errors.Is(err, identity.ErrUserNotFound) {
 		return AuthAccessResult{}, flow.businessFailure(AuthEventLoginFailure, AuthReasonCredentialsInvalid, ErrCredentialsInvalid)
@@ -263,7 +292,7 @@ func (s *Service) Login(ctx context.Context, input LoginInput) (AuthAccessResult
 	if err != nil {
 		return AuthAccessResult{}, flow.businessFailure(AuthEventLoginFailure, AuthReasonCredentialsInvalid, ErrCredentialsInvalid)
 	}
-	if input.RequireEmailVerification && user.EmailVerifiedAt == nil {
+	if emailVerificationRequired && user.EmailVerifiedAt == nil {
 		return AuthAccessResult{}, flow.businessFailure(AuthEventLoginFailure, AuthReasonEmailVerificationRequired, ErrEmailVerificationRequired)
 	}
 
@@ -284,6 +313,16 @@ func (s *Service) RequestPasswordReset(ctx context.Context, input RequestPasswor
 	input, err := normalizeRequestPasswordResetInput(input)
 	if err != nil {
 		return flow.businessFailure(AuthEventResetRequestFailure, AuthReasonInvalidInput, err)
+	}
+
+	credentialChangesEnabled, policyErr := s.credentialChangesEnabled(ctx)
+	if policyErr != nil {
+		flow.recordTechnicalFailure(AuthEventResetRequestFailure, AuthReasonPolicyLookupFailed, policyErr)
+		return nil
+	}
+	if !credentialChangesEnabled {
+		flow.success(AuthEventResetRequestSuccess)
+		return nil
 	}
 
 	if s.resets == nil || s.resetTokens == nil || s.resetMailer == nil {
@@ -356,6 +395,14 @@ func (s *Service) ConfirmPasswordReset(ctx context.Context, input ConfirmPasswor
 		return flow.businessFailure(AuthEventResetConfirmFailure, AuthReasonInvalidInput, err)
 	}
 
+	credentialChangesEnabled, err := s.credentialChangesEnabled(ctx)
+	if err != nil {
+		return flow.technicalFailure(AuthEventResetConfirmFailure, AuthReasonPolicyLookupFailed, err)
+	}
+	if !credentialChangesEnabled {
+		return flow.businessFailure(AuthEventResetConfirmFailure, AuthReasonCredentialChangesDisabled, ErrCredentialChangesDisabled)
+	}
+
 	if s.resets == nil || s.resetTokens == nil {
 		return flow.businessFailure(AuthEventResetConfirmFailure, AuthReasonResetUnavailable, ErrResetUnavailable)
 	}
@@ -366,35 +413,7 @@ func (s *Service) ConfirmPasswordReset(ctx context.Context, input ConfirmPasswor
 	}
 
 	now := s.now()
-	var user identity.User
-	err = s.tx.WithinTx(ctx, func(ctx context.Context) error {
-		token, tokenErr := s.resets.GetActivePasswordResetTokenByHash(ctx, s.resetTokens.Hash(input.Token), now)
-		if tokenErr != nil {
-			return tokenErr
-		}
-		updated, updateErr := s.users.UpdateUserPasswordHash(ctx, identity.User{
-			ID:           token.UserID,
-			PasswordHash: passwordHash,
-		})
-		if updateErr != nil {
-			return updateErr
-		}
-		if markErr := s.resets.MarkPasswordResetTokenUsed(ctx, token.ID, now); markErr != nil {
-			return markErr
-		}
-		if s.sessions != nil {
-			if revokeErr := s.sessions.RevokeUserSessions(ctx, token.UserID, "password_reset"); revokeErr != nil {
-				return revokeErr
-			}
-		}
-		if s.apiTokens != nil {
-			if revokeErr := s.apiTokens.RevokeUserTokens(ctx, token.UserID, "password_reset"); revokeErr != nil {
-				return revokeErr
-			}
-		}
-		user = updated
-		return nil
-	})
+	user, err := s.applyPasswordReset(ctx, input.Token, passwordHash, now)
 	if errors.Is(err, identity.ErrResetTokenNotFound) {
 		return flow.businessFailure(AuthEventResetConfirmFailure, AuthReasonResetTokenInvalid, ErrResetTokenInvalid)
 	}
@@ -405,6 +424,39 @@ func (s *Service) ConfirmPasswordReset(ctx context.Context, input ConfirmPasswor
 	flow.success(AuthEventResetConfirmSuccess)
 
 	return nil
+}
+
+func (s *Service) applyPasswordReset(ctx context.Context, rawToken, passwordHash string, now time.Time) (identity.User, error) {
+	var user identity.User
+	err := s.tx.WithinTx(ctx, func(txCtx context.Context) error {
+		token, tokenErr := s.resets.GetActivePasswordResetTokenByHash(txCtx, s.resetTokens.Hash(rawToken), now)
+		if tokenErr != nil {
+			return tokenErr
+		}
+		updated, updateErr := s.users.UpdateUserPasswordHash(txCtx, identity.User{
+			ID:           token.UserID,
+			PasswordHash: passwordHash,
+		})
+		if updateErr != nil {
+			return updateErr
+		}
+		if markErr := s.resets.MarkPasswordResetTokenUsed(txCtx, token.ID, now); markErr != nil {
+			return markErr
+		}
+		if s.sessions != nil {
+			if revokeErr := s.sessions.RevokeUserSessions(txCtx, token.UserID, "password_reset"); revokeErr != nil {
+				return revokeErr
+			}
+		}
+		if s.apiTokens != nil {
+			if revokeErr := s.apiTokens.RevokeUserTokens(txCtx, token.UserID, "password_reset"); revokeErr != nil {
+				return revokeErr
+			}
+		}
+		user = updated
+		return nil
+	})
+	return user, err
 }
 
 func (s *Service) RequestEmailVerification(ctx context.Context, input RequestEmailVerificationInput) error {
@@ -688,6 +740,43 @@ func (s *Service) getUserByEmail(ctx context.Context, email string) (identity.Us
 	}
 
 	return user, nil
+}
+
+func (s *Service) accountCreationEnabled(ctx context.Context) (bool, error) {
+	if s.instancePolicy == nil {
+		return true, nil
+	}
+	enabled, err := s.instancePolicy.AccountCreationEnabled(ctx)
+	if err != nil {
+		return false, fmt.Errorf("%w: %w", ErrInstancePolicyUnavailable, err)
+	}
+	return enabled, nil
+}
+
+func (s *Service) AccountCreationEnabled(ctx context.Context) (bool, error) {
+	return s.accountCreationEnabled(ctx)
+}
+
+func (s *Service) credentialChangesEnabled(ctx context.Context) (bool, error) {
+	if s.instancePolicy == nil {
+		return true, nil
+	}
+	enabled, err := s.instancePolicy.CredentialChangesEnabled(ctx)
+	if err != nil {
+		return false, fmt.Errorf("%w: %w", ErrInstancePolicyUnavailable, err)
+	}
+	return enabled, nil
+}
+
+func (s *Service) emailVerificationRequired(ctx context.Context, fallback bool) (bool, error) {
+	if s.instancePolicy == nil {
+		return fallback, nil
+	}
+	required, err := s.instancePolicy.EmailVerificationRequired(ctx)
+	if err != nil {
+		return false, fmt.Errorf("%w: %w", ErrInstancePolicyUnavailable, err)
+	}
+	return required, nil
 }
 
 // GetCurrentUser fetches the live user record from the database using the

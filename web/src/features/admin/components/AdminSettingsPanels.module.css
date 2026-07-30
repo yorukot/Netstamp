@@ -1,0 +1,178 @@
+.settingsStack,
+.form,
+.fieldStack,
+.sectionState {
+	display: grid;
+	gap: 1rem;
+}
+
+.settingsStack {
+	gap: 1.25rem;
+}
+
+.providerGrid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 1rem;
+}
+
+.fieldGrid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 1rem;
+}
+
+.fieldStack {
+	gap: 0.75rem;
+}
+
+.checkboxStack {
+	display: grid;
+	gap: 0.75rem;
+}
+
+.checkboxRow {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr);
+	gap: 0.75rem;
+	align-items: start;
+	color: var(--ns-text);
+}
+
+.checkboxRow > input[type="checkbox"] {
+	margin-top: 0.25rem;
+}
+
+.checkboxRow strong,
+.checkboxRow small {
+	display: block;
+}
+
+.checkboxRow strong {
+	font-size: 0.95rem;
+	font-weight: 700;
+}
+
+.checkboxRow small,
+.hint,
+.callbackDescription {
+	color: var(--ns-text-subtle);
+	font-size: 0.8rem;
+	line-height: 1.45;
+}
+
+.checkboxRow small {
+	margin-top: 0.25rem;
+}
+
+.panelActions,
+.formActions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	align-items: center;
+	justify-content: flex-end;
+}
+
+.formActions {
+	padding-top: 0.25rem;
+	border-top: 1px solid var(--ns-border-faint);
+}
+
+.notice {
+	display: flex;
+	gap: 0.75rem;
+	align-items: flex-start;
+	justify-content: space-between;
+	padding: 0.75rem;
+	border-left: 2px solid var(--ns-secondary);
+	color: var(--ns-text);
+	background: var(--ns-secondary-muted);
+	font-size: 0.85rem;
+	line-height: 1.45;
+	animation: adminSettingsNoticeIn 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.notice[data-tone="success"] {
+	border-left-color: var(--ns-success);
+	background: color-mix(in srgb, var(--ns-success) 10%, var(--ns-surface-raised));
+}
+
+.notice[data-tone="warning"] {
+	border-left-color: var(--ns-warning);
+	background: color-mix(in srgb, var(--ns-warning) 10%, var(--ns-surface-raised));
+}
+
+.notice[data-tone="critical"] {
+	border-left-color: var(--ns-critical);
+	background: color-mix(in srgb, var(--ns-critical) 10%, var(--ns-surface-raised));
+}
+
+.noticeCopy strong,
+.noticeCopy span {
+	display: block;
+}
+
+.noticeCopy strong {
+	margin-bottom: 0.25rem;
+}
+
+.callback {
+	display: grid;
+	gap: 0.35rem;
+}
+
+.callbackLabel {
+	color: var(--ns-text);
+	font-size: 0.85rem;
+	font-weight: 700;
+}
+
+.callbackValue {
+	overflow-wrap: anywhere;
+	padding: 0.75rem;
+	color: var(--ns-text-muted);
+	background: var(--ns-surface-deep);
+	font-family: var(--ns-font-mono);
+	font-size: 0.78rem;
+	line-height: 1.5;
+}
+
+.hint {
+	margin: 0;
+}
+
+@keyframes adminSettingsNoticeIn {
+	from {
+		opacity: 0;
+		transform: translate3d(0, 0.25rem, 0);
+	}
+
+	to {
+		opacity: 1;
+		transform: translate3d(0, 0, 0);
+	}
+}
+
+@media (max-width: 90rem) {
+	.providerGrid {
+		grid-template-columns: 1fr;
+	}
+}
+
+@media (max-width: 54rem) {
+	.fieldGrid {
+		grid-template-columns: 1fr;
+	}
+
+	.panelActions,
+	.formActions {
+		justify-content: flex-start;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.notice {
+		animation-duration: 0.01ms;
+	}
+}

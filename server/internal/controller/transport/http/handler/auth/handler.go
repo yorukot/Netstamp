@@ -6,7 +6,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	appadmin "github.com/yorukot/netstamp/internal/controller/application/admin"
 	appapitoken "github.com/yorukot/netstamp/internal/controller/application/apitoken"
 	appauth "github.com/yorukot/netstamp/internal/controller/application/auth"
 	"github.com/yorukot/netstamp/internal/controller/transport/http/httpx"
@@ -14,15 +13,13 @@ import (
 )
 
 type Handler struct {
-	service             *appauth.Service
-	verifier            appauth.SessionManager
-	settings            *appadmin.Service
-	cookieName          string
-	cookieSecure        bool
-	registrationEnabled bool
-	publicWebBaseURL    string
-	resetLimiter        *PasswordResetRateLimiter
-	apiTokens           *appapitoken.Service
+	service          *appauth.Service
+	verifier         appauth.SessionManager
+	cookieName       string
+	cookieSecure     bool
+	publicWebBaseURL string
+	resetLimiter     *PasswordResetRateLimiter
+	apiTokens        *appapitoken.Service
 }
 
 func (h *Handler) ConfigureAPITokens(service *appapitoken.Service) *Handler {
@@ -30,14 +27,12 @@ func (h *Handler) ConfigureAPITokens(service *appapitoken.Service) *Handler {
 	return h
 }
 
-func NewHandler(service *appauth.Service, verifier appauth.SessionManager, settings *appadmin.Service, cookieName string, cookieSecure, registrationEnabled bool) *Handler {
+func NewHandler(service *appauth.Service, verifier appauth.SessionManager, cookieName string, cookieSecure bool) *Handler {
 	return &Handler{
-		service:             service,
-		verifier:            verifier,
-		settings:            settings,
-		cookieName:          cookieName,
-		cookieSecure:        cookieSecure,
-		registrationEnabled: registrationEnabled,
+		service:      service,
+		verifier:     verifier,
+		cookieName:   cookieName,
+		cookieSecure: cookieSecure,
 	}
 }
 

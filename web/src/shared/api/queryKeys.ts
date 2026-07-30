@@ -16,6 +16,9 @@ export const apiQueryKeys = {
 	admin: {
 		all: ["admin"] as const,
 		settings: () => [...apiQueryKeys.admin.all, "settings"] as const,
+		accessSettings: () => [...apiQueryKeys.admin.settings(), "access"] as const,
+		smtpSettings: () => [...apiQueryKeys.admin.settings(), "smtp"] as const,
+		providerSettings: (provider: "oidc" | "google" | "github") => [...apiQueryKeys.admin.settings(), "authentication-providers", provider] as const,
 		users: () => [...apiQueryKeys.admin.all, "users"] as const,
 		systemAdmins: () => [...apiQueryKeys.admin.all, "system-admins"] as const
 	},

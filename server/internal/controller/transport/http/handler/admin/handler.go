@@ -16,6 +16,7 @@ import (
 
 type Handler struct {
 	service    *appadmin.Service
+	settings   settingsService
 	verifier   appauth.SessionManager
 	cookieName string
 	sudo       *appauth.Service
@@ -29,13 +30,18 @@ func NewHandler(service *appadmin.Service, verifier appauth.SessionManager, cook
 	return handler
 }
 
+func (h *Handler) ConfigureSettings(service settingsService) *Handler {
+	h.settings = service
+	return h
+}
+
 func (h *Handler) RegisterRoutes(api chi.Router) {
 	api.Group(func(r chi.Router) {
 		r.Use(httpmiddleware.RequireAuth(h.verifier, h.cookieName))
 
 		r.Get("/admin/system-admins", h.handleListSystemAdmins)
 		r.Get("/admin/users", h.handleListManagedUsers)
-		r.Get("/admin/settings", h.handleGetSettings)
+		h.registerSettingsReadRoutes(r)
 		registerSensitive := func(sensitive chi.Router) {
 			sensitive.Post("/admin/system-admins", h.handleGrantSystemAdmin)
 			sensitive.Delete("/admin/system-admins/{user_id}", h.handleRevokeSystemAdmin)
@@ -44,58 +50,24 @@ func (h *Handler) RegisterRoutes(api chi.Router) {
 			sensitive.Delete("/admin/users/{user_id}/password", h.handleClearManagedUserPassword)
 			sensitive.Get("/admin/data-export", h.handleExportData)
 			sensitive.Post("/admin/data-import", h.handleImportData)
-			sensitive.Patch("/admin/settings", h.handleUpdateSettings)
+			h.registerSettingsSensitiveRoutes(sensitive)
 		}
-		if h.sudo != nil {
-			r.Group(func(sensitive chi.Router) {
-				sensitive.Use(httpmiddleware.RequireSudo(h.sudo))
-				registerSensitive(sensitive)
-			})
-		} else {
-			registerSensitive(r)
-		}
+		r.Group(func(sensitive chi.Router) {
+			sensitive.Use(requireAdminSudo(h.sudo))
+			registerSensitive(sensitive)
+		})
 	})
 }
 
-func (h *Handler) handleGetSettings(w http.ResponseWriter, r *http.Request) {
-	if h.service == nil {
-		httpx.WriteProblem(w, r, httpx.InternalServerError("admin settings service is unavailable"))
-		return
+func requireAdminSudo(service *appauth.Service) func(http.Handler) http.Handler {
+	if service != nil {
+		return httpmiddleware.RequireSudo(service)
 	}
-	userID, err := currentUserID(r)
-	if err != nil {
-		httpx.WriteProblem(w, r, err)
-		return
+	return func(_ http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			httpx.WriteProblem(w, r, httpx.ServiceUnavailable("recent authentication service is unavailable"))
+		})
 	}
-	settings, err := h.service.GetSettings(r.Context(), appadmin.GetSettingsInput{CurrentUserID: userID})
-	if err != nil {
-		httpx.WriteProblem(w, r, mapAdminError(err, "get admin settings failed"))
-		return
-	}
-	httpx.WriteJSON(w, http.StatusOK, map[string]any{"settings": settingsResponse(settings)})
-}
-
-func (h *Handler) handleUpdateSettings(w http.ResponseWriter, r *http.Request) {
-	if h.service == nil {
-		httpx.WriteProblem(w, r, httpx.InternalServerError("admin settings service is unavailable"))
-		return
-	}
-	userID, err := currentUserID(r)
-	if err != nil {
-		httpx.WriteProblem(w, r, err)
-		return
-	}
-	var body settingsBody
-	if decodeErr := httpx.DecodeJSON(r, &body); decodeErr != nil {
-		httpx.WriteProblem(w, r, decodeErr)
-		return
-	}
-	settings, err := h.service.UpdateSettings(r.Context(), body.updateInput(userID))
-	if err != nil {
-		httpx.WriteProblem(w, r, mapAdminError(err, "update admin settings failed"))
-		return
-	}
-	httpx.WriteJSON(w, http.StatusOK, map[string]any{"settings": settingsResponse(settings)})
 }
 
 func currentUserID(r *http.Request) (string, error) {
@@ -128,9 +100,17 @@ func mapAdminError(err error, fallback string) error {
 }
 
 func invalidAdminInputError(err error) error {
+	return invalidInputError(err, "invalid admin input")
+}
+
+func invalidSettingsInputError(err error) error {
+	return invalidInputError(err, "invalid system settings input")
+}
+
+func invalidInputError(err error, detail string) error {
 	fieldErrors, ok := appvalidation.FieldErrors(err)
 	if !ok {
-		return httpx.UnprocessableEntity("invalid admin input")
+		return httpx.UnprocessableEntity(detail)
 	}
 
 	details := make([]httpx.ErrorDetail, 0, len(fieldErrors))
@@ -143,7 +123,7 @@ func invalidAdminInputError(err error) error {
 		})
 	}
 
-	return httpx.UnprocessableEntity("invalid admin input", details...)
+	return httpx.UnprocessableEntity(detail, details...)
 }
 
 func adminErrorLocation(field string) string {

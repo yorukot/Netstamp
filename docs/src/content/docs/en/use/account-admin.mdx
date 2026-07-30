@@ -1,6 +1,6 @@
 ---
 title: Account and administration
-description: Manage user identity, sessions and API tokens, plus instance registration, SMTP, users, administrators, and data transfer.
+description: Manage user identity, sessions and API tokens, plus instance access, SMTP, authentication providers, users, administrators, and data transfer.
 icon: shield
 navSection: use
 navOrder: 80
@@ -36,7 +36,7 @@ The first successfully registered account becomes a system administrator. Netsta
 
 System administrators can:
 
-- change registration, email-verification, public-origin, and SMTP settings;
+- change instance-access, SMTP, OIDC, Google, and GitHub settings;
 - list, disable, or re-enable users;
 - set or clear a user's local password;
 - grant or revoke system administrator access;
@@ -46,9 +46,21 @@ System administrator access does not grant project membership.
 
 ## Instance settings
 
-Stored Admin settings override environment fallbacks. Secret settings are encrypted with `SYSTEM_SETTINGS_ENCRYPTION_KEY`. After changing SMTP or origins, test email links, external login callbacks, and probe installer output.
+**Admin → System settings** is divided into five independently saved sections:
 
-Disabling registration blocks new local registrations. JIT provisioning at an external provider is a separate policy and should be reviewed at the same time.
+| Section | Controls                                                                                                        |
+| ------- | --------------------------------------------------------------------------------------------------------------- |
+| Access  | Account creation, email verification, project creation, and whether users may change credentials                |
+| SMTP    | Mail server, sender, TLS mode, timeout, and the SMTP test action                                                |
+| OIDC    | Generic OIDC issuer, client credentials, display name, enablement, and JIT provisioning                         |
+| Google  | Google client credentials, display name, Workspace domain allowlist, enablement, and JIT provisioning           |
+| GitHub  | GitHub client credentials, display name, enablement, JIT provisioning, and GitHub's provider-side signup prompt |
+
+SMTP passwords and authentication-provider client secrets are encrypted with `SYSTEM_SETTINGS_ENCRYPTION_KEY`. Admin responses expose only whether a secret is set; they never reveal the stored value.
+
+The account-creation switch is the instance-wide master policy. Turning it off blocks both local registration and JIT account creation through OIDC, Google, or GitHub. Existing users with an already-linked external identity can still sign in. A provider can create an account only when both account creation and that provider's JIT setting are enabled.
+
+Public origins, database access, encryption and hash keys, session lifetimes, worker settings, and other infrastructure configuration remain environment-only. They are not Admin settings and do not have database fallback values. After changing SMTP or an authentication provider, test the complete email or sign-in flow before removing a working recovery method.
 
 ## User recovery
 

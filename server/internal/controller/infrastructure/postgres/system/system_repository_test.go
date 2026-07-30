@@ -1,11 +1,64 @@
 package pgsystem
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
+	"slices"
 	"testing"
 
 	domainsystem "github.com/yorukot/netstamp/internal/domain/system"
 )
+
+func TestLockSystemSettingRevisionsUsesDeterministicOrder(t *testing.T) {
+	locker := &recordingSystemSettingRevisionLocker{}
+
+	if err := lockSystemSettingRevisions(context.Background(), locker); err != nil {
+		t.Fatalf("lock system setting revisions: %v", err)
+	}
+	if !slices.Equal(locker.resources, []string{
+		"access",
+		"smtp",
+		"auth.oidc",
+		"auth.google",
+		"auth.github",
+	}) {
+		t.Fatalf("unexpected lock order: %#v", locker.resources)
+	}
+}
+
+func TestLockSystemSettingRevisionsStopsAtFirstFailure(t *testing.T) {
+	expected := errors.New("lock failed")
+	locker := &recordingSystemSettingRevisionLocker{
+		failResource: "auth.oidc",
+		err:          expected,
+	}
+
+	err := lockSystemSettingRevisions(context.Background(), locker)
+	if !errors.Is(err, expected) {
+		t.Fatalf("expected lock failure, got %v", err)
+	}
+	if !slices.Equal(locker.resources, []string{"access", "smtp", "auth.oidc"}) {
+		t.Fatalf("unexpected lock attempts: %#v", locker.resources)
+	}
+}
+
+type recordingSystemSettingRevisionLocker struct {
+	resources    []string
+	failResource string
+	err          error
+}
+
+func (l *recordingSystemSettingRevisionLocker) LockSystemSettingRevision(
+	_ context.Context,
+	resource string,
+) (int64, error) {
+	l.resources = append(l.resources, resource)
+	if resource == l.failResource {
+		return 0, l.err
+	}
+	return 1, nil
+}
 
 func TestNormalizeDataImportUpgradesLegacyPasswordCredentials(t *testing.T) {
 	tables := emptyDataExportTables()

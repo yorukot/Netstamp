@@ -238,19 +238,35 @@
 				]
 			}
 		},
-		"/admin/settings": {
+		"/admin/settings/access": {
 			"get": {
-				"operationId": "getAdminSettings",
-				"summary": "Get admin settings",
-				"description": "Return instance-level settings visible to global administrators. Secret values are redacted.",
+				"operationId": "getAdminAccessSettings",
+				"summary": "Get instance access settings",
+				"description": "Return the current account, project, and credential-management policies.",
 				"parameters": [],
 				"responses": {
 					"200": {
-						"description": "The request has succeeded.",
+						"description": "A successful JSON response for a versioned resource. Send the returned strong ETag in If-Match when changing or validating the resource.",
+						"headers": {
+							"ETag": {
+								"required": true,
+								"description": "Strong entity tag for this resource version.",
+								"schema": {
+									"type": "string"
+								}
+							},
+							"Cache-Control": {
+								"required": true,
+								"schema": {
+									"type": "string",
+									"enum": ["private, no-store"]
+								}
+							}
+						},
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/AdminSettingsResponse"
+									"$ref": "#/components/schemas/AdminAccessSettingsResponse"
 								}
 							}
 						}
@@ -294,17 +310,37 @@
 				]
 			},
 			"patch": {
-				"operationId": "updateAdminSettings",
-				"summary": "Update admin settings",
-				"description": "Update instance-level settings. Only global administrators can call this operation. SMTP passwords are write-only.",
-				"parameters": [],
+				"operationId": "updateAdminAccessSettings",
+				"summary": "Update instance access settings",
+				"description": "Partially update account, project, and credential-management policies. If-Match must contain the strong ETag returned by getAdminAccessSettings.",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/IfMatchHeaderParam"
+					}
+				],
 				"responses": {
 					"200": {
-						"description": "The request has succeeded.",
+						"description": "A successful JSON response for a versioned resource. Send the returned strong ETag in If-Match when changing or validating the resource.",
+						"headers": {
+							"ETag": {
+								"required": true,
+								"description": "Strong entity tag for this resource version.",
+								"schema": {
+									"type": "string"
+								}
+							},
+							"Cache-Control": {
+								"required": true,
+								"schema": {
+									"type": "string",
+									"enum": ["private, no-store"]
+								}
+							}
+						},
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/AdminSettingsResponse"
+									"$ref": "#/components/schemas/AdminAccessSettingsResponse"
 								}
 							}
 						}
@@ -339,8 +375,43 @@
 							}
 						}
 					},
+					"412": {
+						"description": "The supplied If-Match value does not identify the current resource version. The response includes the current strong ETag and uses SETTINGS_VERSION_CONFLICT.",
+						"headers": {
+							"ETag": {
+								"required": true,
+								"schema": {
+									"type": "string"
+								}
+							},
+							"Cache-Control": {
+								"required": true,
+								"schema": {
+									"type": "string",
+									"enum": ["private, no-store"]
+								}
+							}
+						},
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
 					"422": {
 						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"428": {
+						"description": "The operation requires an If-Match header containing a strong ETag returned by the corresponding GET operation. The problem code is PRECONDITION_REQUIRED.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -366,11 +437,1387 @@
 					"content": {
 						"application/json": {
 							"schema": {
-								"$ref": "#/components/schemas/UpdateAdminSettingsRequest"
+								"$ref": "#/components/schemas/AdminAccessSettingsPatch"
 							}
 						}
 					}
 				},
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/admin/settings/authentication-providers/github": {
+			"get": {
+				"operationId": "getAdminGitHubProviderSettings",
+				"summary": "Get GitHub provider settings",
+				"description": "Return the current GitHub provider configuration. The client secret is never returned.",
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "A successful JSON response for a versioned resource. Send the returned strong ETag in If-Match when changing or validating the resource.",
+						"headers": {
+							"ETag": {
+								"required": true,
+								"description": "Strong entity tag for this resource version.",
+								"schema": {
+									"type": "string"
+								}
+							},
+							"Cache-Control": {
+								"required": true,
+								"schema": {
+									"type": "string",
+									"enum": ["private, no-store"]
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AdminGitHubProviderSettingsResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Admin"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			},
+			"patch": {
+				"operationId": "updateAdminGitHubProviderSettings",
+				"summary": "Update GitHub provider settings",
+				"description": "Partially update the GitHub provider. If-Match must contain the strong ETag returned by getAdminGitHubProviderSettings.",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/IfMatchHeaderParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "A successful JSON response for a versioned resource. Send the returned strong ETag in If-Match when changing or validating the resource.",
+						"headers": {
+							"ETag": {
+								"required": true,
+								"description": "Strong entity tag for this resource version.",
+								"schema": {
+									"type": "string"
+								}
+							},
+							"Cache-Control": {
+								"required": true,
+								"schema": {
+									"type": "string",
+									"enum": ["private, no-store"]
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AdminGitHubProviderSettingsResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"412": {
+						"description": "The supplied If-Match value does not identify the current resource version. The response includes the current strong ETag and uses SETTINGS_VERSION_CONFLICT.",
+						"headers": {
+							"ETag": {
+								"required": true,
+								"schema": {
+									"type": "string"
+								}
+							},
+							"Cache-Control": {
+								"required": true,
+								"schema": {
+									"type": "string",
+									"enum": ["private, no-store"]
+								}
+							}
+						},
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"428": {
+						"description": "The operation requires an If-Match header containing a strong ETag returned by the corresponding GET operation. The problem code is PRECONDITION_REQUIRED.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"503": {
+						"description": "Service unavailable.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Admin"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/AdminGitHubProviderSettingsPatch"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/admin/settings/authentication-providers/github/validate": {
+			"post": {
+				"operationId": "validateAdminGitHubProviderSettings",
+				"summary": "Validate GitHub provider settings",
+				"description": "Validate a candidate GitHub patch against the persisted provider without saving it. This checks configuration readiness but cannot prove the client secret without completing OAuth authorization.",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/IfMatchHeaderParam"
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "There is no content to send for this request, but the headers may be useful. "
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"412": {
+						"description": "The supplied If-Match value does not identify the current resource version. The response includes the current strong ETag and uses SETTINGS_VERSION_CONFLICT.",
+						"headers": {
+							"ETag": {
+								"required": true,
+								"schema": {
+									"type": "string"
+								}
+							},
+							"Cache-Control": {
+								"required": true,
+								"schema": {
+									"type": "string",
+									"enum": ["private, no-store"]
+								}
+							}
+						},
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"428": {
+						"description": "The operation requires an If-Match header containing a strong ETag returned by the corresponding GET operation. The problem code is PRECONDITION_REQUIRED.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"503": {
+						"description": "Service unavailable.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Admin"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/AdminGitHubProviderSettingsPatch"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/admin/settings/authentication-providers/google": {
+			"get": {
+				"operationId": "getAdminGoogleProviderSettings",
+				"summary": "Get Google provider settings",
+				"description": "Return the current Google provider configuration. The client secret is never returned.",
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "A successful JSON response for a versioned resource. Send the returned strong ETag in If-Match when changing or validating the resource.",
+						"headers": {
+							"ETag": {
+								"required": true,
+								"description": "Strong entity tag for this resource version.",
+								"schema": {
+									"type": "string"
+								}
+							},
+							"Cache-Control": {
+								"required": true,
+								"schema": {
+									"type": "string",
+									"enum": ["private, no-store"]
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AdminGoogleProviderSettingsResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Admin"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			},
+			"patch": {
+				"operationId": "updateAdminGoogleProviderSettings",
+				"summary": "Update Google provider settings",
+				"description": "Partially update the Google provider. If-Match must contain the strong ETag returned by getAdminGoogleProviderSettings.",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/IfMatchHeaderParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "A successful JSON response for a versioned resource. Send the returned strong ETag in If-Match when changing or validating the resource.",
+						"headers": {
+							"ETag": {
+								"required": true,
+								"description": "Strong entity tag for this resource version.",
+								"schema": {
+									"type": "string"
+								}
+							},
+							"Cache-Control": {
+								"required": true,
+								"schema": {
+									"type": "string",
+									"enum": ["private, no-store"]
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AdminGoogleProviderSettingsResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"412": {
+						"description": "The supplied If-Match value does not identify the current resource version. The response includes the current strong ETag and uses SETTINGS_VERSION_CONFLICT.",
+						"headers": {
+							"ETag": {
+								"required": true,
+								"schema": {
+									"type": "string"
+								}
+							},
+							"Cache-Control": {
+								"required": true,
+								"schema": {
+									"type": "string",
+									"enum": ["private, no-store"]
+								}
+							}
+						},
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"428": {
+						"description": "The operation requires an If-Match header containing a strong ETag returned by the corresponding GET operation. The problem code is PRECONDITION_REQUIRED.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"503": {
+						"description": "Service unavailable.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Admin"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/AdminGoogleProviderSettingsPatch"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/admin/settings/authentication-providers/google/validate": {
+			"post": {
+				"operationId": "validateAdminGoogleProviderSettings",
+				"summary": "Validate Google provider settings",
+				"description": "Validate a candidate Google patch against the persisted provider without saving it. This checks configuration readiness but cannot prove the client secret without completing OAuth authorization.",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/IfMatchHeaderParam"
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "There is no content to send for this request, but the headers may be useful. "
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"412": {
+						"description": "The supplied If-Match value does not identify the current resource version. The response includes the current strong ETag and uses SETTINGS_VERSION_CONFLICT.",
+						"headers": {
+							"ETag": {
+								"required": true,
+								"schema": {
+									"type": "string"
+								}
+							},
+							"Cache-Control": {
+								"required": true,
+								"schema": {
+									"type": "string",
+									"enum": ["private, no-store"]
+								}
+							}
+						},
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"428": {
+						"description": "The operation requires an If-Match header containing a strong ETag returned by the corresponding GET operation. The problem code is PRECONDITION_REQUIRED.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"503": {
+						"description": "Service unavailable.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Admin"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/AdminGoogleProviderSettingsPatch"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/admin/settings/authentication-providers/oidc": {
+			"get": {
+				"operationId": "getAdminOIDCProviderSettings",
+				"summary": "Get OIDC provider settings",
+				"description": "Return the current generic OIDC provider configuration. The client secret is never returned.",
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "A successful JSON response for a versioned resource. Send the returned strong ETag in If-Match when changing or validating the resource.",
+						"headers": {
+							"ETag": {
+								"required": true,
+								"description": "Strong entity tag for this resource version.",
+								"schema": {
+									"type": "string"
+								}
+							},
+							"Cache-Control": {
+								"required": true,
+								"schema": {
+									"type": "string",
+									"enum": ["private, no-store"]
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AdminOIDCProviderSettingsResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Admin"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			},
+			"patch": {
+				"operationId": "updateAdminOIDCProviderSettings",
+				"summary": "Update OIDC provider settings",
+				"description": "Partially update the generic OIDC provider. Enabling the provider also validates discovery readiness. If-Match must contain the strong ETag returned by getAdminOIDCProviderSettings.",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/IfMatchHeaderParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "A successful JSON response for a versioned resource. Send the returned strong ETag in If-Match when changing or validating the resource.",
+						"headers": {
+							"ETag": {
+								"required": true,
+								"description": "Strong entity tag for this resource version.",
+								"schema": {
+									"type": "string"
+								}
+							},
+							"Cache-Control": {
+								"required": true,
+								"schema": {
+									"type": "string",
+									"enum": ["private, no-store"]
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AdminOIDCProviderSettingsResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"412": {
+						"description": "The supplied If-Match value does not identify the current resource version. The response includes the current strong ETag and uses SETTINGS_VERSION_CONFLICT.",
+						"headers": {
+							"ETag": {
+								"required": true,
+								"schema": {
+									"type": "string"
+								}
+							},
+							"Cache-Control": {
+								"required": true,
+								"schema": {
+									"type": "string",
+									"enum": ["private, no-store"]
+								}
+							}
+						},
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"428": {
+						"description": "The operation requires an If-Match header containing a strong ETag returned by the corresponding GET operation. The problem code is PRECONDITION_REQUIRED.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"503": {
+						"description": "Service unavailable.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Admin"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/AdminOIDCProviderSettingsPatch"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/admin/settings/authentication-providers/oidc/validate": {
+			"post": {
+				"operationId": "validateAdminOIDCProviderSettings",
+				"summary": "Validate OIDC provider settings",
+				"description": "Validate a candidate OIDC patch against the persisted provider without saving it. This checks configuration and discovery readiness, not an end-user login.",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/IfMatchHeaderParam"
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "There is no content to send for this request, but the headers may be useful. "
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"412": {
+						"description": "The supplied If-Match value does not identify the current resource version. The response includes the current strong ETag and uses SETTINGS_VERSION_CONFLICT.",
+						"headers": {
+							"ETag": {
+								"required": true,
+								"schema": {
+									"type": "string"
+								}
+							},
+							"Cache-Control": {
+								"required": true,
+								"schema": {
+									"type": "string",
+									"enum": ["private, no-store"]
+								}
+							}
+						},
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"428": {
+						"description": "The operation requires an If-Match header containing a strong ETag returned by the corresponding GET operation. The problem code is PRECONDITION_REQUIRED.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"503": {
+						"description": "Service unavailable.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Admin"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/AdminOIDCProviderSettingsPatch"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/admin/settings/smtp": {
+			"get": {
+				"operationId": "getAdminSMTPSettings",
+				"summary": "Get SMTP settings",
+				"description": "Return the current SMTP configuration. The password is never returned.",
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "A successful JSON response for a versioned resource. Send the returned strong ETag in If-Match when changing or validating the resource.",
+						"headers": {
+							"ETag": {
+								"required": true,
+								"description": "Strong entity tag for this resource version.",
+								"schema": {
+									"type": "string"
+								}
+							},
+							"Cache-Control": {
+								"required": true,
+								"schema": {
+									"type": "string",
+									"enum": ["private, no-store"]
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AdminSMTPSettingsResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Admin"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			},
+			"patch": {
+				"operationId": "updateAdminSMTPSettings",
+				"summary": "Update SMTP settings",
+				"description": "Partially update the SMTP configuration. Omit password to retain it or set it to null to clear it. If-Match must contain the strong ETag returned by getAdminSMTPSettings.",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/IfMatchHeaderParam"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "A successful JSON response for a versioned resource. Send the returned strong ETag in If-Match when changing or validating the resource.",
+						"headers": {
+							"ETag": {
+								"required": true,
+								"description": "Strong entity tag for this resource version.",
+								"schema": {
+									"type": "string"
+								}
+							},
+							"Cache-Control": {
+								"required": true,
+								"schema": {
+									"type": "string",
+									"enum": ["private, no-store"]
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AdminSMTPSettingsResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"412": {
+						"description": "The supplied If-Match value does not identify the current resource version. The response includes the current strong ETag and uses SETTINGS_VERSION_CONFLICT.",
+						"headers": {
+							"ETag": {
+								"required": true,
+								"schema": {
+									"type": "string"
+								}
+							},
+							"Cache-Control": {
+								"required": true,
+								"schema": {
+									"type": "string",
+									"enum": ["private, no-store"]
+								}
+							}
+						},
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"428": {
+						"description": "The operation requires an If-Match header containing a strong ETag returned by the corresponding GET operation. The problem code is PRECONDITION_REQUIRED.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Admin"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/AdminSMTPSettingsPatch"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/admin/settings/smtp/test": {
+			"post": {
+				"operationId": "testAdminSMTP",
+				"summary": "Send an SMTP test email",
+				"description": "Send a test email using the persisted SMTP configuration. If-Match must contain the strong ETag returned by getAdminSMTPSettings.",
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/IfMatchHeaderParam"
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "There is no content to send for this request, but the headers may be useful. "
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"412": {
+						"description": "The supplied If-Match value does not identify the current resource version. The response includes the current strong ETag and uses SETTINGS_VERSION_CONFLICT.",
+						"headers": {
+							"ETag": {
+								"required": true,
+								"schema": {
+									"type": "string"
+								}
+							},
+							"Cache-Control": {
+								"required": true,
+								"schema": {
+									"type": "string",
+									"enum": ["private, no-store"]
+								}
+							}
+						},
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"428": {
+						"description": "The operation requires an If-Match header containing a strong ETag returned by the corresponding GET operation. The problem code is PRECONDITION_REQUIRED.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"503": {
+						"description": "Service unavailable.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Admin"],
 				"security": [
 					{
 						"SessionCookieAuth": []
@@ -8789,6 +10236,36 @@
 				]
 			}
 		},
+		"/system/config": {
+			"get": {
+				"operationId": "getRuntimeConfig",
+				"summary": "Get public runtime configuration",
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "The request has succeeded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PublicRuntimeConfig"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["System"]
+			}
+		},
 		"/users/me": {
 			"patch": {
 				"operationId": "updateCurrentUser",
@@ -9530,6 +11007,15 @@
 					"$ref": "#/components/schemas/uuid"
 				}
 			},
+			"IfMatchHeaderParam": {
+				"name": "If-Match",
+				"in": "header",
+				"required": true,
+				"description": "Exact strong ETag returned by the corresponding settings GET operation.",
+				"schema": {
+					"type": "string"
+				}
+			},
 			"LabelIdPathParam": {
 				"name": "label_id",
 				"in": "path",
@@ -10226,6 +11712,79 @@
 					}
 				}
 			},
+			"AdminAccessSettings": {
+				"type": "object",
+				"required": ["accountCreationEnabled", "emailVerificationRequired", "projectCreationEnabled", "credentialChangesEnabled"],
+				"properties": {
+					"accountCreationEnabled": {
+						"type": "boolean",
+						"description": "Whether new accounts may be created through password registration or external-provider JIT provisioning."
+					},
+					"emailVerificationRequired": {
+						"type": "boolean",
+						"description": "Whether newly created accounts must verify their email address."
+					},
+					"projectCreationEnabled": {
+						"type": "boolean",
+						"description": "Whether regular users may create projects."
+					},
+					"credentialChangesEnabled": {
+						"type": "boolean",
+						"description": "Whether regular users may change account credentials or link and unlink external identities."
+					}
+				},
+				"examples": [
+					{
+						"accountCreationEnabled": true,
+						"emailVerificationRequired": true,
+						"projectCreationEnabled": true,
+						"credentialChangesEnabled": true
+					}
+				]
+			},
+			"AdminAccessSettingsPatch": {
+				"type": "object",
+				"properties": {
+					"accountCreationEnabled": {
+						"type": "boolean"
+					},
+					"emailVerificationRequired": {
+						"type": "boolean"
+					},
+					"projectCreationEnabled": {
+						"type": "boolean"
+					},
+					"credentialChangesEnabled": {
+						"type": "boolean"
+					}
+				},
+				"description": "Partial access-policy update. Omitted properties retain their current values.",
+				"examples": [
+					{
+						"accountCreationEnabled": false,
+						"projectCreationEnabled": false
+					}
+				]
+			},
+			"AdminAccessSettingsResponse": {
+				"type": "object",
+				"required": ["settings"],
+				"properties": {
+					"settings": {
+						"$ref": "#/components/schemas/AdminAccessSettings"
+					}
+				},
+				"examples": [
+					{
+						"settings": {
+							"accountCreationEnabled": true,
+							"emailVerificationRequired": true,
+							"projectCreationEnabled": true,
+							"credentialChangesEnabled": true
+						}
+					}
+				]
+			},
 			"AdminDataExport": {
 				"type": "object",
 				"required": ["format", "exportedAt", "tables"],
@@ -10285,13 +11844,290 @@
 					}
 				}
 			},
+			"AdminExternalProviderSettingsBase": {
+				"type": "object",
+				"required": ["enabled", "clientId", "clientSecretSet", "displayName", "jitEnabled"],
+				"properties": {
+					"enabled": {
+						"type": "boolean"
+					},
+					"clientId": {
+						"type": "string"
+					},
+					"clientSecretSet": {
+						"type": "boolean"
+					},
+					"displayName": {
+						"type": "string"
+					},
+					"jitEnabled": {
+						"type": "boolean"
+					},
+					"callbackUrl": {
+						"type": "string",
+						"format": "uri",
+						"description": "OAuth callback URL derived from the server's configured public backend URL."
+					}
+				}
+			},
+			"AdminExternalProviderSettingsPatchBase": {
+				"type": "object",
+				"properties": {
+					"enabled": {
+						"type": "boolean"
+					},
+					"clientId": {
+						"type": "string"
+					},
+					"clientSecret": {
+						"anyOf": [
+							{
+								"$ref": "#/components/schemas/NonEmptyAdminSecret"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"format": "password",
+						"description": "Replacement client secret. Omit to retain the current secret, or set to null to clear it. An empty string is invalid."
+					},
+					"displayName": {
+						"type": "string"
+					},
+					"jitEnabled": {
+						"type": "boolean"
+					}
+				}
+			},
+			"AdminGitHubProviderSettings": {
+				"type": "object",
+				"required": ["allowSignup"],
+				"properties": {
+					"allowSignup": {
+						"type": "boolean",
+						"description": "Whether GitHub may display its account-signup option on the authorization page. This does not override Netstamp account-creation policy."
+					}
+				},
+				"allOf": [
+					{
+						"$ref": "#/components/schemas/AdminExternalProviderSettingsBase"
+					}
+				],
+				"examples": [
+					{
+						"enabled": true,
+						"clientId": "github-client-id",
+						"clientSecretSet": true,
+						"displayName": "GitHub",
+						"jitEnabled": true,
+						"callbackUrl": "https://netstamp.example.com/api/v1/auth/external/github/callback",
+						"allowSignup": false
+					}
+				]
+			},
+			"AdminGitHubProviderSettingsPatch": {
+				"type": "object",
+				"properties": {
+					"allowSignup": {
+						"type": "boolean"
+					}
+				},
+				"allOf": [
+					{
+						"$ref": "#/components/schemas/AdminExternalProviderSettingsPatchBase"
+					}
+				],
+				"description": "Partial GitHub-provider update. Omitted properties retain their current values.",
+				"examples": [
+					{
+						"enabled": true,
+						"clientId": "github-client-id",
+						"clientSecret": "replace-with-a-secret",
+						"displayName": "GitHub",
+						"jitEnabled": true,
+						"allowSignup": false
+					}
+				]
+			},
+			"AdminGitHubProviderSettingsResponse": {
+				"type": "object",
+				"required": ["settings"],
+				"properties": {
+					"settings": {
+						"$ref": "#/components/schemas/AdminGitHubProviderSettings"
+					}
+				},
+				"examples": [
+					{
+						"settings": {
+							"enabled": true,
+							"clientId": "github-client-id",
+							"clientSecretSet": true,
+							"displayName": "GitHub",
+							"jitEnabled": true,
+							"callbackUrl": "https://netstamp.example.com/api/v1/auth/external/github/callback",
+							"allowSignup": false
+						}
+					}
+				]
+			},
+			"AdminGoogleProviderSettings": {
+				"type": "object",
+				"required": ["allowedDomains"],
+				"properties": {
+					"allowedDomains": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/GoogleHostedDomain"
+						},
+						"description": "Normalized Google Workspace domains allowed to authenticate. An empty list imposes no domain restriction."
+					}
+				},
+				"allOf": [
+					{
+						"$ref": "#/components/schemas/AdminExternalProviderSettingsBase"
+					}
+				],
+				"examples": [
+					{
+						"enabled": true,
+						"clientId": "1234567890.apps.googleusercontent.com",
+						"clientSecretSet": true,
+						"displayName": "Google",
+						"jitEnabled": true,
+						"callbackUrl": "https://netstamp.example.com/api/v1/auth/external/google/callback",
+						"allowedDomains": ["example.com"]
+					}
+				]
+			},
+			"AdminGoogleProviderSettingsPatch": {
+				"type": "object",
+				"properties": {
+					"allowedDomains": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/GoogleHostedDomain"
+						}
+					}
+				},
+				"allOf": [
+					{
+						"$ref": "#/components/schemas/AdminExternalProviderSettingsPatchBase"
+					}
+				],
+				"description": "Partial Google-provider update. Omitted properties retain their current values.",
+				"examples": [
+					{
+						"enabled": true,
+						"clientId": "1234567890.apps.googleusercontent.com",
+						"clientSecret": "replace-with-a-secret",
+						"displayName": "Google",
+						"jitEnabled": true,
+						"allowedDomains": ["example.com"]
+					}
+				]
+			},
+			"AdminGoogleProviderSettingsResponse": {
+				"type": "object",
+				"required": ["settings"],
+				"properties": {
+					"settings": {
+						"$ref": "#/components/schemas/AdminGoogleProviderSettings"
+					}
+				},
+				"examples": [
+					{
+						"settings": {
+							"enabled": true,
+							"clientId": "1234567890.apps.googleusercontent.com",
+							"clientSecretSet": true,
+							"displayName": "Google",
+							"jitEnabled": true,
+							"callbackUrl": "https://netstamp.example.com/api/v1/auth/external/google/callback",
+							"allowedDomains": ["example.com"]
+						}
+					}
+				]
+			},
+			"AdminOIDCProviderSettings": {
+				"type": "object",
+				"required": ["issuerUrl"],
+				"properties": {
+					"issuerUrl": {
+						"type": "string",
+						"format": "uri"
+					}
+				},
+				"allOf": [
+					{
+						"$ref": "#/components/schemas/AdminExternalProviderSettingsBase"
+					}
+				],
+				"examples": [
+					{
+						"enabled": true,
+						"issuerUrl": "https://identity.example.com",
+						"clientId": "netstamp",
+						"clientSecretSet": true,
+						"displayName": "Company SSO",
+						"jitEnabled": true,
+						"callbackUrl": "https://netstamp.example.com/api/v1/auth/external/oidc/callback"
+					}
+				]
+			},
+			"AdminOIDCProviderSettingsPatch": {
+				"type": "object",
+				"properties": {
+					"issuerUrl": {
+						"type": "string",
+						"format": "uri"
+					}
+				},
+				"allOf": [
+					{
+						"$ref": "#/components/schemas/AdminExternalProviderSettingsPatchBase"
+					}
+				],
+				"description": "Partial OIDC-provider update. Omitted properties retain their current values.",
+				"examples": [
+					{
+						"enabled": true,
+						"issuerUrl": "https://identity.example.com",
+						"clientId": "netstamp",
+						"clientSecret": "replace-with-a-secret",
+						"displayName": "Company SSO",
+						"jitEnabled": true
+					}
+				]
+			},
+			"AdminOIDCProviderSettingsResponse": {
+				"type": "object",
+				"required": ["settings"],
+				"properties": {
+					"settings": {
+						"$ref": "#/components/schemas/AdminOIDCProviderSettings"
+					}
+				},
+				"examples": [
+					{
+						"settings": {
+							"enabled": true,
+							"issuerUrl": "https://identity.example.com",
+							"clientId": "netstamp",
+							"clientSecretSet": true,
+							"displayName": "Company SSO",
+							"jitEnabled": true,
+							"callbackUrl": "https://netstamp.example.com/api/v1/auth/external/oidc/callback"
+						}
+					}
+				]
+			},
 			"AdminSMTPSettings": {
 				"type": "object",
 				"required": ["host", "port", "username", "passwordSet", "from", "tlsMode", "timeoutSeconds", "configured"],
 				"properties": {
 					"host": {
-						"type": "string",
-						"description": "SMTP server hostname. Empty means email delivery is disabled unless an environment fallback is still active."
+						"type": "string"
 					},
 					"port": {
 						"type": "integer",
@@ -10300,16 +12136,13 @@
 						"maximum": 65535
 					},
 					"username": {
-						"type": "string",
-						"description": "SMTP username. Empty means no SMTP AUTH."
+						"type": "string"
 					},
 					"passwordSet": {
-						"type": "boolean",
-						"description": "Whether a password is configured. The password value is never returned."
+						"type": "boolean"
 					},
 					"from": {
-						"type": "string",
-						"description": "Envelope sender email address."
+						"type": "string"
 					},
 					"tlsMode": {
 						"type": "string",
@@ -10321,8 +12154,7 @@
 						"minimum": 1
 					},
 					"configured": {
-						"type": "boolean",
-						"description": "Whether Netstamp has enough SMTP settings to attempt email delivery."
+						"type": "boolean"
 					}
 				},
 				"examples": [
@@ -10331,7 +12163,7 @@
 						"port": 587,
 						"username": "netstamp",
 						"passwordSet": true,
-						"from": "alerts@example.com",
+						"from": "Netstamp <notifications@example.com>",
 						"tlsMode": "starttls",
 						"timeoutSeconds": 10,
 						"configured": true
@@ -10354,13 +12186,15 @@
 						"type": "string"
 					},
 					"password": {
-						"type": "string",
-						"format": "password",
-						"description": "New SMTP password. Omit to keep the stored password unchanged."
-					},
-					"clearPassword": {
-						"type": "boolean",
-						"description": "Clear the stored SMTP password and override any environment fallback with no password."
+						"anyOf": [
+							{
+								"$ref": "#/components/schemas/NonEmptyAdminSecret"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"format": "password"
 					},
 					"from": {
 						"type": "string"
@@ -10374,55 +12208,41 @@
 						"format": "int32",
 						"minimum": 1
 					}
-				}
+				},
+				"description": "Partial SMTP update. Omitted properties retain their current values. Set password to null to clear it; an empty string is invalid.",
+				"examples": [
+					{
+						"host": "smtp.example.com",
+						"port": 587,
+						"password": "replace-with-a-secret",
+						"from": "Netstamp <notifications@example.com>",
+						"tlsMode": "starttls",
+						"timeoutSeconds": 10
+					}
+				]
 			},
-			"AdminSettings": {
+			"AdminSMTPSettingsResponse": {
 				"type": "object",
-				"required": ["registrationEnabled", "emailVerificationRequired", "backendBaseUrl", "publicWebBaseUrl", "smtp"],
+				"required": ["settings"],
 				"properties": {
-					"registrationEnabled": {
-						"type": "boolean"
-					},
-					"emailVerificationRequired": {
-						"type": "boolean"
-					},
-					"backendBaseUrl": {
-						"type": "string"
-					},
-					"publicWebBaseUrl": {
-						"type": "string"
-					},
-					"smtp": {
+					"settings": {
 						"$ref": "#/components/schemas/AdminSMTPSettings"
 					}
 				},
 				"examples": [
 					{
-						"registrationEnabled": true,
-						"emailVerificationRequired": false,
-						"backendBaseUrl": "https://app.netstamp.dev",
-						"publicWebBaseUrl": "https://app.netstamp.dev",
-						"smtp": {
+						"settings": {
 							"host": "smtp.example.com",
 							"port": 587,
 							"username": "netstamp",
 							"passwordSet": true,
-							"from": "alerts@example.com",
+							"from": "Netstamp <notifications@example.com>",
 							"tlsMode": "starttls",
 							"timeoutSeconds": 10,
 							"configured": true
 						}
 					}
 				]
-			},
-			"AdminSettingsResponse": {
-				"type": "object",
-				"required": ["settings"],
-				"properties": {
-					"settings": {
-						"$ref": "#/components/schemas/AdminSettings"
-					}
-				}
 			},
 			"AlertCondition": {
 				"type": "object",
@@ -12125,6 +13945,12 @@
 					}
 				}
 			},
+			"GoogleHostedDomain": {
+				"type": "string",
+				"minLength": 1,
+				"maxLength": 253,
+				"pattern": "^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*$"
+			},
 			"GrantSystemAdminRequest": {
 				"type": "object",
 				"required": ["email"],
@@ -12914,6 +14740,10 @@
 					}
 				]
 			},
+			"NonEmptyAdminSecret": {
+				"type": "string",
+				"minLength": 1
+			},
 			"Notification": {
 				"type": "object",
 				"required": ["id", "name", "type", "enabled", "config", "createdAt", "updatedAt"],
@@ -13662,6 +15492,8 @@
 							"AUTH_INVALID_CREDENTIALS",
 							"AUTH_EMAIL_VERIFICATION_REQUIRED",
 							"AUTH_REGISTRATION_DISABLED",
+							"AUTH_ACCOUNT_CREATION_DISABLED",
+							"AUTH_CREDENTIAL_CHANGES_DISABLED",
 							"AUTH_EMAIL_VERIFICATION_UNAVAILABLE",
 							"AUTH_PASSWORD_RESET_UNAVAILABLE",
 							"AUTH_EMAIL_VERIFICATION_TOKEN_INVALID",
@@ -13683,6 +15515,8 @@
 							"SYSTEM_ADMIN_REQUIRED",
 							"SELF_SYSTEM_ADMIN_ACTION",
 							"INVALID_ADMIN_DATA_IMPORT",
+							"PRECONDITION_REQUIRED",
+							"SETTINGS_VERSION_CONFLICT",
 							"PROJECT_ROLE_REQUIRED",
 							"PROJECT_NOT_FOUND",
 							"PROJECT_SLUG_ALREADY_EXISTS",
@@ -14267,6 +16101,51 @@
 							"createdByUserId": "11111111-1111-1111-1111-111111111111",
 							"createdAt": "2026-05-13T10:00:00Z",
 							"updatedAt": "2026-05-13T10:00:00Z"
+						}
+					}
+				]
+			},
+			"PublicCapabilities": {
+				"type": "object",
+				"required": ["accountCreationEnabled", "projectCreationEnabled", "credentialChangesEnabled"],
+				"properties": {
+					"accountCreationEnabled": {
+						"type": "boolean",
+						"description": "Whether new accounts may be created through password registration or external-provider JIT provisioning."
+					},
+					"projectCreationEnabled": {
+						"type": "boolean"
+					},
+					"credentialChangesEnabled": {
+						"type": "boolean"
+					}
+				},
+				"examples": [
+					{
+						"accountCreationEnabled": true,
+						"projectCreationEnabled": true,
+						"credentialChangesEnabled": true
+					}
+				]
+			},
+			"PublicRuntimeConfig": {
+				"type": "object",
+				"required": ["demoMode", "capabilities"],
+				"properties": {
+					"demoMode": {
+						"type": "boolean"
+					},
+					"capabilities": {
+						"$ref": "#/components/schemas/PublicCapabilities"
+					}
+				},
+				"examples": [
+					{
+						"demoMode": false,
+						"capabilities": {
+							"accountCreationEnabled": true,
+							"projectCreationEnabled": true,
+							"credentialChangesEnabled": true
 						}
 					}
 				]
@@ -16528,42 +18407,6 @@
 							"from": 1778662800000,
 							"to": 1778749200000,
 							"limit": 100
-						}
-					}
-				]
-			},
-			"UpdateAdminSettingsRequest": {
-				"type": "object",
-				"properties": {
-					"registrationEnabled": {
-						"type": "boolean"
-					},
-					"emailVerificationRequired": {
-						"type": "boolean"
-					},
-					"backendBaseUrl": {
-						"type": "string"
-					},
-					"publicWebBaseUrl": {
-						"type": "string"
-					},
-					"smtp": {
-						"$ref": "#/components/schemas/AdminSMTPSettingsPatch"
-					}
-				},
-				"examples": [
-					{
-						"registrationEnabled": false,
-						"emailVerificationRequired": true,
-						"backendBaseUrl": "https://app.netstamp.dev",
-						"publicWebBaseUrl": "https://app.netstamp.dev",
-						"smtp": {
-							"host": "smtp.example.com",
-							"port": 587,
-							"username": "netstamp",
-							"from": "alerts@example.com",
-							"tlsMode": "starttls",
-							"timeoutSeconds": 10
 						}
 					}
 				]

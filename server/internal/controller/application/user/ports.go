@@ -31,6 +31,10 @@ type PasswordHasher interface {
 	Hash(ctx context.Context, password string) (string, error)
 }
 
+type CredentialChangesPolicy interface {
+	CredentialChangesEnabled(ctx context.Context) (bool, error)
+}
+
 type AuthenticationRepository interface {
 	ListUserIdentities(ctx context.Context, userID string) ([]identity.UserIdentity, error)
 	CountUserAuthenticationMethods(ctx context.Context, userID string) (bool, int64, error)
@@ -81,6 +85,8 @@ const (
 	UserReasonUserLookupFailed   UserEventReason = "user_lookup_failed"
 	UserReasonUserUpdateFailed   UserEventReason = "user_update_failed"
 	UserReasonPasswordHashFailed UserEventReason = "password_hash_failed"
+	UserReasonPolicyLookupFailed UserEventReason = "policy_lookup_failed"
+	UserReasonForbidden          UserEventReason = "forbidden"
 )
 
 type UserEvent struct {

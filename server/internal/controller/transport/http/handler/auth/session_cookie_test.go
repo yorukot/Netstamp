@@ -18,7 +18,7 @@ import (
 
 func TestLoginSetsSessionCookieAndReturnsUserOnly(t *testing.T) {
 	router := chi.NewRouter()
-	NewHandler(newAuthTestService(), nil, nil, "netstamp_session", true, true).RegisterRoutes(router)
+	NewHandler(newAuthTestService(), nil, "netstamp_session", true).RegisterRoutes(router)
 
 	res := performJSONRequest(router, http.MethodPost, "/auth/login", `{"email":"user@example.com","password":"correct-horse-battery-staple"}`)
 
@@ -41,7 +41,7 @@ func TestLoginCapturesUserAgentForSession(t *testing.T) {
 		EmailVerifiedAt: &verifiedAt,
 	}}, authTestPasswordHasher{}, manager, authTestEvents{})
 	router := chi.NewRouter()
-	NewHandler(service, manager, nil, "netstamp_session", true, true).RegisterRoutes(router)
+	NewHandler(service, manager, "netstamp_session", true).RegisterRoutes(router)
 
 	req := httptest.NewRequest(http.MethodPost, "/auth/login", strings.NewReader(`{"email":"user@example.com","password":"correct-horse-battery-staple"}`))
 	req.Header.Set("Content-Type", "application/json")
@@ -59,7 +59,7 @@ func TestLoginCapturesUserAgentForSession(t *testing.T) {
 
 func TestRegisterSetsSessionCookieAndReturnsUserOnly(t *testing.T) {
 	router := chi.NewRouter()
-	NewHandler(newAuthTestService(), nil, nil, "netstamp_session", false, true).RegisterRoutes(router)
+	NewHandler(newAuthTestService(), nil, "netstamp_session", false).RegisterRoutes(router)
 
 	res := performJSONRequest(router, http.MethodPost, "/auth/register", `{"email":"new@example.com","displayName":"New User","password":"correct-horse-battery-staple"}`)
 
@@ -72,7 +72,9 @@ func TestRegisterSetsSessionCookieAndReturnsUserOnly(t *testing.T) {
 
 func TestRegisterReturnsForbiddenWhenRegistrationDisabled(t *testing.T) {
 	router := chi.NewRouter()
-	NewHandler(newAuthTestService(), nil, nil, "netstamp_session", false, false).RegisterRoutes(router)
+	service := newAuthTestService()
+	service.ConfigureInstancePolicy(authTestInstancePolicy{credentialChangesEnabled: true})
+	NewHandler(service, nil, "netstamp_session", false).RegisterRoutes(router)
 
 	res := performJSONRequest(router, http.MethodPost, "/auth/register", `{"email":"new@example.com","displayName":"New User","password":"correct-horse-battery-staple"}`)
 
@@ -84,14 +86,14 @@ func TestRegisterReturnsForbiddenWhenRegistrationDisabled(t *testing.T) {
 	if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
 		t.Fatalf("decode response: %v", err)
 	}
-	if body.Detail != "registration is disabled" {
-		t.Fatalf("expected disabled registration detail, got %q", body.Detail)
+	if body.Code != httpx.CodeAuthAccountCreationDisabled || body.Detail != "account creation is disabled" {
+		t.Fatalf("expected disabled account creation problem, got %#v", body)
 	}
 }
 
 func TestLogoutExpiresSessionCookie(t *testing.T) {
 	router := chi.NewRouter()
-	NewHandler(nil, nil, nil, "netstamp_session", true, true).RegisterRoutes(router)
+	NewHandler(nil, nil, "netstamp_session", true).RegisterRoutes(router)
 
 	res := performJSONRequest(router, http.MethodPost, "/auth/logout", "")
 
@@ -275,3 +277,21 @@ func (m *recordingCreateSessionManager) CreateSession(_ context.Context, input a
 type authTestEvents struct{}
 
 func (authTestEvents) RecordAuthEvent(context.Context, appauth.AuthEvent) {}
+
+type authTestInstancePolicy struct {
+	accountCreationEnabled    bool
+	credentialChangesEnabled  bool
+	emailVerificationRequired bool
+}
+
+func (p authTestInstancePolicy) AccountCreationEnabled(context.Context) (bool, error) {
+	return p.accountCreationEnabled, nil
+}
+
+func (p authTestInstancePolicy) CredentialChangesEnabled(context.Context) (bool, error) {
+	return p.credentialChangesEnabled, nil
+}
+
+func (p authTestInstancePolicy) EmailVerificationRequired(context.Context) (bool, error) {
+	return p.emailVerificationRequired, nil
+}
