@@ -7,7 +7,7 @@ import type {
 	AdminOIDCProviderSettings,
 	AdminOIDCProviderSettingsPatch,
 	AdminSettingsProvider,
-	VersionedAdminSettings
+	AdminSettingsResponse
 } from "@/shared/api/adminSettings";
 import {
 	useUpdateAdminGitHubSettingsMutation,
@@ -25,7 +25,7 @@ import { useQuery, type UseMutationResult, type UseQueryResult } from "@tanstack
 import type { FormEvent } from "react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { applySettingsIntent, googleAllowedDomainsFromText, hasSettingsIntent, isSettingsVersionConflict, secretValueFromForm, updateSettingsIntent } from "./adminSettingsForm";
+import { applySettingsIntent, googleAllowedDomainsFromText, hasSettingsIntent, secretValueFromForm, updateSettingsIntent } from "./adminSettingsForm";
 import styles from "./AdminSettingsPanels.module.css";
 import { SettingsNotice, SettingsPanelError, SettingsPanelLoading } from "./AdminSettingsPanelState";
 
@@ -44,16 +44,11 @@ interface ProviderFormState {
 	allowSignup: boolean;
 }
 
-interface VersionedProviderMutation<TPatch> {
-	body: TPatch;
-	etag: string;
-}
-
 interface ProviderSettingsPanelProps<TSettings extends ProviderSettings, TPatch extends ProviderPatch> {
 	provider: AdminSettingsProvider;
-	query: UseQueryResult<VersionedAdminSettings<TSettings>, Error>;
-	updateMutation: UseMutationResult<VersionedAdminSettings<TSettings>, Error, VersionedProviderMutation<TPatch>>;
-	validateMutation: UseMutationResult<void, Error, VersionedProviderMutation<TPatch>>;
+	query: UseQueryResult<AdminSettingsResponse<TSettings>, Error>;
+	updateMutation: UseMutationResult<AdminSettingsResponse<TSettings>, Error, TPatch>;
+	validateMutation: UseMutationResult<void, Error, TPatch>;
 	formFromSettings: (settings: TSettings) => ProviderFormState;
 	patchFromIntent: (intent: Partial<ProviderFormState>) => TPatch;
 }
@@ -135,7 +130,6 @@ const ProviderSettingsPanel = <TSettings extends ProviderSettings, TPatch extend
 	const { t } = useTranslation("admin");
 	const requireSudo = useRequireSudo();
 	const [draft, setDraft] = useState<Partial<ProviderFormState> | null>(null);
-	const [conflict, setConflict] = useState(false);
 	const [saveError, setSaveError] = useState<string | null>(null);
 	const [validation, setValidation] = useState<{ tone: "critical" | "success"; message: string } | null>(null);
 	const serverSettings = query.data?.settings;
@@ -156,70 +150,48 @@ const ProviderSettingsPanel = <TSettings extends ProviderSettings, TPatch extend
 
 	const reset = () => {
 		setDraft(null);
-		setConflict(false);
 		setSaveError(null);
 		setValidation(null);
-	};
-
-	const handleConflict = () => {
-		setConflict(true);
-		setSaveError(null);
-		setValidation(null);
-		void query.refetch();
 	};
 
 	const submit = (event: FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
-		if (!form || !query.data || !draft || !dirty) {
+		if (!form || !draft || !dirty) {
 			return;
 		}
 
 		void requireSudo(() =>
-			updateMutation.mutate(
-				{ body: patchFromIntent(draft), etag: query.data.etag },
-				{
-					onSuccess: () => {
-						reset();
-						pushToast({ title: t("settings.saved"), message: t("settings.savedDescription"), tone: "success" });
-					},
-					onError: error => {
-						if (isSettingsVersionConflict(error)) {
-							handleConflict();
-							return;
-						}
-						const message = requestErrorMessage(error, t("settings.saveError"));
-						setSaveError(message);
-						pushToast({ title: t("settings.saveFailed"), message, tone: "critical" });
-					}
+			updateMutation.mutate(patchFromIntent(draft), {
+				onSuccess: () => {
+					reset();
+					pushToast({ title: t("settings.saved"), message: t("settings.savedDescription"), tone: "success" });
+				},
+				onError: error => {
+					const message = requestErrorMessage(error, t("settings.saveError"));
+					setSaveError(message);
+					pushToast({ title: t("settings.saveFailed"), message, tone: "critical" });
 				}
-			)
+			})
 		);
 	};
 
 	const validate = () => {
-		if (!form?.enabled || !query.data) {
+		if (!form?.enabled) {
 			return;
 		}
 
 		void requireSudo(() =>
-			validateMutation.mutate(
-				{ body: patchFromIntent(draft ?? {}), etag: query.data.etag },
-				{
-					onSuccess: () => {
-						setValidation({ tone: "success", message: t("settings.configurationValidDescription") });
-						pushToast({ title: t("settings.configurationValid"), message: t("settings.configurationValidDescription"), tone: "success" });
-					},
-					onError: error => {
-						if (isSettingsVersionConflict(error)) {
-							handleConflict();
-							return;
-						}
-						const message = requestErrorMessage(error, t("settings.configurationInvalidError"));
-						setValidation({ tone: "critical", message });
-						pushToast({ title: t("settings.configurationInvalid"), message, tone: "critical" });
-					}
+			validateMutation.mutate(patchFromIntent(draft ?? {}), {
+				onSuccess: () => {
+					setValidation({ tone: "success", message: t("settings.configurationValidDescription") });
+					pushToast({ title: t("settings.configurationValid"), message: t("settings.configurationValidDescription"), tone: "success" });
+				},
+				onError: error => {
+					const message = requestErrorMessage(error, t("settings.configurationInvalidError"));
+					setValidation({ tone: "critical", message });
+					pushToast({ title: t("settings.configurationInvalid"), message, tone: "critical" });
 				}
-			)
+			})
 		);
 	};
 
@@ -315,17 +287,11 @@ const ProviderSettingsPanel = <TSettings extends ProviderSettings, TPatch extend
 						<span className={styles.callbackDescription}>{t("settings.callbackUrlDescription")}</span>
 					</div>
 
-					{conflict ? (
-						<SettingsNotice tone="warning" dismissLabel={t("settings.dismiss")} onDismiss={() => setConflict(false)}>
-							<strong>{t("settings.conflict")}</strong>
-							<span>{t("settings.conflictDescription")}</span>
-						</SettingsNotice>
-					) : null}
 					{saveError ? <SettingsNotice tone="critical">{saveError}</SettingsNotice> : null}
 					{validation ? <SettingsNotice tone={validation.tone}>{validation.message}</SettingsNotice> : null}
 
 					<div className={styles.formActions}>
-						<Button type="button" size="sm" variant="plain" disabled={!dirty || busy} onClick={reset}>
+						<Button type="button" size="sm" variant="outline" disabled={!dirty || busy} onClick={reset}>
 							{t("settings.reset")}
 						</Button>
 						<Button type="submit" size="sm" disabled={!dirty || busy}>

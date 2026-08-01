@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
+	readAdminSettings,
 	readAdminSettingsValidation,
-	readVersionedAdminSettings,
 	type AdminAccessSettings,
 	type AdminAccessSettingsPatch,
 	type AdminGitHubProviderSettings,
@@ -18,55 +18,50 @@ import { apiQueryKeys } from "../queryKeys";
 import type { ApiAdminDataExport, GrantSystemAdminInput, SetManagedUserPasswordInput, UpdateManagedUserInput } from "../types";
 import { requireWritableAccess } from "./shared";
 
-interface VersionedSettingsMutation<TPatch> {
-	body: TPatch;
-	etag: string;
-}
-
-export function updateAdminAccessSettings({ body, etag }: VersionedSettingsMutation<AdminAccessSettingsPatch>) {
+export const updateAdminAccessSettings = (body: AdminAccessSettingsPatch) => {
 	requireWritableAccess();
-	return readVersionedAdminSettings<AdminAccessSettings>(apiClient.PATCH("/admin/settings/access", { body, params: { header: { "If-Match": etag } } }));
-}
+	return readAdminSettings<AdminAccessSettings>(apiClient.PATCH("/admin/settings/access", { body }));
+};
 
-export function updateAdminSMTPSettings({ body, etag }: VersionedSettingsMutation<AdminSMTPSettingsPatch>) {
+export const updateAdminSMTPSettings = (body: AdminSMTPSettingsPatch) => {
 	requireWritableAccess();
-	return readVersionedAdminSettings<AdminSMTPSettings>(apiClient.PATCH("/admin/settings/smtp", { body, params: { header: { "If-Match": etag } } }));
-}
+	return readAdminSettings<AdminSMTPSettings>(apiClient.PATCH("/admin/settings/smtp", { body }));
+};
 
-export function updateAdminOIDCSettings({ body, etag }: VersionedSettingsMutation<AdminOIDCProviderSettingsPatch>) {
+export const updateAdminOIDCSettings = (body: AdminOIDCProviderSettingsPatch) => {
 	requireWritableAccess();
-	return readVersionedAdminSettings<AdminOIDCProviderSettings>(apiClient.PATCH("/admin/settings/authentication-providers/oidc", { body, params: { header: { "If-Match": etag } } }));
-}
+	return readAdminSettings<AdminOIDCProviderSettings>(apiClient.PATCH("/admin/settings/authentication-providers/oidc", { body }));
+};
 
-export function updateAdminGoogleSettings({ body, etag }: VersionedSettingsMutation<AdminGoogleProviderSettingsPatch>) {
+export const updateAdminGoogleSettings = (body: AdminGoogleProviderSettingsPatch) => {
 	requireWritableAccess();
-	return readVersionedAdminSettings<AdminGoogleProviderSettings>(apiClient.PATCH("/admin/settings/authentication-providers/google", { body, params: { header: { "If-Match": etag } } }));
-}
+	return readAdminSettings<AdminGoogleProviderSettings>(apiClient.PATCH("/admin/settings/authentication-providers/google", { body }));
+};
 
-export function updateAdminGitHubSettings({ body, etag }: VersionedSettingsMutation<AdminGitHubProviderSettingsPatch>) {
+export const updateAdminGitHubSettings = (body: AdminGitHubProviderSettingsPatch) => {
 	requireWritableAccess();
-	return readVersionedAdminSettings<AdminGitHubProviderSettings>(apiClient.PATCH("/admin/settings/authentication-providers/github", { body, params: { header: { "If-Match": etag } } }));
-}
+	return readAdminSettings<AdminGitHubProviderSettings>(apiClient.PATCH("/admin/settings/authentication-providers/github", { body }));
+};
 
-export function validateAdminOIDCSettings({ body, etag }: VersionedSettingsMutation<AdminOIDCProviderSettingsPatch>) {
+export const validateAdminOIDCSettings = (body: AdminOIDCProviderSettingsPatch) => {
 	requireWritableAccess();
-	return readAdminSettingsValidation(apiClient.POST("/admin/settings/authentication-providers/oidc/validate", { body, params: { header: { "If-Match": etag } } }));
-}
+	return readAdminSettingsValidation(apiClient.POST("/admin/settings/authentication-providers/oidc/validate", { body }));
+};
 
-export function validateAdminGoogleSettings({ body, etag }: VersionedSettingsMutation<AdminGoogleProviderSettingsPatch>) {
+export const validateAdminGoogleSettings = (body: AdminGoogleProviderSettingsPatch) => {
 	requireWritableAccess();
-	return readAdminSettingsValidation(apiClient.POST("/admin/settings/authentication-providers/google/validate", { body, params: { header: { "If-Match": etag } } }));
-}
+	return readAdminSettingsValidation(apiClient.POST("/admin/settings/authentication-providers/google/validate", { body }));
+};
 
-export function validateAdminGitHubSettings({ body, etag }: VersionedSettingsMutation<AdminGitHubProviderSettingsPatch>) {
+export const validateAdminGitHubSettings = (body: AdminGitHubProviderSettingsPatch) => {
 	requireWritableAccess();
-	return readAdminSettingsValidation(apiClient.POST("/admin/settings/authentication-providers/github/validate", { body, params: { header: { "If-Match": etag } } }));
-}
+	return readAdminSettingsValidation(apiClient.POST("/admin/settings/authentication-providers/github/validate", { body }));
+};
 
-export function testAdminSMTP(etag: string) {
+export const testAdminSMTP = () => {
 	requireWritableAccess();
-	return readAdminSettingsValidation(apiClient.POST("/admin/settings/smtp/test", { params: { header: { "If-Match": etag } } }));
-}
+	return readAdminSettingsValidation(apiClient.POST("/admin/settings/smtp/test", {}));
+};
 
 export function grantSystemAdmin(body: GrantSystemAdminInput) {
 	requireWritableAccess();

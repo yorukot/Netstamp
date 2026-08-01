@@ -14,9 +14,8 @@ export type AdminGoogleProviderSettingsPatch = components["schemas"]["AdminGoogl
 export type AdminGitHubProviderSettings = Omit<components["schemas"]["AdminGitHubProviderSettings"], "callbackUrl"> & { callbackUrl?: string };
 export type AdminGitHubProviderSettingsPatch = components["schemas"]["AdminGitHubProviderSettingsPatch"];
 
-export interface VersionedAdminSettings<TSettings> {
+export interface AdminSettingsResponse<TSettings> {
 	settings: TSettings;
-	etag: string;
 }
 
 interface ApiTransportResult<TData> {
@@ -33,18 +32,10 @@ const unwrapSettings = <TSettings>(data: unknown): TSettings => {
 	throw new ApiError("Settings response did not include settings", 500);
 };
 
-export const readVersionedAdminSettings = async <TSettings>(request: Promise<ApiTransportResult<unknown>>): Promise<VersionedAdminSettings<TSettings>> => {
-	const result = await request;
-	const data = await readApiData(Promise.resolve(result));
-	const etag = result.response.headers.get("ETag");
-
-	if (!etag) {
-		throw new ApiError("Settings response did not include an ETag", result.response.status);
-	}
-
+export const readAdminSettings = async <TSettings>(request: Promise<ApiTransportResult<unknown>>): Promise<AdminSettingsResponse<TSettings>> => {
+	const data = await readApiData(request);
 	return {
-		settings: unwrapSettings<TSettings>(data),
-		etag
+		settings: unwrapSettings<TSettings>(data)
 	};
 };
 

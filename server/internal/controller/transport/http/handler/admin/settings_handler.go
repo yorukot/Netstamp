@@ -12,21 +12,23 @@ import (
 )
 
 type settingsService interface {
-	GetAccess(context.Context, appsettings.GetAccessInput) (appsettings.Versioned[appsettings.AccessSettings], error)
-	GetSMTP(context.Context, appsettings.GetSMTPInput) (appsettings.Versioned[appsettings.SMTPSettings], error)
-	GetOIDC(context.Context, appsettings.GetOIDCInput) (appsettings.Versioned[appsettings.OIDCSettings], error)
-	GetGoogle(context.Context, appsettings.GetGoogleInput) (appsettings.Versioned[appsettings.GoogleSettings], error)
-	GetGitHub(context.Context, appsettings.GetGitHubInput) (appsettings.Versioned[appsettings.GitHubSettings], error)
-	UpdateAccess(context.Context, appsettings.UpdateAccessInput) (appsettings.Versioned[appsettings.AccessSettings], error)
-	UpdateSMTP(context.Context, appsettings.UpdateSMTPInput) (appsettings.Versioned[appsettings.SMTPSettings], error)
-	UpdateOIDC(context.Context, appsettings.UpdateOIDCInput) (appsettings.Versioned[appsettings.OIDCSettings], error)
-	UpdateGoogle(context.Context, appsettings.UpdateGoogleInput) (appsettings.Versioned[appsettings.GoogleSettings], error)
-	UpdateGitHub(context.Context, appsettings.UpdateGitHubInput) (appsettings.Versioned[appsettings.GitHubSettings], error)
+	GetAccess(context.Context, appsettings.GetAccessInput) (appsettings.AccessSettings, error)
+	GetSMTP(context.Context, appsettings.GetSMTPInput) (appsettings.SMTPSettings, error)
+	GetOIDC(context.Context, appsettings.GetOIDCInput) (appsettings.OIDCSettings, error)
+	GetGoogle(context.Context, appsettings.GetGoogleInput) (appsettings.GoogleSettings, error)
+	GetGitHub(context.Context, appsettings.GetGitHubInput) (appsettings.GitHubSettings, error)
+	UpdateAccess(context.Context, appsettings.UpdateAccessInput) (appsettings.AccessSettings, error)
+	UpdateSMTP(context.Context, appsettings.UpdateSMTPInput) (appsettings.SMTPSettings, error)
+	UpdateOIDC(context.Context, appsettings.UpdateOIDCInput) (appsettings.OIDCSettings, error)
+	UpdateGoogle(context.Context, appsettings.UpdateGoogleInput) (appsettings.GoogleSettings, error)
+	UpdateGitHub(context.Context, appsettings.UpdateGitHubInput) (appsettings.GitHubSettings, error)
 	ValidateOIDC(context.Context, appsettings.ValidateOIDCInput) error
 	ValidateGoogle(context.Context, appsettings.ValidateGoogleInput) error
 	ValidateGitHub(context.Context, appsettings.ValidateGitHubInput) error
 	TestSMTP(context.Context, appsettings.TestSMTPInput) error
 }
+
+const settingsCacheControl = "private, no-store"
 
 func (h *Handler) registerSettingsReadRoutes(r chi.Router) {
 	r.Get("/admin/settings/access", h.handleGetAccessSettings)
@@ -55,10 +57,10 @@ func (h *Handler) handleGetAccessSettings(w http.ResponseWriter, r *http.Request
 	}
 	result, err := h.settings.GetAccess(r.Context(), appsettings.GetAccessInput{CurrentUserID: userID})
 	if err != nil {
-		writeSettingsProblem(w, r, appsettings.ResourceAccess, err, "get access settings failed")
+		writeSettingsProblem(w, r, err, "get access settings failed")
 		return
 	}
-	writeVersionedSettings(w, appsettings.ResourceAccess, result.Revision, accessSettingsResponse(result.Value))
+	writeSettings(w, accessSettingsResponse(result))
 }
 
 func (h *Handler) handleGetSMTPSettings(w http.ResponseWriter, r *http.Request) {
@@ -68,10 +70,10 @@ func (h *Handler) handleGetSMTPSettings(w http.ResponseWriter, r *http.Request) 
 	}
 	result, err := h.settings.GetSMTP(r.Context(), appsettings.GetSMTPInput{CurrentUserID: userID})
 	if err != nil {
-		writeSettingsProblem(w, r, appsettings.ResourceSMTP, err, "get SMTP settings failed")
+		writeSettingsProblem(w, r, err, "get SMTP settings failed")
 		return
 	}
-	writeVersionedSettings(w, appsettings.ResourceSMTP, result.Revision, smtpSettingsResponse(result.Value))
+	writeSettings(w, smtpSettingsResponse(result))
 }
 
 func (h *Handler) handleGetOIDCSettings(w http.ResponseWriter, r *http.Request) {
@@ -81,10 +83,10 @@ func (h *Handler) handleGetOIDCSettings(w http.ResponseWriter, r *http.Request) 
 	}
 	result, err := h.settings.GetOIDC(r.Context(), appsettings.GetOIDCInput{CurrentUserID: userID})
 	if err != nil {
-		writeSettingsProblem(w, r, appsettings.ResourceOIDC, err, "get OIDC settings failed")
+		writeSettingsProblem(w, r, err, "get OIDC settings failed")
 		return
 	}
-	writeVersionedSettings(w, appsettings.ResourceOIDC, result.Revision, oidcSettingsResponse(result.Value))
+	writeSettings(w, oidcSettingsResponse(result))
 }
 
 func (h *Handler) handleGetGoogleSettings(w http.ResponseWriter, r *http.Request) {
@@ -94,10 +96,10 @@ func (h *Handler) handleGetGoogleSettings(w http.ResponseWriter, r *http.Request
 	}
 	result, err := h.settings.GetGoogle(r.Context(), appsettings.GetGoogleInput{CurrentUserID: userID})
 	if err != nil {
-		writeSettingsProblem(w, r, appsettings.ResourceGoogle, err, "get Google settings failed")
+		writeSettingsProblem(w, r, err, "get Google settings failed")
 		return
 	}
-	writeVersionedSettings(w, appsettings.ResourceGoogle, result.Revision, googleSettingsResponse(result.Value))
+	writeSettings(w, googleSettingsResponse(result))
 }
 
 func (h *Handler) handleGetGitHubSettings(w http.ResponseWriter, r *http.Request) {
@@ -107,10 +109,10 @@ func (h *Handler) handleGetGitHubSettings(w http.ResponseWriter, r *http.Request
 	}
 	result, err := h.settings.GetGitHub(r.Context(), appsettings.GetGitHubInput{CurrentUserID: userID})
 	if err != nil {
-		writeSettingsProblem(w, r, appsettings.ResourceGitHub, err, "get GitHub settings failed")
+		writeSettingsProblem(w, r, err, "get GitHub settings failed")
 		return
 	}
-	writeVersionedSettings(w, appsettings.ResourceGitHub, result.Revision, githubSettingsResponse(result.Value))
+	writeSettings(w, githubSettingsResponse(result))
 }
 
 func (h *Handler) handleUpdateAccessSettings(w http.ResponseWriter, r *http.Request) {
@@ -118,11 +120,6 @@ func (h *Handler) handleUpdateAccessSettings(w http.ResponseWriter, r *http.Requ
 	if !ok {
 		return
 	}
-	revision, ok := h.accessExpectedRevision(r.Context(), w, r, userID)
-	if !ok {
-		return
-	}
-
 	var body accessSettingsPatchBody
 	if err := httpx.DecodeJSON(r, &body); err != nil {
 		httpx.WriteProblem(w, r, err)
@@ -130,17 +127,16 @@ func (h *Handler) handleUpdateAccessSettings(w http.ResponseWriter, r *http.Requ
 	}
 	result, err := h.settings.UpdateAccess(r.Context(), appsettings.UpdateAccessInput{
 		CurrentUserID:             userID,
-		ExpectedRevision:          revision,
 		AccountCreationEnabled:    body.AccountCreationEnabled.Value,
 		EmailVerificationRequired: body.EmailVerificationRequired.Value,
 		ProjectCreationEnabled:    body.ProjectCreationEnabled.Value,
 		CredentialChangesEnabled:  body.CredentialChangesEnabled.Value,
 	})
 	if err != nil {
-		writeSettingsProblem(w, r, appsettings.ResourceAccess, err, "update access settings failed")
+		writeSettingsProblem(w, r, err, "update access settings failed")
 		return
 	}
-	writeVersionedSettings(w, appsettings.ResourceAccess, result.Revision, accessSettingsResponse(result.Value))
+	writeSettings(w, accessSettingsResponse(result))
 }
 
 func (h *Handler) handleUpdateSMTPSettings(w http.ResponseWriter, r *http.Request) {
@@ -148,32 +144,26 @@ func (h *Handler) handleUpdateSMTPSettings(w http.ResponseWriter, r *http.Reques
 	if !ok {
 		return
 	}
-	revision, ok := h.smtpExpectedRevision(r.Context(), w, r, userID)
-	if !ok {
-		return
-	}
-
 	var body smtpSettingsPatchBody
 	if err := httpx.DecodeJSON(r, &body); err != nil {
 		httpx.WriteProblem(w, r, err)
 		return
 	}
 	result, err := h.settings.UpdateSMTP(r.Context(), appsettings.UpdateSMTPInput{
-		CurrentUserID:    userID,
-		ExpectedRevision: revision,
-		Host:             body.Host.Value,
-		Port:             body.Port.Value,
-		Username:         body.Username.Value,
-		Password:         optionalSecret(body.Password),
-		From:             body.From.Value,
-		TLSMode:          body.TLSMode.Value,
-		TimeoutSeconds:   body.TimeoutSeconds.Value,
+		CurrentUserID:  userID,
+		Host:           body.Host.Value,
+		Port:           body.Port.Value,
+		Username:       body.Username.Value,
+		Password:       optionalSecret(body.Password),
+		From:           body.From.Value,
+		TLSMode:        body.TLSMode.Value,
+		TimeoutSeconds: body.TimeoutSeconds.Value,
 	})
 	if err != nil {
-		writeSettingsProblem(w, r, appsettings.ResourceSMTP, err, "update SMTP settings failed")
+		writeSettingsProblem(w, r, err, "update SMTP settings failed")
 		return
 	}
-	writeVersionedSettings(w, appsettings.ResourceSMTP, result.Revision, smtpSettingsResponse(result.Value))
+	writeSettings(w, smtpSettingsResponse(result))
 }
 
 func (h *Handler) handleUpdateOIDCSettings(w http.ResponseWriter, r *http.Request) {
@@ -181,20 +171,16 @@ func (h *Handler) handleUpdateOIDCSettings(w http.ResponseWriter, r *http.Reques
 	if !ok {
 		return
 	}
-	revision, ok := h.oidcExpectedRevision(r.Context(), w, r, userID)
-	if !ok {
-		return
-	}
 	body, ok := decodeOIDCSettingsPatch(w, r)
 	if !ok {
 		return
 	}
-	result, err := h.settings.UpdateOIDC(r.Context(), oidcInput(userID, revision, body))
+	result, err := h.settings.UpdateOIDC(r.Context(), oidcInput(userID, body))
 	if err != nil {
-		writeSettingsProblem(w, r, appsettings.ResourceOIDC, err, "update OIDC settings failed")
+		writeSettingsProblem(w, r, err, "update OIDC settings failed")
 		return
 	}
-	writeVersionedSettings(w, appsettings.ResourceOIDC, result.Revision, oidcSettingsResponse(result.Value))
+	writeSettings(w, oidcSettingsResponse(result))
 }
 
 func (h *Handler) handleUpdateGoogleSettings(w http.ResponseWriter, r *http.Request) {
@@ -202,20 +188,16 @@ func (h *Handler) handleUpdateGoogleSettings(w http.ResponseWriter, r *http.Requ
 	if !ok {
 		return
 	}
-	revision, ok := h.googleExpectedRevision(r.Context(), w, r, userID)
-	if !ok {
-		return
-	}
 	body, ok := decodeGoogleSettingsPatch(w, r)
 	if !ok {
 		return
 	}
-	result, err := h.settings.UpdateGoogle(r.Context(), googleInput(userID, revision, body))
+	result, err := h.settings.UpdateGoogle(r.Context(), googleInput(userID, body))
 	if err != nil {
-		writeSettingsProblem(w, r, appsettings.ResourceGoogle, err, "update Google settings failed")
+		writeSettingsProblem(w, r, err, "update Google settings failed")
 		return
 	}
-	writeVersionedSettings(w, appsettings.ResourceGoogle, result.Revision, googleSettingsResponse(result.Value))
+	writeSettings(w, googleSettingsResponse(result))
 }
 
 func (h *Handler) handleUpdateGitHubSettings(w http.ResponseWriter, r *http.Request) {
@@ -223,20 +205,16 @@ func (h *Handler) handleUpdateGitHubSettings(w http.ResponseWriter, r *http.Requ
 	if !ok {
 		return
 	}
-	revision, ok := h.githubExpectedRevision(r.Context(), w, r, userID)
-	if !ok {
-		return
-	}
 	body, ok := decodeGitHubSettingsPatch(w, r)
 	if !ok {
 		return
 	}
-	result, err := h.settings.UpdateGitHub(r.Context(), githubInput(userID, revision, body))
+	result, err := h.settings.UpdateGitHub(r.Context(), githubInput(userID, body))
 	if err != nil {
-		writeSettingsProblem(w, r, appsettings.ResourceGitHub, err, "update GitHub settings failed")
+		writeSettingsProblem(w, r, err, "update GitHub settings failed")
 		return
 	}
-	writeVersionedSettings(w, appsettings.ResourceGitHub, result.Revision, githubSettingsResponse(result.Value))
+	writeSettings(w, githubSettingsResponse(result))
 }
 
 func (h *Handler) handleValidateOIDCSettings(w http.ResponseWriter, r *http.Request) {
@@ -244,16 +222,12 @@ func (h *Handler) handleValidateOIDCSettings(w http.ResponseWriter, r *http.Requ
 	if !ok {
 		return
 	}
-	revision, ok := h.oidcExpectedRevision(r.Context(), w, r, userID)
-	if !ok {
-		return
-	}
 	body, ok := decodeOIDCSettingsPatch(w, r)
 	if !ok {
 		return
 	}
-	if err := h.settings.ValidateOIDC(r.Context(), oidcInput(userID, revision, body)); err != nil {
-		writeSettingsProblem(w, r, appsettings.ResourceOIDC, err, "validate OIDC settings failed")
+	if err := h.settings.ValidateOIDC(r.Context(), oidcInput(userID, body)); err != nil {
+		writeSettingsProblem(w, r, err, "validate OIDC settings failed")
 		return
 	}
 	httpx.WriteNoContent(w)
@@ -264,16 +238,12 @@ func (h *Handler) handleValidateGoogleSettings(w http.ResponseWriter, r *http.Re
 	if !ok {
 		return
 	}
-	revision, ok := h.googleExpectedRevision(r.Context(), w, r, userID)
-	if !ok {
-		return
-	}
 	body, ok := decodeGoogleSettingsPatch(w, r)
 	if !ok {
 		return
 	}
-	if err := h.settings.ValidateGoogle(r.Context(), googleInput(userID, revision, body)); err != nil {
-		writeSettingsProblem(w, r, appsettings.ResourceGoogle, err, "validate Google settings failed")
+	if err := h.settings.ValidateGoogle(r.Context(), googleInput(userID, body)); err != nil {
+		writeSettingsProblem(w, r, err, "validate Google settings failed")
 		return
 	}
 	httpx.WriteNoContent(w)
@@ -284,16 +254,12 @@ func (h *Handler) handleValidateGitHubSettings(w http.ResponseWriter, r *http.Re
 	if !ok {
 		return
 	}
-	revision, ok := h.githubExpectedRevision(r.Context(), w, r, userID)
-	if !ok {
-		return
-	}
 	body, ok := decodeGitHubSettingsPatch(w, r)
 	if !ok {
 		return
 	}
-	if err := h.settings.ValidateGitHub(r.Context(), githubInput(userID, revision, body)); err != nil {
-		writeSettingsProblem(w, r, appsettings.ResourceGitHub, err, "validate GitHub settings failed")
+	if err := h.settings.ValidateGitHub(r.Context(), githubInput(userID, body)); err != nil {
+		writeSettingsProblem(w, r, err, "validate GitHub settings failed")
 		return
 	}
 	httpx.WriteNoContent(w)
@@ -304,12 +270,8 @@ func (h *Handler) handleTestSMTP(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	revision, ok := h.smtpExpectedRevision(r.Context(), w, r, userID)
-	if !ok {
-		return
-	}
-	if err := h.settings.TestSMTP(r.Context(), appsettings.TestSMTPInput{CurrentUserID: userID, ExpectedRevision: revision}); err != nil {
-		writeSettingsProblem(w, r, appsettings.ResourceSMTP, err, "test SMTP settings failed")
+	if err := h.settings.TestSMTP(r.Context(), appsettings.TestSMTPInput{CurrentUserID: userID}); err != nil {
+		writeSettingsProblem(w, r, err, "test SMTP settings failed")
 		return
 	}
 	httpx.WriteNoContent(w)
@@ -328,24 +290,13 @@ func (h *Handler) settingsRequestUser(w http.ResponseWriter, r *http.Request) (s
 	return userID, true
 }
 
-func writeVersionedSettings[T any](w http.ResponseWriter, resource appsettings.Resource, revision int64, settings T) {
-	setVersionedSettingsHeaders(w, string(resource), revision)
+func writeSettings[T any](w http.ResponseWriter, settings T) {
+	w.Header().Del("ETag")
+	w.Header().Set("Cache-Control", settingsCacheControl)
 	httpx.WriteJSON(w, http.StatusOK, settingsEnvelope[T]{Settings: settings})
 }
 
-func writeSettingsProblem(w http.ResponseWriter, r *http.Request, resource appsettings.Resource, err error, fallback string) {
-	var requestConflict *settingsVersionConflictError
-	if errors.As(err, &requestConflict) {
-		writeSettingsVersionConflict(w, r, string(resource), requestConflict.currentRevision)
-		return
-	}
-
-	var versionConflict *appsettings.VersionConflictError
-	if errors.As(err, &versionConflict) {
-		writeSettingsVersionConflict(w, r, string(resource), versionConflict.Current)
-		return
-	}
-
+func writeSettingsProblem(w http.ResponseWriter, r *http.Request, err error, fallback string) {
 	var transportError *httpx.Error
 	if errors.As(err, &transportError) {
 		httpx.WriteProblem(w, r, transportError)
@@ -355,8 +306,6 @@ func writeSettingsProblem(w http.ResponseWriter, r *http.Request, resource appse
 	switch {
 	case errors.Is(err, appsettings.ErrForbidden):
 		httpx.WriteProblem(w, r, httpx.ForbiddenCode(httpx.CodeSystemAdminRequired, "system administrator access is required"))
-	case errors.Is(err, appsettings.ErrPreconditionRequired):
-		httpx.WriteProblem(w, r, httpx.NewErrorCode(http.StatusPreconditionRequired, httpx.CodePreconditionRequired, "If-Match header is required"))
 	case errors.Is(err, appsettings.ErrInvalidInput):
 		httpx.WriteProblem(w, r, invalidSettingsInputError(err))
 	case errors.Is(err, appsettings.ErrProviderUnavailable):
@@ -366,60 +315,6 @@ func writeSettingsProblem(w http.ResponseWriter, r *http.Request, resource appse
 	default:
 		httpx.WriteProblem(w, r, httpx.InternalServerError(fallback))
 	}
-}
-
-func writeSettingsVersionConflict(w http.ResponseWriter, r *http.Request, resource string, revision int64) {
-	setVersionedSettingsHeaders(w, resource, revision)
-	httpx.WriteProblem(w, r, httpx.NewErrorCode(http.StatusPreconditionFailed, httpx.CodeSettingsVersionConflict, "settings have changed; refresh and retry"))
-}
-
-func (h *Handler) accessExpectedRevision(ctx context.Context, w http.ResponseWriter, r *http.Request, userID string) (int64, bool) {
-	return h.expectedSettingsRevision(w, r, appsettings.ResourceAccess, func() (int64, error) {
-		result, err := h.settings.GetAccess(ctx, appsettings.GetAccessInput{CurrentUserID: userID})
-		return result.Revision, err
-	})
-}
-
-func (h *Handler) smtpExpectedRevision(ctx context.Context, w http.ResponseWriter, r *http.Request, userID string) (int64, bool) {
-	return h.expectedSettingsRevision(w, r, appsettings.ResourceSMTP, func() (int64, error) {
-		result, err := h.settings.GetSMTP(ctx, appsettings.GetSMTPInput{CurrentUserID: userID})
-		return result.Revision, err
-	})
-}
-
-func (h *Handler) oidcExpectedRevision(ctx context.Context, w http.ResponseWriter, r *http.Request, userID string) (int64, bool) {
-	return h.expectedSettingsRevision(w, r, appsettings.ResourceOIDC, func() (int64, error) {
-		result, err := h.settings.GetOIDC(ctx, appsettings.GetOIDCInput{CurrentUserID: userID})
-		return result.Revision, err
-	})
-}
-
-func (h *Handler) googleExpectedRevision(ctx context.Context, w http.ResponseWriter, r *http.Request, userID string) (int64, bool) {
-	return h.expectedSettingsRevision(w, r, appsettings.ResourceGoogle, func() (int64, error) {
-		result, err := h.settings.GetGoogle(ctx, appsettings.GetGoogleInput{CurrentUserID: userID})
-		return result.Revision, err
-	})
-}
-
-func (h *Handler) githubExpectedRevision(ctx context.Context, w http.ResponseWriter, r *http.Request, userID string) (int64, bool) {
-	return h.expectedSettingsRevision(w, r, appsettings.ResourceGitHub, func() (int64, error) {
-		result, err := h.settings.GetGitHub(ctx, appsettings.GetGitHubInput{CurrentUserID: userID})
-		return result.Revision, err
-	})
-}
-
-func (h *Handler) expectedSettingsRevision(
-	w http.ResponseWriter,
-	r *http.Request,
-	resource appsettings.Resource,
-	currentRevision func() (int64, error),
-) (int64, bool) {
-	revision, err := resolveSettingsIfMatch(r, string(resource), currentRevision)
-	if err != nil {
-		writeSettingsProblem(w, r, resource, err, "read current settings version failed")
-		return 0, false
-	}
-	return revision, true
 }
 
 func decodeOIDCSettingsPatch(w http.ResponseWriter, r *http.Request) (oidcProviderSettingsPatchBody, bool) {
@@ -449,25 +344,25 @@ func decodeGitHubSettingsPatch(w http.ResponseWriter, r *http.Request) (githubPr
 	return body, true
 }
 
-func oidcInput(userID string, revision int64, body oidcProviderSettingsPatchBody) appsettings.UpdateOIDCInput {
+func oidcInput(userID string, body oidcProviderSettingsPatchBody) appsettings.UpdateOIDCInput {
 	return appsettings.UpdateOIDCInput{
-		CurrentUserID: userID, ExpectedRevision: revision, Enabled: body.Enabled.Value,
+		CurrentUserID: userID, Enabled: body.Enabled.Value,
 		IssuerURL: body.IssuerURL.Value, ClientID: body.ClientID.Value, ClientSecret: optionalSecret(body.ClientSecret),
 		DisplayName: body.DisplayName.Value, JITEnabled: body.JITEnabled.Value,
 	}
 }
 
-func googleInput(userID string, revision int64, body googleProviderSettingsPatchBody) appsettings.UpdateGoogleInput {
+func googleInput(userID string, body googleProviderSettingsPatchBody) appsettings.UpdateGoogleInput {
 	return appsettings.UpdateGoogleInput{
-		CurrentUserID: userID, ExpectedRevision: revision, Enabled: body.Enabled.Value,
+		CurrentUserID: userID, Enabled: body.Enabled.Value,
 		ClientID: body.ClientID.Value, ClientSecret: optionalSecret(body.ClientSecret),
 		DisplayName: body.DisplayName.Value, JITEnabled: body.JITEnabled.Value, AllowedDomains: body.AllowedDomains.Value,
 	}
 }
 
-func githubInput(userID string, revision int64, body githubProviderSettingsPatchBody) appsettings.UpdateGitHubInput {
+func githubInput(userID string, body githubProviderSettingsPatchBody) appsettings.UpdateGitHubInput {
 	return appsettings.UpdateGitHubInput{
-		CurrentUserID: userID, ExpectedRevision: revision, Enabled: body.Enabled.Value,
+		CurrentUserID: userID, Enabled: body.Enabled.Value,
 		ClientID: body.ClientID.Value, ClientSecret: optionalSecret(body.ClientSecret),
 		DisplayName: body.DisplayName.Value, JITEnabled: body.JITEnabled.Value, AllowSignup: body.AllowSignup.Value,
 	}

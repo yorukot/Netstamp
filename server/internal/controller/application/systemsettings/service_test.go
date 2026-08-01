@@ -14,12 +14,10 @@ import (
 
 const testSystemSettingsAdminID = "11111111-1111-1111-1111-111111111111"
 
-func TestUpdateAccessRollsBackWritesWhenRevisionBumpFails(t *testing.T) {
-	bumpErr := errors.New("revision bump failed")
+func TestUpdateAccessRollsBackWritesWhenAuditFails(t *testing.T) {
+	auditErr := errors.New("audit failed")
 	repo := newMemorySettingsRepository()
-	repo.revisions[string(ResourceAccess)] = 4
-	repo.revisions[string(ResourceSMTP)] = 9
-	repo.bumpErrors[string(ResourceAccess)] = bumpErr
+	repo.auditErr = auditErr
 	transactor := &rollbackSettingsTransactor{repo: repo}
 	service := newTestSettingsService(repo, &fakeSecretCipher{}, nil, transactor)
 	accountCreationEnabled := false
@@ -27,95 +25,72 @@ func TestUpdateAccessRollsBackWritesWhenRevisionBumpFails(t *testing.T) {
 
 	got, err := service.UpdateAccess(context.Background(), UpdateAccessInput{
 		CurrentUserID:          testSystemSettingsAdminID,
-		ExpectedRevision:       4,
 		AccountCreationEnabled: &accountCreationEnabled,
 		ProjectCreationEnabled: &projectCreationEnabled,
 	})
-	if !errors.Is(err, bumpErr) {
-		t.Fatalf("expected revision bump error, got %v", err)
+	if !errors.Is(err, auditErr) {
+		t.Fatalf("expected audit error, got %v", err)
 	}
-	if got != (Versioned[AccessSettings]{}) {
+	if got != (AccessSettings{}) {
 		t.Fatalf("expected zero result after rollback, got %#v", got)
 	}
-	if len(repo.upsertAttempts) != 2 || repo.auditAttempts != 2 || len(repo.bumpAttempts) != 1 {
+	if len(repo.upsertAttempts) != 1 || repo.auditAttempts != 1 {
 		t.Fatalf(
-			"expected two writes and audits before the late failure, got upserts=%#v audits=%d bumps=%#v",
+			"expected a write before the audit failure, got upserts=%#v audits=%d",
 			repo.upsertAttempts,
 			repo.auditAttempts,
-			repo.bumpAttempts,
 		)
 	}
 	if len(repo.settings) != 0 || len(repo.auditEvents) != 0 {
 		t.Fatalf("expected settings and audits to roll back, got settings=%#v audits=%#v", repo.settings, repo.auditEvents)
 	}
-	if repo.revisions[string(ResourceAccess)] != 4 || repo.revisions[string(ResourceSMTP)] != 9 {
-		t.Fatalf("expected revisions to roll back, got %#v", repo.revisions)
-	}
+	assertAccessSMTPLockOrder(t, repo.lockAttempts)
 	if transactor.calls != 1 || transactor.rollbacks != 1 || transactor.commits != 0 {
 		t.Fatalf("unexpected transaction outcome: %#v", transactor)
 	}
 }
 
-func TestUpdateAccessEnforcesCASAndKeepsRevisionForNoop(t *testing.T) {
+func TestUpdateAccessUsesResourceLocksAndSkipsNoopWrites(t *testing.T) {
 	repo := newMemorySettingsRepository()
-	repo.revisions[string(ResourceAccess)] = 4
-	repo.revisions[string(ResourceSMTP)] = 9
 	transactor := &rollbackSettingsTransactor{repo: repo}
 	service := newTestSettingsService(repo, &fakeSecretCipher{}, nil, transactor)
 	projectCreationEnabled := false
 
 	updated, err := service.UpdateAccess(context.Background(), UpdateAccessInput{
 		CurrentUserID:          testSystemSettingsAdminID,
-		ExpectedRevision:       4,
 		ProjectCreationEnabled: &projectCreationEnabled,
 	})
 	if err != nil {
 		t.Fatalf("update access: %v", err)
 	}
-	if updated.Revision != 5 || updated.Value.ProjectCreationEnabled {
+	if updated.ProjectCreationEnabled {
 		t.Fatalf("unexpected first update: %#v", updated)
 	}
+	assertAccessSMTPLockOrder(t, repo.lockAttempts)
 
 	upsertsAfterUpdate := len(repo.upsertAttempts)
 	auditsAfterUpdate := repo.auditAttempts
-	bumpsAfterUpdate := len(repo.bumpAttempts)
-	accountCreationEnabled := false
-	_, err = service.UpdateAccess(context.Background(), UpdateAccessInput{
-		CurrentUserID:          testSystemSettingsAdminID,
-		ExpectedRevision:       4,
-		AccountCreationEnabled: &accountCreationEnabled,
-	})
-	if !errors.Is(err, ErrVersionConflict) {
-		t.Fatalf("expected version conflict, got %v", err)
-	}
-	var conflict *VersionConflictError
-	if !errors.As(err, &conflict) {
-		t.Fatalf("expected typed version conflict, got %T", err)
-	}
-	if conflict.Resource != ResourceAccess || conflict.Expected != 4 || conflict.Current != 5 {
-		t.Fatalf("unexpected conflict details: %#v", conflict)
-	}
-	if len(repo.upsertAttempts) != upsertsAfterUpdate ||
-		repo.auditAttempts != auditsAfterUpdate ||
-		len(repo.bumpAttempts) != bumpsAfterUpdate {
-		t.Fatal("stale update mutated settings")
-	}
 
 	noChange, err := service.UpdateAccess(context.Background(), UpdateAccessInput{
 		CurrentUserID:          testSystemSettingsAdminID,
-		ExpectedRevision:       5,
 		ProjectCreationEnabled: &projectCreationEnabled,
 	})
 	if err != nil {
 		t.Fatalf("repeat access update: %v", err)
 	}
-	if noChange.Revision != 5 || noChange.Value.ProjectCreationEnabled {
+	if noChange.ProjectCreationEnabled {
 		t.Fatalf("unexpected no-op result: %#v", noChange)
 	}
 	if len(repo.upsertAttempts) != upsertsAfterUpdate ||
-		repo.auditAttempts != auditsAfterUpdate ||
-		len(repo.bumpAttempts) != bumpsAfterUpdate {
-		t.Fatal("no-op update bumped the revision or wrote an audit event")
+		repo.auditAttempts != auditsAfterUpdate {
+		t.Fatal("no-op update wrote a setting or audit event")
+	}
+	wantLocks := []string{
+		string(ResourceAccess), string(ResourceSMTP),
+		string(ResourceAccess), string(ResourceSMTP),
+	}
+	if !reflect.DeepEqual(repo.lockAttempts, wantLocks) {
+		t.Fatalf("unexpected lock order across updates: got %#v want %#v", repo.lockAttempts, wantLocks)
 	}
 }
 
@@ -123,60 +98,50 @@ func TestUpdateGooglePreservesNullableSecretPatchStates(t *testing.T) {
 	replacement := "new-secret"
 	workspaceDisplayName := "Google Workspace"
 	tests := []struct {
-		name               string
-		existingSecret     string
-		providerEnabled    bool
-		secretPatch        OptionalSecret
-		displayName        *string
-		wantSecret         bool
-		wantPlaintext      string
-		wantRevision       int64
-		wantSecretUpsert   bool
-		wantSecretDelete   bool
-		wantSecretAudit    string
-		wantRevisionBumped bool
+		name             string
+		existingSecret   string
+		providerEnabled  bool
+		secretPatch      OptionalSecret
+		displayName      *string
+		wantSecret       bool
+		wantPlaintext    string
+		wantSecretUpsert bool
+		wantSecretDelete bool
+		wantSecretAudit  string
 	}{
 		{
-			name:               "set",
-			providerEnabled:    true,
-			secretPatch:        OptionalSecret{Present: true, Value: &replacement},
-			wantSecret:         true,
-			wantPlaintext:      replacement,
-			wantRevision:       4,
-			wantSecretUpsert:   true,
-			wantSecretAudit:    auditActionUpdate,
-			wantRevisionBumped: true,
+			name:             "set",
+			providerEnabled:  true,
+			secretPatch:      OptionalSecret{Present: true, Value: &replacement},
+			wantSecret:       true,
+			wantPlaintext:    replacement,
+			wantSecretUpsert: true,
+			wantSecretAudit:  auditActionUpdate,
 		},
 		{
-			name:               "clear",
-			existingSecret:     "old-secret",
-			secretPatch:        OptionalSecret{Present: true},
-			wantRevision:       4,
-			wantSecretDelete:   true,
-			wantSecretAudit:    auditActionClear,
-			wantRevisionBumped: true,
+			name:             "clear",
+			existingSecret:   "old-secret",
+			secretPatch:      OptionalSecret{Present: true},
+			wantSecretDelete: true,
+			wantSecretAudit:  auditActionClear,
 		},
 		{
-			name:               "omit",
-			existingSecret:     "old-secret",
-			providerEnabled:    true,
-			displayName:        &workspaceDisplayName,
-			wantSecret:         true,
-			wantPlaintext:      "old-secret",
-			wantRevision:       4,
-			wantRevisionBumped: true,
+			name:            "omit",
+			existingSecret:  "old-secret",
+			providerEnabled: true,
+			displayName:     &workspaceDisplayName,
+			wantSecret:      true,
+			wantPlaintext:   "old-secret",
 		},
 		{
-			name:         "clear already absent",
-			secretPatch:  OptionalSecret{Present: true},
-			wantRevision: 3,
+			name:        "clear already absent",
+			secretPatch: OptionalSecret{Present: true},
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			repo := newMemorySettingsRepository()
-			repo.revisions[string(ResourceGoogle)] = 3
 			if test.providerEnabled {
 				repo.settings[keyGoogleSettings] = testPublicSetting(t, keyGoogleSettings, storedGoogleSettings{
 					Enabled:     true,
@@ -191,15 +156,14 @@ func TestUpdateGooglePreservesNullableSecretPatchStates(t *testing.T) {
 			service := newTestSettingsService(repo, cipher, nil, nil)
 
 			got, err := service.UpdateGoogle(context.Background(), UpdateGoogleInput{
-				CurrentUserID:    testSystemSettingsAdminID,
-				ExpectedRevision: 3,
-				ClientSecret:     test.secretPatch,
-				DisplayName:      test.displayName,
+				CurrentUserID: testSystemSettingsAdminID,
+				ClientSecret:  test.secretPatch,
+				DisplayName:   test.displayName,
 			})
 			if err != nil {
 				t.Fatalf("update Google settings: %v", err)
 			}
-			if got.Revision != test.wantRevision || got.Value.ClientSecretSet != test.wantSecret {
+			if got.ClientSecretSet != test.wantSecret {
 				t.Fatalf("unexpected update result: %#v", got)
 			}
 
@@ -223,8 +187,8 @@ func TestUpdateGooglePreservesNullableSecretPatchStates(t *testing.T) {
 			if gotAuditAction(repo.auditEvents, keyGoogleClientSecret) != test.wantSecretAudit {
 				t.Fatalf("unexpected secret audit events: %#v", repo.auditEvents)
 			}
-			if containsString(repo.bumpAttempts, string(ResourceGoogle)) != test.wantRevisionBumped {
-				t.Fatalf("unexpected revision bump attempts: %#v", repo.bumpAttempts)
+			if !reflect.DeepEqual(repo.lockAttempts, []string{string(ResourceGoogle)}) {
+				t.Fatalf("unexpected provider locks: %#v", repo.lockAttempts)
 			}
 
 			runtime, err := service.EffectiveGoogle(context.Background())
@@ -244,16 +208,16 @@ func TestRedactedGetsSurviveCorruptSecrets(t *testing.T) {
 		name       string
 		resource   Resource
 		secretKey  string
-		get        func(context.Context, *Service) (bool, int64, error)
+		get        func(context.Context, *Service) (bool, error)
 		getRuntime func(context.Context, *Service) error
 	}{
 		{
 			name:      "SMTP",
 			resource:  ResourceSMTP,
 			secretKey: keySMTPPassword,
-			get: func(ctx context.Context, service *Service) (bool, int64, error) {
+			get: func(ctx context.Context, service *Service) (bool, error) {
 				got, err := service.GetSMTP(ctx, GetSMTPInput{CurrentUserID: testSystemSettingsAdminID})
-				return got.Value.PasswordSet, got.Revision, err
+				return got.PasswordSet, err
 			},
 			getRuntime: func(ctx context.Context, service *Service) error {
 				_, err := service.EffectiveSMTP(ctx)
@@ -264,9 +228,9 @@ func TestRedactedGetsSurviveCorruptSecrets(t *testing.T) {
 			name:      "OIDC",
 			resource:  ResourceOIDC,
 			secretKey: keyOIDCClientSecret,
-			get: func(ctx context.Context, service *Service) (bool, int64, error) {
+			get: func(ctx context.Context, service *Service) (bool, error) {
 				got, err := service.GetOIDC(ctx, GetOIDCInput{CurrentUserID: testSystemSettingsAdminID})
-				return got.Value.ClientSecretSet, got.Revision, err
+				return got.ClientSecretSet, err
 			},
 			getRuntime: func(ctx context.Context, service *Service) error {
 				_, err := service.EffectiveOIDC(ctx)
@@ -277,9 +241,9 @@ func TestRedactedGetsSurviveCorruptSecrets(t *testing.T) {
 			name:      "Google",
 			resource:  ResourceGoogle,
 			secretKey: keyGoogleClientSecret,
-			get: func(ctx context.Context, service *Service) (bool, int64, error) {
+			get: func(ctx context.Context, service *Service) (bool, error) {
 				got, err := service.GetGoogle(ctx, GetGoogleInput{CurrentUserID: testSystemSettingsAdminID})
-				return got.Value.ClientSecretSet, got.Revision, err
+				return got.ClientSecretSet, err
 			},
 			getRuntime: func(ctx context.Context, service *Service) error {
 				_, err := service.EffectiveGoogle(ctx)
@@ -290,9 +254,9 @@ func TestRedactedGetsSurviveCorruptSecrets(t *testing.T) {
 			name:      "GitHub",
 			resource:  ResourceGitHub,
 			secretKey: keyGitHubClientSecret,
-			get: func(ctx context.Context, service *Service) (bool, int64, error) {
+			get: func(ctx context.Context, service *Service) (bool, error) {
 				got, err := service.GetGitHub(ctx, GetGitHubInput{CurrentUserID: testSystemSettingsAdminID})
-				return got.Value.ClientSecretSet, got.Revision, err
+				return got.ClientSecretSet, err
 			},
 			getRuntime: func(ctx context.Context, service *Service) error {
 				_, err := service.EffectiveGitHub(ctx)
@@ -304,7 +268,6 @@ func TestRedactedGetsSurviveCorruptSecrets(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			repo := newMemorySettingsRepository()
-			repo.revisions[string(test.resource)] = 7
 			repo.settings[test.secretKey] = domainsystem.Setting{
 				Key:                 test.secretKey,
 				Secret:              true,
@@ -335,12 +298,15 @@ func TestRedactedGetsSurviveCorruptSecrets(t *testing.T) {
 			cipher := &fakeSecretCipher{decryptErrors: map[string]error{"corrupt": corruptErr}}
 			service := newTestSettingsService(repo, cipher, nil, nil)
 
-			secretSet, revision, err := test.get(context.Background(), service)
+			secretSet, err := test.get(context.Background(), service)
 			if err != nil {
 				t.Fatalf("get redacted settings: %v", err)
 			}
-			if !secretSet || revision != 7 {
-				t.Fatalf("unexpected redacted result: secretSet=%t revision=%d", secretSet, revision)
+			if !secretSet {
+				t.Fatal("expected redacted settings to report that the secret is set")
+			}
+			if len(repo.lockAttempts) != 0 {
+				t.Fatalf("redacted GET acquired write locks: %#v", repo.lockAttempts)
 			}
 			if len(cipher.decryptInputs) != 0 {
 				t.Fatalf("redacted GET attempted to decrypt the secret: %#v", cipher.decryptInputs)
@@ -430,7 +396,6 @@ func TestEffectiveProviderReadsAreFaultIsolatedAndLive(t *testing.T) {
 
 func TestUpdateGitHubPreservesStoredAllowSignupFalse(t *testing.T) {
 	repo := newMemorySettingsRepository()
-	repo.revisions[string(ResourceGitHub)] = 7
 	repo.settings[keyGitHubSettings] = testPublicSetting(t, keyGitHubSettings, storedGitHubSettings{
 		ClientID:    "github-client",
 		DisplayName: "GitHub",
@@ -440,15 +405,17 @@ func TestUpdateGitHubPreservesStoredAllowSignupFalse(t *testing.T) {
 	displayName := "Engineering GitHub"
 
 	got, err := service.UpdateGitHub(context.Background(), UpdateGitHubInput{
-		CurrentUserID:    testSystemSettingsAdminID,
-		ExpectedRevision: 7,
-		DisplayName:      &displayName,
+		CurrentUserID: testSystemSettingsAdminID,
+		DisplayName:   &displayName,
 	})
 	if err != nil {
 		t.Fatalf("update GitHub settings: %v", err)
 	}
-	if got.Revision != 8 || got.Value.AllowSignup {
+	if got.AllowSignup {
 		t.Fatalf("unexpected GitHub update result: %#v", got)
+	}
+	if !reflect.DeepEqual(repo.lockAttempts, []string{string(ResourceGitHub)}) {
+		t.Fatalf("unexpected provider locks: %#v", repo.lockAttempts)
 	}
 
 	stored := repo.settings[keyGitHubSettings]
@@ -472,17 +439,64 @@ func TestUpdateGitHubPreservesStoredAllowSignupFalse(t *testing.T) {
 	}
 }
 
+func TestUpdateOIDCHoldsResourceLockThroughReadinessAndPersistence(t *testing.T) {
+	repo := newMemorySettingsRepository()
+	transactor := &rollbackSettingsTransactor{repo: repo}
+	checkedInTransaction := false
+	var locksAtReadiness []string
+	var writesAtReadiness []string
+	readiness := &fakeOIDCReadinessChecker{
+		onCheck: func(context.Context, string) {
+			checkedInTransaction = transactor.active
+			locksAtReadiness = append([]string(nil), repo.lockAttempts...)
+			writesAtReadiness = append([]string(nil), repo.upsertAttempts...)
+		},
+	}
+	service := newTestSettingsService(repo, &fakeSecretCipher{}, readiness, transactor)
+	enabled := true
+	issuerURL := "https://issuer.example.com"
+	clientID := "oidc-client"
+	clientSecret := "oidc-secret"
+
+	got, err := service.UpdateOIDC(context.Background(), UpdateOIDCInput{
+		CurrentUserID: testSystemSettingsAdminID,
+		Enabled:       &enabled,
+		IssuerURL:     &issuerURL,
+		ClientID:      &clientID,
+		ClientSecret:  OptionalSecret{Present: true, Value: &clientSecret},
+	})
+	if err != nil {
+		t.Fatalf("update OIDC settings: %v", err)
+	}
+	if !got.Enabled || got.IssuerURL != issuerURL || got.ClientID != clientID || !got.ClientSecretSet {
+		t.Fatalf("unexpected OIDC update result: %#v", got)
+	}
+	if !checkedInTransaction {
+		t.Fatal("OIDC readiness ran outside the update transaction")
+	}
+	wantLocks := []string{string(ResourceOIDC)}
+	if !reflect.DeepEqual(locksAtReadiness, wantLocks) || !reflect.DeepEqual(repo.lockAttempts, wantLocks) {
+		t.Fatalf("OIDC readiness did not run under its resource lock: at readiness=%#v final=%#v", locksAtReadiness, repo.lockAttempts)
+	}
+	if len(writesAtReadiness) != 0 {
+		t.Fatalf("OIDC settings were persisted before readiness succeeded: %#v", writesAtReadiness)
+	}
+	if transactor.calls != 1 || transactor.commits != 1 || transactor.rollbacks != 0 {
+		t.Fatalf("unexpected OIDC transaction outcome: %#v", transactor)
+	}
+	if !containsString(repo.upsertAttempts, keyOIDCSettings) || !containsString(repo.upsertAttempts, keyOIDCClientSecret) {
+		t.Fatalf("OIDC settings were not persisted after readiness: %#v", repo.upsertAttempts)
+	}
+}
+
 func TestAccessAndSMTPUpdatesEnforceEmailVerificationInvariant(t *testing.T) {
 	t.Run("enabling verification requires configured SMTP", func(t *testing.T) {
 		repo := newMemorySettingsRepository()
-		repo.revisions[string(ResourceAccess)] = 1
-		repo.revisions[string(ResourceSMTP)] = 2
 		service := newTestSettingsService(repo, &fakeSecretCipher{}, nil, nil)
 		required := true
 
 		_, err := service.UpdateAccess(context.Background(), UpdateAccessInput{
 			CurrentUserID:             testSystemSettingsAdminID,
-			ExpectedRevision:          1,
 			EmailVerificationRequired: &required,
 		})
 		assertEmailVerificationSMTPInvariant(t, err)
@@ -492,8 +506,6 @@ func TestAccessAndSMTPUpdatesEnforceEmailVerificationInvariant(t *testing.T) {
 
 	t.Run("clearing SMTP is rejected while verification is required", func(t *testing.T) {
 		repo := newMemorySettingsRepository()
-		repo.revisions[string(ResourceAccess)] = 5
-		repo.revisions[string(ResourceSMTP)] = 6
 		repo.settings[keyEmailVerificationRequired] = testPublicSetting(t, keyEmailVerificationRequired, true)
 		repo.settings[keySMTPHost] = testPublicSetting(t, keySMTPHost, "smtp.example.com")
 		repo.settings[keySMTPFrom] = testPublicSetting(t, keySMTPFrom, "Netstamp <alerts@example.com>")
@@ -501,10 +513,9 @@ func TestAccessAndSMTPUpdatesEnforceEmailVerificationInvariant(t *testing.T) {
 		empty := ""
 
 		_, err := service.UpdateSMTP(context.Background(), UpdateSMTPInput{
-			CurrentUserID:    testSystemSettingsAdminID,
-			ExpectedRevision: 6,
-			Host:             &empty,
-			From:             &empty,
+			CurrentUserID: testSystemSettingsAdminID,
+			Host:          &empty,
+			From:          &empty,
 		})
 		assertEmailVerificationSMTPInvariant(t, err)
 		assertNoSettingsWrites(t, repo)
@@ -552,7 +563,6 @@ func TestValidateOIDCClassifiesReadinessFailures(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			repo := newMemorySettingsRepository()
-			repo.revisions[string(ResourceOIDC)] = 1
 			service := newTestSettingsService(repo, &fakeSecretCipher{}, test.readiness, nil)
 			enabled := true
 			issuerURL := "https://issuer.example.com"
@@ -560,12 +570,11 @@ func TestValidateOIDCClassifiesReadinessFailures(t *testing.T) {
 			clientSecret := "oidc-secret"
 
 			err := service.ValidateOIDC(context.Background(), ValidateOIDCInput{
-				CurrentUserID:    testSystemSettingsAdminID,
-				ExpectedRevision: 1,
-				Enabled:          &enabled,
-				IssuerURL:        &issuerURL,
-				ClientID:         &clientID,
-				ClientSecret:     OptionalSecret{Present: true, Value: &clientSecret},
+				CurrentUserID: testSystemSettingsAdminID,
+				Enabled:       &enabled,
+				IssuerURL:     &issuerURL,
+				ClientID:      &clientID,
+				ClientSecret:  OptionalSecret{Present: true, Value: &clientSecret},
 			})
 			if !errors.Is(err, test.want) {
 				t.Fatalf("expected %v, got %v", test.want, err)
@@ -589,6 +598,9 @@ func TestValidateOIDCClassifiesReadinessFailures(t *testing.T) {
 					fields[0].Value != issuerURL {
 					t.Fatalf("unexpected issuerUrl validation error: %#v", fields[0])
 				}
+			}
+			if len(repo.lockAttempts) != 0 {
+				t.Fatalf("provider validation acquired write locks: %#v", repo.lockAttempts)
 			}
 			assertNoSettingsWrites(t, repo)
 		})
@@ -636,14 +648,12 @@ func assertNoSettingsWrites(t *testing.T, repo *memorySettingsRepository) {
 	t.Helper()
 	if len(repo.upsertAttempts) != 0 ||
 		len(repo.deleteAttempts) != 0 ||
-		repo.auditAttempts != 0 ||
-		len(repo.bumpAttempts) != 0 {
+		repo.auditAttempts != 0 {
 		t.Fatalf(
-			"expected no writes, got upserts=%#v deletes=%#v audits=%d bumps=%#v",
+			"expected no writes, got upserts=%#v deletes=%#v audits=%d",
 			repo.upsertAttempts,
 			repo.deleteAttempts,
 			repo.auditAttempts,
-			repo.bumpAttempts,
 		)
 	}
 }

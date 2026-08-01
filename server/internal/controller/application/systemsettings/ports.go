@@ -13,9 +13,7 @@ type Repository interface {
 	UpsertSystemSetting(ctx context.Context, setting domainsystem.Setting) (domainsystem.Setting, error)
 	DeleteSystemSetting(ctx context.Context, key string) error
 	CreateSystemSettingAuditEvent(ctx context.Context, key, action string, updatedByUserID *string) error
-	GetSystemSettingRevision(ctx context.Context, resource string) (int64, error)
-	LockSystemSettingRevision(ctx context.Context, resource string) (int64, error)
-	BumpSystemSettingRevision(ctx context.Context, resource string) (int64, error)
+	LockSystemSettingsResource(ctx context.Context, resource string) error
 }
 
 type SystemAdminChecker interface {

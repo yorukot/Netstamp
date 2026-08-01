@@ -18,16 +18,48 @@ import (
 	"github.com/yorukot/netstamp/internal/domain/identity"
 )
 
-func TestGetGoogleSettingsWritesVersionedRedactedResponse(t *testing.T) {
+type settingsHandlerFunc func(*Handler, http.ResponseWriter, *http.Request)
+
+func TestGetSettingsWritesPrivateNoStoreResponseWithoutETag(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		handle settingsHandlerFunc
+		calls  func(*recordingSettingsService) int
+	}{
+		{name: "access", handle: (*Handler).handleGetAccessSettings, calls: func(service *recordingSettingsService) int { return service.getAccessCalls }},
+		{name: "SMTP", handle: (*Handler).handleGetSMTPSettings, calls: func(service *recordingSettingsService) int { return service.getSMTPCalls }},
+		{name: "OIDC", handle: (*Handler).handleGetOIDCSettings, calls: func(service *recordingSettingsService) int { return service.getOIDCCalls }},
+		{name: "Google", handle: (*Handler).handleGetGoogleSettings, calls: func(service *recordingSettingsService) int { return service.getGoogleCalls }},
+		{name: "GitHub", handle: (*Handler).handleGetGitHubSettings, calls: func(service *recordingSettingsService) int { return service.getGitHubCalls }},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			service := &recordingSettingsService{}
+			handler := &Handler{settings: service}
+			recorder := httptest.NewRecorder()
+
+			tt.handle(handler, recorder, authenticatedSettingsRequest(http.MethodGet, "/", ""))
+
+			assertSettingsResponse(t, recorder)
+			if got := tt.calls(service); got != 1 {
+				t.Fatalf("expected one settings read, got %d", got)
+			}
+		})
+	}
+}
+
+func TestGetGoogleSettingsWritesRedactedResponse(t *testing.T) {
 	t.Parallel()
 
 	service := &recordingSettingsService{
-		google: appsettings.Versioned[appsettings.GoogleSettings]{
-			Value: appsettings.GoogleSettings{
-				Enabled: true, ClientID: "google-client", ClientSecretSet: true,
-				DisplayName: "Google", JITEnabled: true,
-			},
-			Revision: 4,
+		google: appsettings.GoogleSettings{
+			Enabled: true, ClientID: "google-client", ClientSecretSet: true,
+			DisplayName: "Google", JITEnabled: true,
 		},
 	}
 	handler := &Handler{settings: service}
@@ -35,11 +67,7 @@ func TestGetGoogleSettingsWritesVersionedRedactedResponse(t *testing.T) {
 
 	handler.handleGetGoogleSettings(recorder, authenticatedSettingsRequest(http.MethodGet, "/", ""))
 
-	if recorder.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d: %s", recorder.Code, recorder.Body.String())
-	}
-	assertSettingsVersionHeaders(t, recorder, `"auth.google-4"`)
-
+	assertSettingsResponse(t, recorder)
 	var response struct {
 		Settings map[string]any `json:"settings"`
 	}
@@ -61,30 +89,96 @@ func TestGetGoogleSettingsWritesVersionedRedactedResponse(t *testing.T) {
 	}
 }
 
-func TestUpdateSMTPSettingsPassesSecretClearAndRevision(t *testing.T) {
+func TestUpdateSettingsAcceptsMissingAndIgnoredIfMatch(t *testing.T) {
+	t.Parallel()
+
+	requests := []struct {
+		name          string
+		ifMatch       string
+		legacyIfMatch bool
+	}{
+		{name: "missing"},
+		{name: "legacy", legacyIfMatch: true},
+		{name: "malformed", ifMatch: "not-an-entity-tag"},
+	}
+	tests := []struct {
+		name          string
+		body          string
+		legacyIfMatch string
+		handle        settingsHandlerFunc
+		calls         func(*recordingSettingsService) int
+	}{
+		{
+			name: "access", body: `{"accountCreationEnabled":false}`, legacyIfMatch: `"access-99"`,
+			handle: (*Handler).handleUpdateAccessSettings,
+			calls:  func(service *recordingSettingsService) int { return service.updateAccessCalls },
+		},
+		{
+			name: "SMTP", body: `{"port":2525}`, legacyIfMatch: `"smtp-99"`,
+			handle: (*Handler).handleUpdateSMTPSettings,
+			calls:  func(service *recordingSettingsService) int { return service.updateSMTPCalls },
+		},
+		{
+			name: "OIDC", body: `{"enabled":false}`, legacyIfMatch: `"auth.oidc-99"`,
+			handle: (*Handler).handleUpdateOIDCSettings,
+			calls:  func(service *recordingSettingsService) int { return service.updateOIDCCalls },
+		},
+		{
+			name: "Google", body: `{"enabled":false}`, legacyIfMatch: `"auth.google-99"`,
+			handle: (*Handler).handleUpdateGoogleSettings,
+			calls:  func(service *recordingSettingsService) int { return service.updateGoogleCalls },
+		},
+		{
+			name: "GitHub", body: `{"enabled":false}`, legacyIfMatch: `"auth.github-99"`,
+			handle: (*Handler).handleUpdateGitHubSettings,
+			calls:  func(service *recordingSettingsService) int { return service.updateGitHubCalls },
+		},
+	}
+
+	for _, tt := range tests {
+		for _, requestCase := range requests {
+			t.Run(tt.name+"/"+requestCase.name, func(t *testing.T) {
+				t.Parallel()
+
+				service := &recordingSettingsService{}
+				handler := &Handler{settings: service}
+				request := authenticatedSettingsRequest(http.MethodPatch, "/", tt.body)
+				switch {
+				case requestCase.legacyIfMatch:
+					request.Header.Set("If-Match", tt.legacyIfMatch)
+				case requestCase.ifMatch != "":
+					request.Header.Set("If-Match", requestCase.ifMatch)
+				}
+				recorder := httptest.NewRecorder()
+
+				tt.handle(handler, recorder, request)
+
+				assertSettingsResponse(t, recorder)
+				if got := tt.calls(service); got != 1 {
+					t.Fatalf("expected one settings update, got %d", got)
+				}
+			})
+		}
+	}
+}
+
+func TestUpdateSMTPSettingsPassesSecretClear(t *testing.T) {
 	t.Parallel()
 
 	service := &recordingSettingsService{
-		smtp: appsettings.Versioned[appsettings.SMTPSettings]{
-			Value:    appsettings.SMTPSettings{Host: "smtp.example.com", Port: 2525, PasswordSet: false},
-			Revision: 3,
-		},
+		smtp: appsettings.SMTPSettings{Host: "smtp.example.com", Port: 2525, PasswordSet: false},
 	}
 	handler := &Handler{settings: service}
 	request := authenticatedSettingsRequest(http.MethodPatch, "/", `{"port":2525,"password":null}`)
-	request.Header.Set("If-Match", `"smtp-2"`)
 	recorder := httptest.NewRecorder()
 
 	handler.handleUpdateSMTPSettings(recorder, request)
 
-	if recorder.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d: %s", recorder.Code, recorder.Body.String())
-	}
-	assertSettingsVersionHeaders(t, recorder, `"smtp-3"`)
+	assertSettingsResponse(t, recorder)
 	if service.updateSMTPCalls != 1 {
 		t.Fatalf("expected one update, got %d", service.updateSMTPCalls)
 	}
-	if service.lastUpdateSMTP.CurrentUserID != "user-1" || service.lastUpdateSMTP.ExpectedRevision != 2 {
+	if service.lastUpdateSMTP.CurrentUserID != "user-1" {
 		t.Fatalf("unexpected update input: %#v", service.lastUpdateSMTP)
 	}
 	if service.lastUpdateSMTP.Port == nil || *service.lastUpdateSMTP.Port != 2525 {
@@ -93,23 +187,106 @@ func TestUpdateSMTPSettingsPassesSecretClearAndRevision(t *testing.T) {
 	if !service.lastUpdateSMTP.Password.Present || service.lastUpdateSMTP.Password.Value != nil {
 		t.Fatalf("expected explicit password clear, got %#v", service.lastUpdateSMTP.Password)
 	}
-	if service.getSMTPCalls != 0 {
-		t.Fatalf("valid strong ETag should not require a pre-read, got %d reads", service.getSMTPCalls)
+}
+
+func TestSettingsActionsAcceptMissingAndIgnoredIfMatch(t *testing.T) {
+	t.Parallel()
+
+	requests := []struct {
+		name          string
+		ifMatch       string
+		legacyIfMatch bool
+	}{
+		{name: "missing"},
+		{name: "legacy", legacyIfMatch: true},
+		{name: "malformed", ifMatch: "not-an-entity-tag"},
+	}
+	tests := []struct {
+		name          string
+		body          string
+		legacyIfMatch string
+		handle        settingsHandlerFunc
+		calls         func(*recordingSettingsService) int
+	}{
+		{
+			name: "OIDC validate", body: `{}`, legacyIfMatch: `"auth.oidc-99"`,
+			handle: (*Handler).handleValidateOIDCSettings,
+			calls:  func(service *recordingSettingsService) int { return service.validateOIDCCalls },
+		},
+		{
+			name: "Google validate", body: `{}`, legacyIfMatch: `"auth.google-99"`,
+			handle: (*Handler).handleValidateGoogleSettings,
+			calls:  func(service *recordingSettingsService) int { return service.validateGoogleCalls },
+		},
+		{
+			name: "GitHub validate", body: `{}`, legacyIfMatch: `"auth.github-99"`,
+			handle: (*Handler).handleValidateGitHubSettings,
+			calls:  func(service *recordingSettingsService) int { return service.validateGitHubCalls },
+		},
+		{
+			name: "SMTP test", legacyIfMatch: `"smtp-99"`,
+			handle: (*Handler).handleTestSMTP,
+			calls:  func(service *recordingSettingsService) int { return service.testSMTPCalls },
+		},
+	}
+
+	for _, tt := range tests {
+		for _, requestCase := range requests {
+			t.Run(tt.name+"/"+requestCase.name, func(t *testing.T) {
+				t.Parallel()
+
+				service := &recordingSettingsService{}
+				handler := &Handler{settings: service}
+				request := authenticatedSettingsRequest(http.MethodPost, "/", tt.body)
+				switch {
+				case requestCase.legacyIfMatch:
+					request.Header.Set("If-Match", tt.legacyIfMatch)
+				case requestCase.ifMatch != "":
+					request.Header.Set("If-Match", requestCase.ifMatch)
+				}
+				recorder := httptest.NewRecorder()
+
+				tt.handle(handler, recorder, request)
+
+				if recorder.Code != http.StatusNoContent {
+					t.Fatalf("expected status 204, got %d: %s", recorder.Code, recorder.Body.String())
+				}
+				if recorder.Body.Len() != 0 {
+					t.Fatalf("expected empty response body, got %q", recorder.Body.String())
+				}
+				assertNoETag(t, recorder)
+				if got := tt.calls(service); got != 1 {
+					t.Fatalf("expected one settings action, got %d", got)
+				}
+			})
+		}
 	}
 }
 
-func TestUpdateAccessSettingsRequiresIfMatchBeforeCallingService(t *testing.T) {
+func TestValidateGitHubSettingsPassesCandidateWithoutWritingResponseBody(t *testing.T) {
 	t.Parallel()
 
 	service := &recordingSettingsService{}
 	handler := &Handler{settings: service}
+	request := authenticatedSettingsRequest(http.MethodPost, "/", `{"clientSecret":null,"allowSignup":false}`)
 	recorder := httptest.NewRecorder()
 
-	handler.handleUpdateAccessSettings(recorder, authenticatedSettingsRequest(http.MethodPatch, "/", `{}`))
+	handler.handleValidateGitHubSettings(recorder, request)
 
-	assertProblem(t, recorder, http.StatusPreconditionRequired, httpx.CodePreconditionRequired)
-	if service.updateAccessCalls != 0 || service.getAccessCalls != 0 {
-		t.Fatalf("expected no settings calls, got get=%d update=%d", service.getAccessCalls, service.updateAccessCalls)
+	if recorder.Code != http.StatusNoContent {
+		t.Fatalf("expected status 204, got %d: %s", recorder.Code, recorder.Body.String())
+	}
+	if recorder.Body.Len() != 0 {
+		t.Fatalf("expected empty response body, got %q", recorder.Body.String())
+	}
+	if service.validateGitHubCalls != 1 {
+		t.Fatalf("expected one validation call, got %d", service.validateGitHubCalls)
+	}
+	if !service.lastValidateGitHub.ClientSecret.Present || service.lastValidateGitHub.ClientSecret.Value != nil {
+		t.Fatalf("expected explicit client secret clear, got %#v", service.lastValidateGitHub.ClientSecret)
+	}
+	if service.lastValidateGitHub.AllowSignup == nil || *service.lastValidateGitHub.AllowSignup {
+		t.Fatalf("expected allowSignup=false, got %#v", service.lastValidateGitHub.AllowSignup)
 	}
 }
 
@@ -132,81 +309,6 @@ func TestAdminSensitiveSettingsRouteFailsClosedWithoutSudoService(t *testing.T) 
 	}
 }
 
-func TestUpdateAccessSettingsRejectsWeakIfMatchWithCurrentETag(t *testing.T) {
-	t.Parallel()
-
-	service := &recordingSettingsService{
-		access: appsettings.Versioned[appsettings.AccessSettings]{Revision: 7},
-	}
-	handler := &Handler{settings: service}
-	request := authenticatedSettingsRequest(http.MethodPatch, "/", `{}`)
-	request.Header.Set("If-Match", `W/"access-7"`)
-	recorder := httptest.NewRecorder()
-
-	handler.handleUpdateAccessSettings(recorder, request)
-
-	assertProblem(t, recorder, http.StatusPreconditionFailed, httpx.CodeSettingsVersionConflict)
-	assertSettingsVersionHeaders(t, recorder, `"access-7"`)
-	if service.getAccessCalls != 1 || service.updateAccessCalls != 0 {
-		t.Fatalf("expected one revision read and no update, got get=%d update=%d", service.getAccessCalls, service.updateAccessCalls)
-	}
-}
-
-func TestUpdateAccessSettingsWritesCurrentETagForApplicationConflict(t *testing.T) {
-	t.Parallel()
-
-	service := &recordingSettingsService{
-		updateAccessErr: &appsettings.VersionConflictError{
-			Resource: appsettings.ResourceAccess,
-			Expected: 3,
-			Current:  5,
-		},
-	}
-	handler := &Handler{settings: service}
-	request := authenticatedSettingsRequest(http.MethodPatch, "/", `{"accountCreationEnabled":false}`)
-	request.Header.Set("If-Match", `"access-3"`)
-	recorder := httptest.NewRecorder()
-
-	handler.handleUpdateAccessSettings(recorder, request)
-
-	assertProblem(t, recorder, http.StatusPreconditionFailed, httpx.CodeSettingsVersionConflict)
-	assertSettingsVersionHeaders(t, recorder, `"access-5"`)
-	if service.lastUpdateAccess.AccountCreationEnabled == nil || *service.lastUpdateAccess.AccountCreationEnabled {
-		t.Fatalf("expected explicit false patch, got %#v", service.lastUpdateAccess.AccountCreationEnabled)
-	}
-}
-
-func TestValidateGitHubSettingsPassesCandidateWithoutWritingResponseBody(t *testing.T) {
-	t.Parallel()
-
-	service := &recordingSettingsService{}
-	handler := &Handler{settings: service}
-	request := authenticatedSettingsRequest(http.MethodPost, "/", `{"clientSecret":null,"allowSignup":false}`)
-	request.Header.Set("If-Match", `"auth.github-9"`)
-	recorder := httptest.NewRecorder()
-
-	handler.handleValidateGitHubSettings(recorder, request)
-
-	if recorder.Code != http.StatusNoContent {
-		t.Fatalf("expected status 204, got %d: %s", recorder.Code, recorder.Body.String())
-	}
-	if recorder.Body.Len() != 0 {
-		t.Fatalf("expected empty response body, got %q", recorder.Body.String())
-	}
-	if service.validateGitHubCalls != 1 {
-		t.Fatalf("expected one validation call, got %d", service.validateGitHubCalls)
-	}
-	if service.lastValidateGitHub.ExpectedRevision != 9 {
-		t.Fatalf("expected revision 9, got %d", service.lastValidateGitHub.ExpectedRevision)
-	}
-	if !service.lastValidateGitHub.ClientSecret.Present || service.lastValidateGitHub.ClientSecret.Value != nil {
-		t.Fatalf("expected explicit client secret clear, got %#v", service.lastValidateGitHub.ClientSecret)
-	}
-	if service.lastValidateGitHub.AllowSignup == nil || *service.lastValidateGitHub.AllowSignup {
-		t.Fatalf("expected allowSignup=false, got %#v", service.lastValidateGitHub.AllowSignup)
-	}
-}
-
 func TestWriteSettingsProblemMapsApplicationErrors(t *testing.T) {
 	t.Parallel()
 
@@ -218,7 +320,6 @@ func TestWriteSettingsProblemMapsApplicationErrors(t *testing.T) {
 	}{
 		{name: "forbidden", err: appsettings.ErrForbidden, wantStatus: http.StatusForbidden, wantCode: httpx.CodeSystemAdminRequired},
 		{name: "validation", err: appsettings.ErrInvalidInput, wantStatus: http.StatusUnprocessableEntity, wantCode: httpx.CodeValidationFailed},
-		{name: "precondition", err: appsettings.ErrPreconditionRequired, wantStatus: http.StatusPreconditionRequired, wantCode: httpx.CodePreconditionRequired},
 		{name: "provider unavailable", err: appsettings.ErrProviderUnavailable, wantStatus: http.StatusServiceUnavailable, wantCode: httpx.CodeServiceUnavailable},
 		{name: "SMTP failed", err: appsettings.ErrSMTPTestFailed, wantStatus: http.StatusServiceUnavailable, wantCode: httpx.CodeServiceUnavailable},
 		{name: "unknown", err: errors.New("database failed"), wantStatus: http.StatusInternalServerError, wantCode: httpx.CodeInternalError},
@@ -230,7 +331,7 @@ func TestWriteSettingsProblemMapsApplicationErrors(t *testing.T) {
 
 			recorder := httptest.NewRecorder()
 			request := httptest.NewRequest(http.MethodPatch, "/", http.NoBody)
-			writeSettingsProblem(recorder, request, appsettings.ResourceAccess, tt.err, "settings failed")
+			writeSettingsProblem(recorder, request, tt.err, "settings failed")
 			assertProblem(t, recorder, tt.wantStatus, tt.wantCode)
 		})
 	}
@@ -245,13 +346,29 @@ func authenticatedSettingsRequest(method, target, body string) *http.Request {
 	return request.WithContext(ctx)
 }
 
-func assertSettingsVersionHeaders(t *testing.T, recorder *httptest.ResponseRecorder, etag string) {
+func assertSettingsResponse(t *testing.T, recorder *httptest.ResponseRecorder) {
 	t.Helper()
-	if got := recorder.Header().Get("ETag"); got != etag {
-		t.Fatalf("expected ETag %q, got %q", etag, got)
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d: %s", recorder.Code, recorder.Body.String())
 	}
 	if got := recorder.Header().Get("Cache-Control"); got != settingsCacheControl {
 		t.Fatalf("expected Cache-Control %q, got %q", settingsCacheControl, got)
+	}
+	assertNoETag(t, recorder)
+
+	var response map[string]json.RawMessage
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("decode settings envelope: %v", err)
+	}
+	if _, ok := response["settings"]; !ok {
+		t.Fatalf("expected settings response envelope, got %s", recorder.Body.String())
+	}
+}
+
+func assertNoETag(t *testing.T, recorder *httptest.ResponseRecorder) {
+	t.Helper()
+	if values := recorder.Header().Values("ETag"); len(values) != 0 {
+		t.Fatalf("expected no ETag header, got %q", values)
 	}
 }
 
@@ -270,11 +387,11 @@ func assertProblem(t *testing.T, recorder *httptest.ResponseRecorder, status int
 }
 
 type recordingSettingsService struct {
-	access appsettings.Versioned[appsettings.AccessSettings]
-	smtp   appsettings.Versioned[appsettings.SMTPSettings]
-	oidc   appsettings.Versioned[appsettings.OIDCSettings]
-	google appsettings.Versioned[appsettings.GoogleSettings]
-	github appsettings.Versioned[appsettings.GitHubSettings]
+	access appsettings.AccessSettings
+	smtp   appsettings.SMTPSettings
+	oidc   appsettings.OIDCSettings
+	google appsettings.GoogleSettings
+	github appsettings.GitHubSettings
 
 	getAccessErr      error
 	getSMTPErr        error
@@ -293,66 +410,83 @@ type recordingSettingsService struct {
 
 	getAccessCalls      int
 	getSMTPCalls        int
+	getOIDCCalls        int
+	getGoogleCalls      int
+	getGitHubCalls      int
 	updateAccessCalls   int
 	updateSMTPCalls     int
+	updateOIDCCalls     int
+	updateGoogleCalls   int
+	updateGitHubCalls   int
+	validateOIDCCalls   int
+	validateGoogleCalls int
 	validateGitHubCalls int
+	testSMTPCalls       int
 
 	lastUpdateAccess   appsettings.UpdateAccessInput
 	lastUpdateSMTP     appsettings.UpdateSMTPInput
 	lastValidateGitHub appsettings.ValidateGitHubInput
 }
 
-func (s *recordingSettingsService) GetAccess(_ context.Context, _ appsettings.GetAccessInput) (appsettings.Versioned[appsettings.AccessSettings], error) {
+func (s *recordingSettingsService) GetAccess(_ context.Context, _ appsettings.GetAccessInput) (appsettings.AccessSettings, error) {
 	s.getAccessCalls++
 	return s.access, s.getAccessErr
 }
 
-func (s *recordingSettingsService) GetSMTP(_ context.Context, _ appsettings.GetSMTPInput) (appsettings.Versioned[appsettings.SMTPSettings], error) {
+func (s *recordingSettingsService) GetSMTP(_ context.Context, _ appsettings.GetSMTPInput) (appsettings.SMTPSettings, error) {
 	s.getSMTPCalls++
 	return s.smtp, s.getSMTPErr
 }
 
-func (s *recordingSettingsService) GetOIDC(_ context.Context, _ appsettings.GetOIDCInput) (appsettings.Versioned[appsettings.OIDCSettings], error) {
+func (s *recordingSettingsService) GetOIDC(_ context.Context, _ appsettings.GetOIDCInput) (appsettings.OIDCSettings, error) {
+	s.getOIDCCalls++
 	return s.oidc, s.getOIDCErr
 }
 
-func (s *recordingSettingsService) GetGoogle(_ context.Context, _ appsettings.GetGoogleInput) (appsettings.Versioned[appsettings.GoogleSettings], error) {
+func (s *recordingSettingsService) GetGoogle(_ context.Context, _ appsettings.GetGoogleInput) (appsettings.GoogleSettings, error) {
+	s.getGoogleCalls++
 	return s.google, s.getGoogleErr
 }
 
-func (s *recordingSettingsService) GetGitHub(_ context.Context, _ appsettings.GetGitHubInput) (appsettings.Versioned[appsettings.GitHubSettings], error) {
+func (s *recordingSettingsService) GetGitHub(_ context.Context, _ appsettings.GetGitHubInput) (appsettings.GitHubSettings, error) {
+	s.getGitHubCalls++
 	return s.github, s.getGitHubErr
 }
 
-func (s *recordingSettingsService) UpdateAccess(_ context.Context, input appsettings.UpdateAccessInput) (appsettings.Versioned[appsettings.AccessSettings], error) {
+func (s *recordingSettingsService) UpdateAccess(_ context.Context, input appsettings.UpdateAccessInput) (appsettings.AccessSettings, error) {
 	s.updateAccessCalls++
 	s.lastUpdateAccess = input
 	return s.access, s.updateAccessErr
 }
 
-func (s *recordingSettingsService) UpdateSMTP(_ context.Context, input appsettings.UpdateSMTPInput) (appsettings.Versioned[appsettings.SMTPSettings], error) {
+func (s *recordingSettingsService) UpdateSMTP(_ context.Context, input appsettings.UpdateSMTPInput) (appsettings.SMTPSettings, error) {
 	s.updateSMTPCalls++
 	s.lastUpdateSMTP = input
 	return s.smtp, s.updateSMTPErr
 }
 
-func (s *recordingSettingsService) UpdateOIDC(_ context.Context, _ appsettings.UpdateOIDCInput) (appsettings.Versioned[appsettings.OIDCSettings], error) {
+func (s *recordingSettingsService) UpdateOIDC(_ context.Context, _ appsettings.UpdateOIDCInput) (appsettings.OIDCSettings, error) {
+	s.updateOIDCCalls++
 	return s.oidc, s.updateOIDCErr
 }
 
-func (s *recordingSettingsService) UpdateGoogle(_ context.Context, _ appsettings.UpdateGoogleInput) (appsettings.Versioned[appsettings.GoogleSettings], error) {
+func (s *recordingSettingsService) UpdateGoogle(_ context.Context, _ appsettings.UpdateGoogleInput) (appsettings.GoogleSettings, error) {
+	s.updateGoogleCalls++
 	return s.google, s.updateGoogleErr
 }
 
-func (s *recordingSettingsService) UpdateGitHub(_ context.Context, _ appsettings.UpdateGitHubInput) (appsettings.Versioned[appsettings.GitHubSettings], error) {
+func (s *recordingSettingsService) UpdateGitHub(_ context.Context, _ appsettings.UpdateGitHubInput) (appsettings.GitHubSettings, error) {
+	s.updateGitHubCalls++
 	return s.github, s.updateGitHubErr
 }
 
 func (s *recordingSettingsService) ValidateOIDC(_ context.Context, _ appsettings.ValidateOIDCInput) error {
+	s.validateOIDCCalls++
 	return s.validateOIDCErr
 }
 
 func (s *recordingSettingsService) ValidateGoogle(_ context.Context, _ appsettings.ValidateGoogleInput) error {
+	s.validateGoogleCalls++
 	return s.validateGoogleErr
 }
 
@@ -363,6 +497,7 @@ func (s *recordingSettingsService) ValidateGitHub(_ context.Context, input appse
 }
 
 func (s *recordingSettingsService) TestSMTP(_ context.Context, _ appsettings.TestSMTPInput) error {
+	s.testSMTPCalls++
 	return s.testSMTPErr
 }
 

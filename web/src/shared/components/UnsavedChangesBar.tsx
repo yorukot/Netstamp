@@ -69,7 +69,7 @@ export function UnsavedChangesBar({
 		<div className={classNames(styles.bar, className)} data-state={visibleState} role="status" aria-live="polite" aria-hidden={closing || undefined} onAnimationEnd={finishExit}>
 			<strong className={styles.message}>{visibleMessage}</strong>
 			<div className={styles.actions}>
-				<Button type="button" variant="plain" className={styles.resetButton} disabled={saving || closing} onClick={onReset}>
+				<Button type="button" variant="outline" className={styles.resetButton} disabled={saving || closing} onClick={onReset}>
 					{visibleResetLabel}
 				</Button>
 				<Button type={saveType} form={form} disabled={disabled || saving || closing} onClick={onSave}>

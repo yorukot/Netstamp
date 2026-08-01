@@ -105,60 +105,40 @@ func (s *Service) requireSystemAdmin(ctx context.Context, userID string) error {
 	return nil
 }
 
-func (s *Service) GetAccess(ctx context.Context, input GetAccessInput) (Versioned[AccessSettings], error) {
-	return getVersionedSetting(ctx, s, input.CurrentUserID, ResourceAccess, s.EffectiveAccess)
+func (s *Service) GetAccess(ctx context.Context, input GetAccessInput) (AccessSettings, error) {
+	return getSetting(ctx, s, input.CurrentUserID, s.EffectiveAccess)
 }
 
-func (s *Service) GetSMTP(ctx context.Context, input GetSMTPInput) (Versioned[SMTPSettings], error) {
-	return getVersionedSetting(ctx, s, input.CurrentUserID, ResourceSMTP, s.effectiveSMTPView)
+func (s *Service) GetSMTP(ctx context.Context, input GetSMTPInput) (SMTPSettings, error) {
+	return getSetting(ctx, s, input.CurrentUserID, s.effectiveSMTPView)
 }
 
-func (s *Service) GetOIDC(ctx context.Context, input GetOIDCInput) (Versioned[OIDCSettings], error) {
-	return getVersionedSetting(ctx, s, input.CurrentUserID, ResourceOIDC, s.effectiveOIDCView)
+func (s *Service) GetOIDC(ctx context.Context, input GetOIDCInput) (OIDCSettings, error) {
+	return getSetting(ctx, s, input.CurrentUserID, s.effectiveOIDCView)
 }
 
-func (s *Service) GetGoogle(ctx context.Context, input GetGoogleInput) (Versioned[GoogleSettings], error) {
-	return getVersionedSetting(ctx, s, input.CurrentUserID, ResourceGoogle, s.effectiveGoogleView)
+func (s *Service) GetGoogle(ctx context.Context, input GetGoogleInput) (GoogleSettings, error) {
+	return getSetting(ctx, s, input.CurrentUserID, s.effectiveGoogleView)
 }
 
-func (s *Service) GetGitHub(ctx context.Context, input GetGitHubInput) (Versioned[GitHubSettings], error) {
-	return getVersionedSetting(ctx, s, input.CurrentUserID, ResourceGitHub, s.effectiveGitHubView)
+func (s *Service) GetGitHub(ctx context.Context, input GetGitHubInput) (GitHubSettings, error) {
+	return getSetting(ctx, s, input.CurrentUserID, s.effectiveGitHubView)
 }
 
-func getVersionedSetting[T any](
+func getSetting[T any](
 	ctx context.Context,
 	service *Service,
 	currentUserID string,
-	resource Resource,
 	load func(context.Context) (T, error),
-) (Versioned[T], error) {
+) (T, error) {
+	var zero T
 	if service == nil || service.repo == nil {
-		return Versioned[T]{}, errors.New("system settings repository is unavailable")
+		return zero, errors.New("system settings repository is unavailable")
 	}
 	if adminErr := service.requireSystemAdmin(ctx, currentUserID); adminErr != nil {
-		return Versioned[T]{}, adminErr
+		return zero, adminErr
 	}
-	var result Versioned[T]
-	txErr := service.transactor.WithinTx(ctx, func(txCtx context.Context) error {
-		revision, revisionErr := service.repo.LockSystemSettingRevision(txCtx, string(resource))
-		if revisionErr != nil {
-			return revisionErr
-		}
-		value, loadErr := load(txCtx)
-		if loadErr != nil {
-			return loadErr
-		}
-		result = Versioned[T]{Value: value, Revision: revision}
-		return nil
-	})
-	return result, txErr
-}
-
-func (s *Service) revision(ctx context.Context, resource Resource) (int64, error) {
-	if s.repo == nil {
-		return 0, errors.New("system settings repository is unavailable")
-	}
-	return s.repo.GetSystemSettingRevision(ctx, string(resource))
+	return load(ctx)
 }
 
 func (s *Service) EffectiveAccess(ctx context.Context) (AccessSettings, error) {
@@ -449,20 +429,13 @@ func (s *Service) CredentialChangesEnabled(ctx context.Context) (bool, error) {
 }
 
 func (s *Service) TestSMTP(ctx context.Context, input TestSMTPInput) error {
-	ctx, flow := s.startSettingsFlow(ctx, "test", ResourceSMTP, input.CurrentUserID, input.ExpectedRevision)
+	ctx, flow := s.startSettingsFlow(ctx, "test", ResourceSMTP, input.CurrentUserID)
 	defer flow.end()
 	if err := flow.authorize(ctx); err != nil {
 		return err
 	}
 	var snapshot SMTPRuntimeSettings
 	if snapshotErr := s.transactor.WithinTx(ctx, func(txCtx context.Context) error {
-		revision, lockErr := s.repo.LockSystemSettingRevision(txCtx, string(ResourceSMTP))
-		if lockErr != nil {
-			return lockErr
-		}
-		if revisionErr := flow.requireRevision(revision); revisionErr != nil {
-			return revisionErr
-		}
 		rows, loadErr := s.settingsByKeys(txCtx, smtpKeys)
 		if loadErr != nil {
 			return loadErr

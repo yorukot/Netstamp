@@ -11,17 +11,17 @@ type settingUpdate struct {
 	value   any
 }
 
-func (s *Service) UpdateAccess(ctx context.Context, input UpdateAccessInput) (Versioned[AccessSettings], error) {
-	ctx, flow := s.startSettingsFlow(ctx, "update", ResourceAccess, input.CurrentUserID, input.ExpectedRevision)
+func (s *Service) UpdateAccess(ctx context.Context, input UpdateAccessInput) (AccessSettings, error) {
+	ctx, flow := s.startSettingsFlow(ctx, "update", ResourceAccess, input.CurrentUserID)
 	defer flow.end()
 	if authorizeErr := flow.authorize(ctx); authorizeErr != nil {
-		return Versioned[AccessSettings]{}, authorizeErr
+		return AccessSettings{}, authorizeErr
 	}
 
-	var result Versioned[AccessSettings]
+	var result AccessSettings
 	txErr := s.transactor.WithinTx(ctx, func(txCtx context.Context) error {
 		var updateErr error
-		result, updateErr = s.updateAccessInTx(txCtx, flow, input)
+		result, updateErr = s.updateAccessInTx(txCtx, input)
 		return updateErr
 	})
 	return result, txErr
@@ -29,49 +29,41 @@ func (s *Service) UpdateAccess(ctx context.Context, input UpdateAccessInput) (Ve
 
 func (s *Service) updateAccessInTx(
 	ctx context.Context,
-	flow settingsFlow,
 	input UpdateAccessInput,
-) (Versioned[AccessSettings], error) {
-	revisions, lockErr := s.lockAccessSMTP(ctx)
+) (AccessSettings, error) {
+	lockErr := s.lockAccessSMTP(ctx)
 	if lockErr != nil {
-		return Versioned[AccessSettings]{}, lockErr
-	}
-	if revisionErr := flow.requireRevision(revisions[ResourceAccess]); revisionErr != nil {
-		return Versioned[AccessSettings]{}, revisionErr
+		return AccessSettings{}, lockErr
 	}
 
 	current, loadErr := s.EffectiveAccess(ctx)
 	if loadErr != nil {
-		return Versioned[AccessSettings]{}, loadErr
+		return AccessSettings{}, loadErr
 	}
 	next := applyAccessPatch(current, input)
 	if next.EmailVerificationRequired {
 		smtpRows, smtpErr := s.settingsByKeys(ctx, smtpKeys)
 		if smtpErr != nil {
-			return Versioned[AccessSettings]{}, smtpErr
+			return AccessSettings{}, smtpErr
 		}
 		smtp, viewErr := s.smtpViewFromRows(smtpRows)
 		if viewErr != nil {
-			return Versioned[AccessSettings]{}, viewErr
+			return AccessSettings{}, viewErr
 		}
 		if invariantErr := validateAccessSMTPInvariant(next, smtp); invariantErr != nil {
-			return Versioned[AccessSettings]{}, invariantErr
+			return AccessSettings{}, invariantErr
 		}
 		if passwordErr := s.validateRetainedSMTPPassword(smtpRows, smtp, OptionalSecret{}); passwordErr != nil {
-			return Versioned[AccessSettings]{}, passwordErr
+			return AccessSettings{}, passwordErr
 		}
 	}
 	if reflect.DeepEqual(current, next) {
-		return Versioned[AccessSettings]{Value: current, Revision: revisions[ResourceAccess]}, nil
+		return current, nil
 	}
 	if persistErr := s.persistAccess(ctx, current, next, &input.CurrentUserID); persistErr != nil {
-		return Versioned[AccessSettings]{}, persistErr
+		return AccessSettings{}, persistErr
 	}
-	revision, bumpErr := s.repo.BumpSystemSettingRevision(ctx, string(ResourceAccess))
-	if bumpErr != nil {
-		return Versioned[AccessSettings]{}, bumpErr
-	}
-	return Versioned[AccessSettings]{Value: next, Revision: revision}, nil
+	return next, nil
 }
 
 func applyAccessPatch(current AccessSettings, input UpdateAccessInput) AccessSettings {
@@ -105,21 +97,21 @@ func (s *Service) persistAccess(
 	})
 }
 
-func (s *Service) UpdateSMTP(ctx context.Context, input UpdateSMTPInput) (Versioned[SMTPSettings], error) {
-	ctx, flow := s.startSettingsFlow(ctx, "update", ResourceSMTP, input.CurrentUserID, input.ExpectedRevision)
+func (s *Service) UpdateSMTP(ctx context.Context, input UpdateSMTPInput) (SMTPSettings, error) {
+	ctx, flow := s.startSettingsFlow(ctx, "update", ResourceSMTP, input.CurrentUserID)
 	defer flow.end()
 	if authorizeErr := flow.authorize(ctx); authorizeErr != nil {
-		return Versioned[SMTPSettings]{}, authorizeErr
+		return SMTPSettings{}, authorizeErr
 	}
 	if secretErr := validateSecretPatch(input.Password, "password"); secretErr != nil {
-		return Versioned[SMTPSettings]{}, secretErr
+		return SMTPSettings{}, secretErr
 	}
 	normalizeSMTPInput(&input)
 
-	var result Versioned[SMTPSettings]
+	var result SMTPSettings
 	txErr := s.transactor.WithinTx(ctx, func(txCtx context.Context) error {
 		var updateErr error
-		result, updateErr = s.updateSMTPInTx(txCtx, flow, input)
+		result, updateErr = s.updateSMTPInTx(txCtx, input)
 		return updateErr
 	})
 	return result, txErr
@@ -127,50 +119,42 @@ func (s *Service) UpdateSMTP(ctx context.Context, input UpdateSMTPInput) (Versio
 
 func (s *Service) updateSMTPInTx(
 	ctx context.Context,
-	flow settingsFlow,
 	input UpdateSMTPInput,
-) (Versioned[SMTPSettings], error) {
-	revisions, lockErr := s.lockAccessSMTP(ctx)
+) (SMTPSettings, error) {
+	lockErr := s.lockAccessSMTP(ctx)
 	if lockErr != nil {
-		return Versioned[SMTPSettings]{}, lockErr
-	}
-	if revisionErr := flow.requireRevision(revisions[ResourceSMTP]); revisionErr != nil {
-		return Versioned[SMTPSettings]{}, revisionErr
+		return SMTPSettings{}, lockErr
 	}
 
 	rows, loadErr := s.settingsByKeys(ctx, smtpKeys)
 	if loadErr != nil {
-		return Versioned[SMTPSettings]{}, loadErr
+		return SMTPSettings{}, loadErr
 	}
 	current, viewErr := s.smtpViewFromRows(rows)
 	if viewErr != nil {
-		return Versioned[SMTPSettings]{}, viewErr
+		return SMTPSettings{}, viewErr
 	}
 	next := applySMTPPatch(current, input)
 	if validationErr := validateSMTP(next); validationErr != nil {
-		return Versioned[SMTPSettings]{}, validationErr
+		return SMTPSettings{}, validationErr
 	}
 	if passwordErr := s.validateRetainedSMTPPassword(rows, next, input.Password); passwordErr != nil {
-		return Versioned[SMTPSettings]{}, passwordErr
+		return SMTPSettings{}, passwordErr
 	}
 	access, accessErr := s.EffectiveAccess(ctx)
 	if accessErr != nil {
-		return Versioned[SMTPSettings]{}, accessErr
+		return SMTPSettings{}, accessErr
 	}
 	if invariantErr := validateAccessSMTPInvariant(access, next); invariantErr != nil {
-		return Versioned[SMTPSettings]{}, invariantErr
+		return SMTPSettings{}, invariantErr
 	}
 	if smtpPatchIsNoop(current, next, input.Password) {
-		return Versioned[SMTPSettings]{Value: current, Revision: revisions[ResourceSMTP]}, nil
+		return current, nil
 	}
 	if persistErr := s.persistSMTP(ctx, current, next, input.Password, &input.CurrentUserID); persistErr != nil {
-		return Versioned[SMTPSettings]{}, persistErr
+		return SMTPSettings{}, persistErr
 	}
-	revision, bumpErr := s.repo.BumpSystemSettingRevision(ctx, string(ResourceSMTP))
-	if bumpErr != nil {
-		return Versioned[SMTPSettings]{}, bumpErr
-	}
-	return Versioned[SMTPSettings]{Value: next, Revision: revision}, nil
+	return next, nil
 }
 
 func (s *Service) validateRetainedSMTPPassword(
@@ -264,17 +248,9 @@ func (s *Service) persistPublicUpdates(ctx context.Context, actor *string, updat
 	return nil
 }
 
-func (s *Service) lockAccessSMTP(ctx context.Context) (map[Resource]int64, error) {
-	result := make(map[Resource]int64, 2)
-	access, accessErr := s.repo.LockSystemSettingRevision(ctx, string(ResourceAccess))
-	if accessErr != nil {
-		return nil, accessErr
+func (s *Service) lockAccessSMTP(ctx context.Context) error {
+	if accessErr := s.repo.LockSystemSettingsResource(ctx, string(ResourceAccess)); accessErr != nil {
+		return accessErr
 	}
-	result[ResourceAccess] = access
-	smtp, smtpErr := s.repo.LockSystemSettingRevision(ctx, string(ResourceSMTP))
-	if smtpErr != nil {
-		return nil, smtpErr
-	}
-	result[ResourceSMTP] = smtp
-	return result, nil
+	return s.repo.LockSystemSettingsResource(ctx, string(ResourceSMTP))
 }

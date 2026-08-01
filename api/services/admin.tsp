@@ -99,20 +99,18 @@ interface AdminService {
 	@doc("Return the current account, project, and credential-management policies.")
 	@get
 	@route("/settings/access")
-	getAdminAccessSettings(): VersionedOkJson<AdminAccessSettingsResponse> | UnauthorizedProblem | ForbiddenProblem | InternalServerProblem;
+	getAdminAccessSettings(): PrivateNoStoreOkJson<AdminAccessSettingsResponse> | UnauthorizedProblem | ForbiddenProblem | InternalServerProblem;
 
 	@operationId("updateAdminAccessSettings")
 	@summary("Update instance access settings")
-	@doc("Partially update account, project, and credential-management policies. If-Match must contain the strong ETag returned by getAdminAccessSettings.")
+	@doc("Partially update account, project, and credential-management policies.")
 	@patch
 	@route("/settings/access")
-	updateAdminAccessSettings(...IfMatchHeaderParam, @body body: AdminAccessSettingsPatch):
-		| VersionedOkJson<AdminAccessSettingsResponse>
+	updateAdminAccessSettings(@body body: AdminAccessSettingsPatch):
+		| PrivateNoStoreOkJson<AdminAccessSettingsResponse>
 		| BadRequestProblem
 		| UnauthorizedProblem
 		| ForbiddenProblem
-		| PreconditionFailedProblem
-		| PreconditionRequiredProblem
 		| UnprocessableEntityProblem
 		| InternalServerProblem;
 
@@ -121,58 +119,45 @@ interface AdminService {
 	@doc("Return the current SMTP configuration. The password is never returned.")
 	@get
 	@route("/settings/smtp")
-	getAdminSMTPSettings(): VersionedOkJson<AdminSMTPSettingsResponse> | UnauthorizedProblem | ForbiddenProblem | InternalServerProblem;
+	getAdminSMTPSettings(): PrivateNoStoreOkJson<AdminSMTPSettingsResponse> | UnauthorizedProblem | ForbiddenProblem | InternalServerProblem;
 
 	@operationId("updateAdminSMTPSettings")
 	@summary("Update SMTP settings")
-	@doc("Partially update the SMTP configuration. Omit password to retain it or set it to null to clear it. If-Match must contain the strong ETag returned by getAdminSMTPSettings.")
+	@doc("Partially update the SMTP configuration. Omit password to retain it or set it to null to clear it.")
 	@patch
 	@route("/settings/smtp")
-	updateAdminSMTPSettings(...IfMatchHeaderParam, @body body: AdminSMTPSettingsPatch):
-		| VersionedOkJson<AdminSMTPSettingsResponse>
+	updateAdminSMTPSettings(@body body: AdminSMTPSettingsPatch):
+		| PrivateNoStoreOkJson<AdminSMTPSettingsResponse>
 		| BadRequestProblem
 		| UnauthorizedProblem
 		| ForbiddenProblem
-		| PreconditionFailedProblem
-		| PreconditionRequiredProblem
 		| UnprocessableEntityProblem
 		| InternalServerProblem;
 
 	@operationId("testAdminSMTP")
 	@summary("Send an SMTP test email")
-	@doc("Send a test email using the persisted SMTP configuration. If-Match must contain the strong ETag returned by getAdminSMTPSettings.")
+	@doc("Send a test email using the persisted SMTP configuration.")
 	@post
 	@route("/settings/smtp/test")
-	testAdminSMTP(...IfMatchHeaderParam):
-		| NoContent
-		| BadRequestProblem
-		| UnauthorizedProblem
-		| ForbiddenProblem
-		| PreconditionFailedProblem
-		| PreconditionRequiredProblem
-		| UnprocessableEntityProblem
-		| ServiceUnavailableProblem
-		| InternalServerProblem;
+	testAdminSMTP(): NoContent | BadRequestProblem | UnauthorizedProblem | ForbiddenProblem | UnprocessableEntityProblem | ServiceUnavailableProblem | InternalServerProblem;
 
 	@operationId("getAdminOIDCProviderSettings")
 	@summary("Get OIDC provider settings")
 	@doc("Return the current generic OIDC provider configuration. The client secret is never returned.")
 	@get
 	@route("/settings/authentication-providers/oidc")
-	getAdminOIDCProviderSettings(): VersionedOkJson<AdminOIDCProviderSettingsResponse> | UnauthorizedProblem | ForbiddenProblem | InternalServerProblem;
+	getAdminOIDCProviderSettings(): PrivateNoStoreOkJson<AdminOIDCProviderSettingsResponse> | UnauthorizedProblem | ForbiddenProblem | InternalServerProblem;
 
 	@operationId("updateAdminOIDCProviderSettings")
 	@summary("Update OIDC provider settings")
-	@doc("Partially update the generic OIDC provider. Enabling the provider also validates discovery readiness. If-Match must contain the strong ETag returned by getAdminOIDCProviderSettings.")
+	@doc("Partially update the generic OIDC provider. Enabling the provider also validates discovery readiness.")
 	@patch
 	@route("/settings/authentication-providers/oidc")
-	updateAdminOIDCProviderSettings(...IfMatchHeaderParam, @body body: AdminOIDCProviderSettingsPatch):
-		| VersionedOkJson<AdminOIDCProviderSettingsResponse>
+	updateAdminOIDCProviderSettings(@body body: AdminOIDCProviderSettingsPatch):
+		| PrivateNoStoreOkJson<AdminOIDCProviderSettingsResponse>
 		| BadRequestProblem
 		| UnauthorizedProblem
 		| ForbiddenProblem
-		| PreconditionFailedProblem
-		| PreconditionRequiredProblem
 		| UnprocessableEntityProblem
 		| ServiceUnavailableProblem
 		| InternalServerProblem;
@@ -182,13 +167,11 @@ interface AdminService {
 	@doc("Validate a candidate OIDC patch against the persisted provider without saving it. This checks configuration and discovery readiness, not an end-user login.")
 	@post
 	@route("/settings/authentication-providers/oidc/validate")
-	validateAdminOIDCProviderSettings(...IfMatchHeaderParam, @body body: AdminOIDCProviderSettingsPatch):
+	validateAdminOIDCProviderSettings(@body body: AdminOIDCProviderSettingsPatch):
 		| NoContent
 		| BadRequestProblem
 		| UnauthorizedProblem
 		| ForbiddenProblem
-		| PreconditionFailedProblem
-		| PreconditionRequiredProblem
 		| UnprocessableEntityProblem
 		| ServiceUnavailableProblem
 		| InternalServerProblem;
@@ -198,20 +181,18 @@ interface AdminService {
 	@doc("Return the current Google provider configuration. The client secret is never returned.")
 	@get
 	@route("/settings/authentication-providers/google")
-	getAdminGoogleProviderSettings(): VersionedOkJson<AdminGoogleProviderSettingsResponse> | UnauthorizedProblem | ForbiddenProblem | InternalServerProblem;
+	getAdminGoogleProviderSettings(): PrivateNoStoreOkJson<AdminGoogleProviderSettingsResponse> | UnauthorizedProblem | ForbiddenProblem | InternalServerProblem;
 
 	@operationId("updateAdminGoogleProviderSettings")
 	@summary("Update Google provider settings")
-	@doc("Partially update the Google provider. If-Match must contain the strong ETag returned by getAdminGoogleProviderSettings.")
+	@doc("Partially update the Google provider.")
 	@patch
 	@route("/settings/authentication-providers/google")
-	updateAdminGoogleProviderSettings(...IfMatchHeaderParam, @body body: AdminGoogleProviderSettingsPatch):
-		| VersionedOkJson<AdminGoogleProviderSettingsResponse>
+	updateAdminGoogleProviderSettings(@body body: AdminGoogleProviderSettingsPatch):
+		| PrivateNoStoreOkJson<AdminGoogleProviderSettingsResponse>
 		| BadRequestProblem
 		| UnauthorizedProblem
 		| ForbiddenProblem
-		| PreconditionFailedProblem
-		| PreconditionRequiredProblem
 		| UnprocessableEntityProblem
 		| ServiceUnavailableProblem
 		| InternalServerProblem;
@@ -221,13 +202,11 @@ interface AdminService {
 	@doc("Validate a candidate Google patch against the persisted provider without saving it. This checks configuration readiness but cannot prove the client secret without completing OAuth authorization.")
 	@post
 	@route("/settings/authentication-providers/google/validate")
-	validateAdminGoogleProviderSettings(...IfMatchHeaderParam, @body body: AdminGoogleProviderSettingsPatch):
+	validateAdminGoogleProviderSettings(@body body: AdminGoogleProviderSettingsPatch):
 		| NoContent
 		| BadRequestProblem
 		| UnauthorizedProblem
 		| ForbiddenProblem
-		| PreconditionFailedProblem
-		| PreconditionRequiredProblem
 		| UnprocessableEntityProblem
 		| ServiceUnavailableProblem
 		| InternalServerProblem;
@@ -237,20 +216,18 @@ interface AdminService {
 	@doc("Return the current GitHub provider configuration. The client secret is never returned.")
 	@get
 	@route("/settings/authentication-providers/github")
-	getAdminGitHubProviderSettings(): VersionedOkJson<AdminGitHubProviderSettingsResponse> | UnauthorizedProblem | ForbiddenProblem | InternalServerProblem;
+	getAdminGitHubProviderSettings(): PrivateNoStoreOkJson<AdminGitHubProviderSettingsResponse> | UnauthorizedProblem | ForbiddenProblem | InternalServerProblem;
 
 	@operationId("updateAdminGitHubProviderSettings")
 	@summary("Update GitHub provider settings")
-	@doc("Partially update the GitHub provider. If-Match must contain the strong ETag returned by getAdminGitHubProviderSettings.")
+	@doc("Partially update the GitHub provider.")
 	@patch
 	@route("/settings/authentication-providers/github")
-	updateAdminGitHubProviderSettings(...IfMatchHeaderParam, @body body: AdminGitHubProviderSettingsPatch):
-		| VersionedOkJson<AdminGitHubProviderSettingsResponse>
+	updateAdminGitHubProviderSettings(@body body: AdminGitHubProviderSettingsPatch):
+		| PrivateNoStoreOkJson<AdminGitHubProviderSettingsResponse>
 		| BadRequestProblem
 		| UnauthorizedProblem
 		| ForbiddenProblem
-		| PreconditionFailedProblem
-		| PreconditionRequiredProblem
 		| UnprocessableEntityProblem
 		| ServiceUnavailableProblem
 		| InternalServerProblem;
@@ -260,13 +237,11 @@ interface AdminService {
 	@doc("Validate a candidate GitHub patch against the persisted provider without saving it. This checks configuration readiness but cannot prove the client secret without completing OAuth authorization.")
 	@post
 	@route("/settings/authentication-providers/github/validate")
-	validateAdminGitHubProviderSettings(...IfMatchHeaderParam, @body body: AdminGitHubProviderSettingsPatch):
+	validateAdminGitHubProviderSettings(@body body: AdminGitHubProviderSettingsPatch):
 		| NoContent
 		| BadRequestProblem
 		| UnauthorizedProblem
 		| ForbiddenProblem
-		| PreconditionFailedProblem
-		| PreconditionRequiredProblem
 		| UnprocessableEntityProblem
 		| ServiceUnavailableProblem
 		| InternalServerProblem;
