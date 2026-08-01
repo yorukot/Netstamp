@@ -12,48 +12,6 @@ import (
 	"github.com/google/uuid"
 )
 
-const bumpSystemSettingRevision = `-- name: BumpSystemSettingRevision :one
-UPDATE system_setting_revisions
-SET revision = revision + 1
-WHERE resource = $1
-RETURNING revision
-`
-
-func (q *Queries) BumpSystemSettingRevision(ctx context.Context, resource string) (int64, error) {
-	row := q.db.QueryRow(ctx, bumpSystemSettingRevision, resource)
-	var revision int64
-	err := row.Scan(&revision)
-	return revision, err
-}
-
-const bumpSystemSettingRevisions = `-- name: BumpSystemSettingRevisions :many
-UPDATE system_setting_revisions
-SET revision = revision + 1
-WHERE resource = ANY($1::text[])
-RETURNING resource,
-          revision
-`
-
-func (q *Queries) BumpSystemSettingRevisions(ctx context.Context, resources []string) ([]SystemSettingRevision, error) {
-	rows, err := q.db.Query(ctx, bumpSystemSettingRevisions, resources)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []SystemSettingRevision
-	for rows.Next() {
-		var i SystemSettingRevision
-		if err := rows.Scan(&i.Resource, &i.Revision); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const clearManagedUserPassword = `-- name: ClearManagedUserPassword :one
 WITH deleted AS (
     DELETE FROM password_credentials
@@ -165,19 +123,6 @@ WHERE key = $1
 func (q *Queries) DeleteSystemSetting(ctx context.Context, key string) error {
 	_, err := q.db.Exec(ctx, deleteSystemSetting, key)
 	return err
-}
-
-const getSystemSettingRevision = `-- name: GetSystemSettingRevision :one
-SELECT revision
-FROM system_setting_revisions
-WHERE resource = $1
-`
-
-func (q *Queries) GetSystemSettingRevision(ctx context.Context, resource string) (int64, error) {
-	row := q.db.QueryRow(ctx, getSystemSettingRevision, resource)
-	var revision int64
-	err := row.Scan(&revision)
-	return revision, err
 }
 
 const getSystemSettingsByKeys = `-- name: GetSystemSettingsByKeys :many
@@ -556,18 +501,18 @@ func (q *Queries) ListSystemSettings(ctx context.Context) ([]SystemSetting, erro
 	return items, nil
 }
 
-const lockSystemSettingRevision = `-- name: LockSystemSettingRevision :one
-SELECT revision
-FROM system_setting_revisions
-WHERE resource = $1
-FOR UPDATE
+const lockSystemSettingsResource = `-- name: LockSystemSettingsResource :exec
+SELECT pg_advisory_xact_lock(
+    hashtextextended(
+        'netstamp.system_settings.' || $1::text,
+        0
+    )
+)
 `
 
-func (q *Queries) LockSystemSettingRevision(ctx context.Context, resource string) (int64, error) {
-	row := q.db.QueryRow(ctx, lockSystemSettingRevision, resource)
-	var revision int64
-	err := row.Scan(&revision)
-	return revision, err
+func (q *Queries) LockSystemSettingsResource(ctx context.Context, resource string) error {
+	_, err := q.db.Exec(ctx, lockSystemSettingsResource, resource)
+	return err
 }
 
 const revokeSystemAdminIfNotLast = `-- name: RevokeSystemAdminIfNotLast :one

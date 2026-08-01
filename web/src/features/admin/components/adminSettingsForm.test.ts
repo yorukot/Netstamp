@@ -23,7 +23,7 @@ EXAMPLE.com `)
 		expect(secretValueFromForm("replacement", true)).toBeNull();
 	});
 
-	it("rebases only touched fields onto a newer server version", () => {
+	it("rebases only touched fields onto refreshed server settings", () => {
 		const original = { enabled: false, displayName: "Original" };
 		const intent = updateSettingsIntent(null, original, "enabled", true);
 		const changedElsewhere = { enabled: false, displayName: "Changed elsewhere" };

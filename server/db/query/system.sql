@@ -320,26 +320,10 @@ WHERE secret = true
 INSERT INTO system_setting_audit_events (key, action, updated_by_user_id)
 VALUES ($1, $2, sqlc.narg(updated_by_user_id));
 
--- name: GetSystemSettingRevision :one
-SELECT revision
-FROM system_setting_revisions
-WHERE resource = sqlc.arg(resource);
-
--- name: LockSystemSettingRevision :one
-SELECT revision
-FROM system_setting_revisions
-WHERE resource = sqlc.arg(resource)
-FOR UPDATE;
-
--- name: BumpSystemSettingRevision :one
-UPDATE system_setting_revisions
-SET revision = revision + 1
-WHERE resource = sqlc.arg(resource)
-RETURNING revision;
-
--- name: BumpSystemSettingRevisions :many
-UPDATE system_setting_revisions
-SET revision = revision + 1
-WHERE resource = ANY(sqlc.arg(resources)::text[])
-RETURNING resource,
-          revision;
+-- name: LockSystemSettingsResource :exec
+SELECT pg_advisory_xact_lock(
+    hashtextextended(
+        'netstamp.system_settings.' || sqlc.arg(resource)::text,
+        0
+    )
+);

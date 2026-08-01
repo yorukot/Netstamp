@@ -258,12 +258,11 @@ func TestSettingsUpdatesRejectCorruptRetainedSMTPPassword(t *testing.T) {
 			update: func(ctx context.Context, service *Service) (any, error) {
 				timeoutSeconds := int32(20)
 				return service.UpdateSMTP(ctx, UpdateSMTPInput{
-					CurrentUserID:    testSystemSettingsAdminID,
-					ExpectedRevision: 6,
-					TimeoutSeconds:   &timeoutSeconds,
+					CurrentUserID:  testSystemSettingsAdminID,
+					TimeoutSeconds: &timeoutSeconds,
 				})
 			},
-			zero: Versioned[SMTPSettings]{},
+			zero: SMTPSettings{},
 		},
 		{
 			name: "enable email verification",
@@ -271,19 +270,16 @@ func TestSettingsUpdatesRejectCorruptRetainedSMTPPassword(t *testing.T) {
 				required := true
 				return service.UpdateAccess(ctx, UpdateAccessInput{
 					CurrentUserID:             testSystemSettingsAdminID,
-					ExpectedRevision:          5,
 					EmailVerificationRequired: &required,
 				})
 			},
-			zero: Versioned[AccessSettings]{},
+			zero: AccessSettings{},
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			repo := newMemorySettingsRepository()
-			repo.revisions[string(ResourceAccess)] = 5
-			repo.revisions[string(ResourceSMTP)] = 6
 			repo.settings[keySMTPHost] = testPublicSetting(t, keySMTPHost, "smtp.example.com")
 			repo.settings[keySMTPUsername] = testPublicSetting(t, keySMTPUsername, "mailer")
 			repo.settings[keySMTPFrom] = testPublicSetting(t, keySMTPFrom, "alerts@example.com")
@@ -312,9 +308,7 @@ func TestSettingsUpdatesRejectCorruptRetainedSMTPPassword(t *testing.T) {
 			if len(cipher.decryptInputs) != 1 {
 				t.Fatalf("expected one retained-password check, got %#v", cipher.decryptInputs)
 			}
-			if repo.revisions[string(ResourceAccess)] != 5 || repo.revisions[string(ResourceSMTP)] != 6 {
-				t.Fatalf("validation failure changed revisions: %#v", repo.revisions)
-			}
+			assertAccessSMTPLockOrder(t, repo.lockAttempts)
 			assertNoSettingsWrites(t, repo)
 		})
 	}
@@ -404,7 +398,6 @@ func TestEnabledProviderUpdateRejectsOmittedCorruptRetainedSecret(t *testing.T) 
 	for _, provider := range runtimeProviderHarnesses() {
 		t.Run(provider.name, func(t *testing.T) {
 			repo := newMemorySettingsRepository()
-			repo.revisions[string(provider.resource)] = 5
 			repo.settings[provider.publicKey] = testPublicSetting(t, provider.publicKey, provider.validPublic(true))
 			repo.settings[provider.secretKey] = domainsystem.Setting{
 				Key:                 provider.secretKey,
@@ -415,11 +408,11 @@ func TestEnabledProviderUpdateRejectsOmittedCorruptRetainedSecret(t *testing.T) 
 			cipher := &fakeSecretCipher{decryptErrors: map[string]error{"corrupt-retained": corruptErr}}
 			service := newTestSettingsService(repo, cipher, nil, nil)
 
-			got, err := provider.updateDisplayName(context.Background(), service, 5)
+			got, err := provider.updateDisplayName(context.Background(), service)
 			if !errors.Is(err, ErrInvalidInput) {
 				t.Fatalf("expected corrupt retained secret to require replacement, got %#v, %v", got, err)
 			}
-			if !reflect.DeepEqual(got, provider.zeroVersioned) {
+			if !reflect.DeepEqual(got, provider.zeroUpdate) {
 				t.Fatalf("expected zero update result, got %#v", got)
 			}
 			fields := assertSystemSettingsValidationField(t, err, "clientSecret")
@@ -474,9 +467,9 @@ type runtimeProviderHarness struct {
 	invalidPublic     func() any
 	read              func(context.Context, *Service) (any, error)
 	runtimeEnabled    func(any) bool
-	updateDisplayName func(context.Context, *Service, int64) (any, error)
+	updateDisplayName func(context.Context, *Service) (any, error)
 	zeroRuntime       any
-	zeroVersioned     any
+	zeroUpdate        any
 }
 
 func runtimeProviderHarnesses() []runtimeProviderHarness {
@@ -507,16 +500,15 @@ func runtimeProviderHarnesses() []runtimeProviderHarness {
 			runtimeEnabled: func(value any) bool {
 				return value.(OIDCRuntimeSettings).Enabled
 			},
-			updateDisplayName: func(ctx context.Context, service *Service, revision int64) (any, error) {
+			updateDisplayName: func(ctx context.Context, service *Service) (any, error) {
 				displayName := "Updated single sign-on"
 				return service.UpdateOIDC(ctx, UpdateOIDCInput{
-					CurrentUserID:    testSystemSettingsAdminID,
-					ExpectedRevision: revision,
-					DisplayName:      &displayName,
+					CurrentUserID: testSystemSettingsAdminID,
+					DisplayName:   &displayName,
 				})
 			},
-			zeroRuntime:   OIDCRuntimeSettings{},
-			zeroVersioned: Versioned[OIDCSettings]{},
+			zeroRuntime: OIDCRuntimeSettings{},
+			zeroUpdate:  OIDCSettings{},
 		},
 		{
 			name:      "Google",
@@ -544,16 +536,15 @@ func runtimeProviderHarnesses() []runtimeProviderHarness {
 			runtimeEnabled: func(value any) bool {
 				return value.(GoogleRuntimeSettings).Enabled
 			},
-			updateDisplayName: func(ctx context.Context, service *Service, revision int64) (any, error) {
+			updateDisplayName: func(ctx context.Context, service *Service) (any, error) {
 				displayName := "Updated Google"
 				return service.UpdateGoogle(ctx, UpdateGoogleInput{
-					CurrentUserID:    testSystemSettingsAdminID,
-					ExpectedRevision: revision,
-					DisplayName:      &displayName,
+					CurrentUserID: testSystemSettingsAdminID,
+					DisplayName:   &displayName,
 				})
 			},
-			zeroRuntime:   GoogleRuntimeSettings{},
-			zeroVersioned: Versioned[GoogleSettings]{},
+			zeroRuntime: GoogleRuntimeSettings{},
+			zeroUpdate:  GoogleSettings{},
 		},
 		{
 			name:      "GitHub",
@@ -581,16 +572,15 @@ func runtimeProviderHarnesses() []runtimeProviderHarness {
 			runtimeEnabled: func(value any) bool {
 				return value.(GitHubRuntimeSettings).Enabled
 			},
-			updateDisplayName: func(ctx context.Context, service *Service, revision int64) (any, error) {
+			updateDisplayName: func(ctx context.Context, service *Service) (any, error) {
 				displayName := "Updated GitHub"
 				return service.UpdateGitHub(ctx, UpdateGitHubInput{
-					CurrentUserID:    testSystemSettingsAdminID,
-					ExpectedRevision: revision,
-					DisplayName:      &displayName,
+					CurrentUserID: testSystemSettingsAdminID,
+					DisplayName:   &displayName,
 				})
 			},
-			zeroRuntime:   GitHubRuntimeSettings{},
-			zeroVersioned: Versioned[GitHubSettings]{},
+			zeroRuntime: GitHubRuntimeSettings{},
+			zeroUpdate:  GitHubSettings{},
 		},
 	}
 }

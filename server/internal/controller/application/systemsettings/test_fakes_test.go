@@ -18,22 +18,20 @@ type settingsAuditEvent struct {
 
 type memorySettingsRepository struct {
 	settings       map[string]domainsystem.Setting
-	revisions      map[string]int64
 	auditEvents    []settingsAuditEvent
-	bumpErrors     map[string]error
+	auditErr       error
+	lockErrors     map[string]error
 	readKeyQueries [][]string
 	lockAttempts   []string
 	upsertAttempts []string
 	deleteAttempts []string
-	bumpAttempts   []string
 	auditAttempts  int
 }
 
 func newMemorySettingsRepository() *memorySettingsRepository {
 	return &memorySettingsRepository{
 		settings:   make(map[string]domainsystem.Setting),
-		revisions:  make(map[string]int64),
-		bumpErrors: make(map[string]error),
+		lockErrors: make(map[string]error),
 	}
 }
 
@@ -73,6 +71,9 @@ func (r *memorySettingsRepository) CreateSystemSettingAuditEvent(
 	updatedByUserID *string,
 ) error {
 	r.auditAttempts++
+	if r.auditErr != nil {
+		return r.auditErr
+	}
 	actor := ""
 	if updatedByUserID != nil {
 		actor = *updatedByUserID
@@ -81,27 +82,13 @@ func (r *memorySettingsRepository) CreateSystemSettingAuditEvent(
 	return nil
 }
 
-func (r *memorySettingsRepository) GetSystemSettingRevision(_ context.Context, resource string) (int64, error) {
-	return r.revisions[resource], nil
-}
-
-func (r *memorySettingsRepository) LockSystemSettingRevision(_ context.Context, resource string) (int64, error) {
+func (r *memorySettingsRepository) LockSystemSettingsResource(_ context.Context, resource string) error {
 	r.lockAttempts = append(r.lockAttempts, resource)
-	return r.revisions[resource], nil
-}
-
-func (r *memorySettingsRepository) BumpSystemSettingRevision(_ context.Context, resource string) (int64, error) {
-	r.bumpAttempts = append(r.bumpAttempts, resource)
-	if err := r.bumpErrors[resource]; err != nil {
-		return 0, err
-	}
-	r.revisions[resource]++
-	return r.revisions[resource], nil
+	return r.lockErrors[resource]
 }
 
 type memorySettingsSnapshot struct {
 	settings    map[string]domainsystem.Setting
-	revisions   map[string]int64
 	auditEvents []settingsAuditEvent
 }
 
@@ -110,20 +97,14 @@ func (r *memorySettingsRepository) snapshot() memorySettingsSnapshot {
 	for key, setting := range r.settings {
 		settings[key] = cloneTestSetting(setting)
 	}
-	revisions := make(map[string]int64, len(r.revisions))
-	for resource, revision := range r.revisions {
-		revisions[resource] = revision
-	}
 	return memorySettingsSnapshot{
 		settings:    settings,
-		revisions:   revisions,
 		auditEvents: append([]settingsAuditEvent(nil), r.auditEvents...),
 	}
 }
 
 func (r *memorySettingsRepository) restore(snapshot memorySettingsSnapshot) {
 	r.settings = snapshot.settings
-	r.revisions = snapshot.revisions
 	r.auditEvents = snapshot.auditEvents
 }
 
@@ -132,11 +113,14 @@ type rollbackSettingsTransactor struct {
 	calls     int
 	commits   int
 	rollbacks int
+	active    bool
 }
 
 func (t *rollbackSettingsTransactor) WithinTx(ctx context.Context, fn func(context.Context) error) error {
 	t.calls++
 	snapshot := t.repo.snapshot()
+	t.active = true
+	defer func() { t.active = false }()
 	if err := fn(ctx); err != nil {
 		t.repo.restore(snapshot)
 		t.rollbacks++
@@ -191,10 +175,14 @@ func (f *fakeSecretCipher) Decrypt(ciphertext, _ []byte) (string, error) {
 type fakeOIDCReadinessChecker struct {
 	err     error
 	issuers []string
+	onCheck func(context.Context, string)
 }
 
-func (f *fakeOIDCReadinessChecker) Check(_ context.Context, issuerURL string) error {
+func (f *fakeOIDCReadinessChecker) Check(ctx context.Context, issuerURL string) error {
 	f.issuers = append(f.issuers, issuerURL)
+	if f.onCheck != nil {
+		f.onCheck(ctx, issuerURL)
+	}
 	return f.err
 }
 

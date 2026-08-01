@@ -39,9 +39,12 @@ Store the dump together with the Compose files, the non-secret version settings,
 
 ## Upgrade
 
-Edit `.env` to select tested Netstamp and TimescaleDB versions. After creating the backup, update the database container and the installed extension before running Netstamp migrations:
+Edit `.env` to select tested Netstamp and TimescaleDB versions. Stop every controller that uses the database before running migrations; this prevents an old controller from accessing a schema that has already been migrated for the new release. For the standard Compose deployment, stop `netstamp`. If you run the observability stack, demo controller, or additional replicas, stop all of those controllers as well.
+
+After creating the backup, update the database container and the installed extension before running Netstamp migrations:
 
 ```bash
+docker compose stop netstamp
 docker compose pull postgres
 docker compose up -d postgres
 docker compose exec -T postgres \
@@ -53,9 +56,9 @@ docker compose logs migrate
 docker compose logs --tail=200 netstamp
 ```
 
-The migration container must exit successfully before the controller starts. Verify health, sign-in, one result query, one probe heartbeat, and one public status page.
+The migration container must exit successfully before any controller starts. Use the same Netstamp release for the migration, controller, and bundled web app; do not run old and new controller versions concurrently during this maintenance window. Verify health, sign-in, one result query, one probe heartbeat, and one public status page.
 
-:::caution Do not assume that switching the container image back also reverses database migrations. Restore the pre-upgrade database backup when the target release does not explicitly support a schema downgrade. :::
+:::caution Do not assume that switching the container image back also reverses database migrations. Keep all controllers stopped while applying a documented Goose down migration, and only then start the old image. Restore the pre-upgrade database backup when the target release does not explicitly support a schema downgrade. :::
 
 ## Monitor columnstore policies
 

@@ -76,7 +76,7 @@ var dataExportTables = []string{
 	"system_setting_audit_events",
 }
 
-var systemSettingRevisionResources = []string{
+var systemSettingResources = []string{
 	"access",
 	"smtp",
 	"auth.oidc",
@@ -84,8 +84,8 @@ var systemSettingRevisionResources = []string{
 	"auth.github",
 }
 
-type systemSettingRevisionLocker interface {
-	LockSystemSettingRevision(ctx context.Context, resource string) (int64, error)
+type systemSettingsResourceLocker interface {
+	LockSystemSettingsResource(ctx context.Context, resource string) error
 }
 
 func (r *Repository) IsSystemAdmin(ctx context.Context, userIDValue string) (bool, error) {
@@ -247,7 +247,7 @@ func (r *Repository) ImportData(ctx context.Context, export domainsystem.DataExp
 	var result domainsystem.DataImportResult
 	err = pgx.BeginFunc(ctx, r.pool, func(tx pgx.Tx) error {
 		queries := r.queries.WithTx(tx)
-		if lockErr := lockSystemSettingRevisions(ctx, queries); lockErr != nil {
+		if lockErr := lockSystemSettingsResources(ctx, queries); lockErr != nil {
 			return lockErr
 		}
 		if _, truncateErr := tx.Exec(ctx, truncateDataExportTablesSQL()); truncateErr != nil {
@@ -271,21 +271,7 @@ func (r *Repository) ImportData(ctx context.Context, export domainsystem.DataExp
 				return importErr
 			}
 		}
-		if cleanupErr := queries.DeleteLegacyEmptySystemSettingSecrets(ctx); cleanupErr != nil {
-			return cleanupErr
-		}
-		revisions, bumpErr := queries.BumpSystemSettingRevisions(ctx, systemSettingRevisionResources)
-		if bumpErr != nil {
-			return bumpErr
-		}
-		if len(revisions) != len(systemSettingRevisionResources) {
-			return fmt.Errorf(
-				"bump system setting revisions: expected %d resources, updated %d",
-				len(systemSettingRevisionResources),
-				len(revisions),
-			)
-		}
-		return nil
+		return queries.DeleteLegacyEmptySystemSettingSecrets(ctx)
 	})
 	if err != nil {
 		return domainsystem.DataImportResult{}, err
@@ -294,10 +280,10 @@ func (r *Repository) ImportData(ctx context.Context, export domainsystem.DataExp
 	return result, nil
 }
 
-func lockSystemSettingRevisions(ctx context.Context, locker systemSettingRevisionLocker) error {
-	for _, resource := range systemSettingRevisionResources {
-		if _, err := locker.LockSystemSettingRevision(ctx, resource); err != nil {
-			return fmt.Errorf("lock system setting revision %q: %w", resource, err)
+func lockSystemSettingsResources(ctx context.Context, locker systemSettingsResourceLocker) error {
+	for _, resource := range systemSettingResources {
+		if err := locker.LockSystemSettingsResource(ctx, resource); err != nil {
+			return fmt.Errorf("lock system settings resource %q: %w", resource, err)
 		}
 	}
 	return nil
@@ -483,16 +469,11 @@ func (r *Repository) CreateSystemSettingAuditEvent(ctx context.Context, key, act
 	})
 }
 
-func (r *Repository) GetSystemSettingRevision(ctx context.Context, resource string) (int64, error) {
-	return postgres.Queries(ctx, r.queries).GetSystemSettingRevision(ctx, resource)
-}
-
-func (r *Repository) LockSystemSettingRevision(ctx context.Context, resource string) (int64, error) {
-	return postgres.Queries(ctx, r.queries).LockSystemSettingRevision(ctx, resource)
-}
-
-func (r *Repository) BumpSystemSettingRevision(ctx context.Context, resource string) (int64, error) {
-	return postgres.Queries(ctx, r.queries).BumpSystemSettingRevision(ctx, resource)
+func (r *Repository) LockSystemSettingsResource(ctx context.Context, resource string) error {
+	if _, ok := postgres.TxFromContext(ctx); !ok {
+		return errors.New("lock system settings resource outside transaction")
+	}
+	return postgres.Queries(ctx, r.queries).LockSystemSettingsResource(ctx, resource)
 }
 
 func mapListSystemAdmin(row sqlc.ListSystemAdminsRow) domainsystem.AdminUser {

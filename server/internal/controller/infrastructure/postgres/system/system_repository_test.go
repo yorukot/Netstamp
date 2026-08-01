@@ -5,16 +5,17 @@ import (
 	"encoding/json"
 	"errors"
 	"slices"
+	"strings"
 	"testing"
 
 	domainsystem "github.com/yorukot/netstamp/internal/domain/system"
 )
 
-func TestLockSystemSettingRevisionsUsesDeterministicOrder(t *testing.T) {
-	locker := &recordingSystemSettingRevisionLocker{}
+func TestImportDataLocksSystemSettingsResourcesInCanonicalOrder(t *testing.T) {
+	locker := &recordingSystemSettingsResourceLocker{}
 
-	if err := lockSystemSettingRevisions(context.Background(), locker); err != nil {
-		t.Fatalf("lock system setting revisions: %v", err)
+	if err := lockSystemSettingsResources(context.Background(), locker); err != nil {
+		t.Fatalf("lock system settings resources: %v", err)
 	}
 	if !slices.Equal(locker.resources, []string{
 		"access",
@@ -27,37 +28,52 @@ func TestLockSystemSettingRevisionsUsesDeterministicOrder(t *testing.T) {
 	}
 }
 
-func TestLockSystemSettingRevisionsStopsAtFirstFailure(t *testing.T) {
+func TestImportDataStopsWhenSystemSettingsResourceLockFails(t *testing.T) {
 	expected := errors.New("lock failed")
-	locker := &recordingSystemSettingRevisionLocker{
+	locker := &recordingSystemSettingsResourceLocker{
 		failResource: "auth.oidc",
 		err:          expected,
 	}
 
-	err := lockSystemSettingRevisions(context.Background(), locker)
+	err := lockSystemSettingsResources(context.Background(), locker)
 	if !errors.Is(err, expected) {
 		t.Fatalf("expected lock failure, got %v", err)
+	}
+	if !strings.Contains(err.Error(), `"auth.oidc"`) {
+		t.Fatalf("expected failed resource in error, got %v", err)
 	}
 	if !slices.Equal(locker.resources, []string{"access", "smtp", "auth.oidc"}) {
 		t.Fatalf("unexpected lock attempts: %#v", locker.resources)
 	}
 }
 
-type recordingSystemSettingRevisionLocker struct {
+func TestLockSystemSettingsResourceRequiresTransaction(t *testing.T) {
+	repo := &Repository{}
+
+	err := repo.LockSystemSettingsResource(context.Background(), "access")
+	if err == nil {
+		t.Fatal("expected lock outside transaction to fail")
+	}
+	if got, want := err.Error(), "lock system settings resource outside transaction"; got != want {
+		t.Fatalf("unexpected error: got %q, want %q", got, want)
+	}
+}
+
+type recordingSystemSettingsResourceLocker struct {
 	resources    []string
 	failResource string
 	err          error
 }
 
-func (l *recordingSystemSettingRevisionLocker) LockSystemSettingRevision(
+func (l *recordingSystemSettingsResourceLocker) LockSystemSettingsResource(
 	_ context.Context,
 	resource string,
-) (int64, error) {
+) error {
 	l.resources = append(l.resources, resource)
 	if resource == l.failResource {
-		return 0, l.err
+		return l.err
 	}
-	return 1, nil
+	return nil
 }
 
 func TestNormalizeDataImportUpgradesLegacyPasswordCredentials(t *testing.T) {

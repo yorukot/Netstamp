@@ -80,7 +80,7 @@ export interface paths {
 		head?: never;
 		/**
 		 * Update instance access settings
-		 * @description Partially update account, project, and credential-management policies. If-Match must contain the strong ETag returned by getAdminAccessSettings.
+		 * @description Partially update account, project, and credential-management policies.
 		 */
 		patch: operations["updateAdminAccessSettings"];
 		trace?: never;
@@ -104,7 +104,7 @@ export interface paths {
 		head?: never;
 		/**
 		 * Update GitHub provider settings
-		 * @description Partially update the GitHub provider. If-Match must contain the strong ETag returned by getAdminGitHubProviderSettings.
+		 * @description Partially update the GitHub provider.
 		 */
 		patch: operations["updateAdminGitHubProviderSettings"];
 		trace?: never;
@@ -148,7 +148,7 @@ export interface paths {
 		head?: never;
 		/**
 		 * Update Google provider settings
-		 * @description Partially update the Google provider. If-Match must contain the strong ETag returned by getAdminGoogleProviderSettings.
+		 * @description Partially update the Google provider.
 		 */
 		patch: operations["updateAdminGoogleProviderSettings"];
 		trace?: never;
@@ -192,7 +192,7 @@ export interface paths {
 		head?: never;
 		/**
 		 * Update OIDC provider settings
-		 * @description Partially update the generic OIDC provider. Enabling the provider also validates discovery readiness. If-Match must contain the strong ETag returned by getAdminOIDCProviderSettings.
+		 * @description Partially update the generic OIDC provider. Enabling the provider also validates discovery readiness.
 		 */
 		patch: operations["updateAdminOIDCProviderSettings"];
 		trace?: never;
@@ -236,7 +236,7 @@ export interface paths {
 		head?: never;
 		/**
 		 * Update SMTP settings
-		 * @description Partially update the SMTP configuration. Omit password to retain it or set it to null to clear it. If-Match must contain the strong ETag returned by getAdminSMTPSettings.
+		 * @description Partially update the SMTP configuration. Omit password to retain it or set it to null to clear it.
 		 */
 		patch: operations["updateAdminSMTPSettings"];
 		trace?: never;
@@ -252,7 +252,7 @@ export interface paths {
 		put?: never;
 		/**
 		 * Send an SMTP test email
-		 * @description Send a test email using the persisted SMTP configuration. If-Match must contain the strong ETag returned by getAdminSMTPSettings.
+		 * @description Send a test email using the persisted SMTP configuration.
 		 */
 		post: operations["testAdminSMTP"];
 		delete?: never;
@@ -4096,8 +4096,6 @@ export interface components {
 				| "SYSTEM_ADMIN_REQUIRED"
 				| "SELF_SYSTEM_ADMIN_ACTION"
 				| "INVALID_ADMIN_DATA_IMPORT"
-				| "PRECONDITION_REQUIRED"
-				| "SETTINGS_VERSION_CONFLICT"
 				| "PROJECT_ROLE_REQUIRED"
 				| "PROJECT_NOT_FOUND"
 				| "PROJECT_SLUG_ALREADY_EXISTS"
@@ -5930,8 +5928,6 @@ export interface components {
 		"HttpSeriesQuery.series": string;
 		"HttpSeriesQuery.to": number;
 		IdentityIdPathParam: components["schemas"]["uuid"];
-		/** @description Exact strong ETag returned by the corresponding settings GET operation. */
-		IfMatchHeaderParam: string;
 		LabelIdPathParam: components["schemas"]["uuid"];
 		"LatestHttpResultsQuery.checkId": components["schemas"]["uuid"];
 		"LatestHttpResultsQuery.probeId": components["schemas"]["uuid"];
@@ -6145,11 +6141,9 @@ export interface operations {
 		};
 		requestBody?: never;
 		responses: {
-			/** @description A successful JSON response for a versioned resource. Send the returned strong ETag in If-Match when changing or validating the resource. */
+			/** @description A successful private JSON response that must not be cached. */
 			200: {
 				headers: {
-					/** @description Strong entity tag for this resource version. */
-					ETag: string;
 					"Cache-Control": "private, no-store";
 					[name: string]: unknown;
 				};
@@ -6189,10 +6183,7 @@ export interface operations {
 	updateAdminAccessSettings: {
 		parameters: {
 			query?: never;
-			header: {
-				/** @description Exact strong ETag returned by the corresponding settings GET operation. */
-				"If-Match": components["parameters"]["IfMatchHeaderParam"];
-			};
+			header?: never;
 			path?: never;
 			cookie?: never;
 		};
@@ -6202,11 +6193,9 @@ export interface operations {
 			};
 		};
 		responses: {
-			/** @description A successful JSON response for a versioned resource. Send the returned strong ETag in If-Match when changing or validating the resource. */
+			/** @description A successful private JSON response that must not be cached. */
 			200: {
 				headers: {
-					/** @description Strong entity tag for this resource version. */
-					ETag: string;
 					"Cache-Control": "private, no-store";
 					[name: string]: unknown;
 				};
@@ -6241,28 +6230,8 @@ export interface operations {
 					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description The supplied If-Match value does not identify the current resource version. The response includes the current strong ETag and uses SETTINGS_VERSION_CONFLICT. */
-			412: {
-				headers: {
-					ETag: string;
-					"Cache-Control": "private, no-store";
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
 			/** @description Client error */
 			422: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-			/** @description The operation requires an If-Match header containing a strong ETag returned by the corresponding GET operation. The problem code is PRECONDITION_REQUIRED. */
-			428: {
 				headers: {
 					[name: string]: unknown;
 				};
@@ -6290,11 +6259,9 @@ export interface operations {
 		};
 		requestBody?: never;
 		responses: {
-			/** @description A successful JSON response for a versioned resource. Send the returned strong ETag in If-Match when changing or validating the resource. */
+			/** @description A successful private JSON response that must not be cached. */
 			200: {
 				headers: {
-					/** @description Strong entity tag for this resource version. */
-					ETag: string;
 					"Cache-Control": "private, no-store";
 					[name: string]: unknown;
 				};
@@ -6334,10 +6301,7 @@ export interface operations {
 	updateAdminGitHubProviderSettings: {
 		parameters: {
 			query?: never;
-			header: {
-				/** @description Exact strong ETag returned by the corresponding settings GET operation. */
-				"If-Match": components["parameters"]["IfMatchHeaderParam"];
-			};
+			header?: never;
 			path?: never;
 			cookie?: never;
 		};
@@ -6347,11 +6311,9 @@ export interface operations {
 			};
 		};
 		responses: {
-			/** @description A successful JSON response for a versioned resource. Send the returned strong ETag in If-Match when changing or validating the resource. */
+			/** @description A successful private JSON response that must not be cached. */
 			200: {
 				headers: {
-					/** @description Strong entity tag for this resource version. */
-					ETag: string;
 					"Cache-Control": "private, no-store";
 					[name: string]: unknown;
 				};
@@ -6386,28 +6348,8 @@ export interface operations {
 					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description The supplied If-Match value does not identify the current resource version. The response includes the current strong ETag and uses SETTINGS_VERSION_CONFLICT. */
-			412: {
-				headers: {
-					ETag: string;
-					"Cache-Control": "private, no-store";
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
 			/** @description Client error */
 			422: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-			/** @description The operation requires an If-Match header containing a strong ETag returned by the corresponding GET operation. The problem code is PRECONDITION_REQUIRED. */
-			428: {
 				headers: {
 					[name: string]: unknown;
 				};
@@ -6438,10 +6380,7 @@ export interface operations {
 	validateAdminGitHubProviderSettings: {
 		parameters: {
 			query?: never;
-			header: {
-				/** @description Exact strong ETag returned by the corresponding settings GET operation. */
-				"If-Match": components["parameters"]["IfMatchHeaderParam"];
-			};
+			header?: never;
 			path?: never;
 			cookie?: never;
 		};
@@ -6485,28 +6424,8 @@ export interface operations {
 					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description The supplied If-Match value does not identify the current resource version. The response includes the current strong ETag and uses SETTINGS_VERSION_CONFLICT. */
-			412: {
-				headers: {
-					ETag: string;
-					"Cache-Control": "private, no-store";
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
 			/** @description Client error */
 			422: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-			/** @description The operation requires an If-Match header containing a strong ETag returned by the corresponding GET operation. The problem code is PRECONDITION_REQUIRED. */
-			428: {
 				headers: {
 					[name: string]: unknown;
 				};
@@ -6543,11 +6462,9 @@ export interface operations {
 		};
 		requestBody?: never;
 		responses: {
-			/** @description A successful JSON response for a versioned resource. Send the returned strong ETag in If-Match when changing or validating the resource. */
+			/** @description A successful private JSON response that must not be cached. */
 			200: {
 				headers: {
-					/** @description Strong entity tag for this resource version. */
-					ETag: string;
 					"Cache-Control": "private, no-store";
 					[name: string]: unknown;
 				};
@@ -6587,10 +6504,7 @@ export interface operations {
 	updateAdminGoogleProviderSettings: {
 		parameters: {
 			query?: never;
-			header: {
-				/** @description Exact strong ETag returned by the corresponding settings GET operation. */
-				"If-Match": components["parameters"]["IfMatchHeaderParam"];
-			};
+			header?: never;
 			path?: never;
 			cookie?: never;
 		};
@@ -6600,11 +6514,9 @@ export interface operations {
 			};
 		};
 		responses: {
-			/** @description A successful JSON response for a versioned resource. Send the returned strong ETag in If-Match when changing or validating the resource. */
+			/** @description A successful private JSON response that must not be cached. */
 			200: {
 				headers: {
-					/** @description Strong entity tag for this resource version. */
-					ETag: string;
 					"Cache-Control": "private, no-store";
 					[name: string]: unknown;
 				};
@@ -6639,28 +6551,8 @@ export interface operations {
 					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description The supplied If-Match value does not identify the current resource version. The response includes the current strong ETag and uses SETTINGS_VERSION_CONFLICT. */
-			412: {
-				headers: {
-					ETag: string;
-					"Cache-Control": "private, no-store";
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
 			/** @description Client error */
 			422: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-			/** @description The operation requires an If-Match header containing a strong ETag returned by the corresponding GET operation. The problem code is PRECONDITION_REQUIRED. */
-			428: {
 				headers: {
 					[name: string]: unknown;
 				};
@@ -6691,10 +6583,7 @@ export interface operations {
 	validateAdminGoogleProviderSettings: {
 		parameters: {
 			query?: never;
-			header: {
-				/** @description Exact strong ETag returned by the corresponding settings GET operation. */
-				"If-Match": components["parameters"]["IfMatchHeaderParam"];
-			};
+			header?: never;
 			path?: never;
 			cookie?: never;
 		};
@@ -6738,28 +6627,8 @@ export interface operations {
 					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description The supplied If-Match value does not identify the current resource version. The response includes the current strong ETag and uses SETTINGS_VERSION_CONFLICT. */
-			412: {
-				headers: {
-					ETag: string;
-					"Cache-Control": "private, no-store";
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
 			/** @description Client error */
 			422: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-			/** @description The operation requires an If-Match header containing a strong ETag returned by the corresponding GET operation. The problem code is PRECONDITION_REQUIRED. */
-			428: {
 				headers: {
 					[name: string]: unknown;
 				};
@@ -6796,11 +6665,9 @@ export interface operations {
 		};
 		requestBody?: never;
 		responses: {
-			/** @description A successful JSON response for a versioned resource. Send the returned strong ETag in If-Match when changing or validating the resource. */
+			/** @description A successful private JSON response that must not be cached. */
 			200: {
 				headers: {
-					/** @description Strong entity tag for this resource version. */
-					ETag: string;
 					"Cache-Control": "private, no-store";
 					[name: string]: unknown;
 				};
@@ -6840,10 +6707,7 @@ export interface operations {
 	updateAdminOIDCProviderSettings: {
 		parameters: {
 			query?: never;
-			header: {
-				/** @description Exact strong ETag returned by the corresponding settings GET operation. */
-				"If-Match": components["parameters"]["IfMatchHeaderParam"];
-			};
+			header?: never;
 			path?: never;
 			cookie?: never;
 		};
@@ -6853,11 +6717,9 @@ export interface operations {
 			};
 		};
 		responses: {
-			/** @description A successful JSON response for a versioned resource. Send the returned strong ETag in If-Match when changing or validating the resource. */
+			/** @description A successful private JSON response that must not be cached. */
 			200: {
 				headers: {
-					/** @description Strong entity tag for this resource version. */
-					ETag: string;
 					"Cache-Control": "private, no-store";
 					[name: string]: unknown;
 				};
@@ -6892,28 +6754,8 @@ export interface operations {
 					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description The supplied If-Match value does not identify the current resource version. The response includes the current strong ETag and uses SETTINGS_VERSION_CONFLICT. */
-			412: {
-				headers: {
-					ETag: string;
-					"Cache-Control": "private, no-store";
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
 			/** @description Client error */
 			422: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-			/** @description The operation requires an If-Match header containing a strong ETag returned by the corresponding GET operation. The problem code is PRECONDITION_REQUIRED. */
-			428: {
 				headers: {
 					[name: string]: unknown;
 				};
@@ -6944,10 +6786,7 @@ export interface operations {
 	validateAdminOIDCProviderSettings: {
 		parameters: {
 			query?: never;
-			header: {
-				/** @description Exact strong ETag returned by the corresponding settings GET operation. */
-				"If-Match": components["parameters"]["IfMatchHeaderParam"];
-			};
+			header?: never;
 			path?: never;
 			cookie?: never;
 		};
@@ -6991,28 +6830,8 @@ export interface operations {
 					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description The supplied If-Match value does not identify the current resource version. The response includes the current strong ETag and uses SETTINGS_VERSION_CONFLICT. */
-			412: {
-				headers: {
-					ETag: string;
-					"Cache-Control": "private, no-store";
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
 			/** @description Client error */
 			422: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-			/** @description The operation requires an If-Match header containing a strong ETag returned by the corresponding GET operation. The problem code is PRECONDITION_REQUIRED. */
-			428: {
 				headers: {
 					[name: string]: unknown;
 				};
@@ -7049,11 +6868,9 @@ export interface operations {
 		};
 		requestBody?: never;
 		responses: {
-			/** @description A successful JSON response for a versioned resource. Send the returned strong ETag in If-Match when changing or validating the resource. */
+			/** @description A successful private JSON response that must not be cached. */
 			200: {
 				headers: {
-					/** @description Strong entity tag for this resource version. */
-					ETag: string;
 					"Cache-Control": "private, no-store";
 					[name: string]: unknown;
 				};
@@ -7093,10 +6910,7 @@ export interface operations {
 	updateAdminSMTPSettings: {
 		parameters: {
 			query?: never;
-			header: {
-				/** @description Exact strong ETag returned by the corresponding settings GET operation. */
-				"If-Match": components["parameters"]["IfMatchHeaderParam"];
-			};
+			header?: never;
 			path?: never;
 			cookie?: never;
 		};
@@ -7106,11 +6920,9 @@ export interface operations {
 			};
 		};
 		responses: {
-			/** @description A successful JSON response for a versioned resource. Send the returned strong ETag in If-Match when changing or validating the resource. */
+			/** @description A successful private JSON response that must not be cached. */
 			200: {
 				headers: {
-					/** @description Strong entity tag for this resource version. */
-					ETag: string;
 					"Cache-Control": "private, no-store";
 					[name: string]: unknown;
 				};
@@ -7145,28 +6957,8 @@ export interface operations {
 					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description The supplied If-Match value does not identify the current resource version. The response includes the current strong ETag and uses SETTINGS_VERSION_CONFLICT. */
-			412: {
-				headers: {
-					ETag: string;
-					"Cache-Control": "private, no-store";
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
 			/** @description Client error */
 			422: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-			/** @description The operation requires an If-Match header containing a strong ETag returned by the corresponding GET operation. The problem code is PRECONDITION_REQUIRED. */
-			428: {
 				headers: {
 					[name: string]: unknown;
 				};
@@ -7188,10 +6980,7 @@ export interface operations {
 	testAdminSMTP: {
 		parameters: {
 			query?: never;
-			header: {
-				/** @description Exact strong ETag returned by the corresponding settings GET operation. */
-				"If-Match": components["parameters"]["IfMatchHeaderParam"];
-			};
+			header?: never;
 			path?: never;
 			cookie?: never;
 		};
@@ -7231,28 +7020,8 @@ export interface operations {
 					"application/problem+json": components["schemas"]["ProblemDetails"];
 				};
 			};
-			/** @description The supplied If-Match value does not identify the current resource version. The response includes the current strong ETag and uses SETTINGS_VERSION_CONFLICT. */
-			412: {
-				headers: {
-					ETag: string;
-					"Cache-Control": "private, no-store";
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
 			/** @description Client error */
 			422: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					"application/problem+json": components["schemas"]["ProblemDetails"];
-				};
-			};
-			/** @description The operation requires an If-Match header containing a strong ETag returned by the corresponding GET operation. The problem code is PRECONDITION_REQUIRED. */
-			428: {
 				headers: {
 					[name: string]: unknown;
 				};

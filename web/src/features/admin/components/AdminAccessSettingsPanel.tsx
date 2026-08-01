@@ -10,7 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { FormEvent } from "react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { applySettingsIntent, hasSettingsIntent, isSettingsVersionConflict, updateSettingsIntent } from "./adminSettingsForm";
+import { applySettingsIntent, hasSettingsIntent, updateSettingsIntent } from "./adminSettingsForm";
 import styles from "./AdminSettingsPanels.module.css";
 import { SettingsNotice, SettingsPanelError, SettingsPanelLoading } from "./AdminSettingsPanelState";
 
@@ -20,7 +20,6 @@ export const AdminAccessSettingsPanel = () => {
 	const query = useQuery(adminQueries.accessSettings());
 	const mutation = useUpdateAdminAccessSettingsMutation();
 	const [draft, setDraft] = useState<Partial<AdminAccessSettings> | null>(null);
-	const [conflict, setConflict] = useState(false);
 	const [saveError, setSaveError] = useState<string | null>(null);
 	const serverSettings = query.data?.settings;
 	const settings = serverSettings ? applySettingsIntent(serverSettings, draft) : undefined;
@@ -37,42 +36,28 @@ export const AdminAccessSettingsPanel = () => {
 
 	const reset = () => {
 		setDraft(null);
-		setConflict(false);
 		setSaveError(null);
-	};
-
-	const handleConflict = () => {
-		setConflict(true);
-		setSaveError(null);
-		void query.refetch();
 	};
 
 	const submit = (event: FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
-		if (!settings || !query.data || !draft || !dirty) {
+		if (!settings || !draft || !dirty) {
 			return;
 		}
 
 		void requireSudo(() =>
-			mutation.mutate(
-				{ body: draft, etag: query.data.etag },
-				{
-					onSuccess: () => {
-						reset();
-						void loadRuntimeConfig().catch(() => undefined);
-						pushToast({ title: t("settings.saved"), message: t("settings.savedDescription"), tone: "success" });
-					},
-					onError: error => {
-						if (isSettingsVersionConflict(error)) {
-							handleConflict();
-							return;
-						}
-						const message = requestErrorMessage(error, t("settings.saveError"));
-						setSaveError(message);
-						pushToast({ title: t("settings.saveFailed"), message, tone: "critical" });
-					}
+			mutation.mutate(draft, {
+				onSuccess: () => {
+					reset();
+					void loadRuntimeConfig().catch(() => undefined);
+					pushToast({ title: t("settings.saved"), message: t("settings.savedDescription"), tone: "success" });
+				},
+				onError: error => {
+					const message = requestErrorMessage(error, t("settings.saveError"));
+					setSaveError(message);
+					pushToast({ title: t("settings.saveFailed"), message, tone: "critical" });
 				}
-			)
+			})
 		);
 	};
 
@@ -115,12 +100,6 @@ export const AdminAccessSettingsPanel = () => {
 						</label>
 					</div>
 
-					{conflict ? (
-						<SettingsNotice tone="warning" dismissLabel={t("settings.dismiss")} onDismiss={() => setConflict(false)}>
-							<strong>{t("settings.conflict")}</strong>
-							<span>{t("settings.conflictDescription")}</span>
-						</SettingsNotice>
-					) : null}
 					{saveError ? <SettingsNotice tone="critical">{saveError}</SettingsNotice> : null}
 
 					<div className={styles.formActions}>

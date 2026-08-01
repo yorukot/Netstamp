@@ -43,8 +43,15 @@ func TestServiceFailsClosedWhenStorageDependenciesAreUnavailable(t *testing.T) {
 
 		if _, err := service.GetAccess(context.Background(), GetAccessInput{
 			CurrentUserID: testSystemSettingsAdminID,
+		}); err != nil {
+			t.Fatalf("admin access read should not require a transactor: %v", err)
+		}
+		disabled := false
+		if _, err := service.UpdateAccess(context.Background(), UpdateAccessInput{
+			CurrentUserID:          testSystemSettingsAdminID,
+			ProjectCreationEnabled: &disabled,
 		}); err == nil {
-			t.Fatal("expected admin access read to fail without a transactor")
+			t.Fatal("expected settings update to fail without a transactor")
 		}
 	})
 }
@@ -104,12 +111,11 @@ func TestProviderValidationRejectsMissingOrRelativeCallbackBaseURL(t *testing.T)
 			resource: ResourceOIDC,
 			run: func(ctx context.Context, service *Service) error {
 				return service.ValidateOIDC(ctx, ValidateOIDCInput{
-					CurrentUserID:    testSystemSettingsAdminID,
-					ExpectedRevision: 1,
-					Enabled:          &enabled,
-					IssuerURL:        &issuerURL,
-					ClientID:         &clientID,
-					ClientSecret:     OptionalSecret{Present: true, Value: &secret},
+					CurrentUserID: testSystemSettingsAdminID,
+					Enabled:       &enabled,
+					IssuerURL:     &issuerURL,
+					ClientID:      &clientID,
+					ClientSecret:  OptionalSecret{Present: true, Value: &secret},
 				})
 			},
 		},
@@ -118,11 +124,10 @@ func TestProviderValidationRejectsMissingOrRelativeCallbackBaseURL(t *testing.T)
 			resource: ResourceGoogle,
 			run: func(ctx context.Context, service *Service) error {
 				return service.ValidateGoogle(ctx, ValidateGoogleInput{
-					CurrentUserID:    testSystemSettingsAdminID,
-					ExpectedRevision: 1,
-					Enabled:          &enabled,
-					ClientID:         &clientID,
-					ClientSecret:     OptionalSecret{Present: true, Value: &secret},
+					CurrentUserID: testSystemSettingsAdminID,
+					Enabled:       &enabled,
+					ClientID:      &clientID,
+					ClientSecret:  OptionalSecret{Present: true, Value: &secret},
 				})
 			},
 		},
@@ -131,11 +136,10 @@ func TestProviderValidationRejectsMissingOrRelativeCallbackBaseURL(t *testing.T)
 			resource: ResourceGitHub,
 			run: func(ctx context.Context, service *Service) error {
 				return service.ValidateGitHub(ctx, ValidateGitHubInput{
-					CurrentUserID:    testSystemSettingsAdminID,
-					ExpectedRevision: 1,
-					Enabled:          &enabled,
-					ClientID:         &clientID,
-					ClientSecret:     OptionalSecret{Present: true, Value: &secret},
+					CurrentUserID: testSystemSettingsAdminID,
+					Enabled:       &enabled,
+					ClientID:      &clientID,
+					ClientSecret:  OptionalSecret{Present: true, Value: &secret},
 				})
 			},
 		},
@@ -145,7 +149,6 @@ func TestProviderValidationRejectsMissingOrRelativeCallbackBaseURL(t *testing.T)
 		for _, operation := range operations {
 			t.Run(operation.name+"/"+callbackBaseURL, func(t *testing.T) {
 				repo := newMemorySettingsRepository()
-				repo.revisions[string(operation.resource)] = 1
 				service := NewService(
 					repo,
 					fakeSystemAdminChecker{},
@@ -161,15 +164,17 @@ func TestProviderValidationRejectsMissingOrRelativeCallbackBaseURL(t *testing.T)
 					t.Fatalf("expected invalid callback configuration, got %v", err)
 				}
 				assertSystemSettingsValidationField(t, err, "callbackUrl")
+				if len(repo.lockAttempts) != 0 {
+					t.Fatalf("provider validation acquired write locks: %#v", repo.lockAttempts)
+				}
 				assertNoSettingsWrites(t, repo)
 			})
 		}
 	}
 }
 
-func TestSMTPTestUsesOneRevisionLockedSettingsSnapshot(t *testing.T) {
+func TestSMTPTestUsesLockFreeSnapshotAndSendsOutsideTransaction(t *testing.T) {
 	repo := newMemorySettingsRepository()
-	repo.revisions[string(ResourceSMTP)] = 7
 	repo.settings[keySMTPHost] = testPublicSetting(t, keySMTPHost, "smtp.v1.example.com")
 	repo.settings[keySMTPPort] = testPublicSetting(t, keySMTPPort, int32(465))
 	repo.settings[keySMTPUsername] = testPublicSetting(t, keySMTPUsername, "mailer")
@@ -185,12 +190,11 @@ func TestSMTPTestUsesOneRevisionLockedSettingsSnapshot(t *testing.T) {
 		nextHost:     testPublicSetting(t, keySMTPHost, "smtp.v2.example.com"),
 		nextPassword: testSecretSetting(keySMTPPassword, "password-v2"),
 	}
-	tester := &recordingSMTPTester{}
+	tester := &recordingSMTPTester{transactor: transactor}
 	service.ConfigureSMTPTest(users, tester)
 
 	err := service.TestSMTP(context.Background(), TestSMTPInput{
-		CurrentUserID:    testSystemSettingsAdminID,
-		ExpectedRevision: 7,
+		CurrentUserID: testSystemSettingsAdminID,
 	})
 	if err != nil {
 		t.Fatalf("send SMTP test: %v", err)
@@ -211,38 +215,40 @@ func TestSMTPTestUsesOneRevisionLockedSettingsSnapshot(t *testing.T) {
 	if transactor.calls != 1 || transactor.commits != 1 {
 		t.Fatalf("expected one committed snapshot transaction, got %#v", transactor)
 	}
-	if !reflect.DeepEqual(repo.lockAttempts, []string{string(ResourceSMTP)}) {
-		t.Fatalf("unexpected revision locks: %#v", repo.lockAttempts)
+	if len(repo.lockAttempts) != 0 {
+		t.Fatalf("SMTP test acquired write locks: %#v", repo.lockAttempts)
+	}
+	if tester.sentInTransaction {
+		t.Fatal("SMTP test email was sent inside the snapshot transaction")
 	}
 	if len(repo.readKeyQueries) != 1 || !reflect.DeepEqual(repo.readKeyQueries[0], smtpKeys) {
 		t.Fatalf("expected one exact SMTP settings query, got %#v", repo.readKeyQueries)
 	}
 }
 
-func TestSMTPTestChecksRevisionBeforeReadingMalformedSettings(t *testing.T) {
+func TestSMTPTestRejectsMalformedSnapshotWithoutSending(t *testing.T) {
 	repo := newMemorySettingsRepository()
-	repo.revisions[string(ResourceSMTP)] = 2
 	repo.settings[keySMTPTLSMode] = testPublicSetting(t, keySMTPTLSMode, "invalid")
 	service := newTestSettingsService(repo, &fakeSecretCipher{}, nil, nil)
 	tester := &recordingSMTPTester{}
 	service.ConfigureSMTPTest(&mutatingSMTPTestUsers{user: identity.User{Email: "admin@example.com"}}, tester)
 
 	err := service.TestSMTP(context.Background(), TestSMTPInput{
-		CurrentUserID:    testSystemSettingsAdminID,
-		ExpectedRevision: 1,
+		CurrentUserID: testSystemSettingsAdminID,
 	})
-	if !errors.Is(err, ErrVersionConflict) {
-		t.Fatalf("expected stale revision error, got %v", err)
+	if !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("expected invalid SMTP snapshot, got %v", err)
 	}
-	if len(repo.readKeyQueries) != 0 || tester.calls != 0 {
-		t.Fatalf("stale request read or sent SMTP: reads=%#v sends=%d", repo.readKeyQueries, tester.calls)
+	if len(repo.readKeyQueries) != 1 || tester.calls != 0 {
+		t.Fatalf("malformed snapshot read or send mismatch: reads=%#v sends=%d", repo.readKeyQueries, tester.calls)
+	}
+	if len(repo.lockAttempts) != 0 {
+		t.Fatalf("SMTP test acquired write locks: %#v", repo.lockAttempts)
 	}
 }
 
 func TestEmailVerificationRejectsSMTPAuthenticationWithoutTLS(t *testing.T) {
 	repo := newMemorySettingsRepository()
-	repo.revisions[string(ResourceAccess)] = 3
-	repo.revisions[string(ResourceSMTP)] = 5
 	repo.settings[keySMTPHost] = testPublicSetting(t, keySMTPHost, "smtp.example.com")
 	repo.settings[keySMTPUsername] = testPublicSetting(t, keySMTPUsername, "mailer")
 	repo.settings[keySMTPPassword] = testSecretSetting(keySMTPPassword, "password")
@@ -253,7 +259,6 @@ func TestEmailVerificationRejectsSMTPAuthenticationWithoutTLS(t *testing.T) {
 
 	_, err := service.UpdateAccess(context.Background(), UpdateAccessInput{
 		CurrentUserID:             testSystemSettingsAdminID,
-		ExpectedRevision:          3,
 		EmailVerificationRequired: &required,
 	})
 	if !errors.Is(err, ErrInvalidInput) {
@@ -265,8 +270,6 @@ func TestEmailVerificationRejectsSMTPAuthenticationWithoutTLS(t *testing.T) {
 func TestExplicitNullClearsMalformedSecretRows(t *testing.T) {
 	t.Run("SMTP", func(t *testing.T) {
 		repo := newMemorySettingsRepository()
-		repo.revisions[string(ResourceAccess)] = 1
-		repo.revisions[string(ResourceSMTP)] = 4
 		repo.settings[keySMTPPassword] = StoredSetting{
 			Key:   keySMTPPassword,
 			Value: []byte(`"not-a-secret-row"`),
@@ -274,14 +277,13 @@ func TestExplicitNullClearsMalformedSecretRows(t *testing.T) {
 		service := newTestSettingsService(repo, &fakeSecretCipher{}, nil, nil)
 
 		got, err := service.UpdateSMTP(context.Background(), UpdateSMTPInput{
-			CurrentUserID:    testSystemSettingsAdminID,
-			ExpectedRevision: 4,
-			Password:         OptionalSecret{Present: true},
+			CurrentUserID: testSystemSettingsAdminID,
+			Password:      OptionalSecret{Present: true},
 		})
 		if err != nil {
 			t.Fatalf("clear malformed SMTP password row: %v", err)
 		}
-		if got.Revision != 5 || got.Value.PasswordSet {
+		if got.PasswordSet {
 			t.Fatalf("unexpected SMTP clear result: %#v", got)
 		}
 		assertMalformedSecretCleared(t, repo, keySMTPPassword, ResourceSMTP)
@@ -289,7 +291,6 @@ func TestExplicitNullClearsMalformedSecretRows(t *testing.T) {
 
 	t.Run("provider", func(t *testing.T) {
 		repo := newMemorySettingsRepository()
-		repo.revisions[string(ResourceGoogle)] = 6
 		repo.settings[keyGoogleClientSecret] = StoredSetting{
 			Key:   keyGoogleClientSecret,
 			Value: []byte(`"not-a-secret-row"`),
@@ -297,14 +298,13 @@ func TestExplicitNullClearsMalformedSecretRows(t *testing.T) {
 		service := newTestSettingsService(repo, &fakeSecretCipher{}, nil, nil)
 
 		got, err := service.UpdateGoogle(context.Background(), UpdateGoogleInput{
-			CurrentUserID:    testSystemSettingsAdminID,
-			ExpectedRevision: 6,
-			ClientSecret:     OptionalSecret{Present: true},
+			CurrentUserID: testSystemSettingsAdminID,
+			ClientSecret:  OptionalSecret{Present: true},
 		})
 		if err != nil {
 			t.Fatalf("clear malformed Google client secret row: %v", err)
 		}
-		if got.Revision != 7 || got.Value.ClientSecretSet {
+		if got.ClientSecretSet {
 			t.Fatalf("unexpected provider clear result: %#v", got)
 		}
 		assertMalformedSecretCleared(t, repo, keyGoogleClientSecret, ResourceGoogle)
@@ -322,14 +322,19 @@ func assertMalformedSecretCleared(
 		t.Fatalf("malformed secret row %q still exists", key)
 	}
 	if !containsString(repo.deleteAttempts, key) ||
-		gotAuditAction(repo.auditEvents, key) != auditActionClear ||
-		!containsString(repo.bumpAttempts, string(resource)) {
+		gotAuditAction(repo.auditEvents, key) != auditActionClear {
 		t.Fatalf(
-			"expected delete, clear audit, and revision bump; deletes=%#v audits=%#v bumps=%#v",
+			"expected delete and clear audit; deletes=%#v audits=%#v",
 			repo.deleteAttempts,
 			repo.auditEvents,
-			repo.bumpAttempts,
 		)
+	}
+	wantLocks := []string{string(resource)}
+	if resource == ResourceSMTP {
+		wantLocks = []string{string(ResourceAccess), string(ResourceSMTP)}
+	}
+	if !reflect.DeepEqual(repo.lockAttempts, wantLocks) {
+		t.Fatalf("unexpected resource locks: got %#v want %#v", repo.lockAttempts, wantLocks)
 	}
 }
 
@@ -349,9 +354,11 @@ func (f *mutatingSMTPTestUsers) GetUserByID(context.Context, string) (identity.U
 }
 
 type recordingSMTPTester struct {
-	recipient string
-	settings  SMTPRuntimeSettings
-	calls     int
+	recipient         string
+	settings          SMTPRuntimeSettings
+	calls             int
+	transactor        *rollbackSettingsTransactor
+	sentInTransaction bool
 }
 
 func (f *recordingSMTPTester) SendTestEmail(
@@ -362,5 +369,8 @@ func (f *recordingSMTPTester) SendTestEmail(
 	f.calls++
 	f.recipient = recipient
 	f.settings = settings
+	if f.transactor != nil {
+		f.sentInTransaction = f.transactor.active
+	}
 	return nil
 }

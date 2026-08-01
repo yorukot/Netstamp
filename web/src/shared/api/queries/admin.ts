@@ -1,6 +1,6 @@
 import { queryOptions } from "@tanstack/react-query";
 import {
-	readVersionedAdminSettings,
+	readAdminSettings,
 	type AdminAccessSettings,
 	type AdminGitHubProviderSettings,
 	type AdminGoogleProviderSettings,
@@ -14,31 +14,31 @@ export const adminQueries = {
 	accessSettings: () =>
 		queryOptions({
 			queryKey: apiQueryKeys.admin.accessSettings(),
-			queryFn: ({ signal }) => readVersionedAdminSettings<AdminAccessSettings>(apiClient.GET("/admin/settings/access", { signal })),
+			queryFn: ({ signal }) => readAdminSettings<AdminAccessSettings>(apiClient.GET("/admin/settings/access", { signal })),
 			staleTime: 30 * 1000
 		}),
 	smtpSettings: () =>
 		queryOptions({
 			queryKey: apiQueryKeys.admin.smtpSettings(),
-			queryFn: ({ signal }) => readVersionedAdminSettings<AdminSMTPSettings>(apiClient.GET("/admin/settings/smtp", { signal })),
+			queryFn: ({ signal }) => readAdminSettings<AdminSMTPSettings>(apiClient.GET("/admin/settings/smtp", { signal })),
 			staleTime: 30 * 1000
 		}),
 	oidcSettings: () =>
 		queryOptions({
 			queryKey: apiQueryKeys.admin.providerSettings("oidc"),
-			queryFn: ({ signal }) => readVersionedAdminSettings<AdminOIDCProviderSettings>(apiClient.GET("/admin/settings/authentication-providers/oidc", { signal })),
+			queryFn: ({ signal }) => readAdminSettings<AdminOIDCProviderSettings>(apiClient.GET("/admin/settings/authentication-providers/oidc", { signal })),
 			staleTime: 30 * 1000
 		}),
 	googleSettings: () =>
 		queryOptions({
 			queryKey: apiQueryKeys.admin.providerSettings("google"),
-			queryFn: ({ signal }) => readVersionedAdminSettings<AdminGoogleProviderSettings>(apiClient.GET("/admin/settings/authentication-providers/google", { signal })),
+			queryFn: ({ signal }) => readAdminSettings<AdminGoogleProviderSettings>(apiClient.GET("/admin/settings/authentication-providers/google", { signal })),
 			staleTime: 30 * 1000
 		}),
 	githubSettings: () =>
 		queryOptions({
 			queryKey: apiQueryKeys.admin.providerSettings("github"),
-			queryFn: ({ signal }) => readVersionedAdminSettings<AdminGitHubProviderSettings>(apiClient.GET("/admin/settings/authentication-providers/github", { signal })),
+			queryFn: ({ signal }) => readAdminSettings<AdminGitHubProviderSettings>(apiClient.GET("/admin/settings/authentication-providers/github", { signal })),
 			staleTime: 30 * 1000
 		}),
 	systemAdmins: () =>

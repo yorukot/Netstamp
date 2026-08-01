@@ -110,8 +110,6 @@ alias ErrorCode =
 	| "SYSTEM_ADMIN_REQUIRED"
 	| "SELF_SYSTEM_ADMIN_ACTION"
 	| "INVALID_ADMIN_DATA_IMPORT"
-	| "PRECONDITION_REQUIRED"
-	| "SETTINGS_VERSION_CONFLICT"
 	| "PROJECT_ROLE_REQUIRED"
 	| "PROJECT_NOT_FOUND"
 	| "PROJECT_SLUG_ALREADY_EXISTS"
@@ -190,13 +188,9 @@ model CreatedJson<T> {
 	...Body<T>;
 }
 
-@doc("A successful JSON response for a versioned resource. Send the returned strong ETag in If-Match when changing or validating the resource.")
-model VersionedOkJson<T> {
+@doc("A successful private JSON response that must not be cached.")
+model PrivateNoStoreOkJson<T> {
 	...OkResponse;
-
-	@header("ETag")
-	@doc("Strong entity tag for this resource version.")
-	etag: string;
 
 	@header("Cache-Control")
 	cacheControl: "private, no-store";
@@ -280,25 +274,6 @@ model ConflictProblem {
 	...ProblemJson;
 }
 
-@doc("The supplied If-Match value does not identify the current resource version. The response includes the current strong ETag and uses SETTINGS_VERSION_CONFLICT.")
-model PreconditionFailedProblem {
-	...Response<412>;
-
-	@header("ETag")
-	etag: string;
-
-	@header("Cache-Control")
-	cacheControl: "private, no-store";
-
-	...ProblemJson;
-}
-
-@doc("The operation requires an If-Match header containing a strong ETag returned by the corresponding GET operation. The problem code is PRECONDITION_REQUIRED.")
-model PreconditionRequiredProblem {
-	...Response<428>;
-	...ProblemJson;
-}
-
 model TooManyRequestsProblem {
 	...Response<429>;
 	...ProblemJson;
@@ -352,12 +327,6 @@ model LabelIdPathParam {
 model UserIdPathParam {
 	@path
 	user_id: uuid;
-}
-
-model IfMatchHeaderParam {
-	@header("If-Match")
-	@doc("Exact strong ETag returned by the corresponding settings GET operation.")
-	ifMatch: string;
 }
 
 model ProjectInviteIdPathParam {

@@ -9,7 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { FormEvent } from "react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { applySettingsIntent, hasSettingsIntent, isSettingsVersionConflict, secretValueFromForm, updateSettingsIntent } from "./adminSettingsForm";
+import { applySettingsIntent, hasSettingsIntent, secretValueFromForm, updateSettingsIntent } from "./adminSettingsForm";
 import styles from "./AdminSettingsPanels.module.css";
 import { SettingsNotice, SettingsPanelError, SettingsPanelLoading } from "./AdminSettingsPanelState";
 
@@ -60,7 +60,6 @@ export const AdminSMTPSettingsPanel = () => {
 	const updateMutation = useUpdateAdminSMTPSettingsMutation();
 	const testMutation = useTestAdminSMTPMutation();
 	const [draft, setDraft] = useState<Partial<SMTPFormState> | null>(null);
-	const [conflict, setConflict] = useState(false);
 	const [saveError, setSaveError] = useState<string | null>(null);
 	const [testError, setTestError] = useState<string | null>(null);
 	const serverSettings = query.data?.settings;
@@ -80,62 +79,43 @@ export const AdminSMTPSettingsPanel = () => {
 
 	const reset = () => {
 		setDraft(null);
-		setConflict(false);
 		setSaveError(null);
 		setTestError(null);
-	};
-
-	const handleConflict = () => {
-		setConflict(true);
-		setSaveError(null);
-		setTestError(null);
-		void query.refetch();
 	};
 
 	const submit = (event: FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
-		if (!form || !query.data || !draft || !dirty) {
+		if (!form || !draft || !dirty) {
 			return;
 		}
 
 		void requireSudo(() =>
-			updateMutation.mutate(
-				{ body: patchFromIntent(draft), etag: query.data.etag },
-				{
-					onSuccess: () => {
-						reset();
-						pushToast({ title: t("settings.saved"), message: t("settings.savedDescription"), tone: "success" });
-					},
-					onError: error => {
-						if (isSettingsVersionConflict(error)) {
-							handleConflict();
-							return;
-						}
-						const message = requestErrorMessage(error, t("settings.saveError"));
-						setSaveError(message);
-						pushToast({ title: t("settings.saveFailed"), message, tone: "critical" });
-					}
+			updateMutation.mutate(patchFromIntent(draft), {
+				onSuccess: () => {
+					reset();
+					pushToast({ title: t("settings.saved"), message: t("settings.savedDescription"), tone: "success" });
+				},
+				onError: error => {
+					const message = requestErrorMessage(error, t("settings.saveError"));
+					setSaveError(message);
+					pushToast({ title: t("settings.saveFailed"), message, tone: "critical" });
 				}
-			)
+			})
 		);
 	};
 
 	const testSMTP = () => {
-		if (!query.data || dirty || !serverSettings?.configured) {
+		if (dirty || !serverSettings?.configured) {
 			return;
 		}
 
 		void requireSudo(() =>
-			testMutation.mutate(query.data.etag, {
+			testMutation.mutate(undefined, {
 				onSuccess: () => {
 					setTestError(null);
 					pushToast({ title: t("settings.testEmailSent"), message: t("settings.testEmailSentDescription"), tone: "success" });
 				},
 				onError: error => {
-					if (isSettingsVersionConflict(error)) {
-						handleConflict();
-						return;
-					}
 					const message = requestErrorMessage(error, t("settings.testEmailError"));
 					setTestError(message);
 					pushToast({ title: t("settings.testEmailFailed"), message, tone: "critical" });
@@ -215,12 +195,6 @@ export const AdminSMTPSettingsPanel = () => {
 					</label>
 
 					{dirty ? <p className={styles.hint}>{t("settings.smtpUnsavedTestDescription")}</p> : null}
-					{conflict ? (
-						<SettingsNotice tone="warning" dismissLabel={t("settings.dismiss")} onDismiss={() => setConflict(false)}>
-							<strong>{t("settings.conflict")}</strong>
-							<span>{t("settings.conflictDescription")}</span>
-						</SettingsNotice>
-					) : null}
 					{saveError ? <SettingsNotice tone="critical">{saveError}</SettingsNotice> : null}
 					{testError ? <SettingsNotice tone="critical">{testError}</SettingsNotice> : null}
 

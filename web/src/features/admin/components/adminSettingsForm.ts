@@ -1,7 +1,3 @@
-import { ApiError } from "@/shared/api/client";
-
-export const isSettingsVersionConflict = (error: unknown) => error instanceof ApiError && error.status === 412;
-
 export const updateSettingsIntent = <TSettings extends object, TKey extends keyof TSettings>(
 	current: Partial<TSettings> | null,
 	serverSettings: TSettings,

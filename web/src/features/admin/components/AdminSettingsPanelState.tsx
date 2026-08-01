@@ -4,16 +4,11 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import styles from "./AdminSettingsPanels.module.css";
 
-export type SettingsNoticeTone = "critical" | "success" | "warning";
+export type SettingsNoticeTone = "critical" | "success";
 
-export const SettingsNotice = ({ children, dismissLabel, onDismiss, tone }: { children: ReactNode; dismissLabel?: string; onDismiss?: () => void; tone: SettingsNoticeTone }) => (
+export const SettingsNotice = ({ children, tone }: { children: ReactNode; tone: SettingsNoticeTone }) => (
 	<div className={styles.notice} data-tone={tone} role={tone === "critical" ? "alert" : "status"}>
-		<div className={styles.noticeCopy}>{children}</div>
-		{onDismiss ? (
-			<Button type="button" size="sm" variant="plain" onClick={onDismiss}>
-				{dismissLabel}
-			</Button>
-		) : null}
+		{children}
 	</div>
 );
 

@@ -246,15 +246,8 @@
 				"parameters": [],
 				"responses": {
 					"200": {
-						"description": "A successful JSON response for a versioned resource. Send the returned strong ETag in If-Match when changing or validating the resource.",
+						"description": "A successful private JSON response that must not be cached.",
 						"headers": {
-							"ETag": {
-								"required": true,
-								"description": "Strong entity tag for this resource version.",
-								"schema": {
-									"type": "string"
-								}
-							},
 							"Cache-Control": {
 								"required": true,
 								"schema": {
@@ -312,23 +305,12 @@
 			"patch": {
 				"operationId": "updateAdminAccessSettings",
 				"summary": "Update instance access settings",
-				"description": "Partially update account, project, and credential-management policies. If-Match must contain the strong ETag returned by getAdminAccessSettings.",
-				"parameters": [
-					{
-						"$ref": "#/components/parameters/IfMatchHeaderParam"
-					}
-				],
+				"description": "Partially update account, project, and credential-management policies.",
+				"parameters": [],
 				"responses": {
 					"200": {
-						"description": "A successful JSON response for a versioned resource. Send the returned strong ETag in If-Match when changing or validating the resource.",
+						"description": "A successful private JSON response that must not be cached.",
 						"headers": {
-							"ETag": {
-								"required": true,
-								"description": "Strong entity tag for this resource version.",
-								"schema": {
-									"type": "string"
-								}
-							},
 							"Cache-Control": {
 								"required": true,
 								"schema": {
@@ -375,43 +357,8 @@
 							}
 						}
 					},
-					"412": {
-						"description": "The supplied If-Match value does not identify the current resource version. The response includes the current strong ETag and uses SETTINGS_VERSION_CONFLICT.",
-						"headers": {
-							"ETag": {
-								"required": true,
-								"schema": {
-									"type": "string"
-								}
-							},
-							"Cache-Control": {
-								"required": true,
-								"schema": {
-									"type": "string",
-									"enum": ["private, no-store"]
-								}
-							}
-						},
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
 					"422": {
 						"description": "Client error",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"428": {
-						"description": "The operation requires an If-Match header containing a strong ETag returned by the corresponding GET operation. The problem code is PRECONDITION_REQUIRED.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -457,15 +404,8 @@
 				"parameters": [],
 				"responses": {
 					"200": {
-						"description": "A successful JSON response for a versioned resource. Send the returned strong ETag in If-Match when changing or validating the resource.",
+						"description": "A successful private JSON response that must not be cached.",
 						"headers": {
-							"ETag": {
-								"required": true,
-								"description": "Strong entity tag for this resource version.",
-								"schema": {
-									"type": "string"
-								}
-							},
 							"Cache-Control": {
 								"required": true,
 								"schema": {
@@ -523,23 +463,12 @@
 			"patch": {
 				"operationId": "updateAdminGitHubProviderSettings",
 				"summary": "Update GitHub provider settings",
-				"description": "Partially update the GitHub provider. If-Match must contain the strong ETag returned by getAdminGitHubProviderSettings.",
-				"parameters": [
-					{
-						"$ref": "#/components/parameters/IfMatchHeaderParam"
-					}
-				],
+				"description": "Partially update the GitHub provider.",
+				"parameters": [],
 				"responses": {
 					"200": {
-						"description": "A successful JSON response for a versioned resource. Send the returned strong ETag in If-Match when changing or validating the resource.",
+						"description": "A successful private JSON response that must not be cached.",
 						"headers": {
-							"ETag": {
-								"required": true,
-								"description": "Strong entity tag for this resource version.",
-								"schema": {
-									"type": "string"
-								}
-							},
 							"Cache-Control": {
 								"required": true,
 								"schema": {
@@ -586,43 +515,8 @@
 							}
 						}
 					},
-					"412": {
-						"description": "The supplied If-Match value does not identify the current resource version. The response includes the current strong ETag and uses SETTINGS_VERSION_CONFLICT.",
-						"headers": {
-							"ETag": {
-								"required": true,
-								"schema": {
-									"type": "string"
-								}
-							},
-							"Cache-Control": {
-								"required": true,
-								"schema": {
-									"type": "string",
-									"enum": ["private, no-store"]
-								}
-							}
-						},
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
 					"422": {
 						"description": "Client error",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"428": {
-						"description": "The operation requires an If-Match header containing a strong ETag returned by the corresponding GET operation. The problem code is PRECONDITION_REQUIRED.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -675,11 +569,7 @@
 				"operationId": "validateAdminGitHubProviderSettings",
 				"summary": "Validate GitHub provider settings",
 				"description": "Validate a candidate GitHub patch against the persisted provider without saving it. This checks configuration readiness but cannot prove the client secret without completing OAuth authorization.",
-				"parameters": [
-					{
-						"$ref": "#/components/parameters/IfMatchHeaderParam"
-					}
-				],
+				"parameters": [],
 				"responses": {
 					"204": {
 						"description": "There is no content to send for this request, but the headers may be useful. "
@@ -714,43 +604,8 @@
 							}
 						}
 					},
-					"412": {
-						"description": "The supplied If-Match value does not identify the current resource version. The response includes the current strong ETag and uses SETTINGS_VERSION_CONFLICT.",
-						"headers": {
-							"ETag": {
-								"required": true,
-								"schema": {
-									"type": "string"
-								}
-							},
-							"Cache-Control": {
-								"required": true,
-								"schema": {
-									"type": "string",
-									"enum": ["private, no-store"]
-								}
-							}
-						},
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
 					"422": {
 						"description": "Client error",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"428": {
-						"description": "The operation requires an If-Match header containing a strong ETag returned by the corresponding GET operation. The problem code is PRECONDITION_REQUIRED.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -806,15 +661,8 @@
 				"parameters": [],
 				"responses": {
 					"200": {
-						"description": "A successful JSON response for a versioned resource. Send the returned strong ETag in If-Match when changing or validating the resource.",
+						"description": "A successful private JSON response that must not be cached.",
 						"headers": {
-							"ETag": {
-								"required": true,
-								"description": "Strong entity tag for this resource version.",
-								"schema": {
-									"type": "string"
-								}
-							},
 							"Cache-Control": {
 								"required": true,
 								"schema": {
@@ -872,23 +720,12 @@
 			"patch": {
 				"operationId": "updateAdminGoogleProviderSettings",
 				"summary": "Update Google provider settings",
-				"description": "Partially update the Google provider. If-Match must contain the strong ETag returned by getAdminGoogleProviderSettings.",
-				"parameters": [
-					{
-						"$ref": "#/components/parameters/IfMatchHeaderParam"
-					}
-				],
+				"description": "Partially update the Google provider.",
+				"parameters": [],
 				"responses": {
 					"200": {
-						"description": "A successful JSON response for a versioned resource. Send the returned strong ETag in If-Match when changing or validating the resource.",
+						"description": "A successful private JSON response that must not be cached.",
 						"headers": {
-							"ETag": {
-								"required": true,
-								"description": "Strong entity tag for this resource version.",
-								"schema": {
-									"type": "string"
-								}
-							},
 							"Cache-Control": {
 								"required": true,
 								"schema": {
@@ -935,43 +772,8 @@
 							}
 						}
 					},
-					"412": {
-						"description": "The supplied If-Match value does not identify the current resource version. The response includes the current strong ETag and uses SETTINGS_VERSION_CONFLICT.",
-						"headers": {
-							"ETag": {
-								"required": true,
-								"schema": {
-									"type": "string"
-								}
-							},
-							"Cache-Control": {
-								"required": true,
-								"schema": {
-									"type": "string",
-									"enum": ["private, no-store"]
-								}
-							}
-						},
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
 					"422": {
 						"description": "Client error",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"428": {
-						"description": "The operation requires an If-Match header containing a strong ETag returned by the corresponding GET operation. The problem code is PRECONDITION_REQUIRED.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -1024,11 +826,7 @@
 				"operationId": "validateAdminGoogleProviderSettings",
 				"summary": "Validate Google provider settings",
 				"description": "Validate a candidate Google patch against the persisted provider without saving it. This checks configuration readiness but cannot prove the client secret without completing OAuth authorization.",
-				"parameters": [
-					{
-						"$ref": "#/components/parameters/IfMatchHeaderParam"
-					}
-				],
+				"parameters": [],
 				"responses": {
 					"204": {
 						"description": "There is no content to send for this request, but the headers may be useful. "
@@ -1063,43 +861,8 @@
 							}
 						}
 					},
-					"412": {
-						"description": "The supplied If-Match value does not identify the current resource version. The response includes the current strong ETag and uses SETTINGS_VERSION_CONFLICT.",
-						"headers": {
-							"ETag": {
-								"required": true,
-								"schema": {
-									"type": "string"
-								}
-							},
-							"Cache-Control": {
-								"required": true,
-								"schema": {
-									"type": "string",
-									"enum": ["private, no-store"]
-								}
-							}
-						},
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
 					"422": {
 						"description": "Client error",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"428": {
-						"description": "The operation requires an If-Match header containing a strong ETag returned by the corresponding GET operation. The problem code is PRECONDITION_REQUIRED.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -1155,15 +918,8 @@
 				"parameters": [],
 				"responses": {
 					"200": {
-						"description": "A successful JSON response for a versioned resource. Send the returned strong ETag in If-Match when changing or validating the resource.",
+						"description": "A successful private JSON response that must not be cached.",
 						"headers": {
-							"ETag": {
-								"required": true,
-								"description": "Strong entity tag for this resource version.",
-								"schema": {
-									"type": "string"
-								}
-							},
 							"Cache-Control": {
 								"required": true,
 								"schema": {
@@ -1221,23 +977,12 @@
 			"patch": {
 				"operationId": "updateAdminOIDCProviderSettings",
 				"summary": "Update OIDC provider settings",
-				"description": "Partially update the generic OIDC provider. Enabling the provider also validates discovery readiness. If-Match must contain the strong ETag returned by getAdminOIDCProviderSettings.",
-				"parameters": [
-					{
-						"$ref": "#/components/parameters/IfMatchHeaderParam"
-					}
-				],
+				"description": "Partially update the generic OIDC provider. Enabling the provider also validates discovery readiness.",
+				"parameters": [],
 				"responses": {
 					"200": {
-						"description": "A successful JSON response for a versioned resource. Send the returned strong ETag in If-Match when changing or validating the resource.",
+						"description": "A successful private JSON response that must not be cached.",
 						"headers": {
-							"ETag": {
-								"required": true,
-								"description": "Strong entity tag for this resource version.",
-								"schema": {
-									"type": "string"
-								}
-							},
 							"Cache-Control": {
 								"required": true,
 								"schema": {
@@ -1284,43 +1029,8 @@
 							}
 						}
 					},
-					"412": {
-						"description": "The supplied If-Match value does not identify the current resource version. The response includes the current strong ETag and uses SETTINGS_VERSION_CONFLICT.",
-						"headers": {
-							"ETag": {
-								"required": true,
-								"schema": {
-									"type": "string"
-								}
-							},
-							"Cache-Control": {
-								"required": true,
-								"schema": {
-									"type": "string",
-									"enum": ["private, no-store"]
-								}
-							}
-						},
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
 					"422": {
 						"description": "Client error",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"428": {
-						"description": "The operation requires an If-Match header containing a strong ETag returned by the corresponding GET operation. The problem code is PRECONDITION_REQUIRED.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -1373,11 +1083,7 @@
 				"operationId": "validateAdminOIDCProviderSettings",
 				"summary": "Validate OIDC provider settings",
 				"description": "Validate a candidate OIDC patch against the persisted provider without saving it. This checks configuration and discovery readiness, not an end-user login.",
-				"parameters": [
-					{
-						"$ref": "#/components/parameters/IfMatchHeaderParam"
-					}
-				],
+				"parameters": [],
 				"responses": {
 					"204": {
 						"description": "There is no content to send for this request, but the headers may be useful. "
@@ -1412,43 +1118,8 @@
 							}
 						}
 					},
-					"412": {
-						"description": "The supplied If-Match value does not identify the current resource version. The response includes the current strong ETag and uses SETTINGS_VERSION_CONFLICT.",
-						"headers": {
-							"ETag": {
-								"required": true,
-								"schema": {
-									"type": "string"
-								}
-							},
-							"Cache-Control": {
-								"required": true,
-								"schema": {
-									"type": "string",
-									"enum": ["private, no-store"]
-								}
-							}
-						},
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
 					"422": {
 						"description": "Client error",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"428": {
-						"description": "The operation requires an If-Match header containing a strong ETag returned by the corresponding GET operation. The problem code is PRECONDITION_REQUIRED.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -1504,15 +1175,8 @@
 				"parameters": [],
 				"responses": {
 					"200": {
-						"description": "A successful JSON response for a versioned resource. Send the returned strong ETag in If-Match when changing or validating the resource.",
+						"description": "A successful private JSON response that must not be cached.",
 						"headers": {
-							"ETag": {
-								"required": true,
-								"description": "Strong entity tag for this resource version.",
-								"schema": {
-									"type": "string"
-								}
-							},
 							"Cache-Control": {
 								"required": true,
 								"schema": {
@@ -1570,23 +1234,12 @@
 			"patch": {
 				"operationId": "updateAdminSMTPSettings",
 				"summary": "Update SMTP settings",
-				"description": "Partially update the SMTP configuration. Omit password to retain it or set it to null to clear it. If-Match must contain the strong ETag returned by getAdminSMTPSettings.",
-				"parameters": [
-					{
-						"$ref": "#/components/parameters/IfMatchHeaderParam"
-					}
-				],
+				"description": "Partially update the SMTP configuration. Omit password to retain it or set it to null to clear it.",
+				"parameters": [],
 				"responses": {
 					"200": {
-						"description": "A successful JSON response for a versioned resource. Send the returned strong ETag in If-Match when changing or validating the resource.",
+						"description": "A successful private JSON response that must not be cached.",
 						"headers": {
-							"ETag": {
-								"required": true,
-								"description": "Strong entity tag for this resource version.",
-								"schema": {
-									"type": "string"
-								}
-							},
 							"Cache-Control": {
 								"required": true,
 								"schema": {
@@ -1633,43 +1286,8 @@
 							}
 						}
 					},
-					"412": {
-						"description": "The supplied If-Match value does not identify the current resource version. The response includes the current strong ETag and uses SETTINGS_VERSION_CONFLICT.",
-						"headers": {
-							"ETag": {
-								"required": true,
-								"schema": {
-									"type": "string"
-								}
-							},
-							"Cache-Control": {
-								"required": true,
-								"schema": {
-									"type": "string",
-									"enum": ["private, no-store"]
-								}
-							}
-						},
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
 					"422": {
 						"description": "Client error",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"428": {
-						"description": "The operation requires an If-Match header containing a strong ETag returned by the corresponding GET operation. The problem code is PRECONDITION_REQUIRED.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -1711,12 +1329,8 @@
 			"post": {
 				"operationId": "testAdminSMTP",
 				"summary": "Send an SMTP test email",
-				"description": "Send a test email using the persisted SMTP configuration. If-Match must contain the strong ETag returned by getAdminSMTPSettings.",
-				"parameters": [
-					{
-						"$ref": "#/components/parameters/IfMatchHeaderParam"
-					}
-				],
+				"description": "Send a test email using the persisted SMTP configuration.",
+				"parameters": [],
 				"responses": {
 					"204": {
 						"description": "There is no content to send for this request, but the headers may be useful. "
@@ -1751,43 +1365,8 @@
 							}
 						}
 					},
-					"412": {
-						"description": "The supplied If-Match value does not identify the current resource version. The response includes the current strong ETag and uses SETTINGS_VERSION_CONFLICT.",
-						"headers": {
-							"ETag": {
-								"required": true,
-								"schema": {
-									"type": "string"
-								}
-							},
-							"Cache-Control": {
-								"required": true,
-								"schema": {
-									"type": "string",
-									"enum": ["private, no-store"]
-								}
-							}
-						},
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
 					"422": {
 						"description": "Client error",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"428": {
-						"description": "The operation requires an If-Match header containing a strong ETag returned by the corresponding GET operation. The problem code is PRECONDITION_REQUIRED.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -11007,15 +10586,6 @@
 					"$ref": "#/components/schemas/uuid"
 				}
 			},
-			"IfMatchHeaderParam": {
-				"name": "If-Match",
-				"in": "header",
-				"required": true,
-				"description": "Exact strong ETag returned by the corresponding settings GET operation.",
-				"schema": {
-					"type": "string"
-				}
-			},
 			"LabelIdPathParam": {
 				"name": "label_id",
 				"in": "path",
@@ -15515,8 +15085,6 @@
 							"SYSTEM_ADMIN_REQUIRED",
 							"SELF_SYSTEM_ADMIN_ACTION",
 							"INVALID_ADMIN_DATA_IMPORT",
-							"PRECONDITION_REQUIRED",
-							"SETTINGS_VERSION_CONFLICT",
 							"PROJECT_ROLE_REQUIRED",
 							"PROJECT_NOT_FOUND",
 							"PROJECT_SLUG_ALREADY_EXISTS",

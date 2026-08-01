@@ -39,9 +39,12 @@ pg_restore --list "$backup_file" >/dev/null
 
 ## 升級
 
-編輯 `.env`，指定已測試的 Netstamp 與 TimescaleDB 版本。完成備份後，請先更新資料庫 container 與已安裝的 extension，再執行 Netstamp migrations：
+編輯 `.env`，指定已測試的 Netstamp 與 TimescaleDB 版本。執行 migration 前，必須先停止所有使用該資料庫的 controller，避免舊版 controller 存取已為新版本完成遷移的 schema。標準 Compose 部署請停止 `netstamp`；若使用 observability stack、demo controller 或額外 replicas，也必須全部停止。
+
+完成備份後，請先更新資料庫 container 與已安裝的 extension，再執行 Netstamp migrations：
 
 ```bash
+docker compose stop netstamp
 docker compose pull postgres
 docker compose up -d postgres
 docker compose exec -T postgres \
@@ -53,9 +56,9 @@ docker compose logs migrate
 docker compose logs --tail=200 netstamp
 ```
 
-遷移 container 必須成功結束，控制器才可啟動。接著驗證健康檢查、登入、一筆結果查詢、一部探測器的心跳，以及一個公開狀態頁。
+遷移 container 必須成功結束，任何 controller 才可啟動。Migration、controller 與隨附的 web app 必須使用同一個 Netstamp release；維護時段內不得同時執行新舊 controller。接著驗證健康檢查、登入、一筆結果查詢、一部探測器的心跳，以及一個公開狀態頁。
 
-:::caution 將 container 映像檔切回舊版，不代表資料庫遷移也會自動還原。除非目標 release 明確支援 schema downgrade，否則應還原升級前建立的資料庫備份。 :::
+:::caution 將 container 映像檔切回舊版，不代表資料庫遷移也會自動還原。若 release 明確提供 Goose down migration，請保持所有 controller 停止，先完成 down migration，再啟動舊版映像檔；若沒有明確支援 schema downgrade，則應還原升級前建立的資料庫備份。 :::
 
 ## 監控 columnstore policies
 

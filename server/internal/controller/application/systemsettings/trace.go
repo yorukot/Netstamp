@@ -8,8 +8,7 @@ import (
 var systemSettingsTracer = otel.Tracer("github.com/yorukot/netstamp/internal/controller/application/systemsettings")
 
 var (
-	attrSettingsAction           = attribute.Key("system_settings.action")
-	attrSettingsResource         = attribute.Key("system_settings.resource")
-	attrSettingsActorID          = attribute.Key("user.id")
-	attrSettingsExpectedRevision = attribute.Key("system_settings.expected_revision")
+	attrSettingsAction   = attribute.Key("system_settings.action")
+	attrSettingsResource = attribute.Key("system_settings.resource")
+	attrSettingsActorID  = attribute.Key("user.id")
 )

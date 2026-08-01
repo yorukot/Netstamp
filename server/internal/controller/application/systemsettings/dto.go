@@ -12,11 +12,6 @@ const (
 	ResourceGitHub Resource = "auth.github"
 )
 
-type Versioned[T any] struct {
-	Value    T
-	Revision int64
-}
-
 // OptionalSecret preserves the three JSON PATCH states used by secret fields:
 // omitted (Present=false), null (Present=true, Value=nil), and replacement.
 type OptionalSecret struct {
@@ -139,7 +134,6 @@ type GetGitHubInput struct {
 
 type UpdateAccessInput struct {
 	CurrentUserID             string
-	ExpectedRevision          int64
 	AccountCreationEnabled    *bool
 	EmailVerificationRequired *bool
 	ProjectCreationEnabled    *bool
@@ -147,48 +141,44 @@ type UpdateAccessInput struct {
 }
 
 type UpdateSMTPInput struct {
-	CurrentUserID    string
-	ExpectedRevision int64
-	Host             *string
-	Port             *int32
-	Username         *string
-	Password         OptionalSecret
-	From             *string
-	TLSMode          *string
-	TimeoutSeconds   *int32
+	CurrentUserID  string
+	Host           *string
+	Port           *int32
+	Username       *string
+	Password       OptionalSecret
+	From           *string
+	TLSMode        *string
+	TimeoutSeconds *int32
 }
 
 type UpdateOIDCInput struct {
-	CurrentUserID    string
-	ExpectedRevision int64
-	Enabled          *bool
-	IssuerURL        *string
-	ClientID         *string
-	ClientSecret     OptionalSecret
-	DisplayName      *string
-	JITEnabled       *bool
+	CurrentUserID string
+	Enabled       *bool
+	IssuerURL     *string
+	ClientID      *string
+	ClientSecret  OptionalSecret
+	DisplayName   *string
+	JITEnabled    *bool
 }
 
 type UpdateGoogleInput struct {
-	CurrentUserID    string
-	ExpectedRevision int64
-	Enabled          *bool
-	ClientID         *string
-	ClientSecret     OptionalSecret
-	DisplayName      *string
-	JITEnabled       *bool
-	AllowedDomains   *[]string
+	CurrentUserID  string
+	Enabled        *bool
+	ClientID       *string
+	ClientSecret   OptionalSecret
+	DisplayName    *string
+	JITEnabled     *bool
+	AllowedDomains *[]string
 }
 
 type UpdateGitHubInput struct {
-	CurrentUserID    string
-	ExpectedRevision int64
-	Enabled          *bool
-	ClientID         *string
-	ClientSecret     OptionalSecret
-	DisplayName      *string
-	JITEnabled       *bool
-	AllowSignup      *bool
+	CurrentUserID string
+	Enabled       *bool
+	ClientID      *string
+	ClientSecret  OptionalSecret
+	DisplayName   *string
+	JITEnabled    *bool
+	AllowSignup   *bool
 }
 
 type (
@@ -198,8 +188,7 @@ type (
 )
 
 type TestSMTPInput struct {
-	CurrentUserID    string
-	ExpectedRevision int64
+	CurrentUserID string
 }
 
 type SMTPTestUser struct {

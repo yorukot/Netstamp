@@ -7,46 +7,59 @@ import (
 	"reflect"
 )
 
-func (s *Service) UpdateOIDC(ctx context.Context, input UpdateOIDCInput) (Versioned[OIDCSettings], error) {
-	ctx, flow := s.startSettingsFlow(ctx, "update", ResourceOIDC, input.CurrentUserID, input.ExpectedRevision)
+func (s *Service) UpdateOIDC(ctx context.Context, input UpdateOIDCInput) (OIDCSettings, error) {
+	ctx, flow := s.startSettingsFlow(ctx, "update", ResourceOIDC, input.CurrentUserID)
 	defer flow.end()
 	if authorizeErr := flow.authorize(ctx); authorizeErr != nil {
-		return Versioned[OIDCSettings]{}, authorizeErr
+		return OIDCSettings{}, authorizeErr
 	}
 	if secretErr := validateSecretPatch(input.ClientSecret, "clientSecret"); secretErr != nil {
-		return Versioned[OIDCSettings]{}, secretErr
+		return OIDCSettings{}, secretErr
 	}
 	normalizeOIDCInput(&input)
-	if prepareErr := s.prepareOIDCUpdate(ctx, flow, input, false); prepareErr != nil {
-		return Versioned[OIDCSettings]{}, prepareErr
-	}
 
-	return runProviderUpdate(ctx, s, flow, providerUpdateOperations[OIDCSettings]{
-		load:  s.effectiveOIDCView,
-		apply: func(current OIDCSettings) OIDCSettings { return applyOIDCPatch(current, input) },
-		validate: func(txCtx context.Context, next OIDCSettings) error {
-			return s.validateOIDCCandidate(txCtx, next, input.ClientSecret)
-		},
-		noChange: func(current, next OIDCSettings) bool {
-			return oidcPatchIsNoop(current, next, input.ClientSecret)
-		},
-		persist: func(txCtx context.Context, current, next OIDCSettings) error {
-			return s.persistOIDC(txCtx, current, next, input.ClientSecret, &input.CurrentUserID)
-		},
+	var result OIDCSettings
+	txErr := s.transactor.WithinTx(ctx, func(txCtx context.Context) error {
+		if lockErr := s.repo.LockSystemSettingsResource(txCtx, string(ResourceOIDC)); lockErr != nil {
+			return lockErr
+		}
+		current, loadErr := s.effectiveOIDCView(txCtx)
+		if loadErr != nil {
+			return loadErr
+		}
+		next := applyOIDCPatch(current, input)
+		if validationErr := s.validateOIDCCandidate(txCtx, next, input.ClientSecret); validationErr != nil {
+			return validationErr
+		}
+		if next.Enabled && (!current.Enabled || current.IssuerURL != next.IssuerURL) {
+			if readinessErr := s.checkOIDCReadiness(txCtx, next.IssuerURL); readinessErr != nil {
+				return readinessErr
+			}
+		}
+		if oidcPatchIsNoop(current, next, input.ClientSecret) {
+			result = current
+			return nil
+		}
+		if persistErr := s.persistOIDC(txCtx, current, next, input.ClientSecret, &input.CurrentUserID); persistErr != nil {
+			return persistErr
+		}
+		result = next
+		return nil
 	})
+	return result, txErr
 }
 
-func (s *Service) UpdateGoogle(ctx context.Context, input UpdateGoogleInput) (Versioned[GoogleSettings], error) {
-	ctx, flow := s.startSettingsFlow(ctx, "update", ResourceGoogle, input.CurrentUserID, input.ExpectedRevision)
+func (s *Service) UpdateGoogle(ctx context.Context, input UpdateGoogleInput) (GoogleSettings, error) {
+	ctx, flow := s.startSettingsFlow(ctx, "update", ResourceGoogle, input.CurrentUserID)
 	defer flow.end()
 	if authorizeErr := flow.authorize(ctx); authorizeErr != nil {
-		return Versioned[GoogleSettings]{}, authorizeErr
+		return GoogleSettings{}, authorizeErr
 	}
 	if secretErr := validateSecretPatch(input.ClientSecret, "clientSecret"); secretErr != nil {
-		return Versioned[GoogleSettings]{}, secretErr
+		return GoogleSettings{}, secretErr
 	}
 	if normalizeErr := normalizeGoogleInput(&input); normalizeErr != nil {
-		return Versioned[GoogleSettings]{}, normalizeErr
+		return GoogleSettings{}, normalizeErr
 	}
 
 	return runProviderUpdate(ctx, s, flow, providerUpdateOperations[GoogleSettings]{
@@ -64,14 +77,14 @@ func (s *Service) UpdateGoogle(ctx context.Context, input UpdateGoogleInput) (Ve
 	})
 }
 
-func (s *Service) UpdateGitHub(ctx context.Context, input UpdateGitHubInput) (Versioned[GitHubSettings], error) {
-	ctx, flow := s.startSettingsFlow(ctx, "update", ResourceGitHub, input.CurrentUserID, input.ExpectedRevision)
+func (s *Service) UpdateGitHub(ctx context.Context, input UpdateGitHubInput) (GitHubSettings, error) {
+	ctx, flow := s.startSettingsFlow(ctx, "update", ResourceGitHub, input.CurrentUserID)
 	defer flow.end()
 	if authorizeErr := flow.authorize(ctx); authorizeErr != nil {
-		return Versioned[GitHubSettings]{}, authorizeErr
+		return GitHubSettings{}, authorizeErr
 	}
 	if secretErr := validateSecretPatch(input.ClientSecret, "clientSecret"); secretErr != nil {
-		return Versioned[GitHubSettings]{}, secretErr
+		return GitHubSettings{}, secretErr
 	}
 	normalizeGitHubInput(&input)
 
@@ -103,15 +116,11 @@ func runProviderUpdate[T any](
 	service *Service,
 	flow settingsFlow,
 	operations providerUpdateOperations[T],
-) (Versioned[T], error) {
-	var result Versioned[T]
+) (T, error) {
+	var result T
 	txErr := service.transactor.WithinTx(ctx, func(txCtx context.Context) error {
-		revision, lockErr := service.repo.LockSystemSettingRevision(txCtx, string(flow.resource))
-		if lockErr != nil {
+		if lockErr := service.repo.LockSystemSettingsResource(txCtx, string(flow.resource)); lockErr != nil {
 			return lockErr
-		}
-		if revisionErr := flow.requireRevision(revision); revisionErr != nil {
-			return revisionErr
 		}
 		current, loadErr := operations.load(txCtx)
 		if loadErr != nil {
@@ -122,38 +131,22 @@ func runProviderUpdate[T any](
 			return validationErr
 		}
 		if operations.noChange(current, next) {
-			result = Versioned[T]{Value: current, Revision: revision}
+			result = current
 			return nil
 		}
 		if persistErr := operations.persist(txCtx, current, next); persistErr != nil {
 			return persistErr
 		}
-		revision, bumpErr := service.repo.BumpSystemSettingRevision(txCtx, string(flow.resource))
-		if bumpErr != nil {
-			return bumpErr
-		}
-		result = Versioned[T]{Value: next, Revision: revision}
+		result = next
 		return nil
 	})
 	return result, txErr
 }
 
-func (s *Service) prepareOIDCUpdate(
-	ctx context.Context,
-	flow settingsFlow,
-	input UpdateOIDCInput,
-	forceReadiness bool,
-) error {
+func (s *Service) validateOIDCSnapshot(ctx context.Context, input ValidateOIDCInput) error {
 	var current OIDCSettings
 	var next OIDCSettings
 	snapshotErr := s.transactor.WithinTx(ctx, func(txCtx context.Context) error {
-		revision, lockErr := s.repo.LockSystemSettingRevision(txCtx, string(ResourceOIDC))
-		if lockErr != nil {
-			return lockErr
-		}
-		if revisionErr := flow.requireRevision(revision); revisionErr != nil {
-			return revisionErr
-		}
 		var loadErr error
 		current, loadErr = s.effectiveOIDCView(txCtx)
 		if loadErr != nil {
@@ -165,12 +158,8 @@ func (s *Service) prepareOIDCUpdate(
 	if snapshotErr != nil {
 		return snapshotErr
 	}
-	if next.Enabled && (forceReadiness || !current.Enabled || current.IssuerURL != next.IssuerURL) {
-		readinessErr := s.checkOIDCReadiness(ctx, next.IssuerURL)
-		if revisionErr := s.requireCurrentRevision(ctx, flow); revisionErr != nil {
-			return revisionErr
-		}
-		return readinessErr
+	if next.Enabled {
+		return s.checkOIDCReadiness(ctx, next.IssuerURL)
 	}
 	return nil
 }
@@ -229,7 +218,7 @@ func (s *Service) validateRetainedSecret(
 }
 
 func (s *Service) ValidateOIDC(ctx context.Context, input ValidateOIDCInput) error {
-	ctx, flow := s.startSettingsFlow(ctx, "validate", ResourceOIDC, input.CurrentUserID, input.ExpectedRevision)
+	ctx, flow := s.startSettingsFlow(ctx, "validate", ResourceOIDC, input.CurrentUserID)
 	defer flow.end()
 	if authorizeErr := flow.authorize(ctx); authorizeErr != nil {
 		return authorizeErr
@@ -238,11 +227,11 @@ func (s *Service) ValidateOIDC(ctx context.Context, input ValidateOIDCInput) err
 		return secretErr
 	}
 	normalizeOIDCInput(&input)
-	return s.prepareOIDCUpdate(ctx, flow, input, true)
+	return s.validateOIDCSnapshot(ctx, input)
 }
 
 func (s *Service) ValidateGoogle(ctx context.Context, input ValidateGoogleInput) error {
-	ctx, flow := s.startSettingsFlow(ctx, "validate", ResourceGoogle, input.CurrentUserID, input.ExpectedRevision)
+	ctx, flow := s.startSettingsFlow(ctx, "validate", ResourceGoogle, input.CurrentUserID)
 	defer flow.end()
 	if authorizeErr := flow.authorize(ctx); authorizeErr != nil {
 		return authorizeErr
@@ -253,7 +242,7 @@ func (s *Service) ValidateGoogle(ctx context.Context, input ValidateGoogleInput)
 	if normalizeErr := normalizeGoogleInput(&input); normalizeErr != nil {
 		return normalizeErr
 	}
-	return validateProviderSnapshot(ctx, s, flow, providerValidationOperations[GoogleSettings]{
+	return validateProviderSnapshot(ctx, s, providerValidationOperations[GoogleSettings]{
 		load:  s.effectiveGoogleView,
 		apply: func(current GoogleSettings) GoogleSettings { return applyGooglePatch(current, input) },
 		validate: func(txCtx context.Context, next GoogleSettings) error {
@@ -263,7 +252,7 @@ func (s *Service) ValidateGoogle(ctx context.Context, input ValidateGoogleInput)
 }
 
 func (s *Service) ValidateGitHub(ctx context.Context, input ValidateGitHubInput) error {
-	ctx, flow := s.startSettingsFlow(ctx, "validate", ResourceGitHub, input.CurrentUserID, input.ExpectedRevision)
+	ctx, flow := s.startSettingsFlow(ctx, "validate", ResourceGitHub, input.CurrentUserID)
 	defer flow.end()
 	if authorizeErr := flow.authorize(ctx); authorizeErr != nil {
 		return authorizeErr
@@ -272,7 +261,7 @@ func (s *Service) ValidateGitHub(ctx context.Context, input ValidateGitHubInput)
 		return secretErr
 	}
 	normalizeGitHubInput(&input)
-	return validateProviderSnapshot(ctx, s, flow, providerValidationOperations[GitHubSettings]{
+	return validateProviderSnapshot(ctx, s, providerValidationOperations[GitHubSettings]{
 		load:  s.effectiveGitHubView,
 		apply: func(current GitHubSettings) GitHubSettings { return applyGitHubPatch(current, input) },
 		validate: func(txCtx context.Context, next GitHubSettings) error {
@@ -290,31 +279,15 @@ type providerValidationOperations[T any] struct {
 func validateProviderSnapshot[T any](
 	ctx context.Context,
 	service *Service,
-	flow settingsFlow,
 	operations providerValidationOperations[T],
 ) error {
 	return service.transactor.WithinTx(ctx, func(txCtx context.Context) error {
-		revision, lockErr := service.repo.LockSystemSettingRevision(txCtx, string(flow.resource))
-		if lockErr != nil {
-			return lockErr
-		}
-		if revisionErr := flow.requireRevision(revision); revisionErr != nil {
-			return revisionErr
-		}
 		current, loadErr := operations.load(txCtx)
 		if loadErr != nil {
 			return loadErr
 		}
 		return operations.validate(txCtx, operations.apply(current))
 	})
-}
-
-func (s *Service) requireCurrentRevision(ctx context.Context, flow settingsFlow) error {
-	current, err := s.revision(ctx, flow.resource)
-	if err != nil {
-		return err
-	}
-	return flow.requireRevision(current)
 }
 
 func (s *Service) checkOIDCReadiness(ctx context.Context, issuerURL string) error {
