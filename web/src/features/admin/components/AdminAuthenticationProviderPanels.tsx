@@ -205,13 +205,13 @@ const ProviderSettingsPanel = <TSettings extends ProviderSettings, TPatch extend
 	) : undefined;
 
 	return (
-		<Panel tone="deep" title={providerNames[provider]} actions={actions}>
+		<Panel className={styles.providerPanel} bodyClassName={styles.providerPanelBody} tone="deep" title={providerNames[provider]} actions={actions}>
 			{query.isLoading ? (
 				<SettingsPanelLoading />
 			) : query.isError || !form || !serverSettings ? (
 				<SettingsPanelError error={query.error} onRetry={() => void query.refetch()} />
 			) : (
-				<form className={styles.form} onSubmit={submit}>
+				<form className={styles.providerForm} onSubmit={submit}>
 					<label className={styles.checkboxRow}>
 						<Checkbox disabled={busy} checked={form.enabled} onChange={event => update("enabled", event.currentTarget.checked)} />
 						<span>
@@ -290,7 +290,7 @@ const ProviderSettingsPanel = <TSettings extends ProviderSettings, TPatch extend
 					{saveError ? <SettingsNotice tone="critical">{saveError}</SettingsNotice> : null}
 					{validation ? <SettingsNotice tone={validation.tone}>{validation.message}</SettingsNotice> : null}
 
-					<div className={styles.formActions}>
+					<div className={`${styles.formActions} ${styles.providerFormActions}`}>
 						<Button type="button" size="sm" variant="outline" disabled={!dirty || busy} onClick={reset}>
 							{t("settings.reset")}
 						</Button>
