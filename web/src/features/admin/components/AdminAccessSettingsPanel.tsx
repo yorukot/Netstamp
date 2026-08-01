@@ -124,7 +124,7 @@ export const AdminAccessSettingsPanel = () => {
 					{saveError ? <SettingsNotice tone="critical">{saveError}</SettingsNotice> : null}
 
 					<div className={styles.formActions}>
-						<Button type="button" size="sm" variant="plain" disabled={!dirty || busy} onClick={reset}>
+						<Button type="button" size="sm" variant="outline" disabled={!dirty || busy} onClick={reset}>
 							{t("settings.reset")}
 						</Button>
 						<Button type="submit" size="sm" disabled={!dirty || busy}>
