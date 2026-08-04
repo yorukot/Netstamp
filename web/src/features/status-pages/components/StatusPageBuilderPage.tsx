@@ -1,4 +1,4 @@
-import { pathForStatusPageEditor } from "@/routes/routePaths";
+import { pathForRoute, pathForStatusPageEditor } from "@/routes/routePaths";
 import {
 	useCreatePublicStatusElementMutation,
 	useCreatePublicStatusPageMutation,
@@ -12,6 +12,7 @@ import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
 import { UnsavedChangesBar } from "@/shared/components/UnsavedChangesBar";
+import { useConfirm } from "@/shared/components/confirmContext";
 import { pushErrorToast, pushToast } from "@/shared/toast/toastStore";
 import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
 import netstampLogoDark from "@netstamp/brand/assets/netstamp-logo-dark.svg";
@@ -239,7 +240,7 @@ export function StatusPageBuilderPage() {
 	if (!creating && (detailQuery.error || !detailQuery.data)) {
 		return (
 			<PageStack>
-				<ScreenHeader title={t("builder.editor")} />
+				<ScreenHeader title={t("builder.editor")} backLink={{ label: t("builder.backToPages"), to: pathForRoute("statusPages", { projectRef }) }} />
 				<Panel tone="deep" title={t("builder.unavailable")}>
 					<p className={styles.errorCopy}>{t("builder.unavailableDescription")}</p>
 				</Panel>
@@ -277,6 +278,7 @@ function StatusPageBuilderWorkspace({
 	assignmentsLoading: boolean;
 }) {
 	const navigate = useNavigate();
+	const confirm = useConfirm();
 	const { t } = useTranslation("status");
 	const [page, setPage] = useState<PageDraft>(initialPage);
 	const [elements, setElements] = useState<ElementDraft[]>(initialElements);
@@ -657,17 +659,39 @@ function StatusPageBuilderWorkspace({
 	}
 
 	const editorTitle = addingBlock ? t("builder.addBlock") : selectedElement ? (selectedElement.kind === "folder" ? t("builder.editingGroup") : t("builder.editingBlock")) : t("builder.editingPage");
+	const statusPagesPath = pathForRoute("statusPages", { projectRef });
+
+	const returnToStatusPages = async () => {
+		if (hasChanges) {
+			const accepted = await confirm({
+				title: t("builder.discardQuestion"),
+				message: t("builder.discardMessage"),
+				confirmLabel: t("builder.discardAndReturn"),
+				tone: "danger"
+			});
+
+			if (!accepted) return;
+		}
+
+		navigate(statusPagesPath);
+	};
 
 	return (
 		<div ref={builderRef} className={styles.builder}>
 			<aside className={styles.sidebar} aria-label={t("builder.settingsAria")}>
-				<div className={styles.sidebarHeader}>
-					<div>
-						<span>{t("builder.title")}</span>
-						<strong>{editorTitle}</strong>
+				<header className={styles.sidebarHeader}>
+					<Button type="button" variant="ghost" size="sm" className={styles.builderBackButton} disabled={saving} onClick={() => void returnToStatusPages()}>
+						<ArrowLeftIcon aria-hidden="true" focusable="false" />
+						{t("builder.backToPages")}
+					</Button>
+					<div className={styles.sidebarHeaderDetails}>
+						<div className={styles.sidebarHeaderCopy}>
+							<span>{t("builder.title")}</span>
+							<strong>{editorTitle}</strong>
+						</div>
+						<Badge tone={page.enabled ? "success" : "neutral"}>{page.enabled ? t("builder.live") : t("builder.private")}</Badge>
 					</div>
-					<Badge tone={page.enabled ? "success" : "neutral"}>{page.enabled ? t("builder.live") : t("builder.private")}</Badge>
-				</div>
+				</header>
 				<div className={styles.sidebarScroll}>
 					{addingBlock ? (
 						<BlockComposer checks={options} elements={elements} loading={assignmentsLoading} onAdd={addBlock} onCancel={() => setAddingBlock(false)} />
