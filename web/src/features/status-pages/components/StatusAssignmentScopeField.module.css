@@ -1,0 +1,104 @@
+.notice {
+	margin: 0;
+	color: var(--ns-text-muted);
+	font-size: 0.78rem;
+	line-height: 1.5;
+}
+
+.checkPicker {
+	display: grid;
+	grid-template-columns: minmax(6.5rem, 0.8fr) minmax(0, 1.4fr);
+	min-height: 18rem;
+	background: var(--ns-container-bg-raised);
+}
+
+.checkCategories {
+	display: grid;
+	align-content: start;
+	padding: 0.5rem;
+	border-right: 1px solid var(--ns-border-faint);
+}
+
+.checkCategory {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	min-width: 0;
+	padding: 0.55rem;
+	border: 0;
+	color: var(--ns-text-muted);
+	background: transparent;
+	font: 650 0.7rem/1.3 var(--ns-font-sans);
+	text-align: left;
+	text-transform: capitalize;
+	cursor: pointer;
+	gap: 0.35rem;
+}
+
+.checkCategory > span:first-child {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.checkCategory:hover,
+.checkCategory[data-selected="true"] {
+	color: var(--ns-text);
+	background: var(--ns-primary-muted);
+}
+
+.checkCategory:focus-visible,
+.checkChoice:focus-visible {
+	outline: var(--ns-focus-outline);
+	outline-offset: -0.125rem;
+}
+
+.checkChoices {
+	display: grid;
+	grid-template-rows: auto minmax(0, 1fr);
+	gap: 0.65rem;
+	min-width: 0;
+	padding: 0.65rem;
+}
+
+.checkChoiceList {
+	display: grid;
+	align-content: start;
+	gap: 0.35rem;
+	max-height: 20rem;
+	overflow-y: auto;
+}
+
+.checkChoice {
+	display: grid;
+	gap: 0.2rem;
+	min-width: 0;
+	padding: 0.65rem;
+	border: 0;
+	color: var(--ns-text);
+	background: var(--ns-control-bg);
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+
+.checkChoice:hover,
+.checkChoice[data-selected="true"] {
+	background: var(--ns-primary-muted);
+}
+
+.checkChoice strong,
+.checkChoice span {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.checkChoice strong {
+	font-size: 0.75rem;
+}
+
+.checkChoice span {
+	color: var(--ns-text-subtle);
+	font: 0.65rem/1.4 var(--ns-font-mono);
+}

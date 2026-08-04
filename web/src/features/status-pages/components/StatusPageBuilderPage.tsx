@@ -38,7 +38,20 @@ import { flushSync } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import { CssCodeEditor } from "./CssCodeEditor";
+import { StatusAssignmentScopeField } from "./StatusAssignmentScopeField";
 import styles from "./StatusPageBuilderPage.module.css";
+import {
+	assignmentsForScope,
+	defaultSelectedScopeTitle,
+	inferSingleCheckId,
+	statusAssignmentOptions,
+	statusAssignmentRequestScope,
+	statusCheckOptions,
+	unavailableAssignmentIds,
+	type StatusAssignmentOption,
+	type StatusAssignmentScope,
+	type StatusCheckOption
+} from "./statusAssignmentModel";
 
 type StatusT = TFunction<"status">;
 type PageDraft = CreatePublicStatusPageInput;
@@ -50,24 +63,8 @@ interface ElementDraft extends Omit<CreatePublicStatusElementInput, "parentEleme
 	parentLocalId?: string;
 }
 
-interface CheckOption {
-	id: string;
-	name: string;
-	type: string;
-	target: string;
-	assignmentIds: string[];
-	viewpoints: Array<{
-		id: string;
-		name: string;
-		locationName?: string;
-		latitude?: number;
-		longitude?: number;
-	}>;
-}
-
 type DragDestination = { kind: "target"; targetId: string; parentId?: string; placement: "before" | "after" } | { kind: "group"; parentId?: string };
 
-const supportedStatusCheckTypes = new Set(["http", "ping", "tcp"]);
 const emptyAssignments: ApiProjectAssignment[] = [];
 const emptyElementDrafts: ElementDraft[] = [];
 
@@ -143,9 +140,10 @@ function pageDraft(page: ApiPublicStatusPage, t: StatusT): PageDraft {
 	};
 }
 
-function elementDraft(element: ApiPublicStatusElement, checks: CheckOption[]): ElementDraft {
+function elementDraft(element: ApiPublicStatusElement, checks: StatusCheckOption[], assignments: StatusAssignmentOption[]): ElementDraft {
 	const resolvedCheckId =
 		element.checkId ??
+		inferSingleCheckId(element.assignmentIds, assignments) ??
 		(element.assignmentSelectionMode === "selected_assignments" ? undefined : (checks.find(check => check.name === element.checkName || check.name === element.title)?.id ?? checks[0]?.id));
 	return {
 		localId: element.id,
@@ -185,37 +183,6 @@ function normalizedPage(page: PageDraft): PageDraft {
 	};
 }
 
-function checkOptions(assignments: ApiProjectAssignment[]) {
-	const options = new Map<string, CheckOption>();
-	for (const assignment of assignments) {
-		if (!assignment.check || !supportedStatusCheckTypes.has(assignment.check.type)) continue;
-		const option = options.get(assignment.checkId) ?? {
-			id: assignment.checkId,
-			name: assignment.check.name,
-			type: assignment.check.type,
-			target: assignment.check.target,
-			assignmentIds: [],
-			viewpoints: []
-		};
-		option.assignmentIds.push(assignment.id);
-		if (assignment.probe && !option.viewpoints.some(viewpoint => viewpoint.id === assignment.probeId)) {
-			option.viewpoints.push({
-				id: assignment.probeId,
-				name: assignment.probe.name,
-				locationName: assignment.probe.locationName,
-				latitude: assignment.probe.latitude,
-				longitude: assignment.probe.longitude
-			});
-		}
-		options.set(assignment.checkId, option);
-	}
-	return [...options.values()].sort((left, right) => left.name.localeCompare(right.name));
-}
-
-function checkForElement(element: ElementDraft, checks: CheckOption[]) {
-	return checks.find(check => check.id === element.checkId) ?? checks.find(check => element.assignmentIds?.some(assignmentId => check.assignmentIds.includes(assignmentId)));
-}
-
 export function StatusPageBuilderPage() {
 	const { t } = useTranslation("status");
 	const { pageId = "new" } = useParams();
@@ -230,7 +197,8 @@ export function StatusPageBuilderPage() {
 		enabled: Boolean(projectRef)
 	});
 	const assignments = assignmentsQuery.data?.assignments ?? emptyAssignments;
-	const checks = useMemo(() => checkOptions(assignments), [assignments]);
+	const assignmentOptions = useMemo(() => statusAssignmentOptions(assignments), [assignments]);
+	const checks = useMemo(() => statusCheckOptions(assignmentOptions), [assignmentOptions]);
 	const [defaultPage] = useState(() => createDefaultPage(t));
 
 	if (!projectRef || assignmentsQuery.isPending || (!creating && detailQuery.isPending)) {
@@ -255,9 +223,11 @@ export function StatusPageBuilderPage() {
 			projectRef={projectRef}
 			pageId={page?.id}
 			initialPage={page ? pageDraft(page, t) : defaultPage}
-			initialElements={page ? (detailQuery.data?.elements ?? []).map(element => elementDraft(element, checks)) : emptyElementDrafts}
-			assignments={assignments}
+			initialElements={page ? (detailQuery.data?.elements ?? []).map(element => elementDraft(element, checks, assignmentOptions)) : emptyElementDrafts}
+			assignments={assignmentOptions}
+			checks={checks}
 			assignmentsLoading={assignmentsQuery.isPending}
+			assignmentsUnavailable={Boolean(assignmentsQuery.error)}
 		/>
 	);
 }
@@ -268,14 +238,18 @@ function StatusPageBuilderWorkspace({
 	initialPage,
 	initialElements,
 	assignments,
-	assignmentsLoading
+	checks,
+	assignmentsLoading,
+	assignmentsUnavailable
 }: {
 	projectRef: string;
 	pageId?: string;
 	initialPage: PageDraft;
 	initialElements: ElementDraft[];
-	assignments: ApiProjectAssignment[];
+	assignments: StatusAssignmentOption[];
+	checks: StatusCheckOption[];
 	assignmentsLoading: boolean;
+	assignmentsUnavailable: boolean;
 }) {
 	const navigate = useNavigate();
 	const confirm = useConfirm();
@@ -293,7 +267,7 @@ function StatusPageBuilderWorkspace({
 	const dragIndicator = useRef<HTMLElement | undefined>(undefined);
 	const dragCleanup = useRef<(() => void) | undefined>(undefined);
 	const elementsRef = useRef(elements);
-	const options = useMemo(() => checkOptions(assignments), [assignments]);
+	const options = checks;
 	const selectedElement = elements.find(element => element.localId === selectedId);
 	const hasChanges = !sameValue(page, baselinePage) || !sameValue(elements, baselineElements);
 	const createPageMutation = useCreatePublicStatusPageMutation(projectRef, { suppressGlobalErrorToast: true });
@@ -348,21 +322,25 @@ function StatusPageBuilderWorkspace({
 		setAddingBlock(false);
 	}
 
-	function addBlock(mode: DisplayMode, checkId: string, parentLocalId?: string) {
-		const check = options.find(option => option.id === checkId);
-		if (!check) return;
+	function addBlock(mode: DisplayMode, scope: StatusAssignmentScope, parentLocalId?: string) {
+		const assignmentSelectionMode = scope.assignmentSelectionMode ?? "all_check";
+		const assignmentIds = scope.assignmentIds ?? [];
+		const check = options.find(option => option.id === scope.checkId);
+		if (assignmentSelectionMode === "all_check" && !check) return;
+		if (assignmentSelectionMode === "selected_assignments" && !assignmentIds.length) return;
 		const siblings = elements.filter(element => element.kind === "assignment_group" && element.parentLocalId === parentLocalId);
 		const localId = localID();
+		const title = check?.name ?? defaultSelectedScopeTitle(assignmentIds, assignments, t("builder.selectedServices"));
 		setElements(current => [
 			...current,
 			{
 				localId,
 				parentLocalId,
 				kind: "assignment_group",
-				checkId: check.id,
-				assignmentSelectionMode: "all_check",
-				assignmentIds: [],
-				title: check.name,
+				checkId: scope.checkId,
+				assignmentSelectionMode,
+				assignmentIds,
+				title,
 				sortOrder: siblings.length,
 				displayMode: mode,
 				chartMode: mode === "latency" ? "compact" : "inherit",
@@ -599,6 +577,15 @@ function StatusPageBuilderWorkspace({
 			pushErrorToast(invalidElement.assignmentSelectionMode === "selected_assignments" ? t("builder.selectAssignment") : t("builder.selectCheck"));
 			return;
 		}
+		const elementWithUnavailableAssignments = assignmentsUnavailable
+			? undefined
+			: elements.find(element => element.assignmentSelectionMode === "selected_assignments" && unavailableAssignmentIds(element.assignmentIds, assignments).length > 0);
+		if (elementWithUnavailableAssignments) {
+			setSelectedId(elementWithUnavailableAssignments.localId);
+			setAddingBlock(false);
+			pushErrorToast(t("builder.assignmentPicker.removeBeforeSave"));
+			return;
+		}
 
 		try {
 			let savedPageId = pageId;
@@ -694,9 +681,25 @@ function StatusPageBuilderWorkspace({
 				</header>
 				<div className={styles.sidebarScroll}>
 					{addingBlock ? (
-						<BlockComposer checks={options} elements={elements} loading={assignmentsLoading} onAdd={addBlock} onCancel={() => setAddingBlock(false)} />
+						<BlockComposer
+							checks={options}
+							assignments={assignments}
+							elements={elements}
+							loading={assignmentsLoading}
+							unavailable={assignmentsUnavailable}
+							onAdd={addBlock}
+							onCancel={() => setAddingBlock(false)}
+						/>
 					) : selectedElement ? (
-						<ElementSettings element={selectedElement} elements={elements} checks={options} update={patch => updateElement(selectedElement.localId, patch)} onBack={() => setSelectedId(undefined)} />
+						<ElementSettings
+							element={selectedElement}
+							elements={elements}
+							checks={options}
+							assignments={assignments}
+							assignmentsUnavailable={assignmentsUnavailable}
+							update={patch => updateElement(selectedElement.localId, patch)}
+							onBack={() => setSelectedId(undefined)}
+						/>
 					) : (
 						<PageSettings page={page} update={updatePage} />
 					)}
@@ -708,6 +711,7 @@ function StatusPageBuilderWorkspace({
 					page={page}
 					elements={elements}
 					checks={options}
+					assignments={assignments}
 					selectedId={selectedId}
 					draggingId={draggingId}
 					onSelect={id => {
@@ -731,9 +735,7 @@ function elementRequest(element: ElementDraft, allElements: ElementDraft[] = [],
 	return {
 		kind: element.kind,
 		parentElementId: element.kind === "assignment_group" ? createdIDs.get(element.parentLocalId ?? "") || parent?.persistedId : undefined,
-		checkId: element.kind === "assignment_group" ? element.checkId : undefined,
-		assignmentSelectionMode: element.kind === "assignment_group" ? (element.assignmentSelectionMode ?? "all_check") : undefined,
-		assignmentIds: element.kind === "assignment_group" && element.assignmentSelectionMode === "selected_assignments" ? element.assignmentIds : undefined,
+		...(element.kind === "assignment_group" ? statusAssignmentRequestScope(element) : { checkId: undefined, assignmentSelectionMode: undefined, assignmentIds: undefined }),
 		title: element.title?.trim() || undefined,
 		description: element.description?.trim() || undefined,
 		sortOrder: element.sortOrder,
@@ -893,31 +895,31 @@ function PrivacyToggle({ label, detail, checked, onChange }: { label: string; de
 
 function BlockComposer({
 	checks,
+	assignments,
 	elements,
 	loading,
+	unavailable,
 	onAdd,
 	onCancel
 }: {
-	checks: CheckOption[];
+	checks: StatusCheckOption[];
+	assignments: StatusAssignmentOption[];
 	elements: ElementDraft[];
 	loading: boolean;
-	onAdd: (mode: DisplayMode, checkId: string, parentLocalId?: string) => void;
+	unavailable: boolean;
+	onAdd: (mode: DisplayMode, scope: StatusAssignmentScope, parentLocalId?: string) => void;
 	onCancel: () => void;
 }) {
 	const { t } = useTranslation("status");
 	const groups = sorted(elements.filter(element => element.kind === "folder"));
 	const [mode, setMode] = useState<DisplayMode>();
-	const [category, setCategory] = useState("all");
-	const [search, setSearch] = useState("");
-	const [checkId, setCheckId] = useState("");
+	const [scope, setScope] = useState<StatusAssignmentScope>({ assignmentSelectionMode: "all_check", assignmentIds: [] });
 	const [parentLocalId, setParentLocalId] = useState(groups[0]?.localId ?? "");
-	const categories = ["all", ...Array.from(new Set(checks.map(check => check.type))).sort((left, right) => left.localeCompare(right))];
-	const normalizedSearch = search.trim().toLowerCase();
-	const visibleChecks = checks.filter(
-		check => (category === "all" || check.type === category) && (!normalizedSearch || `${check.name} ${check.target} ${check.type}`.toLowerCase().includes(normalizedSearch))
-	);
 	const library = blockLibrary(t);
 	const selectedMode = library.find(block => block.mode === mode);
+	const selectionMode = scope.assignmentSelectionMode ?? "all_check";
+	const assignmentIds = scope.assignmentIds ?? [];
+	const missingAssignmentIds = unavailable ? [] : unavailableAssignmentIds(assignmentIds, assignments);
 
 	if (!mode) {
 		return (
@@ -958,46 +960,10 @@ function BlockComposer({
 				</div>
 			</div>
 			<div className={styles.sectionIntro}>
-				<strong>{t("builder.selectCheckTitle")}</strong>
-				<p>{t("builder.selectCheckDescription")}</p>
+				<strong>{t("builder.selectSourceTitle")}</strong>
+				<p>{t("builder.selectSourceDescription")}</p>
 			</div>
-			{loading ? <Spinner label={t("builder.loadingChecks")} layout="compact" size="sm" /> : null}
-			{!loading && checks.length ? (
-				<div className={styles.checkPicker}>
-					<div className={styles.checkCategories} role="list" aria-label={t("builder.checkCategories")}>
-						{categories.map(value => {
-							const count = value === "all" ? checks.length : checks.filter(check => check.type === value).length;
-							return (
-								<button key={value} type="button" className={styles.checkCategory} data-selected={category === value} onClick={() => setCategory(value)}>
-									<span>{checkCategoryLabel(value, t)}</span>
-									<Badge tone={category === value ? "accent" : "neutral"}>{count}</Badge>
-								</button>
-							);
-						})}
-					</div>
-					<div className={styles.checkChoices}>
-						<TextField label={t("builder.searchChecks")} placeholder={t("builder.searchPlaceholder")} value={search} onChange={event => setSearch(event.currentTarget.value)} />
-						<div className={styles.checkChoiceList} role="listbox" aria-label={t("builder.checks")}>
-							{visibleChecks.map(check => (
-								<button
-									key={check.id}
-									type="button"
-									className={styles.checkChoice}
-									role="option"
-									aria-selected={checkId === check.id}
-									data-selected={checkId === check.id}
-									onClick={() => setCheckId(check.id)}
-								>
-									<strong>{check.name}</strong>
-									<span>{check.target}</span>
-								</button>
-							))}
-							{!visibleChecks.length ? <p className={styles.inlineNotice}>{t("builder.noChecksMatch")}</p> : null}
-						</div>
-					</div>
-				</div>
-			) : null}
-			{!loading && !checks.length ? <p className={styles.inlineNotice}>{t("builder.noChecks")}</p> : null}
+			<StatusAssignmentScopeField scope={scope} checks={checks} assignments={assignments} loading={loading} unavailable={unavailable} checkPickerVariant="browser" onChange={setScope} />
 			<SelectField
 				label={t("builder.group")}
 				value={parentLocalId}
@@ -1008,7 +974,11 @@ function BlockComposer({
 				<Button type="button" variant="ghost" onClick={onCancel}>
 					{t("builder.cancel")}
 				</Button>
-				<Button type="button" disabled={!checkId} onClick={() => onAdd(mode, checkId, parentLocalId || undefined)}>
+				<Button
+					type="button"
+					disabled={selectionMode === "all_check" ? !scope.checkId : !assignmentIds.length || Boolean(missingAssignmentIds.length) || unavailable}
+					onClick={() => onAdd(mode, scope, parentLocalId || undefined)}
+				>
 					<PlusIcon aria-hidden="true" />
 					{t("builder.addBlock")}
 				</Button>
@@ -1017,36 +987,26 @@ function BlockComposer({
 	);
 }
 
-function checkCategoryLabel(value: string, t: StatusT) {
-	switch (value.toLowerCase()) {
-		case "all":
-			return t("builder.all");
-		case "http":
-			return "HTTP";
-		case "tcp":
-			return "TCP";
-		case "traceroute":
-			return t("builder.trace");
-		default:
-			return value;
-	}
-}
-
 function ElementSettings({
 	element,
 	elements,
 	checks,
+	assignments,
+	assignmentsUnavailable,
 	update,
 	onBack
 }: {
 	element: ElementDraft;
 	elements: ElementDraft[];
-	checks: CheckOption[];
+	checks: StatusCheckOption[];
+	assignments: StatusAssignmentOption[];
+	assignmentsUnavailable: boolean;
 	update: (patch: Partial<ElementDraft>) => void;
 	onBack: () => void;
 }) {
 	const { t } = useTranslation("status");
 	const groups = sorted(elements.filter(candidate => candidate.kind === "folder"));
+
 	return (
 		<div className={styles.settingsSection}>
 			<button type="button" className={styles.backButton} onClick={onBack}>
@@ -1067,14 +1027,13 @@ function ElementSettings({
 						options={[{ value: "", label: t("builder.noGroup") }, ...groups.map(group => ({ value: group.localId, label: group.title || t("builder.untitledGroup") }))]}
 						onChange={event => update({ parentLocalId: event.currentTarget.value || undefined })}
 					/>
-					<SelectField
-						label={t("builder.check")}
-						value={element.checkId ?? ""}
-						options={[{ value: "", label: t("builder.selectCheckOption"), disabled: true }, ...checks.map(check => ({ value: check.id, label: `${check.name} / ${check.type}` }))]}
-						onChange={event => {
-							const check = checks.find(candidate => candidate.id === event.currentTarget.value);
-							update({ checkId: check?.id, title: element.title || check?.name });
-						}}
+					<StatusAssignmentScopeField
+						scope={{ checkId: element.checkId, assignmentSelectionMode: element.assignmentSelectionMode, assignmentIds: element.assignmentIds }}
+						checks={checks}
+						assignments={assignments}
+						unavailable={assignmentsUnavailable}
+						onChange={scope => update(scope)}
+						onCheckChange={check => update({ title: element.title || check?.name })}
 					/>
 					<SelectField
 						label={t("builder.display")}
@@ -1100,6 +1059,7 @@ function StatusPageCanvas({
 	page,
 	elements,
 	checks,
+	assignments,
 	selectedId,
 	draggingId,
 	onSelect,
@@ -1111,7 +1071,8 @@ function StatusPageCanvas({
 }: {
 	page: PageDraft;
 	elements: ElementDraft[];
-	checks: CheckOption[];
+	checks: StatusCheckOption[];
+	assignments: StatusAssignmentOption[];
 	selectedId?: string;
 	draggingId?: string;
 	onSelect: (id: string) => void;
@@ -1185,7 +1146,7 @@ function StatusPageCanvas({
 							first={group.localId === groups[0]?.localId}
 							last={group.localId === groups[groups.length - 1]?.localId}
 							blocks={sorted(elements.filter(element => element.kind === "assignment_group" && element.parentLocalId === group.localId))}
-							checks={checks}
+							assignments={assignments}
 							page={page}
 							selectedId={selectedId}
 							draggingId={draggingId}
@@ -1209,7 +1170,7 @@ function StatusPageCanvas({
 									<PreviewBlock
 										key={element.localId}
 										element={element}
-										check={checkForElement(element, checks)}
+										assignments={assignmentsForScope(element, assignments)}
 										page={page}
 										selected={element.localId === selectedId}
 										dragging={element.localId === draggingId}
@@ -1248,7 +1209,7 @@ function PreviewGroup({
 	first,
 	last,
 	blocks,
-	checks,
+	assignments,
 	page,
 	selectedId,
 	draggingId,
@@ -1261,7 +1222,7 @@ function PreviewGroup({
 	first: boolean;
 	last: boolean;
 	blocks: ElementDraft[];
-	checks: CheckOption[];
+	assignments: StatusAssignmentOption[];
 	page: PageDraft;
 	selectedId?: string;
 	draggingId?: string;
@@ -1293,7 +1254,7 @@ function PreviewGroup({
 						<PreviewBlock
 							key={element.localId}
 							element={element}
-							check={checkForElement(element, checks)}
+							assignments={assignmentsForScope(element, assignments)}
 							page={page}
 							selected={element.localId === selectedId}
 							dragging={element.localId === draggingId}
@@ -1317,7 +1278,7 @@ function PreviewGroup({
 
 function PreviewBlock({
 	element,
-	check,
+	assignments,
 	page,
 	selected,
 	dragging,
@@ -1329,7 +1290,7 @@ function PreviewBlock({
 	onReorderStart
 }: {
 	element: ElementDraft;
-	check?: CheckOption;
+	assignments: StatusAssignmentOption[];
 	page: PageDraft;
 	selected: boolean;
 	dragging: boolean;
@@ -1341,10 +1302,15 @@ function PreviewBlock({
 	onReorderStart: (event: PointerEvent<HTMLElement>, id: string) => void;
 }) {
 	const { t } = useTranslation("status");
-	const probeNames = summarizeValues(check?.viewpoints.map(viewpoint => viewpoint.name) ?? []);
-	const probeLocations = summarizeValues(check?.viewpoints.flatMap(viewpoint => (viewpoint.locationName ? [viewpoint.locationName] : [])) ?? []);
-	const metadata = [check?.type, page.showTargets ? check?.target : undefined, page.showProbeNames ? probeNames : undefined, page.showProbeLocations ? probeLocations : undefined].filter(Boolean);
-	const mapPoints = (check?.viewpoints ?? []).flatMap(viewpoint => {
+	const checks = [...new Map(assignments.map(assignment => [assignment.checkId, assignment])).values()];
+	const viewpoints = [...new Map(assignments.map(assignment => [assignment.probeId, assignment])).values()];
+	const check = checks.length === 1 ? checks[0] : undefined;
+	const probeNames = summarizeValues(viewpoints.map(viewpoint => viewpoint.probeName));
+	const probeLocations = summarizeValues(viewpoints.flatMap(viewpoint => (viewpoint.probeLocationName ? [viewpoint.probeLocationName] : [])));
+	const metadata = check
+		? [check.checkType, page.showTargets ? check.checkTarget : undefined, page.showProbeNames ? probeNames : undefined, page.showProbeLocations ? probeLocations : undefined].filter(Boolean)
+		: [t("builder.assignmentCount", { count: assignments.length }), t("builder.checkCount", { count: checks.length }), t("builder.probeCount", { count: viewpoints.length })];
+	const mapPoints = viewpoints.flatMap(viewpoint => {
 		if (typeof viewpoint.latitude !== "number" || typeof viewpoint.longitude !== "number") return [];
 		return [
 			{
@@ -1363,16 +1329,16 @@ function PreviewBlock({
 		>
 			<div className={styles.previewBlockTop}>
 				<div className={styles.previewBlockIdentity}>
-					<DragHandle label={t("builder.drag", { name: element.title || check?.name || t("builder.blockFallback") })} onReorderStart={event => onReorderStart(event, element.localId)} />
+					<DragHandle label={t("builder.drag", { name: element.title || check?.checkName || t("builder.blockFallback") })} onReorderStart={event => onReorderStart(event, element.localId)} />
 					<span className={styles.operationalDot} aria-hidden="true" />
 					<div>
-						<strong>{element.title || check?.name || t("builder.untitledService")}</strong>
+						<strong>{element.title || check?.checkName || t("builder.untitledService")}</strong>
 						<small>{metadata.length ? metadata.join(" / ") : displayLabel(element.displayMode, t)}</small>
 					</div>
 				</div>
 				<div className={styles.previewBlockActions}>
 					<span>{t("builder.operational")}</span>
-					<ElementControls element={element} label={element.title || check?.name} first={first} last={last} onSelect={onSelect} onMove={onMove} onRemove={onRemove} />
+					<ElementControls element={element} label={element.title || check?.checkName} first={first} last={last} onSelect={onSelect} onMove={onMove} onRemove={onRemove} />
 				</div>
 			</div>
 			<div className={styles.uptimeHeading}>
@@ -1388,7 +1354,7 @@ function PreviewBlock({
 				<div className={styles.previewMetrics}>
 					<PreviewMetric label={t("builder.availability")} value="99.98%" />
 					<PreviewMetric label={t("builder.medianLatency")} value="28 ms" />
-					<PreviewMetric label={t("builder.viewpoints")} value={t("builder.activeCount", { count: check?.viewpoints.length ?? 0 })} />
+					<PreviewMetric label={t("builder.viewpoints")} value={t("builder.activeCount", { count: viewpoints.length })} />
 				</div>
 			) : null}
 			{element.displayMode === "history" ? (
@@ -1422,9 +1388,9 @@ function PreviewBlock({
 						<span
 							key={point.id}
 							style={{ left: `${point.left}%`, top: `${point.top}%` }}
-							title={[point.name, point.locationName].filter(Boolean).join(" / ")}
+							title={[point.probeName, point.probeLocationName].filter(Boolean).join(" / ")}
 							role="img"
-							aria-label={[point.name, point.locationName].filter(Boolean).join(" / ")}
+							aria-label={[point.probeName, point.probeLocationName].filter(Boolean).join(" / ")}
 						/>
 					))}
 					<small>{mapPoints.length ? t("builder.locationCount", { count: mapPoints.length }) : t("builder.noCoordinates")}</small>

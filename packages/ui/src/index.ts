@@ -7,6 +7,8 @@ export { BodyCopy } from "./components/BodyCopy/BodyCopy";
 export type { BodyCopyProps } from "./components/BodyCopy/BodyCopy";
 export { Button } from "./components/Button/Button";
 export type { ButtonProps, ButtonSize, ButtonVariant } from "./components/Button/Button";
+export { CategorizedMultiSelect } from "./components/CategorizedMultiSelect/CategorizedMultiSelect";
+export type { CategorizedMultiSelectCategory, CategorizedMultiSelectItem, CategorizedMultiSelectProps } from "./components/CategorizedMultiSelect/CategorizedMultiSelect";
 export { CodeBlock } from "./components/CodeBlock/CodeBlock";
 export type { CodeBlockProps } from "./components/CodeBlock/CodeBlock";
 export { DangerAction } from "./components/DangerAction/DangerAction";
