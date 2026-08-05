@@ -10,15 +10,9 @@
 	"emptyDescription": "新增探測器，開始收集網路量測資料。",
 	"metrics": {
 		"probesOnline": "上線探測器",
-		"online": "上線",
 		"offlineCount_one": "{{count}} 個離線",
 		"offlineCount_other": "{{count}} 個離線",
-		"mapCoverage": "已設定位置比例",
-		"coverage": "位置涵蓋率",
-		"locatedCount_one": "{{count}} 個有位置資訊",
-		"locatedCount_other": "{{count}} 個有位置資訊",
 		"activeChecks": "已啟用的檢查",
-		"checks": "檢查",
 		"none": "無",
 		"draining": "準備離線",
 		"maintenance": "維護模式"

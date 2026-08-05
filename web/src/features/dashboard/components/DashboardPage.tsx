@@ -19,14 +19,6 @@ const probeStatusTones: Record<ProbeStatus, BadgeTone> = {
 	Offline: "critical"
 };
 
-function percentage(part: number, total: number) {
-	if (!total) {
-		return "0%";
-	}
-
-	return `${Math.round((part / total) * 100)}%`;
-}
-
 export function DashboardPage() {
 	const { t } = useTranslation(["dashboard", "probes"]);
 	const { projectRef } = useCurrentProject();
@@ -61,25 +53,14 @@ export function DashboardPage() {
 		{
 			label: t("dashboard:metrics.probesOnline"),
 			value: `${onlineProbes}/${probes.length}`,
-			detail: t("dashboard:metrics.online"),
-			tone: "success",
 			meta: t("dashboard:metrics.offlineCount", { count: offlineProbes })
-		},
-		{
-			label: t("dashboard:metrics.mapCoverage"),
-			value: percentage(positionedProbes.length, probes.length),
-			detail: t("dashboard:metrics.coverage"),
-			tone: "accent",
-			meta: t("dashboard:metrics.locatedCount", { count: positionedProbes.length })
 		},
 		{
 			label: t("dashboard:metrics.activeChecks"),
 			value: String(activeChecks),
-			detail: t("dashboard:metrics.checks"),
-			tone: "neutral",
 			meta: checkTypeSummary.map(([type, count]) => `${count} ${type}`).join(" / ") || t("dashboard:metrics.none")
 		},
-		{ label: t("dashboard:metrics.draining"), value: String(drainingProbes), detail: t("dashboard:metrics.maintenance"), tone: "warning", meta: t("dashboard:metrics.maintenance") }
+		{ label: t("dashboard:metrics.draining"), value: String(drainingProbes), meta: t("dashboard:metrics.maintenance") }
 	] as const;
 	const statusLabel = (status: ProbeStatus) => t(`probes:status.${status.toLowerCase() as "online" | "draining" | "offline"}`);
 
@@ -94,7 +75,7 @@ export function DashboardPage() {
 			<div className={styles.sections}>
 				<Panel className={styles.overviewSection} title={t("dashboard:fleet")} padded={false} bodyClassName={styles.metricsContent}>
 					{metrics.map(metric => (
-						<MetricTile className={styles.metricTile} key={metric.label} label={metric.label} value={metric.value} description={metric.meta} detail={metric.detail} tone={metric.tone} />
+						<MetricTile className={styles.metricTile} key={metric.label} label={metric.label} value={metric.value} description={metric.meta} />
 					))}
 				</Panel>
 

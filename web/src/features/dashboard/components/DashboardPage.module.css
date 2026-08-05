@@ -61,7 +61,7 @@
 
 .metricsContent {
 	display: grid;
-	grid-template-columns: repeat(4, minmax(0, 1fr));
+	grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .metricTile {
@@ -186,18 +186,6 @@
 	.sections {
 		display: grid;
 		grid-template-rows: auto;
-	}
-
-	.metricsContent {
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-	}
-
-	.metricTile:nth-child(2n) {
-		border-right: 0;
-	}
-
-	.metricTile:nth-child(n + 3) {
-		border-top: 1px solid var(--ns-border-faint);
 	}
 
 	.mapSection,

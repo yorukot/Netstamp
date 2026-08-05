@@ -1,6 +1,6 @@
 ---
 title: Dashboard overview
-description: Read the current project's probe health, check coverage, network map, and recent probe registry at a glance.
+description: Read the current project's probe health, active checks, network map, and recent probe registry at a glance.
 icon: activity
 navSection: use
 navOrder: 0
@@ -32,12 +32,6 @@ The probe summary separates the fleet into these operational states:
 
 The counts use every probe in the selected project. Open [Probes](/docs/use/probes/) to inspect heartbeat time, agent version, IP-family support, or installation state for one machine.
 
-## Map Coverage
-
-The coverage card compares the number of registered probes with the number that have geographic coordinates. The network map can only place probes with a known location, so its marker count may be lower than the total fleet count.
-
-Locations may come from the address search in the probe editor or from manually entered latitude and longitude. A missing map marker does not mean that a probe is offline.
-
 ## Active Checks
 
 The check summary counts enabled monitoring definitions and groups them by type. Netstamp currently supports:
@@ -53,10 +47,12 @@ Open [Checks](/docs/use/checks/) to add, edit, disable, or assign a check. A che
 
 The map shows the positioned probes in the current project. Use it to spot geographic gaps and confirm that monitoring originates from the locations you intended.
 
+The network map can only place probes with known coordinates, so its marker count may be lower than the total fleet count. A missing map marker does not mean that a probe is offline.
+
 <ProductScreenshot
 	src={probeMapScreenshot}
 	alt="Netstamp Overview showing probe health cards and probes positioned on the network map"
-	caption="Overview combines fleet health with geographic probe coverage for the selected project."
+	caption="Overview combines fleet health, active checks, and positioned probes for the selected project."
 />
 
 The map represents probe locations, not traceroute paths. Open [Insight](/docs/use/insight/) and select a Traceroute check to explore hop topology and individual runs.
