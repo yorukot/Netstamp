@@ -3112,6 +3112,8 @@ export interface components {
 			 * @enum {string}
 			 */
 			defaultChartRange: "24h" | "7d" | "30d";
+			/** @description Complete public status page element set. Omit when elements should remain unchanged during an update; provide an empty array to remove every element. */
+			elements?: components["schemas"]["SavePublicStatusPageElementRequest"][];
 		};
 		/**
 		 * @example {
@@ -4632,9 +4634,6 @@ export interface components {
 		PublicStatusPageListResponse: {
 			pages: components["schemas"]["PublicStatusPage"][];
 		};
-		PublicStatusPageResponse: {
-			page: components["schemas"]["PublicStatusPage"];
-		};
 		PublicStatusPageSummary: {
 			id: components["schemas"]["uuid"];
 			slug: string;
@@ -4842,6 +4841,34 @@ export interface components {
 			publicV6?: components["schemas"]["ipv6Address"];
 			as?: string;
 			addrs?: (components["schemas"]["ipv4Address"] | components["schemas"]["ipv6Address"])[];
+		};
+		SavePublicStatusPageElementRequest: {
+			clientId: string;
+			/** @description Persisted element identifier. Omit when creating a new element. */
+			id?: components["schemas"]["uuid"];
+			parentClientId?: string;
+			/** @enum {string} */
+			kind: "folder" | "assignment_group";
+			checkId?: components["schemas"]["uuid"];
+			/** @enum {string} */
+			assignmentSelectionMode?: "all_check" | "selected_assignments";
+			assignmentIds?: components["schemas"]["uuid"][];
+			title?: string;
+			description?: string;
+			/** Format: int32 */
+			sortOrder: number;
+			/**
+			 * @default status
+			 * @enum {string}
+			 */
+			displayMode: "status" | "history" | "latency" | "map";
+			/**
+			 * @default inherit
+			 * @enum {string}
+			 */
+			chartMode: "inherit" | "off" | "compact";
+			/** @enum {string} */
+			chartRange?: "24h" | "7d" | "30d";
 		};
 		/**
 		 * @description Selector AST used to match probes by project labels. Empty object matches all probes.
@@ -5856,6 +5883,8 @@ export interface components {
 			 * @enum {string}
 			 */
 			defaultChartRange: "24h" | "7d" | "30d";
+			/** @description Complete public status page element set. Omit when elements should remain unchanged during an update; provide an empty array to remove every element. */
+			elements?: components["schemas"]["SavePublicStatusPageElementRequest"][];
 		};
 		/**
 		 * @example {
@@ -12664,7 +12693,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["PublicStatusPageResponse"];
+					"application/json": components["schemas"]["PublicStatusPageDetailResponse"];
 				};
 			};
 			/** @description The server could not understand the request due to invalid syntax. */
@@ -12879,7 +12908,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["PublicStatusPageResponse"];
+					"application/json": components["schemas"]["PublicStatusPageDetailResponse"];
 				};
 			};
 			/** @description The server could not understand the request due to invalid syntax. */

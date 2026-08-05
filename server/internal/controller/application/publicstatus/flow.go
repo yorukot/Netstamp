@@ -82,6 +82,25 @@ func (f *publicStatusFlow) success() {
 	f.record(PublicStatusOutcomeSuccess, "", nil)
 }
 
+func (f *publicStatusFlow) recordElementChanges(changes []pageElementChange) {
+	if f.service.events == nil {
+		return
+	}
+	for _, change := range changes {
+		f.service.events.RecordPublicStatusEvent(f.ctx, PublicStatusEvent{
+			Name:        publicStatusEventName(change.action, PublicStatusOutcomeSuccess),
+			Action:      change.action,
+			Outcome:     PublicStatusOutcomeSuccess,
+			ActorUserID: f.actorUserID,
+			ProjectID:   f.projectID,
+			ProjectRef:  f.projectRef,
+			ProjectSlug: f.projectSlug,
+			PageID:      f.pageID,
+			ElementID:   change.elementID,
+		})
+	}
+}
+
 func (f *publicStatusFlow) businessFailure(reason PublicStatusReason, returnErr error) error {
 	f.span.SetAttributes(
 		attrPublicStatusOutcome.String(string(PublicStatusOutcomeFailure)),

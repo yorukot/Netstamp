@@ -210,6 +210,7 @@ WHERE public_page_id = sqlc.arg(public_page_id)
 
 -- name: CreatePublicStatusPageElement :one
 INSERT INTO public_status_page_elements (
+    id,
     public_page_id,
     project_id,
     parent_element_id,
@@ -224,6 +225,7 @@ INSERT INTO public_status_page_elements (
     chart_range
 )
 VALUES (
+    COALESCE(sqlc.narg(id)::uuid, gen_random_uuid()),
     sqlc.arg(public_page_id),
     sqlc.arg(project_id),
     sqlc.narg(parent_element_id),

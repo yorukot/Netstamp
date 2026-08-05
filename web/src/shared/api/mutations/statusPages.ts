@@ -47,8 +47,8 @@ export function useCreatePublicStatusPageMutation(projectRef: string | null | un
 		mutationFn: (body: CreatePublicStatusPageInput) => createProjectPublicStatusPage(requireProjectRef(projectRef), body),
 		onSuccess: data => {
 			const ref = requireProjectRef(projectRef);
-			queryClient.setQueryData(apiQueryKeys.projects.statusPageDetail(ref, data.page.id), { page: data.page, elements: [] });
-			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.statusPagesRoot(ref) });
+			queryClient.setQueryData(apiQueryKeys.projects.statusPageDetail(ref, data.page.id), data);
+			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.statusPages(ref) });
 			queryClient.invalidateQueries({ queryKey: apiQueryKeys.publicStatus.pageRoot(data.page.slug) });
 		}
 	});
@@ -62,8 +62,8 @@ export function useUpdatePublicStatusPageMutation(projectRef: string | null | un
 		mutationFn: ({ pageId, body }: UpdatePublicStatusPageVariables) => updateProjectPublicStatusPage(requireProjectRef(projectRef), pageId, body),
 		onSuccess: (data, variables) => {
 			const ref = requireProjectRef(projectRef);
-			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.statusPagesRoot(ref) });
-			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.statusPageDetail(ref, data.page.id) });
+			queryClient.setQueryData(apiQueryKeys.projects.statusPageDetail(ref, data.page.id), data);
+			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.statusPages(ref) });
 			queryClient.invalidateQueries({ queryKey: apiQueryKeys.publicStatus.pageRoot(data.page.slug) });
 			if (variables.previousSlug && variables.previousSlug !== data.page.slug) {
 				queryClient.invalidateQueries({ queryKey: apiQueryKeys.publicStatus.pageRoot(variables.previousSlug) });

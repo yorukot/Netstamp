@@ -18,6 +18,23 @@ type pageInputBody struct {
 	CustomCSS           *string                 `json:"customCss"`
 	DefaultChartMode    domainpublic.ChartMode  `json:"defaultChartMode"`
 	DefaultChartRange   domainpublic.ChartRange `json:"defaultChartRange"`
+	Elements            *[]saveElementInputBody `json:"elements"`
+}
+
+type saveElementInputBody struct {
+	ClientID                string                               `json:"clientId"`
+	ElementID               *string                              `json:"id"`
+	ParentClientID          *string                              `json:"parentClientId"`
+	Kind                    domainpublic.ElementKind             `json:"kind"`
+	CheckID                 *string                              `json:"checkId"`
+	AssignmentSelectionMode domainpublic.AssignmentSelectionMode `json:"assignmentSelectionMode"`
+	AssignmentIDs           []string                             `json:"assignmentIds"`
+	Title                   *string                              `json:"title"`
+	Description             *string                              `json:"description"`
+	SortOrder               int32                                `json:"sortOrder"`
+	DisplayMode             domainpublic.ElementDisplayMode      `json:"displayMode"`
+	ChartMode               domainpublic.ChartMode               `json:"chartMode"`
+	ChartRange              *domainpublic.ChartRange             `json:"chartRange"`
 }
 
 type elementInputBody struct {

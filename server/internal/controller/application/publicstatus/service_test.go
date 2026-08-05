@@ -673,6 +673,194 @@ func TestUpdateElementRejectsKindChange(t *testing.T) {
 	}
 }
 
+func TestCreatePageSavesNestedElementsInOneTransaction(t *testing.T) {
+	repo := &fakePublicStatusRepository{}
+	service := NewService(repo, fakeProjectAccess{role: domainproject.RoleAdmin}, nil, nil, nil)
+	elements := []SaveElementInput{
+		{
+			ClientID:    "folder-local",
+			Kind:        domainpublic.ElementKindFolder,
+			Title:       ptr("Core services"),
+			SortOrder:   0,
+			DisplayMode: domainpublic.ElementDisplayModeStatus,
+			ChartMode:   domainpublic.ChartModeInherit,
+		},
+		{
+			ClientID:                "group-local",
+			ParentClientID:          ptr("folder-local"),
+			Kind:                    domainpublic.ElementKindAssignmentGroup,
+			CheckID:                 ptr("44444444-4444-4444-4444-444444444444"),
+			AssignmentSelectionMode: domainpublic.AssignmentSelectionModeAllCheck,
+			SortOrder:               0,
+			DisplayMode:             domainpublic.ElementDisplayModeStatus,
+			ChartMode:               domainpublic.ChartModeInherit,
+		},
+	}
+
+	detail, err := service.CreatePage(context.Background(), validCreatePageInput(&elements))
+	if err != nil {
+		t.Fatalf("CreatePage returned error: %v", err)
+	}
+	if detail.Page.ID != testPageID {
+		t.Fatalf("page id = %q, want %q", detail.Page.ID, testPageID)
+	}
+	if len(detail.Elements) != 2 {
+		t.Fatalf("element count = %d, want 2", len(detail.Elements))
+	}
+	var folder, group *domainpublic.Element
+	for index := range detail.Elements {
+		element := &detail.Elements[index]
+		if element.Kind == domainpublic.ElementKindFolder {
+			folder = element
+		} else {
+			group = element
+		}
+	}
+	if folder == nil || group == nil || group.ParentElementID == nil || *group.ParentElementID != folder.ID {
+		t.Fatalf("saved elements = %#v, want group parent to reference saved folder", detail.Elements)
+	}
+}
+
+func TestUpdatePageReconcilesCompleteElementSet(t *testing.T) {
+	now := time.Date(2026, 8, 5, 12, 0, 0, 0, time.UTC)
+	existingID := "44444444-4444-4444-4444-444444444444"
+	removedID := "55555555-5555-5555-5555-555555555555"
+	repo := &fakePublicStatusRepository{
+		page: testPage(now),
+		elements: []domainpublic.Element{
+			{ID: existingID, PublicPageID: testPageID, ProjectID: testProjectID, Kind: domainpublic.ElementKindAssignmentGroup, CheckID: &existingID, SortOrder: 1, DisplayMode: domainpublic.ElementDisplayModeStatus, ChartMode: domainpublic.ChartModeInherit},
+			{ID: removedID, PublicPageID: testPageID, ProjectID: testProjectID, Kind: domainpublic.ElementKindFolder, SortOrder: 2, DisplayMode: domainpublic.ElementDisplayModeStatus, ChartMode: domainpublic.ChartModeInherit},
+		},
+	}
+	service := NewService(repo, fakeProjectAccess{role: domainproject.RoleAdmin}, nil, nil, nil)
+	elements := []SaveElementInput{
+		{
+			ClientID:                "existing-group",
+			ElementID:               &existingID,
+			Kind:                    domainpublic.ElementKindAssignmentGroup,
+			CheckID:                 &existingID,
+			AssignmentSelectionMode: domainpublic.AssignmentSelectionModeAllCheck,
+			Title:                   ptr("Updated API"),
+			SortOrder:               0,
+			DisplayMode:             domainpublic.ElementDisplayModeHistory,
+			ChartMode:               domainpublic.ChartModeInherit,
+		},
+	}
+	input := validUpdatePageInput(&elements)
+	input.Title = "Updated status"
+
+	detail, err := service.UpdatePage(context.Background(), input)
+	if err != nil {
+		t.Fatalf("UpdatePage returned error: %v", err)
+	}
+	if detail.Page.Title != "Updated status" || len(detail.Elements) != 1 {
+		t.Fatalf("saved detail = %#v, want updated page with one element", detail)
+	}
+	if detail.Elements[0].ID != existingID || detail.Elements[0].Title == nil || *detail.Elements[0].Title != "Updated API" {
+		t.Fatalf("saved element = %#v, want updated existing element", detail.Elements[0])
+	}
+}
+
+func TestUpdatePageRollsBackPageWhenElementSetIsInvalid(t *testing.T) {
+	now := time.Date(2026, 8, 5, 12, 0, 0, 0, time.UTC)
+	repo := &fakePublicStatusRepository{page: testPage(now)}
+	service := NewService(repo, fakeProjectAccess{role: domainproject.RoleAdmin}, nil, nil, nil)
+	service.ConfigureTransactor(rollbackPublicStatusTransactor{repo: repo})
+	elements := []SaveElementInput{
+		{
+			ClientID:                "group-local",
+			ParentClientID:          ptr("missing-folder"),
+			Kind:                    domainpublic.ElementKindAssignmentGroup,
+			CheckID:                 ptr("44444444-4444-4444-4444-444444444444"),
+			AssignmentSelectionMode: domainpublic.AssignmentSelectionModeAllCheck,
+			SortOrder:               0,
+			DisplayMode:             domainpublic.ElementDisplayModeStatus,
+			ChartMode:               domainpublic.ChartModeInherit,
+		},
+	}
+	input := validUpdatePageInput(&elements)
+	input.Title = "Must roll back"
+
+	_, err := service.UpdatePage(context.Background(), input)
+	if !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("UpdatePage error = %v, want ErrInvalidInput", err)
+	}
+	if repo.page.Title != "Main status" {
+		t.Fatalf("page title = %q after rollback, want original title", repo.page.Title)
+	}
+}
+
+func TestUpdatePagePreservesElementsWhenElementSetIsOmitted(t *testing.T) {
+	now := time.Date(2026, 8, 5, 12, 0, 0, 0, time.UTC)
+	elementID := "44444444-4444-4444-4444-444444444444"
+	repo := &fakePublicStatusRepository{
+		page:     testPage(now),
+		elements: []domainpublic.Element{{ID: elementID, PublicPageID: testPageID, ProjectID: testProjectID, Kind: domainpublic.ElementKindFolder, SortOrder: 0, DisplayMode: domainpublic.ElementDisplayModeStatus, ChartMode: domainpublic.ChartModeInherit}},
+	}
+	service := NewService(repo, fakeProjectAccess{role: domainproject.RoleAdmin}, nil, nil, nil)
+
+	detail, err := service.UpdatePage(context.Background(), validUpdatePageInput(nil))
+	if err != nil {
+		t.Fatalf("UpdatePage returned error: %v", err)
+	}
+	if len(detail.Elements) != 1 || detail.Elements[0].ID != elementID {
+		t.Fatalf("elements = %#v, want omitted element set to remain unchanged", detail.Elements)
+	}
+}
+
+func TestUpdatePageClearsElementsWhenElementSetIsEmpty(t *testing.T) {
+	now := time.Date(2026, 8, 5, 12, 0, 0, 0, time.UTC)
+	elementID := "44444444-4444-4444-4444-444444444444"
+	repo := &fakePublicStatusRepository{
+		page:     testPage(now),
+		elements: []domainpublic.Element{{ID: elementID, PublicPageID: testPageID, ProjectID: testProjectID, Kind: domainpublic.ElementKindFolder, SortOrder: 0, DisplayMode: domainpublic.ElementDisplayModeStatus, ChartMode: domainpublic.ChartModeInherit}},
+	}
+	service := NewService(repo, fakeProjectAccess{role: domainproject.RoleAdmin}, nil, nil, nil)
+	empty := []SaveElementInput{}
+
+	detail, err := service.UpdatePage(context.Background(), validUpdatePageInput(&empty))
+	if err != nil {
+		t.Fatalf("UpdatePage returned error: %v", err)
+	}
+	if len(detail.Elements) != 0 || len(repo.elements) != 0 {
+		t.Fatalf("elements = %#v, want explicit empty element set to remove every element", detail.Elements)
+	}
+}
+
+func validCreatePageInput(elements *[]SaveElementInput) CreatePageInput {
+	return CreatePageInput{
+		CurrentUserID:       testUserID,
+		ProjectRef:          "main",
+		Slug:                "main",
+		Title:               "Main status",
+		Enabled:             true,
+		Theme:               domainpublic.ThemeAuto,
+		ShowIncidentHistory: true,
+		ShowGeneratedAt:     true,
+		DefaultChartMode:    domainpublic.ChartModeOff,
+		DefaultChartRange:   domainpublic.ChartRange24h,
+		Elements:            elements,
+	}
+}
+
+func validUpdatePageInput(elements *[]SaveElementInput) UpdatePageInput {
+	create := validCreatePageInput(elements)
+	return UpdatePageInput{
+		CurrentUserID:       create.CurrentUserID,
+		ProjectRef:          create.ProjectRef,
+		PageID:              testPageID,
+		Slug:                create.Slug,
+		Title:               create.Title,
+		Enabled:             create.Enabled,
+		Theme:               create.Theme,
+		ShowIncidentHistory: create.ShowIncidentHistory,
+		ShowGeneratedAt:     create.ShowGeneratedAt,
+		DefaultChartMode:    create.DefaultChartMode,
+		DefaultChartRange:   create.DefaultChartRange,
+		Elements:            elements,
+	}
+}
+
 func testPage(now time.Time) domainpublic.Page {
 	return domainpublic.Page{
 		ID:                testPageID,
@@ -738,10 +926,15 @@ func (r *fakePublicStatusRepository) GetPageBySlug(_ context.Context, slug strin
 }
 
 func (r *fakePublicStatusRepository) CreatePage(_ context.Context, input domainpublic.Page) (domainpublic.Page, error) {
+	if input.ID == "" {
+		input.ID = testPageID
+	}
+	r.page = input
 	return input, nil
 }
 
 func (r *fakePublicStatusRepository) UpdatePage(_ context.Context, input domainpublic.Page) (domainpublic.Page, error) {
+	r.page = input
 	return input, nil
 }
 
@@ -764,15 +957,28 @@ func (r *fakePublicStatusRepository) GetElement(_ context.Context, projectID, pa
 }
 
 func (r *fakePublicStatusRepository) CreateElement(_ context.Context, input domainpublic.Element) (domainpublic.Element, error) {
+	r.elements = append(r.elements, input)
 	return input, nil
 }
 
 func (r *fakePublicStatusRepository) UpdateElement(_ context.Context, input domainpublic.Element) (domainpublic.Element, error) {
 	r.updatedElement = &input
+	for index := range r.elements {
+		if r.elements[index].ID == input.ID {
+			r.elements[index] = input
+			return input, nil
+		}
+	}
 	return input, nil
 }
 
-func (r *fakePublicStatusRepository) DeleteElement(context.Context, string, string, string) error {
+func (r *fakePublicStatusRepository) DeleteElement(_ context.Context, _, _, elementID string) error {
+	for index := range r.elements {
+		if r.elements[index].ID == elementID {
+			r.elements = append(r.elements[:index], r.elements[index+1:]...)
+			break
+		}
+	}
 	return nil
 }
 
@@ -807,6 +1013,21 @@ func (r *fakePublicStatusRepository) ListIncidents(context.Context, string, int3
 
 type fakeProjectAccess struct {
 	role domainproject.Role
+}
+
+type rollbackPublicStatusTransactor struct {
+	repo *fakePublicStatusRepository
+}
+
+func (t rollbackPublicStatusTransactor) WithinTx(ctx context.Context, fn func(context.Context) error) error {
+	pageSnapshot := t.repo.page
+	elementSnapshot := append([]domainpublic.Element{}, t.repo.elements...)
+	if err := fn(ctx); err != nil {
+		t.repo.page = pageSnapshot
+		t.repo.elements = elementSnapshot
+		return err
+	}
+	return nil
 }
 
 func (a fakeProjectAccess) GetProjectForUser(context.Context, string, string) (domainproject.Project, error) {

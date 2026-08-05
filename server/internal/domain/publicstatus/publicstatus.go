@@ -337,6 +337,17 @@ func VNSortOrder(sortOrder int32) (int32, error) {
 	return sortOrder, nil
 }
 
+func VNElementClientID(value string) (string, error) {
+	value = strings.TrimSpace(value)
+	if err := spvalidator.Required(value); err != nil {
+		return "", err
+	}
+	if err := spvalidator.Max(value, 128); err != nil {
+		return "", err
+	}
+	return value, nil
+}
+
 func vnUUID(value string) (string, error) {
 	value = strings.TrimSpace(value)
 	if err := spvalidator.Required(value); err != nil {

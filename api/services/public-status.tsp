@@ -19,7 +19,7 @@ interface ProjectPublicStatusPageService {
 	@summary("Create project public status page")
 	@post
 	createProjectPublicStatusPage(...ProjectRefParam, @body body: CreatePublicStatusPageRequest):
-		| CreatedJson<PublicStatusPageResponse>
+		| CreatedJson<PublicStatusPageDetailResponse>
 		| BadRequestProblem
 		| UnauthorizedProblem
 		| ForbiddenProblem
@@ -44,7 +44,7 @@ interface ProjectPublicStatusPageService {
 	@patch
 	@route("/{page_id}")
 	updateProjectPublicStatusPage(...ProjectRefParam, ...PublicStatusPageIdPathParam, @body body: UpdatePublicStatusPageRequest):
-		| OkJson<PublicStatusPageResponse>
+		| OkJson<PublicStatusPageDetailResponse>
 		| BadRequestProblem
 		| UnauthorizedProblem
 		| ForbiddenProblem

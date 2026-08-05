@@ -32,7 +32,7 @@ func (h *Handler) handleCreatePage(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteProblem(w, r, err)
 		return
 	}
-	page, err := h.service.CreatePage(r.Context(), apppublic.CreatePageInput{
+	detail, err := h.service.CreatePage(r.Context(), apppublic.CreatePageInput{
 		CurrentUserID:       userID,
 		ProjectRef:          httpx.Path(r, "ref"),
 		Slug:                body.Slug,
@@ -50,12 +50,13 @@ func (h *Handler) handleCreatePage(w http.ResponseWriter, r *http.Request) {
 		CustomCSS:           body.CustomCSS,
 		DefaultChartMode:    defaultPageChartMode(body.DefaultChartMode),
 		DefaultChartRange:   defaultChartRange(body.DefaultChartRange),
+		Elements:            saveElementInputs(body.Elements),
 	})
 	if err != nil {
 		httpx.WriteProblem(w, r, mapPublicStatusError(err, "create public status page failed"))
 		return
 	}
-	httpx.WriteJSON(w, http.StatusCreated, pageResponseBody{Page: newPageBody(page, true)})
+	httpx.WriteJSON(w, http.StatusCreated, newPageDetailResponse(detail))
 }
 
 func (h *Handler) handleGetPage(w http.ResponseWriter, r *http.Request) {
@@ -83,7 +84,7 @@ func (h *Handler) handleUpdatePage(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteProblem(w, r, err)
 		return
 	}
-	page, err := h.service.UpdatePage(r.Context(), apppublic.UpdatePageInput{
+	detail, err := h.service.UpdatePage(r.Context(), apppublic.UpdatePageInput{
 		CurrentUserID:       userID,
 		ProjectRef:          httpx.Path(r, "ref"),
 		PageID:              httpx.Path(r, "page_id"),
@@ -102,12 +103,38 @@ func (h *Handler) handleUpdatePage(w http.ResponseWriter, r *http.Request) {
 		CustomCSS:           body.CustomCSS,
 		DefaultChartMode:    defaultPageChartMode(body.DefaultChartMode),
 		DefaultChartRange:   defaultChartRange(body.DefaultChartRange),
+		Elements:            saveElementInputs(body.Elements),
 	})
 	if err != nil {
 		httpx.WriteProblem(w, r, mapPublicStatusError(err, "update public status page failed"))
 		return
 	}
-	httpx.WriteJSON(w, http.StatusOK, pageResponseBody{Page: newPageBody(page, true)})
+	httpx.WriteJSON(w, http.StatusOK, newPageDetailResponse(detail))
+}
+
+func saveElementInputs(bodies *[]saveElementInputBody) *[]apppublic.SaveElementInput {
+	if bodies == nil {
+		return nil
+	}
+	inputs := make([]apppublic.SaveElementInput, 0, len(*bodies))
+	for _, body := range *bodies {
+		inputs = append(inputs, apppublic.SaveElementInput{
+			ClientID:                body.ClientID,
+			ElementID:               body.ElementID,
+			ParentClientID:          body.ParentClientID,
+			Kind:                    body.Kind,
+			CheckID:                 body.CheckID,
+			AssignmentSelectionMode: body.AssignmentSelectionMode,
+			AssignmentIDs:           body.AssignmentIDs,
+			Title:                   body.Title,
+			Description:             body.Description,
+			SortOrder:               body.SortOrder,
+			DisplayMode:             defaultElementDisplayMode(body.DisplayMode),
+			ChartMode:               defaultElementChartMode(body.ChartMode),
+			ChartRange:              body.ChartRange,
+		})
+	}
+	return &inputs
 }
 
 func (h *Handler) handleDeletePage(w http.ResponseWriter, r *http.Request) {

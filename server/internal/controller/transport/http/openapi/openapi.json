@@ -8290,7 +8290,7 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/PublicStatusPageResponse"
+									"$ref": "#/components/schemas/PublicStatusPageDetailResponse"
 								}
 							}
 						}
@@ -8478,7 +8478,7 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/PublicStatusPageResponse"
+									"$ref": "#/components/schemas/PublicStatusPageDetailResponse"
 								}
 							}
 						}
@@ -13389,6 +13389,13 @@
 						"type": "string",
 						"enum": ["24h", "7d", "30d"],
 						"default": "24h"
+					},
+					"elements": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/SavePublicStatusPageElementRequest"
+						},
+						"description": "Complete public status page element set. Omit when elements should remain unchanged during an update; provide an empty array to remove every element."
 					}
 				}
 			},
@@ -16145,15 +16152,6 @@
 					}
 				}
 			},
-			"PublicStatusPageResponse": {
-				"type": "object",
-				"required": ["page"],
-				"properties": {
-					"page": {
-						"$ref": "#/components/schemas/PublicStatusPage"
-					}
-				}
-			},
 			"PublicStatusPageSummary": {
 				"type": "object",
 				"required": ["id", "slug", "title", "status", "theme", "showIncidentHistory", "showGeneratedAt", "defaultChartMode", "defaultChartRange", "updatedAt"],
@@ -16594,6 +16592,72 @@
 						"addrs": ["10.0.0.10"]
 					}
 				]
+			},
+			"SavePublicStatusPageElementRequest": {
+				"type": "object",
+				"required": ["clientId", "kind", "sortOrder"],
+				"properties": {
+					"clientId": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 128
+					},
+					"id": {
+						"$ref": "#/components/schemas/uuid",
+						"description": "Persisted element identifier. Omit when creating a new element."
+					},
+					"parentClientId": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 128
+					},
+					"kind": {
+						"type": "string",
+						"enum": ["folder", "assignment_group"]
+					},
+					"checkId": {
+						"$ref": "#/components/schemas/uuid"
+					},
+					"assignmentSelectionMode": {
+						"type": "string",
+						"enum": ["all_check", "selected_assignments"]
+					},
+					"assignmentIds": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/uuid"
+						}
+					},
+					"title": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 1024
+					},
+					"description": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 1024
+					},
+					"sortOrder": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 0
+					},
+					"displayMode": {
+						"type": "string",
+						"enum": ["status", "history", "latency", "map"],
+						"default": "status"
+					},
+					"chartMode": {
+						"type": "string",
+						"enum": ["inherit", "off", "compact"],
+						"default": "inherit"
+					},
+					"chartRange": {
+						"type": "string",
+						"enum": ["24h", "7d", "30d"]
+					}
+				}
 			},
 			"Selector": {
 				"type": "object",
@@ -18430,6 +18494,13 @@
 						"type": "string",
 						"enum": ["24h", "7d", "30d"],
 						"default": "24h"
+					},
+					"elements": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/SavePublicStatusPageElementRequest"
+						},
+						"description": "Complete public status page element set. Omit when elements should remain unchanged during an update; provide an empty array to remove every element."
 					}
 				},
 				"description": "Full replacement patch for public status page settings."

@@ -35,6 +35,7 @@ type CreatePageInput struct {
 	CustomCSS           *string
 	DefaultChartMode    domainpublic.ChartMode
 	DefaultChartRange   domainpublic.ChartRange
+	Elements            *[]SaveElementInput
 }
 
 type UpdatePageInput struct {
@@ -56,6 +57,23 @@ type UpdatePageInput struct {
 	CustomCSS           *string
 	DefaultChartMode    domainpublic.ChartMode
 	DefaultChartRange   domainpublic.ChartRange
+	Elements            *[]SaveElementInput
+}
+
+type SaveElementInput struct {
+	ClientID                string
+	ElementID               *string
+	ParentClientID          *string
+	Kind                    domainpublic.ElementKind
+	CheckID                 *string
+	AssignmentSelectionMode domainpublic.AssignmentSelectionMode
+	AssignmentIDs           []string
+	Title                   *string
+	Description             *string
+	SortOrder               int32
+	DisplayMode             domainpublic.ElementDisplayMode
+	ChartMode               domainpublic.ChartMode
+	ChartRange              *domainpublic.ChartRange
 }
 
 type DeletePageInput struct {

@@ -1,11 +1,5 @@
 import { pathForRoute, pathForStatusPageEditor } from "@/routes/routePaths";
-import {
-	useCreatePublicStatusElementMutation,
-	useCreatePublicStatusPageMutation,
-	useDeletePublicStatusElementMutation,
-	useUpdatePublicStatusElementMutation,
-	useUpdatePublicStatusPageMutation
-} from "@/shared/api/mutations";
+import { useCreatePublicStatusPageMutation, useUpdatePublicStatusPageMutation } from "@/shared/api/mutations";
 import { projectQueries } from "@/shared/api/queries";
 import type { ApiProjectAssignment, ApiPublicStatusElement, ApiPublicStatusPage, CreatePublicStatusElementInput, CreatePublicStatusPageInput } from "@/shared/api/types";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
@@ -45,23 +39,19 @@ import {
 	defaultSelectedScopeTitle,
 	inferSingleCheckId,
 	statusAssignmentOptions,
-	statusAssignmentRequestScope,
 	statusCheckOptions,
 	unavailableAssignmentIds,
 	type StatusAssignmentOption,
 	type StatusAssignmentScope,
 	type StatusCheckOption
 } from "./statusAssignmentModel";
+import { statusPageSaveElementRequest, type StatusPageElementDraft } from "./statusPageSaveModel";
 
 type StatusT = TFunction<"status">;
-type PageDraft = CreatePublicStatusPageInput;
+type PageDraft = Omit<CreatePublicStatusPageInput, "elements">;
 type DisplayMode = CreatePublicStatusElementInput["displayMode"];
 
-interface ElementDraft extends Omit<CreatePublicStatusElementInput, "parentElementId"> {
-	localId: string;
-	persistedId?: string;
-	parentLocalId?: string;
-}
+type ElementDraft = StatusPageElementDraft;
 
 type DragDestination = { kind: "target"; targetId: string; parentId?: string; placement: "before" | "after" } | { kind: "group"; parentId?: string };
 
@@ -272,10 +262,7 @@ function StatusPageBuilderWorkspace({
 	const hasChanges = !sameValue(page, baselinePage) || !sameValue(elements, baselineElements);
 	const createPageMutation = useCreatePublicStatusPageMutation(projectRef, { suppressGlobalErrorToast: true });
 	const updatePageMutation = useUpdatePublicStatusPageMutation(projectRef, { suppressGlobalErrorToast: true });
-	const createElementMutation = useCreatePublicStatusElementMutation(projectRef, { suppressGlobalErrorToast: true });
-	const updateElementMutation = useUpdatePublicStatusElementMutation(projectRef, { suppressGlobalErrorToast: true });
-	const deleteElementMutation = useDeletePublicStatusElementMutation(projectRef, { suppressGlobalErrorToast: true });
-	const saving = createPageMutation.isPending || updatePageMutation.isPending || createElementMutation.isPending || updateElementMutation.isPending || deleteElementMutation.isPending;
+	const saving = createPageMutation.isPending || updatePageMutation.isPending;
 
 	useEffect(() => {
 		elementsRef.current = elements;
@@ -588,61 +575,22 @@ function StatusPageBuilderWorkspace({
 		}
 
 		try {
-			let savedPageId = pageId;
-			let previousSlug = baselinePage.slug;
-			if (savedPageId) {
-				await updatePageMutation.mutateAsync({ pageId: savedPageId, previousSlug, body });
-			} else {
-				const created = await createPageMutation.mutateAsync(body);
-				savedPageId = created.page.id;
-				previousSlug = created.page.slug;
-			}
-
-			const savedElements = await persistElements(savedPageId);
-			setPage(body);
+			const saveBody: CreatePublicStatusPageInput = { ...body, elements: elements.map(statusPageSaveElementRequest) };
+			const saved = pageId ? await updatePageMutation.mutateAsync({ pageId, previousSlug: baselinePage.slug, body: saveBody }) : await createPageMutation.mutateAsync(saveBody);
+			const savedPage = pageDraft(saved.page, t);
+			const savedElements = saved.elements.map(element => elementDraft(element, checks, assignments));
+			setPage(savedPage);
 			setElements(savedElements);
-			setBaselinePage(body);
+			setBaselinePage(savedPage);
 			setBaselineElements(savedElements);
 			pushToast({ title: pageId ? t("builder.updated") : t("builder.created"), message: body.title, tone: "success" });
 
 			if (!pageId) {
-				navigate(pathForStatusPageEditor(projectRef, savedPageId), { replace: true });
+				navigate(pathForStatusPageEditor(projectRef, saved.page.id), { replace: true });
 			}
 		} catch (error) {
 			pushErrorToast(requestErrorMessage(error));
 		}
-	}
-
-	async function persistElements(savedPageId: string) {
-		const next = elements.map(element => ({ ...element }));
-		const createdIDs = new Map<string, string>();
-		const removedIDs = baselineElements
-			.filter(element => element.persistedId && !elements.some(candidate => candidate.persistedId === element.persistedId))
-			.sort((left, right) => (left.kind === "folder" ? 1 : 0) - (right.kind === "folder" ? 1 : 0))
-			.map(element => element.persistedId as string);
-
-		for (const element of sorted(next.filter(candidate => !candidate.persistedId && candidate.kind === "folder"))) {
-			const created = await createElementMutation.mutateAsync({ pageId: savedPageId, body: elementRequest(element) });
-			element.persistedId = created.element.id;
-			createdIDs.set(element.localId, created.element.id);
-		}
-
-		for (const element of sorted(next.filter(candidate => !candidate.persistedId && candidate.kind === "assignment_group"))) {
-			const created = await createElementMutation.mutateAsync({ pageId: savedPageId, body: elementRequest(element, next, createdIDs) });
-			element.persistedId = created.element.id;
-			createdIDs.set(element.localId, created.element.id);
-		}
-
-		for (const element of next.filter(candidate => candidate.persistedId)) {
-			if (createdIDs.has(element.localId)) continue;
-			await updateElementMutation.mutateAsync({ pageId: savedPageId, elementId: element.persistedId as string, body: elementRequest(element, next, createdIDs) });
-		}
-
-		for (const elementId of removedIDs) {
-			await deleteElementMutation.mutateAsync({ pageId: savedPageId, elementId });
-		}
-
-		return next;
 	}
 
 	const editorTitle = addingBlock ? t("builder.addBlock") : selectedElement ? (selectedElement.kind === "folder" ? t("builder.editingGroup") : t("builder.editingBlock")) : t("builder.editingPage");
@@ -728,21 +676,6 @@ function StatusPageBuilderWorkspace({
 			</div>
 		</div>
 	);
-}
-
-function elementRequest(element: ElementDraft, allElements: ElementDraft[] = [], createdIDs = new Map<string, string>()): CreatePublicStatusElementInput {
-	const parent = element.parentLocalId ? allElements.find(candidate => candidate.localId === element.parentLocalId) : undefined;
-	return {
-		kind: element.kind,
-		parentElementId: element.kind === "assignment_group" ? createdIDs.get(element.parentLocalId ?? "") || parent?.persistedId : undefined,
-		...(element.kind === "assignment_group" ? statusAssignmentRequestScope(element) : { checkId: undefined, assignmentSelectionMode: undefined, assignmentIds: undefined }),
-		title: element.title?.trim() || undefined,
-		description: element.description?.trim() || undefined,
-		sortOrder: element.sortOrder,
-		displayMode: element.kind === "folder" ? "status" : element.displayMode,
-		chartMode: element.kind === "folder" ? "inherit" : element.chartMode,
-		chartRange: element.kind === "folder" ? undefined : element.chartRange
-	};
 }
 
 function sorted<T extends { sortOrder: number }>(values: T[]) {

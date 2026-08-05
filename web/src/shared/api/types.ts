@@ -60,6 +60,7 @@ export type CreateProjectInviteInput = components["schemas"]["CreateProjectInvit
 export type CreateProjectInput = components["schemas"]["CreateProjectRequest"];
 export type CreatePublicStatusElementInput = components["schemas"]["CreatePublicStatusElementRequest"];
 export type CreatePublicStatusPageInput = components["schemas"]["CreatePublicStatusPageRequest"];
+export type SavePublicStatusPageElementInput = components["schemas"]["SavePublicStatusPageElementRequest"];
 export type ConfirmPasswordResetInput = components["schemas"]["ConfirmPasswordResetRequest"];
 export type ConfirmEmailVerificationInput = components["schemas"]["ConfirmEmailVerificationRequest"];
 export type LoginInput = components["schemas"]["LoginUserRequest"];

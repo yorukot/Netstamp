@@ -230,6 +230,7 @@ func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool
 	checkSvc := appcheck.NewService(checkRepo, projectRepo, labelRepo, assignmentSvc, checkEvents, dbTx)
 	probeSvc := appprobe.NewService(probeRepo, projectRepo, labelRepo, assignmentSvc, security.NewProbeSecretGenerator(), probeEvents, dbTx)
 	publicStatusSvc := apppublicstatus.NewService(publicStatusRepo, projectRepo, publicStatusEvents, pingRepo, tcpRepo)
+	publicStatusSvc.ConfigureTransactor(dbTx)
 	publicStatusSvc.ConfigureHTTP(httpRepo)
 	probeRuntimeSvc := appproberuntime.NewServiceWithResults(probeRepo, pingRepo, tcpRepo, httpRepo, tracerouteRepo, security.NewProbeSecretVerifier(), probeRuntimeEvents)
 	alertEvalSvc := appalerteval.NewServiceWithEvents(alertRepo, cfg.Alerting.EvaluationEnabled, cfg.HTTP.BackendBaseURL, alertEvalEvents, dbTx)

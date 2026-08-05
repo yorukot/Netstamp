@@ -34,57 +34,94 @@ func (s *Service) GetPage(ctx context.Context, input GetPageInput) (PageDetail, 
 	return PageDetail{Page: page, Elements: elements}, nil
 }
 
-func (s *Service) CreatePage(ctx context.Context, input CreatePageInput) (domainpublic.Page, error) {
+func (s *Service) CreatePage(ctx context.Context, input CreatePageInput) (PageDetail, error) {
 	ctx, flow := s.startPublicStatusFlow(ctx, "publicstatus.page.create", PublicStatusActionCreatePage, input.CurrentUserID)
 	defer flow.end()
 	flow.setProjectRef(input.ProjectRef)
 
 	project, err := s.loadProjectForFlow(ctx, flow, input.ProjectRef, input.CurrentUserID)
 	if err != nil {
-		return domainpublic.Page{}, err
+		return PageDetail{}, err
 	}
 	if permissionErr := s.requireProjectWriteForFlow(ctx, flow, project.ID, input.CurrentUserID); permissionErr != nil {
-		return domainpublic.Page{}, permissionErr
+		return PageDetail{}, permissionErr
 	}
 	page, err := normalizeCreatePageInput(project.ID, input)
 	if err != nil {
-		return domainpublic.Page{}, flow.writeFailure(PublicStatusReasonPageCreateFailed, err)
+		return PageDetail{}, flow.writeFailure(PublicStatusReasonPageCreateFailed, err)
 	}
-	created, err := s.repo.CreatePage(ctx, page)
+
+	var detail PageDetail
+	var elementChanges []pageElementChange
+	err = s.transactor.WithinTx(ctx, func(txCtx context.Context) error {
+		created, createErr := s.repo.CreatePage(txCtx, page)
+		if createErr != nil {
+			return createErr
+		}
+		flow.setPageID(created.ID)
+		elements, changes, saveErr := s.savePageElements(txCtx, flow, project.ID, created.ID, input.Elements, nil)
+		if saveErr != nil {
+			return saveErr
+		}
+		detail = PageDetail{Page: created, Elements: elements}
+		elementChanges = changes
+		return nil
+	})
 	if err != nil {
-		return domainpublic.Page{}, flow.writeFailure(PublicStatusReasonPageCreateFailed, err)
+		return PageDetail{}, flow.writeFailure(PublicStatusReasonPageCreateFailed, err)
 	}
-	flow.setPageID(created.ID)
+	flow.setElementID("")
 	flow.success()
+	flow.recordElementChanges(elementChanges)
 	s.clearPublicSnapshots()
-	return created, nil
+	return detail, nil
 }
 
-func (s *Service) UpdatePage(ctx context.Context, input UpdatePageInput) (domainpublic.Page, error) {
+func (s *Service) UpdatePage(ctx context.Context, input UpdatePageInput) (PageDetail, error) {
 	ctx, flow := s.startPublicStatusFlow(ctx, "publicstatus.page.update", PublicStatusActionUpdatePage, input.CurrentUserID)
 	defer flow.end()
 	flow.setProjectRef(input.ProjectRef)
 
 	project, err := s.loadProjectForFlow(ctx, flow, input.ProjectRef, input.CurrentUserID)
 	if err != nil {
-		return domainpublic.Page{}, err
+		return PageDetail{}, err
 	}
 	if permissionErr := s.requireProjectWriteForFlow(ctx, flow, project.ID, input.CurrentUserID); permissionErr != nil {
-		return domainpublic.Page{}, permissionErr
+		return PageDetail{}, permissionErr
 	}
 	page, err := normalizeUpdatePageInput(project.ID, input)
 	if err != nil {
-		return domainpublic.Page{}, flow.writeFailure(PublicStatusReasonPageUpdateFailed, err)
+		return PageDetail{}, flow.writeFailure(PublicStatusReasonPageUpdateFailed, err)
 	}
 	flow.setPageID(page.ID)
-	updated, err := s.repo.UpdatePage(ctx, page)
+
+	var detail PageDetail
+	var elementChanges []pageElementChange
+	err = s.transactor.WithinTx(ctx, func(txCtx context.Context) error {
+		updated, updateErr := s.repo.UpdatePage(txCtx, page)
+		if updateErr != nil {
+			return updateErr
+		}
+		currentElements, listErr := s.repo.ListElements(txCtx, updated.ID)
+		if listErr != nil {
+			return listErr
+		}
+		elements, changes, saveErr := s.savePageElements(txCtx, flow, project.ID, updated.ID, input.Elements, currentElements)
+		if saveErr != nil {
+			return saveErr
+		}
+		detail = PageDetail{Page: updated, Elements: elements}
+		elementChanges = changes
+		return nil
+	})
 	if err != nil {
-		return domainpublic.Page{}, flow.writeFailure(PublicStatusReasonPageUpdateFailed, err)
+		return PageDetail{}, flow.writeFailure(PublicStatusReasonPageUpdateFailed, err)
 	}
-	flow.setPageID(updated.ID)
+	flow.setElementID("")
 	flow.success()
+	flow.recordElementChanges(elementChanges)
 	s.clearPublicSnapshots()
-	return updated, nil
+	return detail, nil
 }
 
 func (s *Service) DeletePage(ctx context.Context, input DeletePageInput) error {

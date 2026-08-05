@@ -52,10 +52,6 @@ type elementBody struct {
 	UpdatedAt               time.Time                             `json:"updatedAt"`
 }
 
-type pageResponseBody struct {
-	Page pageBody `json:"page"`
-}
-
 type pageListResponseBody struct {
 	Pages []pageBody `json:"pages"`
 }

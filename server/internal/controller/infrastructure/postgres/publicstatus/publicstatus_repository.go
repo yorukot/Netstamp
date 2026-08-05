@@ -33,7 +33,7 @@ func (r *Repository) ListPages(ctx context.Context, projectIDValue string) ([]do
 	if err != nil {
 		return nil, err
 	}
-	rows, err := r.queries.ListPublicStatusPages(ctx, projectID)
+	rows, err := postgres.Queries(ctx, r.queries).ListPublicStatusPages(ctx, projectID)
 	if err != nil {
 		postgres.RecordDBSpanError(span, err)
 		return nil, err
@@ -53,7 +53,7 @@ func (r *Repository) GetPage(ctx context.Context, projectIDValue, pageIDValue st
 	if err != nil {
 		return domainpublic.Page{}, err
 	}
-	row, err := r.queries.GetPublicStatusPage(ctx, sqlc.GetPublicStatusPageParams{ProjectID: projectID, ID: pageID})
+	row, err := postgres.Queries(ctx, r.queries).GetPublicStatusPage(ctx, sqlc.GetPublicStatusPageParams{ProjectID: projectID, ID: pageID})
 	if err != nil {
 		return domainpublic.Page{}, mapNoRows(err, domainpublic.ErrPageNotFound)
 	}
@@ -64,7 +64,7 @@ func (r *Repository) GetPageBySlug(ctx context.Context, slug string) (domainpubl
 	ctx, span := postgres.StartDBSpan(ctx, pgpublicstatusTracer, "public_status_pages", "postgres.public_status_pages.get_by_slug", "SELECT", "SELECT public status page by slug")
 	defer span.End()
 
-	row, err := r.queries.GetPublicStatusPageBySlug(ctx, slug)
+	row, err := postgres.Queries(ctx, r.queries).GetPublicStatusPageBySlug(ctx, slug)
 	if err != nil {
 		return domainpublic.Page{}, mapNoRows(err, domainpublic.ErrPageNotFound)
 	}
@@ -83,7 +83,7 @@ func (r *Repository) CreatePage(ctx context.Context, input domainpublic.Page) (d
 	if err != nil {
 		return domainpublic.Page{}, err
 	}
-	row, err := r.queries.CreatePublicStatusPage(ctx, sqlc.CreatePublicStatusPageParams{
+	row, err := postgres.Queries(ctx, r.queries).CreatePublicStatusPage(ctx, sqlc.CreatePublicStatusPageParams{
 		ProjectID:           projectID,
 		Slug:                input.Slug,
 		Title:               input.Title,
@@ -117,7 +117,7 @@ func (r *Repository) UpdatePage(ctx context.Context, input domainpublic.Page) (d
 	if err != nil {
 		return domainpublic.Page{}, err
 	}
-	row, err := r.queries.UpdatePublicStatusPage(ctx, sqlc.UpdatePublicStatusPageParams{
+	row, err := postgres.Queries(ctx, r.queries).UpdatePublicStatusPage(ctx, sqlc.UpdatePublicStatusPageParams{
 		ProjectID:           projectID,
 		ID:                  pageID,
 		Slug:                input.Slug,
@@ -151,7 +151,7 @@ func (r *Repository) DeletePage(ctx context.Context, projectIDValue, pageIDValue
 	if err != nil {
 		return err
 	}
-	rows, err := r.queries.SoftDeletePublicStatusPage(ctx, sqlc.SoftDeletePublicStatusPageParams{ProjectID: projectID, ID: pageID})
+	rows, err := postgres.Queries(ctx, r.queries).SoftDeletePublicStatusPage(ctx, sqlc.SoftDeletePublicStatusPageParams{ProjectID: projectID, ID: pageID})
 	if err != nil {
 		postgres.RecordDBSpanError(span, err)
 		return err
@@ -167,7 +167,8 @@ func (r *Repository) ListElements(ctx context.Context, pageIDValue string) ([]do
 	if err != nil {
 		return nil, err
 	}
-	rows, err := r.queries.ListPublicStatusPageElements(ctx, pageID)
+	queries := postgres.Queries(ctx, r.queries)
+	rows, err := queries.ListPublicStatusPageElements(ctx, pageID)
 	if err != nil {
 		return nil, err
 	}
@@ -175,7 +176,7 @@ func (r *Repository) ListElements(ctx context.Context, pageIDValue string) ([]do
 	for _, row := range rows {
 		elements = append(elements, mapListElement(row))
 	}
-	if err := r.attachElementAssignmentIDs(ctx, pageID, elements); err != nil {
+	if err := r.attachElementAssignmentIDs(ctx, queries, pageID, elements); err != nil {
 		return nil, err
 	}
 	return elements, nil
@@ -186,7 +187,8 @@ func (r *Repository) GetElement(ctx context.Context, projectIDValue, pageIDValue
 	if err != nil {
 		return domainpublic.Element{}, err
 	}
-	row, err := r.queries.GetPublicStatusPageElement(ctx, sqlc.GetPublicStatusPageElementParams{
+	queries := postgres.Queries(ctx, r.queries)
+	row, err := queries.GetPublicStatusPageElement(ctx, sqlc.GetPublicStatusPageElementParams{
 		ProjectID:    projectID,
 		PublicPageID: pageID,
 		ID:           elementID,
@@ -196,7 +198,7 @@ func (r *Repository) GetElement(ctx context.Context, projectIDValue, pageIDValue
 	}
 	element := mapElement(row)
 	elements := []domainpublic.Element{element}
-	if err := r.attachElementAssignmentIDs(ctx, pageID, elements); err != nil {
+	if err := r.attachElementAssignmentIDs(ctx, queries, pageID, elements); err != nil {
 		return domainpublic.Element{}, err
 	}
 	return elements[0], nil
@@ -215,11 +217,16 @@ func (r *Repository) CreateElement(ctx context.Context, input domainpublic.Eleme
 	if err != nil {
 		return domainpublic.Element{}, err
 	}
+	elementID, hasElementID, err := optionalUUID(stringPointer(input.ID), domainpublic.ErrInvalidInput)
+	if err != nil {
+		return domainpublic.Element{}, err
+	}
 
 	var element domainpublic.Element
 	err = r.tx.WithinTx(ctx, func(ctx context.Context) error {
 		queries := postgres.Queries(ctx, r.queries)
 		row, createErr := queries.CreatePublicStatusPageElement(ctx, sqlc.CreatePublicStatusPageElementParams{
+			ID:                      optionalUUIDPtr(elementID, hasElementID),
 			PublicPageID:            pageID,
 			ProjectID:               projectID,
 			ParentElementID:         optionalUUIDPtr(parentElementID, hasParentElementID),
@@ -304,7 +311,7 @@ func (r *Repository) DeleteElement(ctx context.Context, projectIDValue, pageIDVa
 	if err != nil {
 		return err
 	}
-	rows, err := r.queries.DeletePublicStatusPageElement(ctx, sqlc.DeletePublicStatusPageElementParams{ProjectID: projectID, PublicPageID: pageID, ID: elementID})
+	rows, err := postgres.Queries(ctx, r.queries).DeletePublicStatusPageElement(ctx, sqlc.DeletePublicStatusPageElementParams{ProjectID: projectID, PublicPageID: pageID, ID: elementID})
 	if err != nil {
 		return err
 	}
@@ -323,7 +330,7 @@ func (r *Repository) HasAssignableCheck(ctx context.Context, projectIDValue, che
 	if err != nil {
 		return false, err
 	}
-	_, err = r.queries.GetPublicStatusAssignableCheck(ctx, sqlc.GetPublicStatusAssignableCheckParams{ProjectID: projectID, CheckID: checkID})
+	_, err = postgres.Queries(ctx, r.queries).GetPublicStatusAssignableCheck(ctx, sqlc.GetPublicStatusAssignableCheckParams{ProjectID: projectID, CheckID: checkID})
 	if err != nil {
 		mapped := mapNoRows(err, domainpublic.ErrElementNotFound)
 		if errors.Is(mapped, domainpublic.ErrElementNotFound) {
@@ -343,7 +350,7 @@ func (r *Repository) CountAssignableAssignments(ctx context.Context, projectIDVa
 	if err != nil {
 		return 0, err
 	}
-	return r.queries.CountPublicStatusAssignableAssignments(ctx, sqlc.CountPublicStatusAssignableAssignmentsParams{ProjectID: projectID, AssignmentIds: assignmentIDs})
+	return postgres.Queries(ctx, r.queries).CountPublicStatusAssignableAssignments(ctx, sqlc.CountPublicStatusAssignableAssignmentsParams{ProjectID: projectID, AssignmentIds: assignmentIDs})
 }
 
 func (r *Repository) ListAssignments(ctx context.Context, pageIDValue string) ([]domainpublic.Assignment, error) {
@@ -385,11 +392,11 @@ func (r *Repository) ListElementAssignments(ctx context.Context, pageIDValue, el
 	return assignments, nil
 }
 
-func (r *Repository) attachElementAssignmentIDs(ctx context.Context, pageID uuid.UUID, elements []domainpublic.Element) error {
+func (r *Repository) attachElementAssignmentIDs(ctx context.Context, queries *sqlc.Queries, pageID uuid.UUID, elements []domainpublic.Element) error {
 	if len(elements) == 0 {
 		return nil
 	}
-	rows, err := r.queries.ListPublicStatusPageElementAssignmentIDs(ctx, pageID)
+	rows, err := queries.ListPublicStatusPageElementAssignmentIDs(ctx, pageID)
 	if err != nil {
 		return err
 	}
@@ -494,6 +501,13 @@ func optionalUUID(value *string, invalidErr error) (uuid.UUID, bool, error) {
 		return uuid.Nil, false, err
 	}
 	return id, true, nil
+}
+
+func stringPointer(value string) *string {
+	if value == "" {
+		return nil
+	}
+	return &value
 }
 
 func optionalUUIDPtr(value uuid.UUID, ok bool) *uuid.UUID {

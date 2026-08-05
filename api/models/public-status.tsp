@@ -339,6 +339,9 @@ model CreatePublicStatusPageRequest {
 
 	defaultChartMode?: PublicStatusPageChartMode = "off";
 	defaultChartRange?: PublicStatusChartRange = "24h";
+
+	@doc("Complete public status page element set. Omit when elements should remain unchanged during an update; provide an empty array to remove every element.")
+	elements?: SavePublicStatusPageElementRequest[];
 }
 
 @doc("Full replacement patch for public status page settings.")
@@ -346,6 +349,39 @@ model UpdatePublicStatusPageRequest is CreatePublicStatusPageRequest;
 
 model CreatePublicStatusElementRequest {
 	parentElementId?: uuid;
+	kind: PublicStatusElementKind;
+	checkId?: uuid;
+	assignmentSelectionMode?: PublicStatusAssignmentSelectionMode;
+	assignmentIds?: uuid[];
+
+	@minLength(1)
+	@maxLength(1024)
+	title?: string;
+
+	@minLength(1)
+	@maxLength(1024)
+	description?: string;
+
+	@minValue(0)
+	sortOrder: int32;
+
+	displayMode?: PublicStatusElementDisplayMode = "status";
+	chartMode?: PublicStatusChartMode = "inherit";
+	chartRange?: PublicStatusChartRange;
+}
+
+model SavePublicStatusPageElementRequest {
+	@minLength(1)
+	@maxLength(128)
+	clientId: string;
+
+	@doc("Persisted element identifier. Omit when creating a new element.")
+	id?: uuid;
+
+	@minLength(1)
+	@maxLength(128)
+	parentClientId?: string;
+
 	kind: PublicStatusElementKind;
 	checkId?: uuid;
 	assignmentSelectionMode?: PublicStatusAssignmentSelectionMode;

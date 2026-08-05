@@ -148,6 +148,7 @@ func (q *Queries) CreatePublicStatusPage(ctx context.Context, arg CreatePublicSt
 
 const createPublicStatusPageElement = `-- name: CreatePublicStatusPageElement :one
 INSERT INTO public_status_page_elements (
+    id,
     public_page_id,
     project_id,
     parent_element_id,
@@ -162,7 +163,7 @@ INSERT INTO public_status_page_elements (
     chart_range
 )
 VALUES (
-    $1,
+    COALESCE($1::uuid, gen_random_uuid()),
     $2,
     $3,
     $4,
@@ -173,12 +174,14 @@ VALUES (
     $9,
     $10,
     $11,
-    $12
+    $12,
+    $13
 )
 RETURNING id, public_page_id, project_id, parent_element_id, kind, check_id, assignment_selection_mode, title, description, sort_order, display_mode, chart_mode, chart_range, created_at, updated_at
 `
 
 type CreatePublicStatusPageElementParams struct {
+	ID                      *uuid.UUID                     `json:"id"`
 	PublicPageID            uuid.UUID                      `json:"public_page_id"`
 	ProjectID               uuid.UUID                      `json:"project_id"`
 	ParentElementID         *uuid.UUID                     `json:"parent_element_id"`
@@ -213,6 +216,7 @@ type CreatePublicStatusPageElementRow struct {
 
 func (q *Queries) CreatePublicStatusPageElement(ctx context.Context, arg CreatePublicStatusPageElementParams) (CreatePublicStatusPageElementRow, error) {
 	row := q.db.QueryRow(ctx, createPublicStatusPageElement,
+		arg.ID,
 		arg.PublicPageID,
 		arg.ProjectID,
 		arg.ParentElementID,
