@@ -33,6 +33,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import { CssCodeEditor } from "./CssCodeEditor";
 import { StatusAssignmentScopeField } from "./StatusAssignmentScopeField";
+import { StatusPageBanner } from "./StatusPageBanner";
 import styles from "./StatusPageBuilderPage.module.css";
 import {
 	assignmentsForScope,
@@ -1027,11 +1028,7 @@ function StatusPageCanvas({
 				{previewCSS ? <style>{previewCSS}</style> : null}
 				<div className={styles.publicShell}>
 					<header className={`${styles.previewHero} ns-status-hero`}>
-						{page.bannerImageUrl ? (
-							<img className={`${styles.previewBanner} ns-status-banner`} src={page.bannerImageUrl} alt="" />
-						) : (
-							<div className={`${styles.previewBanner} ns-status-banner`} aria-hidden="true" />
-						)}
+						<StatusPageBanner className={`${styles.previewBanner} ns-status-banner`} src={page.bannerImageUrl} />
 						<div className={styles.previewHeroBody}>
 							<div className={styles.previewBrand}>
 								<img src={previewTheme === "dark" ? netstampLogoLight : netstampLogoDark} alt="Netstamp" />

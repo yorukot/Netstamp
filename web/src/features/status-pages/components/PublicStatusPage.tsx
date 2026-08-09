@@ -24,6 +24,7 @@ import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState }
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router-dom";
 import styles from "./PublicStatusPage.module.css";
+import { StatusPageBanner } from "./StatusPageBanner";
 
 type PublicIncident = ApiPublicStatusIncidentsResponse["incidents"]["active"][number];
 type PublicAssignment = NonNullable<ApiPublicStatusPublicElement["assignments"]>[number];
@@ -93,11 +94,7 @@ export function PublicStatusPage() {
 		<main className={`${styles.page} ns-status-page`} data-status={summary.page.status}>
 			{summary.page.customCss ? <style>{summary.page.customCss}</style> : null}
 			<header className={`${styles.hero} ns-status-hero`}>
-				{summary.page.bannerImageUrl ? (
-					<img className={`${styles.banner} ${styles.bannerImage} ns-status-banner`} src={summary.page.bannerImageUrl} alt="" />
-				) : (
-					<div className={`${styles.banner} ns-status-banner`} aria-hidden="true" />
-				)}
+				<StatusPageBanner className={`${styles.banner} ${styles.bannerImage} ns-status-banner`} src={summary.page.bannerImageUrl} />
 				<div className={styles.heroBody}>
 					<div className={styles.brandRow}>
 						<img src={mapTheme === "dark" ? netstampLogoLight : netstampLogoDark} alt="Netstamp" />
