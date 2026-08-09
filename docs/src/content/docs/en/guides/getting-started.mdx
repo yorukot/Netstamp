@@ -23,12 +23,13 @@ The controller and the probe may run on the same Linux machine for evaluation. A
 ```bash
 mkdir netstamp
 cd netstamp
-curl -fsSLO https://raw.githubusercontent.com/yorukot/netstamp/main/deployments/docker/compose.yaml
-curl -fsSLO https://raw.githubusercontent.com/yorukot/netstamp/main/deployments/docker/example.env
-cp example.env .env
+curl -fsSLO https://github.com/yorukot/netstamp/releases/latest/download/compose.yaml
+curl -fsSLO https://github.com/yorukot/netstamp/releases/latest/download/.env.example
+cp .env.example .env
+chmod 600 .env
 ```
 
-For a local evaluation, the placeholder secrets in `.env` will start the stack. Do not reuse them on an internet-accessible installation.
+Generate five independent values with `openssl rand -hex 32` and place one in each field in the required group at the top of `.env`. These values must remain stable across restarts and upgrades. Everything else uses a safe local default.
 
 ## 2. Start Netstamp
 

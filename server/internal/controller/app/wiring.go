@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -159,11 +158,11 @@ func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool
 	if err != nil {
 		return controllerServices{}, fmt.Errorf("create system settings cipher: %w", err)
 	}
-	backendBaseURL := strings.TrimRight(strings.TrimSpace(cfg.HTTP.BackendBaseURL), "/")
+	publicBaseURL := cfg.HTTP.PublicBaseURL
 	externalAuthCallbackBaseURL := ""
 	externalAuthCallbackURLs := security.ExternalProviderCallbackURLs{}
-	if backendBaseURL != "" {
-		externalAuthCallbackBaseURL = backendBaseURL + "/api/" + cfg.APIVersion + "/auth/external"
+	if publicBaseURL != "" {
+		externalAuthCallbackBaseURL = publicBaseURL + "/api/" + cfg.APIVersion + "/auth/external"
 		externalAuthCallbackURLs = security.ExternalProviderCallbackURLs{
 			OIDC:   externalAuthCallbackBaseURL + "/oidc/callback",
 			Google: externalAuthCallbackBaseURL + "/google/callback",
@@ -233,7 +232,7 @@ func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool
 	publicStatusSvc.ConfigureTransactor(dbTx)
 	publicStatusSvc.ConfigureHTTP(httpRepo)
 	probeRuntimeSvc := appproberuntime.NewServiceWithResults(probeRepo, pingRepo, tcpRepo, httpRepo, tracerouteRepo, security.NewProbeSecretVerifier(), probeRuntimeEvents)
-	alertEvalSvc := appalerteval.NewServiceWithEvents(alertRepo, cfg.Alerting.EvaluationEnabled, cfg.HTTP.BackendBaseURL, alertEvalEvents, dbTx)
+	alertEvalSvc := appalerteval.NewServiceWithEvents(alertRepo, cfg.Alerting.EvaluationEnabled, cfg.HTTP.PublicBaseURL, alertEvalEvents, dbTx)
 	probeRuntimeSvc.SetAlertEvaluator(alertEvalSvc)
 	resultSvc := appresult.NewServiceWithHTTP(pingRepo, tcpRepo, httpRepo, tracerouteRepo, resultRepo, projectRepo)
 	assignmentWorker := appassignment.NewWorker(assignmentRepo, appassignment.WorkerConfig{
@@ -281,8 +280,7 @@ func buildHTTPHandler(cfg config.Config, log *zap.Logger, dbPool *pgxpool.Pool, 
 		Log:                         log,
 		APIVersion:                  cfg.APIVersion,
 		DemoMode:                    cfg.DemoMode,
-		BackendBaseURL:              cfg.HTTP.BackendBaseURL,
-		PublicWebBaseURL:            cfg.HTTP.PublicWebBaseURL,
+		PublicBaseURL:               cfg.HTTP.PublicBaseURL,
 		WebDir:                      cfg.HTTP.WebDir,
 		AuthService:                 services.authService,
 		AuthVerifier:                services.authVerifier,

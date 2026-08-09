@@ -14,8 +14,7 @@ navOrder: 10
 
 ```dotenv
 APP_ENV=production
-BACKEND_BASE_URL=https://netstamp.example.com
-PUBLIC_WEB_BASE_URL=https://netstamp.example.com
+PUBLIC_BASE_URL=https://netstamp.example.com
 NETSTAMP_VERSION=<tested tag or digest>
 DATABASE_PASSWORD=<unique random value>
 LOG_PSEUDONYM_KEY=<unique random value>
@@ -24,7 +23,7 @@ AUTH_SESSION_HASH_KEY=<unique random value>
 AUTH_API_TOKEN_HASH_KEY=<unique random value>
 ```
 
-`BACKEND_BASE_URL` 用於 OAuth/OIDC callback URL、電子郵件連結，以及控制器提供的探測器安裝網址；`PUBLIC_WEB_BASE_URL` 則用於瀏覽器會開啟的連結。兩者都只能填 origin，也就是 scheme 與 host，不可包含 path、query 或 fragment。
+`PUBLIC_BASE_URL` 是 OAuth/OIDC callback URL、電子郵件與瀏覽器連結、通知、OpenAPI，以及控制器提供的探測器安裝網址共用的唯一公開 origin。它只能包含 HTTPS scheme 與 host，不可包含 path、query、fragment 或帳密資訊。
 
 設定 `APP_ENV=production` 後，session cookie 會使用 `__Host-` prefix，並套用 `Secure`、`HttpOnly`、`SameSite=Strict` 與 `Path=/`。使用者必須透過 HTTPS 存取網站。
 
@@ -92,7 +91,7 @@ services:
 4. 設定並測試每個需要的外部身分提供者；
 5. 至少再新增一位系統管理員，以備原管理員無法登入時復原。
 
-請在部署環境中確認 `BACKEND_BASE_URL` 與 `PUBLIC_WEB_BASE_URL`。公開來源網址與其他基礎設施設定無法從系統管理介面修改。
+請在部署環境中確認 `PUBLIC_BASE_URL`。公開來源網址與其他基礎設施設定無法從系統管理介面修改。
 
 系統管理員不會自動取得專案權限。若管理員也需要查看專案資料，仍須由專案 owner 邀請加入。
 
@@ -103,7 +102,7 @@ services:
 - [ ] 已固定並記錄 Netstamp 與 TimescaleDB 映像檔版本。
 - [ ] 資料庫連接埠未對外公開。
 - [ ] HTTPS 憑證有效，HTTP 會重新導向 HTTPS。
-- [ ] `BACKEND_BASE_URL` 與 `PUBLIC_WEB_BASE_URL` 符合實際公開 origin。
+- [ ] `PUBLIC_BASE_URL` 與實際公開的 HTTPS origin 完全相同。
 - [ ] 受信任代理範圍沒有超出必要範圍。
 - [ ] 帳號建立與電子郵件驗證政策符合預期。
 - [ ] SMTP 與每個警示通知目的地都已測試。

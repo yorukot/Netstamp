@@ -16,6 +16,8 @@ Netstamp applies forward database migrations before the controller starts. Treat
 4. Verify that the backup can be read.
 5. Schedule a maintenance window when the change is operationally significant.
 
+When upgrading an installation that still uses `BACKEND_BASE_URL` or `PUBLIC_WEB_BASE_URL`, remove both keys and set their shared origin as `PUBLIC_BASE_URL`. The removed keys are not accepted by the current controller.
+
 Netstamp's columnstore policies require TimescaleDB 2.20.3 or newer. The extension version stored in an existing database does not update merely because the container image changes. Check it before running Netstamp migrations:
 
 ```sql
@@ -35,7 +37,7 @@ docker compose exec -T postgres \
 pg_restore --list "$backup_file" >/dev/null
 ```
 
-Store the dump together with the Compose files, the non-secret version settings, and an encrypted copy of the stable secret material needed to interpret credentials and stored settings.
+Store the dump together with the Compose files and an encrypted copy of `.env`. The database password, encryption key, and hash keys in that file must remain available to interpret stored settings and preserve existing credentials.
 
 ## Upgrade
 

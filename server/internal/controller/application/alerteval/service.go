@@ -22,41 +22,41 @@ const (
 )
 
 type Service struct {
-	repo                   Repository
-	enabled                bool
-	backendBaseURL         string
-	events                 EventRecorder
-	backendBaseURLProvider BackendBaseURLProvider
-	tx                     Transactor
-	now                    func() time.Time
+	repo                  Repository
+	enabled               bool
+	publicBaseURL         string
+	events                EventRecorder
+	publicBaseURLProvider PublicBaseURLProvider
+	tx                    Transactor
+	now                   func() time.Time
 }
 
-type BackendBaseURLProvider interface {
-	BackendBaseURL(ctx context.Context) (string, error)
+type PublicBaseURLProvider interface {
+	PublicBaseURL(ctx context.Context) (string, error)
 }
 
-func NewService(repo Repository, enabled bool, backendBaseURL string, transactors ...Transactor) *Service {
-	return NewServiceWithEvents(repo, enabled, backendBaseURL, nil, transactors...)
+func NewService(repo Repository, enabled bool, publicBaseURL string, transactors ...Transactor) *Service {
+	return NewServiceWithEvents(repo, enabled, publicBaseURL, nil, transactors...)
 }
 
-func NewServiceWithEvents(repo Repository, enabled bool, backendBaseURL string, events EventRecorder, transactors ...Transactor) *Service {
+func NewServiceWithEvents(repo Repository, enabled bool, publicBaseURL string, events EventRecorder, transactors ...Transactor) *Service {
 	tx := Transactor(apptx.NoopTransactor{})
 	if len(transactors) > 0 && transactors[0] != nil {
 		tx = transactors[0]
 	}
 
 	return &Service{
-		repo:           repo,
-		enabled:        enabled,
-		backendBaseURL: strings.TrimRight(strings.TrimSpace(backendBaseURL), "/"),
-		events:         events,
-		tx:             tx,
-		now:            func() time.Time { return time.Now().UTC() },
+		repo:          repo,
+		enabled:       enabled,
+		publicBaseURL: strings.TrimRight(strings.TrimSpace(publicBaseURL), "/"),
+		events:        events,
+		tx:            tx,
+		now:           func() time.Time { return time.Now().UTC() },
 	}
 }
 
-func (s *Service) ConfigureBackendBaseURLProvider(provider BackendBaseURLProvider) {
-	s.backendBaseURLProvider = provider
+func (s *Service) ConfigurePublicBaseURLProvider(provider PublicBaseURLProvider) {
+	s.publicBaseURLProvider = provider
 }
 
 func (s *Service) EvaluateChangedAssignments(ctx context.Context, inputs []appproberuntime.ChangedAssignmentInput) error {
@@ -259,12 +259,12 @@ func (s *Service) enqueueNotifications(ctx context.Context, flow *alertEvalFlow,
 		return flow.failure(AlertEvalEventNotificationEnqueueFail, AlertEvalReasonNotificationListFailed, err)
 	}
 	jobs := make([]domainalert.NotificationJobInput, 0, len(notifications))
-	backendBaseURL := s.effectiveBackendBaseURL(ctx)
+	publicBaseURL := s.effectivePublicBaseURL(ctx)
 	for _, notification := range notifications {
 		if !supportedNotification(notification.Type) {
 			continue
 		}
-		payload, err := notificationPayload(rule, incident, notification, evaluation, eventType, at, backendBaseURL)
+		payload, err := notificationPayload(rule, incident, notification, evaluation, eventType, at, publicBaseURL)
 		if err != nil {
 			return flow.failure(AlertEvalEventNotificationEnqueueFail, AlertEvalReasonNotificationPayloadFail, err)
 		}
@@ -285,17 +285,17 @@ func (s *Service) enqueueNotifications(ctx context.Context, flow *alertEvalFlow,
 	return nil
 }
 
-func (s *Service) effectiveBackendBaseURL(ctx context.Context) string {
-	if s.backendBaseURLProvider == nil {
-		return s.backendBaseURL
+func (s *Service) effectivePublicBaseURL(ctx context.Context) string {
+	if s.publicBaseURLProvider == nil {
+		return s.publicBaseURL
 	}
-	value, err := s.backendBaseURLProvider.BackendBaseURL(ctx)
+	value, err := s.publicBaseURLProvider.PublicBaseURL(ctx)
 	if err != nil {
-		return s.backendBaseURL
+		return s.publicBaseURL
 	}
 	value = strings.TrimRight(strings.TrimSpace(value), "/")
 	if value == "" {
-		return s.backendBaseURL
+		return s.publicBaseURL
 	}
 	return value
 }
@@ -326,7 +326,7 @@ func evaluationSummaryJSON(rule domainalert.Rule, evaluation alertcondition.Eval
 	return data, err
 }
 
-func notificationPayload(rule domainalert.Rule, incident domainalert.Incident, notification domainalert.Notification, evaluation alertcondition.Evaluation, eventType string, at time.Time, backendBaseURL string) (json.RawMessage, error) {
+func notificationPayload(rule domainalert.Rule, incident domainalert.Incident, notification domainalert.Notification, evaluation alertcondition.Evaluation, eventType string, at time.Time, publicBaseURL string) (json.RawMessage, error) {
 	incidentPayload := map[string]any{
 		"id":       incident.ID,
 		"status":   incident.Status,
@@ -380,19 +380,19 @@ func notificationPayload(rule domainalert.Rule, incident domainalert.Incident, n
 	if incident.ResolvedAt != nil {
 		incidentPayload["resolvedAt"] = *incident.ResolvedAt
 	}
-	if incidentURL := alertIncidentURL(backendBaseURL, incident.ProjectID, incident.ID); incidentURL != "" {
+	if incidentURL := alertIncidentURL(publicBaseURL, incident.ProjectID, incident.ID); incidentURL != "" {
 		payload["links"] = map[string]any{"incident": incidentURL}
 	}
 	data, err := json.Marshal(payload)
 	return data, err
 }
 
-func alertIncidentURL(backendBaseURL, projectID, incidentID string) string {
-	backendBaseURL = strings.TrimRight(strings.TrimSpace(backendBaseURL), "/")
-	if backendBaseURL == "" || projectID == "" || incidentID == "" {
+func alertIncidentURL(publicBaseURL, projectID, incidentID string) string {
+	publicBaseURL = strings.TrimRight(strings.TrimSpace(publicBaseURL), "/")
+	if publicBaseURL == "" || projectID == "" || incidentID == "" {
 		return ""
 	}
-	return backendBaseURL + "/projects/" + url.PathEscape(projectID) + "/alerts/incident/" + url.PathEscape(incidentID)
+	return publicBaseURL + "/projects/" + url.PathEscape(projectID) + "/alerts/incident/" + url.PathEscape(incidentID)
 }
 
 func incidentProbeSummary(input appproberuntime.ChangedAssignmentInput) *domainalert.IncidentProbeSummary {

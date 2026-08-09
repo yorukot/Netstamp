@@ -23,8 +23,7 @@ const (
 	keyLogPseudonymKey                     = "LOG_PSEUDONYM_KEY"
 	keySystemSettingsEncryptionKey         = "SYSTEM_SETTINGS_ENCRYPTION_KEY"
 	keyShutdownTimeout                     = "SHUTDOWN_TIMEOUT"
-	keyBackendBaseURL                      = "BACKEND_BASE_URL"
-	keyPublicWebBaseURL                    = "PUBLIC_WEB_BASE_URL"
+	keyPublicBaseURL                       = "PUBLIC_BASE_URL"
 	keyHTTPAddr                            = "HTTP_ADDR"
 	keyWebDir                              = "WEB_DIR"
 	keyRequestTimeout                      = "REQUEST_TIMEOUT"
@@ -80,8 +79,7 @@ var defaultSettings = map[string]any{
 	keyLogPseudonymKey:                     "local-development-log-pseudonym-key-change-before-production",
 	keySystemSettingsEncryptionKey:         "local-development-system-settings-encryption-key-change-before-production",
 	keyShutdownTimeout:                     10 * time.Second,
-	keyBackendBaseURL:                      "",
-	keyPublicWebBaseURL:                    "",
+	keyPublicBaseURL:                       "",
 	keyHTTPAddr:                            ":8080",
 	keyWebDir:                              "",
 	keyRequestTimeout:                      10 * time.Second,
@@ -146,8 +144,7 @@ type Config struct {
 }
 
 type HTTPConfig struct {
-	BackendBaseURL    string        `mapstructure:"BACKEND_BASE_URL"`
-	PublicWebBaseURL  string        `mapstructure:"PUBLIC_WEB_BASE_URL"`
+	PublicBaseURL     string        `mapstructure:"PUBLIC_BASE_URL"`
 	Addr              string        `mapstructure:"HTTP_ADDR"`
 	WebDir            string        `mapstructure:"WEB_DIR"`
 	RequestTimeout    time.Duration `mapstructure:"REQUEST_TIMEOUT"`
@@ -241,6 +238,7 @@ func Load() (Config, error) {
 	if err := settings.UnmarshalExact(&cfg); err != nil {
 		errs = append(errs, fmt.Errorf("decode config: %w", err))
 	}
+	cfg.HTTP.PublicBaseURL = strings.TrimRight(strings.TrimSpace(cfg.HTTP.PublicBaseURL), "/")
 
 	errs = append(errs, validate(cfg)...)
 	return cfg, errors.Join(errs...)
@@ -257,11 +255,12 @@ func validate(cfg Config) []error {
 	errs = append(errs, validateLogLevel(cfg.LogLevel)...)
 	errs = append(errs, validateRequiredString(keyLogPseudonymKey, cfg.LogPseudonymKey)...)
 	errs = append(errs, validateRequiredString(keySystemSettingsEncryptionKey, cfg.SettingsSecretKey)...)
+	errs = append(errs, validateNonLocalSecret(cfg.Env, keyLogPseudonymKey, cfg.LogPseudonymKey, 32)...)
+	errs = append(errs, validateNonLocalSecret(cfg.Env, keySystemSettingsEncryptionKey, cfg.SettingsSecretKey, 32)...)
 	errs = append(errs, validatePositiveDuration(keyShutdownTimeout, cfg.ShutdownTimeout)...)
 
 	// HTTP settings
-	errs = append(errs, validateOptionalHTTPOrigin(keyBackendBaseURL, cfg.HTTP.BackendBaseURL)...)
-	errs = append(errs, validatePublicWebBaseURL(cfg.Env, cfg.HTTP.PublicWebBaseURL)...)
+	errs = append(errs, validatePublicBaseURL(cfg.Env, cfg.HTTP.PublicBaseURL)...)
 	errs = append(errs, validateListenAddr(keyHTTPAddr, cfg.HTTP.Addr)...)
 	errs = append(errs, validatePositiveDuration(keyRequestTimeout, cfg.HTTP.RequestTimeout)...)
 	errs = append(errs, validatePositiveDuration(keyHTTPReadHeaderTimeout, cfg.HTTP.ReadHeaderTimeout)...)
@@ -273,7 +272,9 @@ func validate(cfg Config) []error {
 	// Database settings
 	errs = append(errs, validateRequiredString(keyDatabaseHost, cfg.Database.Host)...)
 	errs = append(errs, validateRequiredString(keyDatabaseUser, cfg.Database.User)...)
+	errs = append(errs, validateRequiredString(keyDatabasePassword, cfg.Database.Password)...)
 	errs = append(errs, validateRequiredString(keyDatabaseName, cfg.Database.Name)...)
+	errs = append(errs, validateNonLocalSecret(cfg.Env, keyDatabasePassword, cfg.Database.Password, 0)...)
 	errs = append(errs, validateDatabasePort(cfg.Database.Port)...)
 	errs = append(errs, validateDatabaseSSLMode(cfg.Database.SSLMode)...)
 
@@ -295,6 +296,8 @@ func validate(cfg Config) []error {
 	// Auth settings
 	errs = append(errs, validateRequiredString(keyAuthSessionHashKey, cfg.Auth.SessionHashKey)...)
 	errs = append(errs, validateRequiredString(keyAuthAPITokenHashKey, cfg.Auth.APITokenHashKey)...)
+	errs = append(errs, validateNonLocalSecret(cfg.Env, keyAuthSessionHashKey, cfg.Auth.SessionHashKey, 32)...)
+	errs = append(errs, validateNonLocalSecret(cfg.Env, keyAuthAPITokenHashKey, cfg.Auth.APITokenHashKey, 32)...)
 	errs = append(errs, validatePositiveDuration(keyAuthSessionIdleTTL, cfg.Auth.SessionIdleTTL)...)
 	errs = append(errs, validatePositiveDuration(keyAuthSessionAbsoluteTTL, cfg.Auth.SessionAbsoluteTTL)...)
 	errs = append(errs, validatePositiveDuration(keyAuthSessionTouchInterval, cfg.Auth.SessionTouchInterval)...)

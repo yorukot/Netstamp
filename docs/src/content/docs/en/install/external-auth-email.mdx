@@ -10,11 +10,10 @@ Netstamp supports local passwords plus generic OpenID Connect, Google OpenID Con
 
 ## Public origin first
 
-Public origins are infrastructure settings and cannot be changed in Admin. Set valid HTTPS origins in the controller environment before enabling a provider:
+The public origin is an infrastructure setting and cannot be changed in Admin. Set it to a valid HTTPS origin in the controller environment before enabling a provider:
 
 ```dotenv
-BACKEND_BASE_URL=https://netstamp.example.com
-PUBLIC_WEB_BASE_URL=https://netstamp.example.com
+PUBLIC_BASE_URL=https://netstamp.example.com
 ```
 
 Register the matching callback with the identity provider:

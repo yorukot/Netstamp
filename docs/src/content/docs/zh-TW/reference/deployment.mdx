@@ -14,14 +14,16 @@ navOrder: 0
 | `migrate`  | 使用相同 Netstamp 映像檔版本執行一次性的資料庫遷移          |
 | `netstamp` | 控制器、內嵌 React 應用程式、API，以及 Linux 探測器安裝資源 |
 
+標準環境刻意不包含 reverse proxy 或 TLS 自動化。`netstamp` 服務會從同一個 origin 提供前端與 API，並只發布一個主機連接埠；要公開到網際網路時，請接到你既有的 reverse proxy。
+
 ## 下載並設定
 
 ```bash
 mkdir -p /opt/netstamp
 cd /opt/netstamp
-curl -fsSLO https://raw.githubusercontent.com/yorukot/netstamp/main/deployments/docker/compose.yaml
-curl -fsSLO https://raw.githubusercontent.com/yorukot/netstamp/main/deployments/docker/example.env
-cp example.env .env
+curl -fsSLO https://github.com/yorukot/netstamp/releases/latest/download/compose.yaml
+curl -fsSLO https://github.com/yorukot/netstamp/releases/latest/download/.env.example
+cp .env.example .env
 chmod 600 .env
 ```
 
@@ -45,7 +47,9 @@ AUTH_SESSION_HASH_KEY=<random value>
 AUTH_API_TOKEN_HASH_KEY=<random value>
 ```
 
-重新啟動或升級時必須沿用這些值。變更 hash key 會讓對應憑證失效；變更系統設定加密金鑰，則可能導致已儲存的 SMTP 或外部驗證提供者憑證無法解密。
+本機第一次啟動時，只需要填寫 `.env` 中的必填群組。重新啟動或升級時必須沿用這些值。變更 hash key 會讓對應憑證失效；變更系統設定加密金鑰，則可能導致已儲存的 SMTP 或外部驗證提供者憑證無法解密。
+
+Release 範本刻意保持精簡。Compose 會為非必填設定提供預設值；有需要時再從[設定參考](/zh-TW/docs/reference/configuration/)複製個別覆寫值。
 
 ## 啟動服務
 
@@ -75,11 +79,11 @@ curl --fail http://127.0.0.1:3000/api/v1/healthz
 ```dotenv
 NETSTAMP_IMAGE=yorukot/netstamp
 NETSTAMP_VERSION=latest
-TIMESCALEDB_IMAGE=timescale/timescaledb:latest-pg16
+TIMESCALEDB_IMAGE=timescale/timescaledb:2.20.3-pg16
 NETSTAMP_PORT=3000
 ```
 
-`latest` 適合試用。正式或受控環境應將 `NETSTAMP_VERSION` 與 `TIMESCALEDB_IMAGE` 固定在已測試、不可變動的 release tag 或 digest。遷移與應用程式服務必須使用相同的 Netstamp 版本。
+GitHub release 隨附的 Compose 檔會預設使用該 release 的 Netstamp image tag；程式碼儲存庫中的版本則以 `latest` 方便試用。正式或受控環境應將 `NETSTAMP_VERSION` 與 `TIMESCALEDB_IMAGE` 固定在已測試、不可變動的 release tag 或 digest。遷移與應用程式服務必須使用相同的 Netstamp 版本。
 
 ## 持久化資料
 
@@ -97,7 +101,7 @@ docker compose exec postgres psql -U netstamp -d netstamp -c 'select now();'
 發布的映像檔包含控制器、遷移工具、網頁應用程式，以及 amd64/arm64 探測器執行檔。若要從 checkout 建置相同映像檔：
 
 ```bash
-docker build -f deployments/docker/Dockerfile -t netstamp:local .
+docker build -f deployments/Dockerfile -t netstamp:local .
 NETSTAMP_IMAGE=netstamp NETSTAMP_VERSION=local docker compose up -d
 ```
 
@@ -107,7 +111,7 @@ NETSTAMP_IMAGE=netstamp NETSTAMP_VERSION=local docker compose up -d
 
 ```bash
 docker build \
-  -f deployments/docker/Dockerfile \
+  -f deployments/Dockerfile \
   --build-arg VITE_NETSTAMP_POSTHOG_KEY=phc_example \
   --build-arg VITE_NETSTAMP_POSTHOG_HOST=https://us.i.posthog.com \
   --build-arg VITE_NETSTAMP_TRACKING_CONSENT_MODE=always \

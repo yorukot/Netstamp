@@ -10,11 +10,10 @@ Netstamp 除了本機密碼，也支援通用 OpenID Connect、Google OpenID Con
 
 ## 先設定公開來源網址
 
-公開來源網址屬於基礎設施設定，無法從系統管理介面變更。啟用身分提供者前，先在控制器環境中設定有效的 HTTPS 來源網址：
+公開來源網址屬於基礎設施設定，無法從系統管理介面變更。啟用身分提供者前，先在控制器環境中設定唯一且有效的 HTTPS 來源網址：
 
 ```dotenv
-BACKEND_BASE_URL=https://netstamp.example.com
-PUBLIC_WEB_BASE_URL=https://netstamp.example.com
+PUBLIC_BASE_URL=https://netstamp.example.com
 ```
 
 再到身分提供者註冊相符的回呼網址：

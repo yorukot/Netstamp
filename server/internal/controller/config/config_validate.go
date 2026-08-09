@@ -137,16 +137,46 @@ func validateOptionalHTTPOrigin(key, value string) []error {
 	return nil
 }
 
-func validatePublicWebBaseURL(appEnv, value string) []error {
+func validatePublicBaseURL(appEnv, value string) []error {
 	if strings.TrimSpace(value) == "" {
 		if strings.TrimSpace(appEnv) == "local" {
 			return nil
 		}
 
-		return []error{errors.New("PUBLIC_WEB_BASE_URL must not be empty when APP_ENV is not local")}
+		return []error{errors.New("PUBLIC_BASE_URL must not be empty when APP_ENV is not local")}
 	}
 
-	return validateOptionalHTTPOrigin(keyPublicWebBaseURL, value)
+	if errs := validateOptionalHTTPOrigin(keyPublicBaseURL, value); len(errs) > 0 {
+		return errs
+	}
+	if strings.TrimSpace(appEnv) == "production" {
+		parsed, err := url.Parse(strings.TrimSpace(value))
+		if err != nil {
+			return []error{fmt.Errorf("%s must be a valid HTTP origin", keyPublicBaseURL)}
+		}
+		if parsed.Scheme != "https" {
+			return []error{errors.New("PUBLIC_BASE_URL must use https when APP_ENV is production")}
+		}
+	}
+
+	return nil
+}
+
+func validateNonLocalSecret(appEnv, key, value string, minimumLength int) []error {
+	if strings.TrimSpace(appEnv) == "local" {
+		return nil
+	}
+
+	trimmed := strings.TrimSpace(value)
+	lower := strings.ToLower(trimmed)
+	if strings.Contains(lower, "change-me") || strings.Contains(lower, "local-development") || (key == keyDatabasePassword && lower == "netstamp") {
+		return []error{fmt.Errorf("%s must not use a development or placeholder value when APP_ENV is not local", key)}
+	}
+	if minimumLength > 0 && len(trimmed) < minimumLength {
+		return []error{fmt.Errorf("%s must be at least %d characters when APP_ENV is not local", key, minimumLength)}
+	}
+
+	return nil
 }
 
 func validateTrustedProxyPrefixes(key, value string) []error {

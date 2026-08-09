@@ -43,7 +43,7 @@ func TestAuthMethodsReturnsLowerCamelProviderMetadata(t *testing.T) {
 }
 
 func TestExternalAuthErrorRedirectPreservesSensitiveReturnPath(t *testing.T) {
-	handler := &Handler{publicWebBaseURL: "https://netstamp.example.com"}
+	handler := &Handler{publicBaseURL: "https://netstamp.example.com"}
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest(http.MethodGet, "/api/v1/auth/external/github/callback", http.NoBody)
 

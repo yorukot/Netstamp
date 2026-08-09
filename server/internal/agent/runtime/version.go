@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-const (
+var (
 	Version     = "0.1.0"
 	AgentString = "netstamp-probe/" + Version
 )

@@ -13,13 +13,13 @@ import (
 )
 
 type Handler struct {
-	service          *appauth.Service
-	verifier         appauth.SessionManager
-	cookieName       string
-	cookieSecure     bool
-	publicWebBaseURL string
-	resetLimiter     *PasswordResetRateLimiter
-	apiTokens        *appapitoken.Service
+	service       *appauth.Service
+	verifier      appauth.SessionManager
+	cookieName    string
+	cookieSecure  bool
+	publicBaseURL string
+	resetLimiter  *PasswordResetRateLimiter
+	apiTokens     *appapitoken.Service
 }
 
 func (h *Handler) ConfigureAPITokens(service *appapitoken.Service) *Handler {
@@ -36,8 +36,8 @@ func NewHandler(service *appauth.Service, verifier appauth.SessionManager, cooki
 	}
 }
 
-func (h *Handler) ConfigurePasswordReset(publicWebBaseURL string, limiter *PasswordResetRateLimiter) *Handler {
-	h.publicWebBaseURL = publicWebBaseURL
+func (h *Handler) ConfigurePasswordReset(publicBaseURL string, limiter *PasswordResetRateLimiter) *Handler {
+	h.publicBaseURL = publicBaseURL
 	h.resetLimiter = limiter
 	return h
 }

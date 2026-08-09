@@ -9,8 +9,10 @@ on:
       - "package.json"
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
-      - "deployments/docker/Dockerfile"
-      - "deployments/docker/nginx.Dockerfile"
+      - "deployments/Dockerfile"
+      - "deployments/compose.yaml"
+      - "deployments/.env.example"
+      - "deployments/dev/**"
       - "packages/**"
       - "server/**"
       - "web/**"
@@ -20,8 +22,10 @@ on:
       - "package.json"
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
-      - "deployments/docker/Dockerfile"
-      - "deployments/docker/nginx.Dockerfile"
+      - "deployments/Dockerfile"
+      - "deployments/compose.yaml"
+      - "deployments/.env.example"
+      - "deployments/dev/**"
       - "packages/**"
       - "server/**"
       - "web/**"
@@ -34,8 +38,30 @@ env:
   DOCKER_IMAGE: yorukot/netstamp
 
 jobs:
+  ValidateCompose:
+    name: Validate Compose files
+    runs-on: ubuntu-latest
+    env:
+      PUBLIC_BASE_URL: https://netstamp.example.com
+      DATABASE_PASSWORD: 0123456789abcdef0123456789abcdef
+      LOG_PSEUDONYM_KEY: 123456789abcdef0123456789abcdef0
+      SYSTEM_SETTINGS_ENCRYPTION_KEY: 23456789abcdef0123456789abcdef01
+      AUTH_SESSION_HASH_KEY: 3456789abcdef0123456789abcdef012
+      AUTH_API_TOKEN_HASH_KEY: 456789abcdef0123456789abcdef0123
+      POSTGRES_EXPORTER_PASSWORD: 56789abcdef0123456789abcdef01234
+      GF_SECURITY_ADMIN_PASSWORD: 6789abcdef0123456789abcdef012345
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Validate production Compose
+        run: docker compose -f deployments/compose.yaml config --quiet
+
+      - name: Validate development Compose
+        run: docker compose -f deployments/dev/compose.yaml config --quiet
+
   ValidateNginx:
-    name: Build nginx image
+    name: Build development nginx image
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
@@ -49,7 +75,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: deployments/docker/nginx.Dockerfile
+          file: deployments/dev/nginx.Dockerfile
           platforms: linux/amd64
           push: false
           cache-from: type=gha,scope=nginx
@@ -57,6 +83,7 @@ jobs:
 
   Publish:
     name: Build and publish Docker image
+    needs: ValidateCompose
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
@@ -77,22 +104,63 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.DOCKER_IMAGE }}
+          flavor: latest=false
           tags: |
             type=ref,event=branch
             type=ref,event=tag
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=sha,prefix=sha-
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
 
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: deployments/docker/Dockerfile
+          file: deployments/Dockerfile
           platforms: ${{ github.event_name == 'pull_request' && 'linux/amd64' || 'linux/amd64,linux/arm64' }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            NETSTAMP_VERSION=${{ github.ref_type == 'tag' && github.ref_name || '0.1.0' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  ReleaseAssets:
+    name: Publish self-host release assets
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [Publish, ValidateCompose]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Package deployment files
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          mkdir -p "release/netstamp-${RELEASE_TAG}"
+          cp deployments/compose.yaml "release/netstamp-${RELEASE_TAG}/compose.yaml"
+          sed -i "s/NETSTAMP_VERSION:-latest/NETSTAMP_VERSION:-${RELEASE_TAG}/g" "release/netstamp-${RELEASE_TAG}/compose.yaml"
+          cp deployments/.env.example "release/netstamp-${RELEASE_TAG}/.env.example"
+          cp "release/netstamp-${RELEASE_TAG}/compose.yaml" release/compose.yaml
+          cp "release/netstamp-${RELEASE_TAG}/.env.example" release/.env.example
+          tar -C release -czf "release/netstamp-${RELEASE_TAG}.tar.gz" "netstamp-${RELEASE_TAG}"
+          cd release
+          sha256sum compose.yaml .env.example "netstamp-${RELEASE_TAG}.tar.gz" > SHA256SUMS
+
+      - name: Create or update GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          gh release view "${RELEASE_TAG}" >/dev/null 2>&1 || gh release create "${RELEASE_TAG}" --generate-notes --verify-tag
+          gh release upload "${RELEASE_TAG}" \
+            release/compose.yaml \
+            release/.env.example \
+            "release/netstamp-${RELEASE_TAG}.tar.gz" \
+            release/SHA256SUMS \
+            --clobber

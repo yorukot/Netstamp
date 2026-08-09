@@ -16,24 +16,24 @@ func TestResetBaseURLUsesOnlyConfiguredPublicOrigin(t *testing.T) {
 
 	tests := []struct {
 		name              string
-		publicWebBaseURL  string
+		publicBaseURL     string
 		expectedResetBase string
 	}{
 		{
 			name:              "configured origin",
-			publicWebBaseURL:  " https://app.netstamp.dev/ ",
+			publicBaseURL:     " https://app.netstamp.dev/ ",
 			expectedResetBase: "https://app.netstamp.dev",
 		},
 		{
 			name:              "unset origin",
-			publicWebBaseURL:  "",
+			publicBaseURL:     "",
 			expectedResetBase: "",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			handler := &Handler{publicWebBaseURL: tt.publicWebBaseURL}
+			handler := &Handler{publicBaseURL: tt.publicBaseURL}
 
 			if got := handler.resetBaseURL(request); got != tt.expectedResetBase {
 				t.Fatalf("expected reset base URL %q, got %q", tt.expectedResetBase, got)

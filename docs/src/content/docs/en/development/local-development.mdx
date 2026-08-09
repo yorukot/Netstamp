@@ -36,9 +36,14 @@ The install step also configures the repository's Git hooks.
 The controller needs PostgreSQL with the TimescaleDB extension. One local option is to start only the database service from the deployment Compose file:
 
 ```bash
-cp deployments/docker/example.env deployments/docker/.env
-docker compose --env-file deployments/docker/.env \
-  -f deployments/docker/compose.yaml up -d postgres
+cp deployments/.env.example deployments/.env
+```
+
+Fill the five empty secret fields in `deployments/.env` with independent local-development values, then start PostgreSQL:
+
+```bash
+docker compose --env-file deployments/.env \
+  -f deployments/compose.yaml up -d postgres
 ```
 
 Copy the controller environment template:
@@ -47,7 +52,7 @@ Copy the controller environment template:
 cp server/.env.example server/.env
 ```
 
-Set `DATABASE_PASSWORD` in `server/.env` to the same value used by `deployments/docker/.env`, then apply migrations:
+Set `DATABASE_PASSWORD` in `server/.env` to the same value used by `deployments/.env`, then apply migrations:
 
 ```bash
 just backend-migrate-up

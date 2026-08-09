@@ -66,7 +66,7 @@ func (h *Handler) confirmPasswordReset(ctx context.Context, input *confirmPasswo
 }
 
 func (h *Handler) resetBaseURL(_ *http.Request) string {
-	return strings.TrimRight(strings.TrimSpace(h.publicWebBaseURL), "/")
+	return strings.TrimRight(strings.TrimSpace(h.publicBaseURL), "/")
 }
 
 type requestPasswordResetInput struct {

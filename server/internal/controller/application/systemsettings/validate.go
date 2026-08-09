@@ -169,7 +169,7 @@ func validateProviderCommon(
 		collector.Add("displayName", "displayName is required when enabled", displayName)
 	}
 	if callbackURL == nil || strings.TrimSpace(*callbackURL) == "" {
-		collector.Add("callbackUrl", "BACKEND_BASE_URL is required when enabled", nil)
+		collector.Add("callbackUrl", "PUBLIC_BASE_URL is required when enabled", nil)
 	}
 }
 

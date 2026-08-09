@@ -16,6 +16,8 @@ Netstamp 會在控制器啟動前套用向前的資料庫遷移，因此應將�
 4. 確認備份檔可正常讀取。
 5. 若這次變更可能影響服務，安排維護時段。
 
+若既有安裝仍使用 `BACKEND_BASE_URL` 或 `PUBLIC_WEB_BASE_URL`，升級時必須刪除這兩個欄位，並將共用的 origin 設為 `PUBLIC_BASE_URL`。目前的控制器不接受已移除的舊欄位。
+
 Netstamp 的 columnstore policies 需要 TimescaleDB 2.20.3 或更新版本。既有資料庫內記錄的 extension 版本不會只因更換 container image 而自動更新；執行 Netstamp migrations 前請先確認版本：
 
 ```sql
@@ -35,7 +37,7 @@ docker compose exec -T postgres \
 pg_restore --list "$backup_file" >/dev/null
 ```
 
-請將 dump 與 Compose 檔案、沒有秘密值的版本設定，以及解讀既有憑證與加密設定所需的穩定密鑰一起保存；密鑰備份本身必須加密。
+請將 dump、Compose 檔案與加密後的 `.env` 備份一起保存。若要解讀已儲存的設定並保留既有憑證，該檔案中的資料庫密碼、加密金鑰與雜湊金鑰都必須能夠復原。
 
 ## 升級
 

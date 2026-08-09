@@ -176,7 +176,7 @@ func (h *Handler) webRedirect(path string) string {
 	if !strings.HasPrefix(path, "/") || strings.HasPrefix(path, "//") || strings.ContainsAny(path, "\\\r\n") {
 		path = "/"
 	}
-	base := strings.TrimRight(h.publicWebBaseURL, "/")
+	base := strings.TrimRight(h.publicBaseURL, "/")
 	if base == "" {
 		return path
 	}

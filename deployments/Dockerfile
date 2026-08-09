@@ -1,6 +1,11 @@
 # syntax=docker/dockerfile:1
+# check=skip=SecretsUsedInArgOrEnv
+
+ARG NETSTAMP_VERSION=0.1.0
 
 FROM golang:1.26-alpine AS server-build
+
+ARG NETSTAMP_VERSION
 
 WORKDIR /src/server
 
@@ -10,8 +15,8 @@ RUN go mod download
 COPY server/ ./
 RUN mkdir -p /out/agents \
     && CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/controller ./cmd/controller \
-    && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o /out/agents/netstamp-agent-linux-amd64 ./cmd/agent \
-    && CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags="-s -w" -o /out/agents/netstamp-agent-linux-arm64 ./cmd/agent \
+    && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w -X github.com/yorukot/netstamp/internal/agent/runtime.Version=${NETSTAMP_VERSION} -X github.com/yorukot/netstamp/internal/agent/runtime.AgentString=netstamp-probe/${NETSTAMP_VERSION}" -o /out/agents/netstamp-agent-linux-amd64 ./cmd/agent \
+    && CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags="-s -w -X github.com/yorukot/netstamp/internal/agent/runtime.Version=${NETSTAMP_VERSION} -X github.com/yorukot/netstamp/internal/agent/runtime.AgentString=netstamp-probe/${NETSTAMP_VERSION}" -o /out/agents/netstamp-agent-linux-arm64 ./cmd/agent \
     && CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/migrate ./cmd/migrate
 
 FROM node:24-alpine AS web-build
@@ -69,6 +74,8 @@ RUN pnpm --filter @netstamp/web build
 
 FROM alpine:3.22
 
+ARG NETSTAMP_VERSION
+
 RUN addgroup -S netstamp && adduser -S -G netstamp netstamp
 
 WORKDIR /app
@@ -79,7 +86,8 @@ COPY --from=server-build /out/migrate /app/migrate
 COPY --from=server-build /src/server/db/migrations /app/db/migrations
 COPY --from=web-build /src/web/dist /app/web
 
-ENV WEB_DIR=/app/web
+ENV APP_VERSION=$NETSTAMP_VERSION \
+    WEB_DIR=/app/web
 
 USER netstamp:netstamp
 

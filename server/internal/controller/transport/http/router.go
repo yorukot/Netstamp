@@ -53,8 +53,7 @@ type Dependencies struct {
 	Log                         *zap.Logger
 	APIVersion                  string
 	DemoMode                    bool
-	BackendBaseURL              string
-	PublicWebBaseURL            string
+	PublicBaseURL               string
 	WebDir                      string
 	AuthService                 *appauth.Service
 	AuthVerifier                appauth.SessionManager
@@ -122,11 +121,10 @@ func newAPIRouter(dep Dependencies) http.Handler {
 			))
 		}
 		apiRouter.Use(httpmiddleware.CSRF(httpmiddleware.CSRFConfig{
-			Verifier:         dep.AuthVerifier,
-			CookieName:       dep.AuthCookieName,
-			BasePath:         basePath,
-			BackendBaseURL:   dep.BackendBaseURL,
-			PublicWebBaseURL: dep.PublicWebBaseURL,
+			Verifier:      dep.AuthVerifier,
+			CookieName:    dep.AuthCookieName,
+			BasePath:      basePath,
+			PublicBaseURL: dep.PublicBaseURL,
 		}))
 		registerAPIRoutes(apiRouter, dep)
 	})
@@ -152,12 +150,12 @@ func registerAPIRoutes(api chi.Router, dep Dependencies) {
 	registerSystemRoutes(api, dep.ReadinessCheck, dep.PublicAccessSettings, dep.DemoMode)
 	registerOpenAPIRoutes(api, dep)
 
-	installHandler := installhttp.NewHandler(dep.AgentBinaryDir, dep.BackendBaseURL, dep.basePath())
+	installHandler := installhttp.NewHandler(dep.AgentBinaryDir, dep.PublicBaseURL, dep.basePath())
 	installHandler.RegisterRoutes(api)
 
 	authhttp.NewHandler(dep.AuthService, dep.AuthVerifier, dep.AuthCookieName, dep.AuthCookieSecure).
 		ConfigureAPITokens(dep.APITokenService).
-		ConfigurePasswordReset(dep.PublicWebBaseURL, authhttp.NewPasswordResetRateLimiter(authhttp.PasswordResetRateLimitConfig{
+		ConfigurePasswordReset(dep.PublicBaseURL, authhttp.NewPasswordResetRateLimiter(authhttp.PasswordResetRateLimitConfig{
 			Window:     dep.AuthPasswordResetRateWindow,
 			IPLimit:    dep.AuthPasswordResetIPLimit,
 			EmailLimit: dep.AuthPasswordResetEmailLimit,
@@ -189,7 +187,7 @@ func effectiveAuthCookieName(name string) string {
 
 func registerOpenAPIRoutes(api chi.Router, dep Dependencies) {
 	api.Get("/openapi.json", func(w http.ResponseWriter, r *http.Request) {
-		data, err := openapi.Spec(dep.APIVersion, strings.TrimRight(dep.BackendBaseURL, "/"))
+		data, err := openapi.Spec(dep.APIVersion, dep.PublicBaseURL)
 		if err != nil {
 			httpmiddleware.WriteProblem(w, r, http.StatusInternalServerError, "openapi unavailable")
 			return

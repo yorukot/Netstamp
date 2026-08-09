@@ -23,12 +23,13 @@ navOrder: 10
 ```bash
 mkdir netstamp
 cd netstamp
-curl -fsSLO https://raw.githubusercontent.com/yorukot/netstamp/main/deployments/docker/compose.yaml
-curl -fsSLO https://raw.githubusercontent.com/yorukot/netstamp/main/deployments/docker/example.env
-cp example.env .env
+curl -fsSLO https://github.com/yorukot/netstamp/releases/latest/download/compose.yaml
+curl -fsSLO https://github.com/yorukot/netstamp/releases/latest/download/.env.example
+cp .env.example .env
+chmod 600 .env
 ```
 
-本機試用時，`.env` 裡的預留密鑰可以直接啟動服務。若要讓執行個體連上網際網路，請務必全部換成獨立產生的密鑰，絕對不要沿用範例值。
+執行五次 `openssl rand -hex 32`，將每次產生的不同值填入 `.env` 最上方的必填群組。重新啟動及升級時必須沿用這些值；其餘設定會使用適合本機執行的預設值。
 
 ## 2. 啟動 Netstamp
 

@@ -59,7 +59,7 @@ OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://trace-collector:4318/v1/traces
 
 ## 程式碼儲存庫中的可觀測性設定檔
 
-`deployments/docker/compose.observability.yaml` 是供程式碼儲存庫本機版本使用的進階範例，內容包括：
+`deployments/dev/compose.yaml` 是供程式碼儲存庫本機開發使用的進階環境，內容包括：
 
 - 使用 VictoriaMetrics 收集控制器、探測器與 PostgreSQL 指標；
 - 使用 VictoriaTraces 接收 OTLP 追蹤資料；
@@ -72,8 +72,8 @@ OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://trace-collector:4318/v1/traces
 在程式碼儲存庫的本機版本中，先驗證自訂設定檔，再啟動服務：
 
 ```bash
-docker compose -f deployments/docker/compose.observability.yaml config
-docker compose -f deployments/docker/compose.observability.yaml up -d --build
+docker compose -f deployments/dev/compose.yaml config
+docker compose -f deployments/dev/compose.yaml up -d --build
 ```
 
 可觀測性資料儲存區與 Grafana 各自使用永久儲存空間。請分別備份；若決定不備份，也要接受它們可能獨立於 Netstamp 主要資料庫而遺失。

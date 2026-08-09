@@ -32,7 +32,7 @@ curl --fail http://127.0.0.1:3000/api/v1/healthz
 
 ## 重複跳回登入或 cookie 無法保存
 
-- 確認瀏覽器使用的 HTTPS origin 與 `BACKEND_BASE_URL`、`PUBLIC_WEB_BASE_URL` 完全相同。
+- 確認瀏覽器使用的 HTTPS origin 與 `PUBLIC_BASE_URL` 完全相同。
 - 確認 `APP_ENV=production` 搭配 HTTPS 使用。
 - 查看瀏覽器拒絕 cookie 的訊息。
 - 確認代理傳入正確的 `Host` 與 `X-Forwarded-Proto` header。

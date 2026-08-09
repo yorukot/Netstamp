@@ -53,9 +53,11 @@ Run Netstamp with Docker Compose:
 ```bash
 mkdir netstamp
 cd netstamp
-curl -O https://raw.githubusercontent.com/yorukot/netstamp/main/deployments/docker/compose.yaml
-curl -O https://raw.githubusercontent.com/yorukot/netstamp/main/deployments/docker/example.env
-cp example.env .env
+curl -fsSLO https://github.com/yorukot/netstamp/releases/latest/download/compose.yaml
+curl -fsSLO https://github.com/yorukot/netstamp/releases/latest/download/.env.example
+cp .env.example .env
+chmod 600 .env
+# Fill the required group at the top of .env with independent `openssl rand -hex 32` values.
 docker compose up -d
 ```
 
@@ -65,7 +67,7 @@ Open Netstamp:
 http://localhost:3000
 ```
 
-Before exposing Netstamp publicly, edit `.env`, replace every `change-me` value, set `APP_ENV=production`, pin `NETSTAMP_VERSION` to a release tag, and put Netstamp behind HTTPS with your reverse proxy of choice.
+Before the first start, fill every empty secret in `.env`. Before exposing Netstamp publicly, set `APP_ENV=production`, configure `PUBLIC_BASE_URL`, and put Netstamp behind HTTPS with your reverse proxy of choice. Release downloads are already pinned; when using the repository Compose file directly, add a tested `NETSTAMP_VERSION` override as documented in the deployment guide.
 
 ## Documentation
 
@@ -113,9 +115,9 @@ Netstamp is licensed under the [Apache License 2.0](./LICENSE).
 
 <a href="https://star-history.com/#yorukot/netstamp&Timeline">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=yorukot/netstamp&type=Timeline&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=yorukot/netstamp&type=Timeline" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=yorukot/netstamp&type=Timeline" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=yorukot/netstamp&type=Timeline&theme=dark&sealed_token=nEoMOYsfp1zwZ7rT-Fm6VR2yTa6cwW35VR0BwVxTuE8Dt17vRcRIQUFXeWdh6lZixlAl5e_fIVFs2Xe4cRdvAnexR5Q6JqlGVZK05Iu0mko8gYLjTdjq0g" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=yorukot/netstamp&type=Timeline&sealed_token=nEoMOYsfp1zwZ7rT-Fm6VR2yTa6cwW35VR0BwVxTuE8Dt17vRcRIQUFXeWdh6lZixlAl5e_fIVFs2Xe4cRdvAnexR5Q6JqlGVZK05Iu0mko8gYLjTdjq0g" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=yorukot/netstamp&type=Timeline&sealed_token=nEoMOYsfp1zwZ7rT-Fm6VR2yTa6cwW35VR0BwVxTuE8Dt17vRcRIQUFXeWdh6lZixlAl5e_fIVFs2Xe4cRdvAnexR5Q6JqlGVZK05Iu0mko8gYLjTdjq0g" />
  </picture>
 </a>
 

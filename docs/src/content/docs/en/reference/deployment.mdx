@@ -14,14 +14,16 @@ The repository's standard Compose deployment is the recommended starting point f
 | `migrate`  | One-shot database migration using the same Netstamp image version           |
 | `netstamp` | Controller, embedded React application, API, and Linux probe install assets |
 
+The standard stack intentionally does not include a reverse proxy or TLS automation. The `netstamp` service serves the frontend and API from one origin and publishes one host port; use your existing reverse proxy when exposing it publicly.
+
 ## Download and configure
 
 ```bash
 mkdir -p /opt/netstamp
 cd /opt/netstamp
-curl -fsSLO https://raw.githubusercontent.com/yorukot/netstamp/main/deployments/docker/compose.yaml
-curl -fsSLO https://raw.githubusercontent.com/yorukot/netstamp/main/deployments/docker/example.env
-cp example.env .env
+curl -fsSLO https://github.com/yorukot/netstamp/releases/latest/download/compose.yaml
+curl -fsSLO https://github.com/yorukot/netstamp/releases/latest/download/.env.example
+cp .env.example .env
 chmod 600 .env
 ```
 
@@ -45,7 +47,9 @@ AUTH_SESSION_HASH_KEY=<random value>
 AUTH_API_TOKEN_HASH_KEY=<random value>
 ```
 
-The values must remain stable across restarts and upgrades. Changing a hash key invalidates the associated credentials; changing the settings encryption key can make stored SMTP or external-provider credentials unreadable.
+The required group is the only part of `.env` that must be filled for a local first start. Its values must remain stable across restarts and upgrades. Changing a hash key invalidates the associated credentials; changing the settings encryption key can make stored SMTP or external-provider credentials unreadable.
+
+The release template is intentionally minimal. Compose supplies defaults for non-required settings; copy only the overrides you need from the [Configuration reference](/docs/reference/configuration/).
 
 ## Start the stack
 
@@ -75,11 +79,11 @@ The defaults are:
 ```dotenv
 NETSTAMP_IMAGE=yorukot/netstamp
 NETSTAMP_VERSION=latest
-TIMESCALEDB_IMAGE=timescale/timescaledb:latest-pg16
+TIMESCALEDB_IMAGE=timescale/timescaledb:2.20.3-pg16
 NETSTAMP_PORT=3000
 ```
 
-`latest` is convenient for evaluation. For a controlled installation, pin `NETSTAMP_VERSION` and `TIMESCALEDB_IMAGE` to an immutable release tag or digest that you have tested. The migration and application services always use the same Netstamp version.
+The Compose file attached to a GitHub release defaults to that release's Netstamp image tag. The repository copy uses `latest` for evaluation. For a controlled installation, pin `NETSTAMP_VERSION` and `TIMESCALEDB_IMAGE` to an immutable release tag or digest that you have tested. The migration and application services always use the same Netstamp version.
 
 ## Persistent data
 
@@ -97,7 +101,7 @@ docker compose exec postgres psql -U netstamp -d netstamp -c 'select now();'
 The published image includes the controller, migrations, web app, and amd64/arm64 probe binaries. To build the same image from a checkout:
 
 ```bash
-docker build -f deployments/docker/Dockerfile -t netstamp:local .
+docker build -f deployments/Dockerfile -t netstamp:local .
 NETSTAMP_IMAGE=netstamp NETSTAMP_VERSION=local docker compose up -d
 ```
 
@@ -107,7 +111,7 @@ To enable a tracker, rebuild the image and pass the corresponding web build vari
 
 ```bash
 docker build \
-  -f deployments/docker/Dockerfile \
+  -f deployments/Dockerfile \
   --build-arg VITE_NETSTAMP_POSTHOG_KEY=phc_example \
   --build-arg VITE_NETSTAMP_POSTHOG_HOST=https://us.i.posthog.com \
   --build-arg VITE_NETSTAMP_TRACKING_CONSENT_MODE=always \

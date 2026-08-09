@@ -187,7 +187,7 @@ func assertOpenAPIProbeAuth(t *testing.T, spec openAPISnapshot) {
 	}
 }
 
-func TestNewRouterOpenAPIUsesRelativeServerURLWhenBackendBaseURLUnset(t *testing.T) {
+func TestNewRouterOpenAPIUsesRelativeServerURLWhenPublicBaseURLUnset(t *testing.T) {
 	spec := getOpenAPI(t, Dependencies{APIVersion: "v1"})
 
 	if len(spec.Servers) != 1 {
@@ -198,10 +198,10 @@ func TestNewRouterOpenAPIUsesRelativeServerURLWhenBackendBaseURLUnset(t *testing
 	}
 }
 
-func TestNewRouterOpenAPIUsesBackendBaseURLServerURL(t *testing.T) {
+func TestNewRouterOpenAPIUsesPublicBaseURLServerURL(t *testing.T) {
 	spec := getOpenAPI(t, Dependencies{
-		APIVersion:     "v1",
-		BackendBaseURL: "https://app.netstamp.dev/",
+		APIVersion:    "v1",
+		PublicBaseURL: "https://app.netstamp.dev/",
 	})
 
 	if len(spec.Servers) != 1 {
@@ -661,10 +661,10 @@ func TestNewRouterServesAgentInstallerScript(t *testing.T) {
 	}
 }
 
-func TestNewRouterServesAgentInstallerScriptWithBackendBaseURL(t *testing.T) {
+func TestNewRouterServesAgentInstallerScriptWithPublicBaseURL(t *testing.T) {
 	recorder := performRouterRequest(Dependencies{
 		APIVersion:     "v1",
-		BackendBaseURL: "https://netstamp.example.com",
+		PublicBaseURL:  "https://netstamp.example.com",
 		RequestTimeout: time.Second,
 	}, http.MethodGet, "/api/v1/install/agent.sh")
 

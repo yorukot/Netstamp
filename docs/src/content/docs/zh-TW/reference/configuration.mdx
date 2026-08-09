@@ -10,6 +10,8 @@ navOrder: 30
 
 時間長度使用 Go 語法，例如 `250ms`、`5s`、`30m` 或 `168h`。布林值使用 `true` 或 `false`。機密值必須保持穩定、彼此不同，而且不能放進版本控制。
 
+Release 的 `.env.example` 刻意只保留五個永遠必填的機密值，以及兩個只在 production 使用的設定。若要覆寫任何預設值，請從下列表格將對應變數加入自己的 `.env`。
+
 ## 設定的管理位置
 
 基礎設施設定只由環境變數管理，包括資料庫連線、加密與雜湊金鑰、公開來源網址、HTTP 監聽位址、背景工作參數，以及其他行程層級的設定；變更後必須重新啟動控制器。
@@ -34,7 +36,7 @@ navOrder: 30
 | ------------------- | ----------------------------------- | ---------------------------------------- |
 | `NETSTAMP_IMAGE`    | `yorukot/netstamp`                  | 控制器映像檔儲存庫                       |
 | `NETSTAMP_VERSION`  | `latest`                            | 控制器與遷移映像檔的標籤                 |
-| `TIMESCALEDB_IMAGE` | `timescale/timescaledb:latest-pg16` | 資料庫映像檔                             |
+| `TIMESCALEDB_IMAGE` | `timescale/timescaledb:2.20.3-pg16` | 資料庫映像檔                             |
 | `NETSTAMP_PORT`     | `3000`                              | 對外映射至控制器 8080 連接埠的主機連接埠 |
 
 正式環境應固定映像檔版本。Compose volume 的邏輯名稱是 `netstamp-postgres`；Docker 通常會在實際名稱前加上 Compose 專案名稱。
@@ -53,24 +55,23 @@ navOrder: 30
 | `SYSTEM_SETTINGS_ENCRYPTION_KEY` | development placeholder | 加密系統管理機密設定時使用的穩定金鑰                           |
 | `SHUTDOWN_TIMEOUT`               | `10s`                   | 控制器正常關閉的期限                                           |
 
-所有非本機部署都必須更換這兩個開發用預留金鑰。變更設定加密金鑰可能使已儲存的 SMTP 或外部驗證提供者機密值無法解密。
+所有非 local 部署都必須將資料庫密碼與四個應用程式金鑰換成各自獨立的隨機值，且應用程式金鑰至少要有 32 個字元。變更設定加密金鑰可能使已儲存的 SMTP 或外部驗證提供者機密值無法解密。
 
 ## HTTP 與公開來源網址
 
-| 變數                       | 預設值  | 用途                                                   |
-| -------------------------- | ------- | ------------------------------------------------------ |
-| `BACKEND_BASE_URL`         | empty   | 回呼、電子郵件與探測器安裝網址使用的公開控制器來源網址 |
-| `PUBLIC_WEB_BASE_URL`      | empty   | 使用者連結使用的公開瀏覽器來源網址                     |
-| `HTTP_ADDR`                | `:8080` | 控制器監聽位址                                         |
-| `WEB_DIR`                  | empty   | 建置後的前端目錄；正式映像檔設為 `/app/web`            |
-| `REQUEST_TIMEOUT`          | `10s`   | 請求內容的逾時時間                                     |
-| `HTTP_READ_HEADER_TIMEOUT` | `5s`    | 讀取標頭的逾時時間                                     |
-| `HTTP_READ_TIMEOUT`        | `15s`   | 讀取請求的逾時時間                                     |
-| `HTTP_WRITE_TIMEOUT`       | `15s`   | 寫入回應的逾時時間                                     |
-| `HTTP_IDLE_TIMEOUT`        | `60s`   | keep-alive 連線閒置逾時時間                            |
-| `HTTP_TRUSTED_PROXIES`     | empty   | 以逗號分隔的 Proxy IP 位址或 CIDR 前綴                 |
+| 變數                       | 預設值  | 用途                                                  |
+| -------------------------- | ------- | ----------------------------------------------------- |
+| `PUBLIC_BASE_URL`          | empty   | 回呼、連結、OpenAPI 與探測器安裝共用的唯一公開 origin |
+| `HTTP_ADDR`                | `:8080` | 控制器監聽位址                                        |
+| `WEB_DIR`                  | empty   | 建置後的前端目錄；正式映像檔設為 `/app/web`           |
+| `REQUEST_TIMEOUT`          | `10s`   | 請求內容的逾時時間                                    |
+| `HTTP_READ_HEADER_TIMEOUT` | `5s`    | 讀取標頭的逾時時間                                    |
+| `HTTP_READ_TIMEOUT`        | `15s`   | 讀取請求的逾時時間                                    |
+| `HTTP_WRITE_TIMEOUT`       | `15s`   | 寫入回應的逾時時間                                    |
+| `HTTP_IDLE_TIMEOUT`        | `60s`   | keep-alive 連線閒置逾時時間                           |
+| `HTTP_TRUSTED_PROXIES`     | empty   | 以逗號分隔的 Proxy IP 位址或 CIDR 前綴                |
 
-來源網址只能包含 `http` 或 `https` 通訊協定與主機名稱。啟用外部驗證時，`BACKEND_BASE_URL` 不可為空。
+公開 origin 只能包含通訊協定與主機名稱。非 local 環境必須設定 `PUBLIC_BASE_URL`，production 必須使用 HTTPS。
 
 ## 資料庫
 

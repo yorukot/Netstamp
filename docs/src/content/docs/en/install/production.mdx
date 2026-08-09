@@ -14,8 +14,7 @@ Set these values in `.env` before exposing the service:
 
 ```dotenv
 APP_ENV=production
-BACKEND_BASE_URL=https://netstamp.example.com
-PUBLIC_WEB_BASE_URL=https://netstamp.example.com
+PUBLIC_BASE_URL=https://netstamp.example.com
 NETSTAMP_VERSION=<tested tag or digest>
 DATABASE_PASSWORD=<unique random value>
 LOG_PSEUDONYM_KEY=<unique random value>
@@ -24,7 +23,7 @@ AUTH_SESSION_HASH_KEY=<unique random value>
 AUTH_API_TOKEN_HASH_KEY=<unique random value>
 ```
 
-`BACKEND_BASE_URL` is used for OAuth/OIDC callback URLs, email links, and controller-served probe installer URLs. `PUBLIC_WEB_BASE_URL` is used for browser-facing links. Both values must be origins only: scheme and host, with no path, query, or fragment.
+`PUBLIC_BASE_URL` is the single public origin used for OAuth/OIDC callback URLs, email and browser links, notifications, OpenAPI, and controller-served probe installer URLs. It must contain only the HTTPS scheme and host, with no path, query, fragment, or credentials.
 
 With `APP_ENV=production`, session cookies use the `__Host-` prefix, `Secure`, `HttpOnly`, `SameSite=Strict`, and `Path=/`. Users must access the site over HTTPS.
 
@@ -92,7 +91,7 @@ The first successfully registered account is granted system administrator access
 4. configure and test each required external authentication provider;
 5. add at least one additional system administrator for recovery.
 
-Verify `BACKEND_BASE_URL` and `PUBLIC_WEB_BASE_URL` in the deployment environment. Public origins and other infrastructure settings are not editable in Admin.
+Verify `PUBLIC_BASE_URL` in the deployment environment. The public origin and other infrastructure settings are not editable in Admin.
 
 System administrators do not automatically gain access to projects. Project owners must invite them when project access is required.
 
@@ -103,7 +102,7 @@ System administrators do not automatically gain access to projects. Project owne
 - [ ] The Netstamp and TimescaleDB image versions are pinned and recorded.
 - [ ] The database port is not exposed publicly.
 - [ ] HTTPS is valid and HTTP redirects to HTTPS.
-- [ ] `BACKEND_BASE_URL` and `PUBLIC_WEB_BASE_URL` match the public origin.
+- [ ] `PUBLIC_BASE_URL` exactly matches the public HTTPS origin.
 - [ ] Trusted proxy ranges are no broader than necessary.
 - [ ] Account-creation and email-verification policy are intentional.
 - [ ] SMTP and every alert notification are tested.

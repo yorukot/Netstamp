@@ -1,3 +1,6 @@
+# syntax=docker/dockerfile:1
+# check=skip=SecretsUsedInArgOrEnv
+
 FROM node:24-alpine AS app-build
 
 WORKDIR /app
@@ -53,7 +56,7 @@ RUN pnpm --filter @netstamp/web build
 
 FROM nginx:1.27-alpine
 
-COPY deployments/docker/nginx.conf /etc/nginx/nginx.conf
+COPY deployments/dev/nginx.conf /etc/nginx/nginx.conf
 COPY --from=app-build /app/web/dist /usr/share/nginx/web
 
 EXPOSE 80

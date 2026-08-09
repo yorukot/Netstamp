@@ -32,7 +32,7 @@ If local works and public fails, inspect DNS, TLS, reverse-proxy routing, firewa
 
 ## Login loops or cookies do not persist
 
-- Confirm the browser uses the exact HTTPS origin in `BACKEND_BASE_URL` and `PUBLIC_WEB_BASE_URL`.
+- Confirm the browser uses the exact HTTPS origin in `PUBLIC_BASE_URL`.
 - Confirm `APP_ENV=production` is paired with HTTPS.
 - Check browser cookie rejection messages.
 - Verify proxy `Host` and `X-Forwarded-Proto` headers.

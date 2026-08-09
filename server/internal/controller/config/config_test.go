@@ -40,11 +40,8 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.SettingsSecretKey != "local-development-system-settings-encryption-key-change-before-production" {
 		t.Fatalf("expected default system settings secret key, got %q", cfg.SettingsSecretKey)
 	}
-	if cfg.HTTP.BackendBaseURL != "" {
-		t.Fatalf("expected empty backend base URL, got %q", cfg.HTTP.BackendBaseURL)
-	}
-	if cfg.HTTP.PublicWebBaseURL != "" {
-		t.Fatalf("expected empty public web base URL, got %q", cfg.HTTP.PublicWebBaseURL)
+	if cfg.HTTP.PublicBaseURL != "" {
+		t.Fatalf("expected empty public base URL, got %q", cfg.HTTP.PublicBaseURL)
 	}
 	if cfg.HTTP.Addr != ":8080" {
 		t.Fatalf("expected default HTTP addr, got %q", cfg.HTTP.Addr)
@@ -94,10 +91,9 @@ func TestLoadFromEnvironment(t *testing.T) {
 	t.Setenv(keyServiceName, "netstamp-worker")
 	t.Setenv(keyAppVersion, "0.2.0")
 	t.Setenv(keyAPIVersion, "v2")
-	t.Setenv(keyLogPseudonymKey, "production-log-pseudonym-key")
-	t.Setenv(keySystemSettingsEncryptionKey, "production-system-settings-key")
-	t.Setenv(keyBackendBaseURL, "https://app.netstamp.dev")
-	t.Setenv(keyPublicWebBaseURL, "https://app.netstamp.dev")
+	t.Setenv(keyLogPseudonymKey, "production-log-pseudonym-key-0123456789")
+	t.Setenv(keySystemSettingsEncryptionKey, "production-system-settings-key-0123456789")
+	t.Setenv(keyPublicBaseURL, "https://app.netstamp.dev/")
 	t.Setenv(keyHTTPAddr, ":8181")
 	t.Setenv(keyWebDir, "/app/web")
 	t.Setenv(keyHTTPTrustedProxies, "10.0.0.0/8,127.0.0.1")
@@ -105,12 +101,14 @@ func TestLoadFromEnvironment(t *testing.T) {
 	t.Setenv(keyDatabaseHost, "db.internal")
 	t.Setenv(keyDatabasePort, "15432")
 	t.Setenv(keyDatabaseUser, "netstamp_user")
-	t.Setenv(keyDatabasePassword, "secret")
+	t.Setenv(keyDatabasePassword, "production-database-password")
 	t.Setenv(keyDatabaseName, "netstamp_prod")
 	t.Setenv(keyDatabaseSSLMode, "require")
 	t.Setenv(keyDBMaxConns, "12")
 	t.Setenv(keyAuthSudoTTL, "4m")
 	t.Setenv(keyAuthExternalFlowTTL, "8m")
+	t.Setenv(keyAuthSessionHashKey, "production-session-hash-key-0123456789")
+	t.Setenv(keyAuthAPITokenHashKey, "production-api-token-hash-key-0123456789")
 	t.Setenv(keyOTLPTracesEndpoint, "http://victoria-traces:10428/insert/opentelemetry/v1/traces")
 	t.Setenv(keyAssignmentRefreshWorkerEnabled, "false")
 	t.Setenv(keyAssignmentRefreshWorkerInterval, "7s")
@@ -137,17 +135,14 @@ func TestLoadFromEnvironment(t *testing.T) {
 	if cfg.APIVersion != "v2" {
 		t.Fatalf("expected API version override, got %q", cfg.APIVersion)
 	}
-	if cfg.LogPseudonymKey != "production-log-pseudonym-key" {
+	if cfg.LogPseudonymKey != "production-log-pseudonym-key-0123456789" {
 		t.Fatalf("expected log pseudonym key override, got %q", cfg.LogPseudonymKey)
 	}
-	if cfg.SettingsSecretKey != "production-system-settings-key" {
+	if cfg.SettingsSecretKey != "production-system-settings-key-0123456789" {
 		t.Fatalf("expected system settings secret key override, got %q", cfg.SettingsSecretKey)
 	}
-	if cfg.HTTP.BackendBaseURL != "https://app.netstamp.dev" {
-		t.Fatalf("expected backend base URL override, got %q", cfg.HTTP.BackendBaseURL)
-	}
-	if cfg.HTTP.PublicWebBaseURL != "https://app.netstamp.dev" {
-		t.Fatalf("expected public web base URL override, got %q", cfg.HTTP.PublicWebBaseURL)
+	if cfg.HTTP.PublicBaseURL != "https://app.netstamp.dev" {
+		t.Fatalf("expected normalized public base URL override, got %q", cfg.HTTP.PublicBaseURL)
 	}
 	if cfg.HTTP.Addr != ":8181" {
 		t.Fatalf("expected HTTP addr override, got %q", cfg.HTTP.Addr)
@@ -218,11 +213,16 @@ func TestLoadFromDotEnv(t *testing.T) {
 	err := os.WriteFile(filepath.Join(dir, ".env"), []byte(strings.Join([]string{
 		"APP_ENV=staging",
 		"SERVICE_NAME=netstamp-staging",
-		"PUBLIC_WEB_BASE_URL=https://staging.netstamp.dev",
+		"PUBLIC_BASE_URL=https://staging.netstamp.dev",
+		"LOG_PSEUDONYM_KEY=staging-log-pseudonym-key-0123456789",
+		"SYSTEM_SETTINGS_ENCRYPTION_KEY=staging-settings-encryption-key-0123456789",
 		"HTTP_ADDR=:8282",
 		"REQUEST_TIMEOUT=2s",
 		"DATABASE_HOST=db.staging.internal",
+		"DATABASE_PASSWORD=staging-database-password",
 		"DATABASE_NAME=netstamp_staging",
+		"AUTH_SESSION_HASH_KEY=staging-session-hash-key-0123456789",
+		"AUTH_API_TOKEN_HASH_KEY=staging-api-token-hash-key-0123456789",
 		"",
 	}, "\n")), 0o600)
 	if err != nil {
@@ -240,8 +240,8 @@ func TestLoadFromDotEnv(t *testing.T) {
 	if cfg.ServiceName != "netstamp-staging" {
 		t.Fatalf("expected service from .env, got %q", cfg.ServiceName)
 	}
-	if cfg.HTTP.PublicWebBaseURL != "https://staging.netstamp.dev" {
-		t.Fatalf("expected public web base URL from .env, got %q", cfg.HTTP.PublicWebBaseURL)
+	if cfg.HTTP.PublicBaseURL != "https://staging.netstamp.dev" {
+		t.Fatalf("expected public base URL from .env, got %q", cfg.HTTP.PublicBaseURL)
 	}
 	if cfg.HTTP.Addr != ":8282" {
 		t.Fatalf("expected HTTP addr from .env, got %q", cfg.HTTP.Addr)
@@ -260,7 +260,7 @@ func TestLoadFromDotEnv(t *testing.T) {
 func TestLoadReturnsValidationErrors(t *testing.T) {
 	clearConfigEnv(t)
 	t.Setenv(keyRequestTimeout, "not-a-duration")
-	t.Setenv(keyBackendBaseURL, "https://app.netstamp.dev/api")
+	t.Setenv(keyPublicBaseURL, "https://app.netstamp.dev/api")
 	t.Setenv(keyDatabaseHost, " ")
 	t.Setenv(keyDBMaxConns, "-1")
 
@@ -272,7 +272,7 @@ func TestLoadReturnsValidationErrors(t *testing.T) {
 	message := err.Error()
 	for _, want := range []string{
 		"'REQUEST_TIMEOUT' time: invalid duration",
-		"BACKEND_BASE_URL must be an origin without path, query, fragment, or credentials",
+		"PUBLIC_BASE_URL must be an origin without path, query, fragment, or credentials",
 		"DATABASE_HOST must not be empty",
 		"DB_MAX_CONNS must not be negative",
 	} {
@@ -282,16 +282,16 @@ func TestLoadReturnsValidationErrors(t *testing.T) {
 	}
 }
 
-func TestLoadRequiresPublicWebBaseURLOutsideLocal(t *testing.T) {
+func TestLoadRequiresPublicBaseURLOutsideLocal(t *testing.T) {
 	clearConfigEnv(t)
 	t.Setenv(keyAppEnv, "production")
 
 	_, err := Load()
 	if err == nil {
-		t.Fatal("expected missing public web base URL error")
+		t.Fatal("expected missing public base URL error")
 	}
-	if !strings.Contains(err.Error(), "PUBLIC_WEB_BASE_URL must not be empty when APP_ENV is not local") {
-		t.Fatalf("expected missing public web base URL error, got %q", err.Error())
+	if !strings.Contains(err.Error(), "PUBLIC_BASE_URL must not be empty when APP_ENV is not local") {
+		t.Fatalf("expected missing public base URL error, got %q", err.Error())
 	}
 }
 
@@ -304,7 +304,7 @@ func TestValidateReturnsErrorsForInvalidValues(t *testing.T) {
 	cfg.LogPseudonymKey = ""
 	cfg.SettingsSecretKey = ""
 	cfg.ShutdownTimeout = 0
-	cfg.HTTP.BackendBaseURL = "https://app.netstamp.dev/api"
+	cfg.HTTP.PublicBaseURL = "https://app.netstamp.dev/api"
 	cfg.HTTP.Addr = "localhost"
 	cfg.HTTP.RequestTimeout = -time.Second
 	cfg.HTTP.ReadHeaderTimeout = 0
@@ -315,6 +315,7 @@ func TestValidateReturnsErrorsForInvalidValues(t *testing.T) {
 	cfg.Database.Host = ""
 	cfg.Database.Port = 0
 	cfg.Database.User = ""
+	cfg.Database.Password = ""
 	cfg.Database.Name = ""
 	cfg.Database.SSLMode = "invalid"
 	cfg.Database.MaxConns = 0
@@ -340,8 +341,7 @@ func TestValidateReturnsErrorsForInvalidValues(t *testing.T) {
 		"LOG_PSEUDONYM_KEY must not be empty",
 		"SYSTEM_SETTINGS_ENCRYPTION_KEY must not be empty",
 		"SHUTDOWN_TIMEOUT must be greater than 0",
-		"BACKEND_BASE_URL must be an origin without path, query, fragment, or credentials",
-		"PUBLIC_WEB_BASE_URL must not be empty when APP_ENV is not local",
+		"PUBLIC_BASE_URL must be an origin without path, query, fragment, or credentials",
 		"HTTP_ADDR must be a host:port address",
 		"REQUEST_TIMEOUT must be greater than 0",
 		"HTTP_READ_HEADER_TIMEOUT must be greater than 0",
@@ -351,6 +351,7 @@ func TestValidateReturnsErrorsForInvalidValues(t *testing.T) {
 		"HTTP_TRUSTED_PROXIES must not contain empty entries",
 		"DATABASE_HOST must not be empty",
 		"DATABASE_USER must not be empty",
+		"DATABASE_PASSWORD must not be empty",
 		"DATABASE_NAME must not be empty",
 		"DATABASE_PORT must be between 1 and 65535",
 		"DATABASE_SSLMODE must be one of disable, allow, prefer, require, verify-ca, or verify-full",
@@ -379,17 +380,17 @@ func TestValidateOptionalHTTPOrigin(t *testing.T) {
 		{name: "http origin", value: "http://localhost:8080"},
 		{name: "https origin", value: "https://app.netstamp.dev"},
 		{name: "trailing slash", value: "https://app.netstamp.dev/"},
-		{name: "missing scheme", value: "app.netstamp.dev", wantError: "BACKEND_BASE_URL must be a valid HTTP origin"},
-		{name: "unsupported scheme", value: "ftp://app.netstamp.dev", wantError: "BACKEND_BASE_URL must use http or https"},
-		{name: "path", value: "https://app.netstamp.dev/api", wantError: "BACKEND_BASE_URL must be an origin without path, query, fragment, or credentials"},
-		{name: "query", value: "https://app.netstamp.dev?preview=true", wantError: "BACKEND_BASE_URL must be an origin without path, query, fragment, or credentials"},
-		{name: "fragment", value: "https://app.netstamp.dev#api", wantError: "BACKEND_BASE_URL must be an origin without path, query, fragment, or credentials"},
-		{name: "credentials", value: "https://user:pass@app.netstamp.dev", wantError: "BACKEND_BASE_URL must be an origin without path, query, fragment, or credentials"},
+		{name: "missing scheme", value: "app.netstamp.dev", wantError: "PUBLIC_BASE_URL must be a valid HTTP origin"},
+		{name: "unsupported scheme", value: "ftp://app.netstamp.dev", wantError: "PUBLIC_BASE_URL must use http or https"},
+		{name: "path", value: "https://app.netstamp.dev/api", wantError: "PUBLIC_BASE_URL must be an origin without path, query, fragment, or credentials"},
+		{name: "query", value: "https://app.netstamp.dev?preview=true", wantError: "PUBLIC_BASE_URL must be an origin without path, query, fragment, or credentials"},
+		{name: "fragment", value: "https://app.netstamp.dev#api", wantError: "PUBLIC_BASE_URL must be an origin without path, query, fragment, or credentials"},
+		{name: "credentials", value: "https://user:pass@app.netstamp.dev", wantError: "PUBLIC_BASE_URL must be an origin without path, query, fragment, or credentials"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			errs := validateOptionalHTTPOrigin(keyBackendBaseURL, tt.value)
+			errs := validateOptionalHTTPOrigin(keyPublicBaseURL, tt.value)
 			err := errors.Join(errs...)
 			if tt.wantError == "" {
 				if err != nil {
@@ -407,7 +408,7 @@ func TestValidateOptionalHTTPOrigin(t *testing.T) {
 	}
 }
 
-func TestValidatePublicWebBaseURL(t *testing.T) {
+func TestValidatePublicBaseURL(t *testing.T) {
 	tests := []struct {
 		name      string
 		appEnv    string
@@ -419,27 +420,27 @@ func TestValidatePublicWebBaseURL(t *testing.T) {
 		{
 			name:      "production requires origin",
 			appEnv:    "production",
-			wantError: "PUBLIC_WEB_BASE_URL must not be empty when APP_ENV is not local",
+			wantError: "PUBLIC_BASE_URL must not be empty when APP_ENV is not local",
 		},
 		{
 			name:      "staging requires origin",
 			appEnv:    "staging",
 			value:     " ",
-			wantError: "PUBLIC_WEB_BASE_URL must not be empty when APP_ENV is not local",
+			wantError: "PUBLIC_BASE_URL must not be empty when APP_ENV is not local",
 		},
-		{name: "production HTTP origin", appEnv: "production", value: "http://app.netstamp.dev"},
+		{name: "production HTTP origin", appEnv: "production", value: "http://app.netstamp.dev", wantError: "PUBLIC_BASE_URL must use https when APP_ENV is production"},
 		{name: "production HTTPS origin", appEnv: "production", value: "https://app.netstamp.dev"},
 		{
 			name:      "production rejects path",
 			appEnv:    "production",
 			value:     "https://app.netstamp.dev/reset",
-			wantError: "PUBLIC_WEB_BASE_URL must be an origin without path, query, fragment, or credentials",
+			wantError: "PUBLIC_BASE_URL must be an origin without path, query, fragment, or credentials",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := errors.Join(validatePublicWebBaseURL(tt.appEnv, tt.value)...)
+			err := errors.Join(validatePublicBaseURL(tt.appEnv, tt.value)...)
 			if tt.wantError == "" {
 				if err != nil {
 					t.Fatalf("expected no error, got %v", err)
@@ -451,6 +452,74 @@ func TestValidatePublicWebBaseURL(t *testing.T) {
 			}
 			if !strings.Contains(err.Error(), tt.wantError) {
 				t.Fatalf("expected error to contain %q, got %q", tt.wantError, err.Error())
+			}
+		})
+	}
+}
+
+func TestValidateProductionSecrets(t *testing.T) {
+	base := validConfig()
+	base.Env = "production"
+	base.HTTP.PublicBaseURL = "https://app.netstamp.dev"
+	base.LogPseudonymKey = "production-log-pseudonym-key-0123456789"
+	base.SettingsSecretKey = "production-system-settings-key-0123456789"
+	base.Database.Password = "production-database-password"
+	base.Auth.SessionHashKey = "production-session-hash-key-0123456789"
+	base.Auth.APITokenHashKey = "production-api-token-hash-key-0123456789"
+
+	if err := errors.Join(validate(base)...); err != nil {
+		t.Fatalf("expected valid production secrets, got %v", err)
+	}
+
+	tests := []struct {
+		name      string
+		configure func(*Config)
+		wantError string
+	}{
+		{
+			name: "development log key",
+			configure: func(cfg *Config) {
+				cfg.LogPseudonymKey = "local-development-log-pseudonym-key-change-before-production"
+			},
+			wantError: "LOG_PSEUDONYM_KEY must not use a development or placeholder value",
+		},
+		{
+			name: "short encryption key",
+			configure: func(cfg *Config) {
+				cfg.SettingsSecretKey = "too-short"
+			},
+			wantError: "SYSTEM_SETTINGS_ENCRYPTION_KEY must be at least 32 characters",
+		},
+		{
+			name: "default database password",
+			configure: func(cfg *Config) {
+				cfg.Database.Password = "netstamp"
+			},
+			wantError: "DATABASE_PASSWORD must not use a development or placeholder value",
+		},
+		{
+			name: "session placeholder",
+			configure: func(cfg *Config) {
+				cfg.Auth.SessionHashKey = "change-me-session-hash-key-0123456789"
+			},
+			wantError: "AUTH_SESSION_HASH_KEY must not use a development or placeholder value",
+		},
+		{
+			name: "short API token key",
+			configure: func(cfg *Config) {
+				cfg.Auth.APITokenHashKey = "too-short"
+			},
+			wantError: "AUTH_API_TOKEN_HASH_KEY must be at least 32 characters",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := base
+			tt.configure(&cfg)
+			err := errors.Join(validate(cfg)...)
+			if err == nil || !strings.Contains(err.Error(), tt.wantError) {
+				t.Fatalf("expected error containing %q, got %v", tt.wantError, err)
 			}
 		})
 	}
@@ -473,6 +542,28 @@ func TestLoadReturnsUnknownDotEnvKeyErrors(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "has invalid keys: unknown_setting") {
 		t.Fatalf("expected unknown key error, got %q", err.Error())
+	}
+}
+
+func TestLoadRejectsRemovedBaseURLKeys(t *testing.T) {
+	clearConfigEnv(t)
+
+	dir := t.TempDir()
+	t.Chdir(dir)
+
+	err := os.WriteFile(filepath.Join(dir, ".env"), []byte("BACKEND_BASE_URL=https://app.netstamp.dev\nPUBLIC_WEB_BASE_URL=https://app.netstamp.dev\n"), 0o600)
+	if err != nil {
+		t.Fatalf("write .env: %v", err)
+	}
+
+	_, err = Load()
+	if err == nil {
+		t.Fatal("expected removed base URL keys to be rejected")
+	}
+	for _, key := range []string{"backend_base_url", "public_web_base_url"} {
+		if !strings.Contains(err.Error(), key) {
+			t.Fatalf("expected error to mention %q, got %q", key, err.Error())
+		}
 	}
 }
 
@@ -507,13 +598,20 @@ func validConfig() Config {
 			MaxConnIdleTime: 30 * time.Minute,
 		},
 		Auth: AuthConfig{
-			SessionHashKey:       "local-development-session-hash-key-change-before-production",
-			SessionIdleTTL:       24 * time.Hour,
-			SessionAbsoluteTTL:   7 * 24 * time.Hour,
-			SessionTouchInterval: 5 * time.Minute,
-			Argon2idMemoryKiB:    64 * 1024,
-			Argon2idIterations:   3,
-			Argon2idParallelism:  4,
+			SessionHashKey:          "local-development-session-hash-key-change-before-production",
+			APITokenHashKey:         "local-development-api-token-hash-key-change-before-production",
+			SessionIdleTTL:          24 * time.Hour,
+			SessionAbsoluteTTL:      7 * 24 * time.Hour,
+			SessionTouchInterval:    5 * time.Minute,
+			SudoTTL:                 5 * time.Minute,
+			ExternalFlowTTL:         10 * time.Minute,
+			PasswordResetTokenTTL:   30 * time.Minute,
+			PasswordResetRateWindow: time.Hour,
+			PasswordResetIPLimit:    10,
+			PasswordResetEmailLimit: 3,
+			Argon2idMemoryKiB:       64 * 1024,
+			Argon2idIterations:      3,
+			Argon2idParallelism:     4,
 		},
 		Tracing: TracingConfig{},
 		AssignmentRefresh: AssignmentRefreshConfig{

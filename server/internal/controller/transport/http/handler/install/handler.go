@@ -33,28 +33,28 @@ var agentBinaryAssets = []agentBinaryAsset{
 var installerFiles embed.FS
 
 type Handler struct {
-	agentBinaryDir         string
-	backendBaseURL         string
-	backendBaseURLProvider BackendBaseURLProvider
-	apiBasePath            string
+	agentBinaryDir        string
+	publicBaseURL         string
+	publicBaseURLProvider PublicBaseURLProvider
+	apiBasePath           string
 }
 
-type BackendBaseURLProvider interface {
-	BackendBaseURL(ctx context.Context) (string, error)
+type PublicBaseURLProvider interface {
+	PublicBaseURL(ctx context.Context) (string, error)
 }
 
-func NewHandler(agentBinaryDir, backendBaseURL, apiBasePath string, providers ...BackendBaseURLProvider) *Handler {
+func NewHandler(agentBinaryDir, publicBaseURL, apiBasePath string, providers ...PublicBaseURLProvider) *Handler {
 	if agentBinaryDir == "" {
 		agentBinaryDir = DefaultAgentBinaryDir
 	}
 
 	handler := &Handler{
 		agentBinaryDir: agentBinaryDir,
-		backendBaseURL: strings.TrimRight(backendBaseURL, "/"),
+		publicBaseURL:  strings.TrimRight(publicBaseURL, "/"),
 		apiBasePath:    "/" + strings.Trim(strings.TrimSpace(apiBasePath), "/"),
 	}
 	if len(providers) > 0 {
-		handler.backendBaseURLProvider = providers[0]
+		handler.publicBaseURLProvider = providers[0]
 	}
 	return handler
 }
@@ -110,16 +110,16 @@ func (h *Handler) renderAgentScript(r *http.Request, data []byte) []byte {
 }
 
 func (h *Handler) controllerURL(r *http.Request) string {
-	if h.backendBaseURLProvider != nil {
-		if backendBaseURL, err := h.backendBaseURLProvider.BackendBaseURL(r.Context()); err == nil {
-			backendBaseURL = strings.TrimRight(strings.TrimSpace(backendBaseURL), "/")
-			if backendBaseURL != "" {
-				return backendBaseURL
+	if h.publicBaseURLProvider != nil {
+		if publicBaseURL, err := h.publicBaseURLProvider.PublicBaseURL(r.Context()); err == nil {
+			publicBaseURL = strings.TrimRight(strings.TrimSpace(publicBaseURL), "/")
+			if publicBaseURL != "" {
+				return publicBaseURL
 			}
 		}
 	}
-	if h.backendBaseURL != "" {
-		return h.backendBaseURL
+	if h.publicBaseURL != "" {
+		return h.publicBaseURL
 	}
 
 	scheme := forwardedHeaderValue(r.Header.Get("X-Forwarded-Proto"))

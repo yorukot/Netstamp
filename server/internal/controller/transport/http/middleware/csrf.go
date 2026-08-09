@@ -12,11 +12,10 @@ import (
 const csrfHeaderName = "X-Csrf-Token"
 
 type CSRFConfig struct {
-	Verifier         appauth.SessionManager
-	CookieName       string
-	BasePath         string
-	BackendBaseURL   string
-	PublicWebBaseURL string
+	Verifier      appauth.SessionManager
+	CookieName    string
+	BasePath      string
+	PublicBaseURL string
 }
 
 func CSRF(cfg CSRFConfig) func(http.Handler) http.Handler {
@@ -104,7 +103,7 @@ func validCSRFOrigin(r *http.Request, cfg CSRFConfig) bool {
 }
 
 func allowedCSRFOrigins(r *http.Request, cfg CSRFConfig) []*url.URL {
-	values := []string{cfg.BackendBaseURL, cfg.PublicWebBaseURL}
+	values := []string{cfg.PublicBaseURL}
 	if r.Host != "" {
 		scheme := "https"
 		if r.TLS == nil {

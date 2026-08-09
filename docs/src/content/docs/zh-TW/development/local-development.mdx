@@ -36,9 +36,14 @@ pnpm install
 控制器需要啟用 TimescaleDB 擴充功能的 PostgreSQL。本機開發可以只啟動部署用 Compose 檔案中的資料庫服務：
 
 ```bash
-cp deployments/docker/example.env deployments/docker/.env
-docker compose --env-file deployments/docker/.env \
-  -f deployments/docker/compose.yaml up -d postgres
+cp deployments/.env.example deployments/.env
+```
+
+以彼此不同的本機開發值填入 `deployments/.env` 中五個空白的機密欄位，再啟動 PostgreSQL：
+
+```bash
+docker compose --env-file deployments/.env \
+  -f deployments/compose.yaml up -d postgres
 ```
 
 複製控制器環境變數範本：
@@ -47,7 +52,7 @@ docker compose --env-file deployments/docker/.env \
 cp server/.env.example server/.env
 ```
 
-將 `server/.env` 的 `DATABASE_PASSWORD` 設為與 `deployments/docker/.env` 相同的值，接著套用資料庫遷移：
+將 `server/.env` 的 `DATABASE_PASSWORD` 設為與 `deployments/.env` 相同的值，接著套用資料庫遷移：
 
 ```bash
 just backend-migrate-up

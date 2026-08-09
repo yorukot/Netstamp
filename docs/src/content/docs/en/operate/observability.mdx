@@ -59,7 +59,7 @@ Leave it empty to disable trace export. Keep the collector on a trusted network 
 
 ## Repository observability profile
 
-`deployments/docker/compose.observability.yaml` is an advanced, source-checkout profile that demonstrates:
+`deployments/dev/compose.yaml` is an advanced, source-checkout development stack that demonstrates:
 
 - VictoriaMetrics for controller, probe, and PostgreSQL metrics;
 - VictoriaTraces for OTLP traces;
@@ -72,8 +72,8 @@ It is not a drop-in extension of the standard published-image Compose file. The 
 From a repository checkout, validate the customized profile before starting it:
 
 ```bash
-docker compose -f deployments/docker/compose.observability.yaml config
-docker compose -f deployments/docker/compose.observability.yaml up -d --build
+docker compose -f deployments/dev/compose.yaml config
+docker compose -f deployments/dev/compose.yaml up -d --build
 ```
 
 The observability stores and Grafana each use persistent volumes. Back them up or accept their loss independently from the primary Netstamp database.
