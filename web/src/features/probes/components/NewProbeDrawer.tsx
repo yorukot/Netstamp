@@ -9,7 +9,7 @@ import {
 	type ProbeCoordinates
 } from "@/features/probes/data/probeLocation";
 import { pathForRoute } from "@/routes/routePaths";
-import { installAssetPaths, installAssetUrl, probeInstallCommand } from "@/shared/api/installAssets";
+import { probeInstallCommand } from "@/shared/api/installAssets";
 import { useCreateProjectProbeMutation } from "@/shared/api/mutations";
 import { projectQueries } from "@/shared/api/queries";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
@@ -76,9 +76,6 @@ export function NewProbeDrawer() {
 		{ value: "search", label: t("location.searchName") },
 		{ value: "manual", label: t("location.manualCoordinates") }
 	];
-	const installerUrl = installAssetUrl(installAssetPaths.agentInstaller);
-	const uninstallerUrl = installAssetUrl(installAssetPaths.agentUninstaller);
-	const binaryUrl = installAssetUrl(installAssetPaths.linuxAmd64Binary);
 	const installCommand = registeredProbeId && registrationSecret ? probeInstallCommand({ probeId: registeredProbeId, probeSecret: registrationSecret }) : "";
 
 	useEffect(() => {
@@ -320,17 +317,6 @@ export function NewProbeDrawer() {
 							<CodeBlock title={t("wizard.installCommand")} className={styles.installCommand} copyDisabled={!installCommand}>
 								{installCommand}
 							</CodeBlock>
-							<div className={styles.assetLinks}>
-								<Button asChild variant="outline" size="sm">
-									<a href={installerUrl}>{t("wizard.installer")}</a>
-								</Button>
-								<Button asChild variant="outline" size="sm">
-									<a href={binaryUrl}>{t("wizard.linuxBinary")}</a>
-								</Button>
-								<Button asChild variant="ghost" size="sm">
-									<a href={uninstallerUrl}>{t("wizard.uninstaller")}</a>
-								</Button>
-							</div>
 						</div>
 
 						<div className={styles.detectCard}>

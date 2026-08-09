@@ -167,8 +167,7 @@
 	min-height: 22.5rem;
 }
 
-.actions,
-.assetLinks {
+.actions {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 0.625rem;
