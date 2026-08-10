@@ -1,13 +1,11 @@
 import { BookOpenTextIcon } from "@phosphor-icons/react/dist/csr/BookOpenText";
 import { BracketsCurlyIcon } from "@phosphor-icons/react/dist/csr/BracketsCurly";
-import { DiscordLogoIcon } from "@phosphor-icons/react/dist/csr/DiscordLogo";
 import { FileTextIcon } from "@phosphor-icons/react/dist/csr/FileText";
 import { GithubLogoIcon } from "@phosphor-icons/react/dist/csr/GithubLogo";
 import { StarIcon } from "@phosphor-icons/react/dist/csr/Star";
 import styles from "./GlobalFooter.module.css";
 
 const githubUrl = "https://github.com/yorukot/netstamp";
-const discordUrl = "https://discord.gg/9mdkf6dyTy";
 const licenseUrl = `${githubUrl}/blob/main/LICENSE`;
 
 export interface GlobalFooterProps {
@@ -22,7 +20,6 @@ export interface GlobalFooterProps {
 	apiHref?: string;
 	projectLabel?: string;
 	githubLabel?: string;
-	discordLabel?: string;
 	licenseLabel?: string;
 	openSourceLabel?: string;
 	starLabel?: string;
@@ -40,7 +37,6 @@ export const GlobalFooter = ({
 	apiHref = "/openapi/",
 	projectLabel = "Project",
 	githubLabel = "GitHub",
-	discordLabel = "Discord",
 	licenseLabel = "Apache 2.0 license",
 	openSourceLabel = "Open source / Self-hosted",
 	starLabel = "Star Netstamp on GitHub"
@@ -77,10 +73,6 @@ export const GlobalFooter = ({
 						<a href={githubUrl} target="_blank" rel="noreferrer">
 							<GithubLogoIcon size="1rem" weight="fill" aria-hidden="true" focusable="false" />
 							{githubLabel}
-						</a>
-						<a href={discordUrl} target="_blank" rel="noreferrer">
-							<DiscordLogoIcon size="1rem" weight="fill" aria-hidden="true" focusable="false" />
-							{discordLabel}
 						</a>
 						<a href={licenseUrl} target="_blank" rel="noreferrer">
 							<FileTextIcon size="1rem" weight="bold" aria-hidden="true" focusable="false" />

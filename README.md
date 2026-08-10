@@ -90,7 +90,6 @@ You do not need to write code to help. Read [Translating Netstamp](./docs/src/co
 ## Support and security
 
 - Read [`SUPPORT.md`](./SUPPORT.md) for help requests, bug reports, feature requests, and the information maintainers need to reproduce a problem.
-- Ask setup and usage questions in the [Netstamp Discord community](https://discord.gg/9mdkf6dyTy).
 - Report reproducible bugs and request features through [GitHub Issues](https://github.com/yorukot/netstamp/issues).
 - Follow [`SECURITY.md`](./SECURITY.md) to report suspected vulnerabilities privately.
 - Use the generated [OpenAPI explorer](https://netstamp.dev/openapi/) for API contracts and request models.
