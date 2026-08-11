@@ -2330,6 +2330,8 @@ export interface components {
 			/** @enum {string} */
 			status: "open" | "acknowledged" | "resolved";
 			/** @enum {string} */
+			resolutionReason?: "condition_cleared" | "target_no_longer_evaluated";
+			/** @enum {string} */
 			severity: "info" | "warning" | "critical";
 			/** @enum {string} */
 			lastEvaluationState: "firing" | "clear" | "insufficient_samples" | "no_data";

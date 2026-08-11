@@ -44,6 +44,13 @@ const (
 	IncidentStatusResolved     IncidentStatus = "resolved"
 )
 
+type IncidentResolutionReason string
+
+const (
+	IncidentResolutionReasonConditionCleared        IncidentResolutionReason = "condition_cleared"
+	IncidentResolutionReasonTargetNoLongerEvaluated IncidentResolutionReason = "target_no_longer_evaluated"
+)
+
 type NotificationType string
 
 const (
@@ -101,6 +108,7 @@ type Incident struct {
 	Check                       *IncidentCheckSummary
 	CheckType                   domaincheck.Type
 	Status                      IncidentStatus
+	ResolutionReason            *IncidentResolutionReason
 	Severity                    Severity
 	LastEvaluationState         alertcondition.EvaluationState
 	OpenedAt                    time.Time
@@ -117,6 +125,11 @@ type Incident struct {
 	SuppressedNotificationCount int32
 	CreatedAt                   time.Time
 	UpdatedAt                   time.Time
+}
+
+type InactiveIncidentCandidate struct {
+	Incident Incident
+	Rule     Rule
 }
 
 type IncidentProbeSummary struct {

@@ -165,6 +165,40 @@ func TestServiceRuleWriteAllowsEditorManageAlertPermission(t *testing.T) {
 	}
 }
 
+func TestServiceRuleUpdateReconcilesStoppedEvaluations(t *testing.T) {
+	t.Parallel()
+
+	repo := &fakeAlertRepository{}
+	access := &fakeAlertProjectAccess{role: domainproject.RoleAdmin}
+	service := NewService(repo, access, nil, nil)
+	reconciler := &fakeIncidentReconciler{}
+	service.ConfigureIncidentReconciler(reconciler, nil)
+
+	input := validUpdateRuleInput()
+	input.Enabled = false
+	if _, err := service.UpdateRule(context.Background(), input); err != nil {
+		t.Fatalf("update rule returned error: %v", err)
+	}
+	if reconciler.calls != 1 || reconciler.projectID != testProjectID {
+		t.Fatalf("unexpected incident reconciliation: %#v", reconciler)
+	}
+}
+
+func TestServiceRuleDeleteReturnsIncidentReconcileFailure(t *testing.T) {
+	t.Parallel()
+
+	wantErr := errors.New("reconcile incidents")
+	repo := &fakeAlertRepository{}
+	access := &fakeAlertProjectAccess{role: domainproject.RoleAdmin}
+	service := NewService(repo, access, nil, nil)
+	service.ConfigureIncidentReconciler(&fakeIncidentReconciler{err: wantErr}, nil)
+
+	err := service.DeleteRule(context.Background(), DeleteRuleInput{ProjectInput: testProjectInput(), RuleID: testRuleID})
+	if !errors.Is(err, wantErr) {
+		t.Fatalf("delete rule error = %v, want %v", err, wantErr)
+	}
+}
+
 func TestServiceNotificationWritesOwnerAdminOnly(t *testing.T) {
 	t.Parallel()
 
@@ -437,6 +471,18 @@ type fakeAlertRepository struct {
 	lastProjectID string
 	writeCalls    int
 	notification  domainalert.Notification
+}
+
+type fakeIncidentReconciler struct {
+	projectID string
+	calls     int
+	err       error
+}
+
+func (r *fakeIncidentReconciler) ReconcileStoppedEvaluations(_ context.Context, projectID string) error {
+	r.projectID = projectID
+	r.calls++
+	return r.err
 }
 
 func (r *fakeAlertRepository) ListRules(_ context.Context, projectID string, _ *domainalert.RuleStatus, _ *domaincheck.Type) ([]domainalert.Rule, error) {

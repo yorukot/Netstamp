@@ -86,6 +86,8 @@ func TestDeleteProbeCheckAssignmentsForProbeCallsRepository(t *testing.T) {
 	repo := &recordingRepository{}
 	events := &recordingEventRecorder{}
 	service := NewService(repo, nil, events)
+	reconciler := &recordingIncidentReconciler{}
+	service.ConfigureIncidentReconciler(reconciler)
 
 	if err := service.DeleteProbeCheckAssignmentsForProbe(context.Background(), testProjectID, testProbeID); err != nil {
 		t.Fatalf("expected delete to succeed: %v", err)
@@ -95,7 +97,24 @@ func TestDeleteProbeCheckAssignmentsForProbeCallsRepository(t *testing.T) {
 		t.Fatalf("unexpected repository call: %#v", repo)
 	}
 	assertEnqueued(t, repo, domainassignment.RefreshTarget{ProjectID: testProjectID, Type: domainassignment.RefreshTargetProbe, TargetID: testProbeID})
+	if reconciler.projectID != testProjectID || reconciler.calls != 1 {
+		t.Fatalf("unexpected incident reconciliation: %#v", reconciler)
+	}
 	assertLastEvent(t, events, AssignmentEventDeleteProbeSuccess, AssignmentOutcomeSuccess, "")
+}
+
+func TestAssignmentMutationReturnsIncidentReconcileFailure(t *testing.T) {
+	wantErr := errors.New("reconcile incidents")
+	repo := &recordingRepository{}
+	events := &recordingEventRecorder{}
+	service := NewService(repo, nil, events)
+	service.ConfigureIncidentReconciler(&recordingIncidentReconciler{err: wantErr})
+
+	err := service.DeleteProbeCheckAssignmentsForCheck(context.Background(), testProjectID, testCheckID)
+	if !errors.Is(err, wantErr) {
+		t.Fatalf("error = %v, want %v", err, wantErr)
+	}
+	assertLastEvent(t, events, AssignmentEventDeleteCheckFailure, AssignmentOutcomeFailure, AssignmentReasonDeleteFailed)
 }
 
 func TestDeleteProbeCheckAssignmentsForCheckCallsRepository(t *testing.T) {
@@ -337,4 +356,16 @@ type recordingEventRecorder struct {
 
 func (r *recordingEventRecorder) RecordAssignmentEvent(_ context.Context, event AssignmentEvent) {
 	r.events = append(r.events, event)
+}
+
+type recordingIncidentReconciler struct {
+	projectID string
+	calls     int
+	err       error
+}
+
+func (r *recordingIncidentReconciler) ReconcileStoppedEvaluations(_ context.Context, projectID string) error {
+	r.projectID = projectID
+	r.calls++
+	return r.err
 }

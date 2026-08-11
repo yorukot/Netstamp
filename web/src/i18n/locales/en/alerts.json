@@ -133,6 +133,10 @@
 		"suppressedLabel": "Suppressed",
 		"loadingDetail": "Loading incident",
 		"unavailable": "Incident unavailable.",
+		"resolutionReasons": {
+			"conditionCleared": "Condition cleared",
+			"targetNoLongerEvaluated": "Target is no longer evaluated"
+		},
 		"targetTitle": "Probe {{probeId}} / Check {{checkId}}"
 	},
 	"notifications": {

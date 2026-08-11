@@ -15,6 +15,9 @@ type incidentNotificationView struct {
 		Name     string `json:"name"`
 		Severity string `json:"severity"`
 	} `json:"rule"`
+	Incident struct {
+		ResolutionReason string `json:"resolutionReason"`
+	} `json:"incident"`
 	Target struct {
 		ProbeID   string `json:"probeId"`
 		CheckID   string `json:"checkId"`
@@ -63,6 +66,9 @@ func incidentNotificationTitle(incident incidentNotificationView) string {
 }
 
 func incidentNotificationDescription(incident incidentNotificationView) string {
+	if reason := incidentResolutionReasonLabel(incident.Incident.ResolutionReason); reason != "" {
+		return reason
+	}
 	if message, ok := incident.Summary["message"].(string); ok && message != "" {
 		return truncateMessage(message, incidentDescriptionLimit)
 	}
@@ -84,6 +90,7 @@ func incidentNotificationFields(incident incidentNotificationView) []incidentNot
 	add("Rule", incident.Rule.Name, true)
 	add("Severity", incident.Rule.Severity, true)
 	add("Event", incident.EventType, true)
+	add("Resolution reason", incidentResolutionReasonLabel(incident.Incident.ResolutionReason), false)
 	add("Incident", incident.Links.Incident, false)
 	add("Probe", incidentProbeLabel(incident), true)
 	add("Check", incidentCheckLabel(incident), true)
@@ -100,6 +107,17 @@ func incidentNotificationFields(incident incidentNotificationView) []incidentNot
 	add("Notification", incident.Notification.Name, true)
 	add("Sent", incident.SentAt, false)
 	return fields
+}
+
+func incidentResolutionReasonLabel(reason string) string {
+	switch reason {
+	case "condition_cleared":
+		return "Condition cleared"
+	case "target_no_longer_evaluated":
+		return "Target is no longer evaluated"
+	default:
+		return ""
+	}
 }
 
 func incidentProbeLabel(incident incidentNotificationView) string {

@@ -66,6 +66,21 @@ func (s *Service) startRuleFlow(ctx context.Context, input appproberuntime.Chang
 	}
 }
 
+func (s *Service) startLifecycleFlow(ctx context.Context, projectID string) (context.Context, *alertEvalFlow) {
+	ctx, span := alertEvalTracer.Start(ctx, "alert_eval.lifecycle.reconcile", trace.WithAttributes(
+		attrAlertEvalAction.String(string(AlertEvalActionReconcileLifecycle)),
+		attrProjectID.String(projectID),
+	))
+
+	return ctx, &alertEvalFlow{
+		service:   s,
+		ctx:       ctx,
+		span:      span,
+		action:    AlertEvalActionReconcileLifecycle,
+		projectID: projectID,
+	}
+}
+
 func (f *alertEvalFlow) end() {
 	f.span.End()
 }

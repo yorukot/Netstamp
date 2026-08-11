@@ -143,7 +143,7 @@ VALUES (
     $14
 )
 ON CONFLICT (rule_id, probe_id, check_id) WHERE status IN ('open', 'acknowledged') DO NOTHING
-RETURNING id, project_id, rule_id, probe_id, check_id, check_type, status, severity, last_evaluation_state, opened_at, acknowledged_at, acknowledged_by_user_id, resolved_at, resolved_by_user_id, last_evaluated_at, last_triggered_at, last_value, last_summary, last_notification_sent_at, next_notification_eligible_at, suppressed_notification_count, created_at, updated_at
+RETURNING id, project_id, rule_id, probe_id, check_id, check_type, status, severity, last_evaluation_state, opened_at, acknowledged_at, acknowledged_by_user_id, resolved_at, resolved_by_user_id, last_evaluated_at, last_triggered_at, last_value, last_summary, last_notification_sent_at, next_notification_eligible_at, suppressed_notification_count, created_at, updated_at, resolution_reason
 `
 
 type CreateAlertIncidentParams struct {
@@ -205,6 +205,7 @@ func (q *Queries) CreateAlertIncident(ctx context.Context, arg CreateAlertIncide
 		&i.SuppressedNotificationCount,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.ResolutionReason,
 	)
 	return i, err
 }
@@ -401,6 +402,49 @@ func (q *Queries) DeleteAlertPendingEvaluationsForRule(ctx context.Context, arg 
 	return err
 }
 
+const deleteInactiveAlertPendingEvaluations = `-- name: DeleteInactiveAlertPendingEvaluations :execrows
+DELETE FROM alert_rule_pending_evaluations
+WHERE alert_rule_pending_evaluations.project_id = $1
+  AND EXISTS (
+      SELECT 1
+      FROM probes
+      JOIN checks
+        ON checks.project_id = alert_rule_pending_evaluations.project_id
+       AND checks.id = alert_rule_pending_evaluations.check_id
+      JOIN alert_rules
+        ON alert_rules.project_id = alert_rule_pending_evaluations.project_id
+       AND alert_rules.id = alert_rule_pending_evaluations.rule_id
+      WHERE probes.project_id = alert_rule_pending_evaluations.project_id
+        AND probes.id = alert_rule_pending_evaluations.probe_id
+        AND (
+            probes.deleted_at IS NOT NULL
+            OR probes.enabled = false
+            OR checks.deleted_at IS NOT NULL
+            OR alert_rules.deleted_at IS NOT NULL
+            OR alert_rules.status <> 'enabled'
+            OR alert_rules.check_type <> checks.check_type
+            OR (alert_rules.probe_id IS NOT NULL AND alert_rules.probe_id <> alert_rule_pending_evaluations.probe_id)
+            OR (alert_rules.check_id IS NOT NULL AND alert_rules.check_id <> alert_rule_pending_evaluations.check_id)
+            OR NOT EXISTS (
+                SELECT 1
+                FROM probe_check_assignments
+                WHERE probe_check_assignments.project_id = alert_rule_pending_evaluations.project_id
+                  AND probe_check_assignments.probe_id = alert_rule_pending_evaluations.probe_id
+                  AND probe_check_assignments.check_id = alert_rule_pending_evaluations.check_id
+                  AND probe_check_assignments.deleted_at IS NULL
+            )
+        )
+  )
+`
+
+func (q *Queries) DeleteInactiveAlertPendingEvaluations(ctx context.Context, projectID uuid.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteInactiveAlertPendingEvaluations, projectID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const enqueueNotificationOutbox = `-- name: EnqueueNotificationOutbox :one
 INSERT INTO notification_outbox (
     project_id,
@@ -476,7 +520,8 @@ SELECT id,
        next_notification_eligible_at,
        suppressed_notification_count,
        created_at,
-       updated_at
+       updated_at,
+       resolution_reason
 FROM alert_incidents
 WHERE rule_id = $1
   AND probe_id = $2
@@ -518,6 +563,7 @@ func (q *Queries) GetActiveAlertIncident(ctx context.Context, arg GetActiveAlert
 		&i.SuppressedNotificationCount,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.ResolutionReason,
 	)
 	return i, err
 }
@@ -530,6 +576,7 @@ SELECT alert_incidents.id,
        alert_incidents.check_id,
        alert_incidents.check_type,
        alert_incidents.status,
+       alert_incidents.resolution_reason,
        alert_incidents.severity,
        alert_incidents.last_evaluation_state,
        alert_incidents.opened_at,
@@ -567,33 +614,34 @@ type GetAlertIncidentParams struct {
 }
 
 type GetAlertIncidentRow struct {
-	ID                          uuid.UUID            `json:"id"`
-	ProjectID                   uuid.UUID            `json:"project_id"`
-	RuleID                      uuid.UUID            `json:"rule_id"`
-	ProbeID                     uuid.UUID            `json:"probe_id"`
-	CheckID                     uuid.UUID            `json:"check_id"`
-	CheckType                   CheckType            `json:"check_type"`
-	Status                      AlertIncidentStatus  `json:"status"`
-	Severity                    AlertSeverity        `json:"severity"`
-	LastEvaluationState         AlertEvaluationState `json:"last_evaluation_state"`
-	OpenedAt                    time.Time            `json:"opened_at"`
-	AcknowledgedAt              *time.Time           `json:"acknowledged_at"`
-	AcknowledgedByUserID        *uuid.UUID           `json:"acknowledged_by_user_id"`
-	ResolvedAt                  *time.Time           `json:"resolved_at"`
-	ResolvedByUserID            *uuid.UUID           `json:"resolved_by_user_id"`
-	LastEvaluatedAt             time.Time            `json:"last_evaluated_at"`
-	LastTriggeredAt             time.Time            `json:"last_triggered_at"`
-	LastValue                   *float64             `json:"last_value"`
-	LastSummary                 []byte               `json:"last_summary"`
-	LastNotificationSentAt      *time.Time           `json:"last_notification_sent_at"`
-	NextNotificationEligibleAt  *time.Time           `json:"next_notification_eligible_at"`
-	SuppressedNotificationCount int32                `json:"suppressed_notification_count"`
-	CreatedAt                   time.Time            `json:"created_at"`
-	UpdatedAt                   time.Time            `json:"updated_at"`
-	ProbeName                   string               `json:"probe_name"`
-	CheckName                   string               `json:"check_name"`
-	CheckSummaryType            CheckType            `json:"check_summary_type"`
-	CheckTarget                 string               `json:"check_target"`
+	ID                          uuid.UUID                      `json:"id"`
+	ProjectID                   uuid.UUID                      `json:"project_id"`
+	RuleID                      uuid.UUID                      `json:"rule_id"`
+	ProbeID                     uuid.UUID                      `json:"probe_id"`
+	CheckID                     uuid.UUID                      `json:"check_id"`
+	CheckType                   CheckType                      `json:"check_type"`
+	Status                      AlertIncidentStatus            `json:"status"`
+	ResolutionReason            *AlertIncidentResolutionReason `json:"resolution_reason"`
+	Severity                    AlertSeverity                  `json:"severity"`
+	LastEvaluationState         AlertEvaluationState           `json:"last_evaluation_state"`
+	OpenedAt                    time.Time                      `json:"opened_at"`
+	AcknowledgedAt              *time.Time                     `json:"acknowledged_at"`
+	AcknowledgedByUserID        *uuid.UUID                     `json:"acknowledged_by_user_id"`
+	ResolvedAt                  *time.Time                     `json:"resolved_at"`
+	ResolvedByUserID            *uuid.UUID                     `json:"resolved_by_user_id"`
+	LastEvaluatedAt             time.Time                      `json:"last_evaluated_at"`
+	LastTriggeredAt             time.Time                      `json:"last_triggered_at"`
+	LastValue                   *float64                       `json:"last_value"`
+	LastSummary                 []byte                         `json:"last_summary"`
+	LastNotificationSentAt      *time.Time                     `json:"last_notification_sent_at"`
+	NextNotificationEligibleAt  *time.Time                     `json:"next_notification_eligible_at"`
+	SuppressedNotificationCount int32                          `json:"suppressed_notification_count"`
+	CreatedAt                   time.Time                      `json:"created_at"`
+	UpdatedAt                   time.Time                      `json:"updated_at"`
+	ProbeName                   string                         `json:"probe_name"`
+	CheckName                   string                         `json:"check_name"`
+	CheckSummaryType            CheckType                      `json:"check_summary_type"`
+	CheckTarget                 string                         `json:"check_target"`
 }
 
 func (q *Queries) GetAlertIncident(ctx context.Context, arg GetAlertIncidentParams) (GetAlertIncidentRow, error) {
@@ -607,6 +655,7 @@ func (q *Queries) GetAlertIncident(ctx context.Context, arg GetAlertIncidentPara
 		&i.CheckID,
 		&i.CheckType,
 		&i.Status,
+		&i.ResolutionReason,
 		&i.Severity,
 		&i.LastEvaluationState,
 		&i.OpenedAt,
@@ -849,7 +898,8 @@ SELECT id,
        next_notification_eligible_at,
        suppressed_notification_count,
        created_at,
-       updated_at
+       updated_at,
+       resolution_reason
 FROM alert_incidents
 WHERE rule_id = $1
   AND probe_id = $2
@@ -899,6 +949,7 @@ func (q *Queries) GetRecentResolvedAlertIncident(ctx context.Context, arg GetRec
 		&i.SuppressedNotificationCount,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.ResolutionReason,
 	)
 	return i, err
 }
@@ -969,6 +1020,7 @@ SELECT alert_incidents.id,
        alert_incidents.check_id,
        alert_incidents.check_type,
        alert_incidents.status,
+       alert_incidents.resolution_reason,
        alert_incidents.severity,
        alert_incidents.last_evaluation_state,
        alert_incidents.opened_at,
@@ -1027,33 +1079,34 @@ type ListAlertIncidentsParams struct {
 }
 
 type ListAlertIncidentsRow struct {
-	ID                          uuid.UUID            `json:"id"`
-	ProjectID                   uuid.UUID            `json:"project_id"`
-	RuleID                      uuid.UUID            `json:"rule_id"`
-	ProbeID                     uuid.UUID            `json:"probe_id"`
-	CheckID                     uuid.UUID            `json:"check_id"`
-	CheckType                   CheckType            `json:"check_type"`
-	Status                      AlertIncidentStatus  `json:"status"`
-	Severity                    AlertSeverity        `json:"severity"`
-	LastEvaluationState         AlertEvaluationState `json:"last_evaluation_state"`
-	OpenedAt                    time.Time            `json:"opened_at"`
-	AcknowledgedAt              *time.Time           `json:"acknowledged_at"`
-	AcknowledgedByUserID        *uuid.UUID           `json:"acknowledged_by_user_id"`
-	ResolvedAt                  *time.Time           `json:"resolved_at"`
-	ResolvedByUserID            *uuid.UUID           `json:"resolved_by_user_id"`
-	LastEvaluatedAt             time.Time            `json:"last_evaluated_at"`
-	LastTriggeredAt             time.Time            `json:"last_triggered_at"`
-	LastValue                   *float64             `json:"last_value"`
-	LastSummary                 []byte               `json:"last_summary"`
-	LastNotificationSentAt      *time.Time           `json:"last_notification_sent_at"`
-	NextNotificationEligibleAt  *time.Time           `json:"next_notification_eligible_at"`
-	SuppressedNotificationCount int32                `json:"suppressed_notification_count"`
-	CreatedAt                   time.Time            `json:"created_at"`
-	UpdatedAt                   time.Time            `json:"updated_at"`
-	ProbeName                   string               `json:"probe_name"`
-	CheckName                   string               `json:"check_name"`
-	CheckSummaryType            CheckType            `json:"check_summary_type"`
-	CheckTarget                 string               `json:"check_target"`
+	ID                          uuid.UUID                      `json:"id"`
+	ProjectID                   uuid.UUID                      `json:"project_id"`
+	RuleID                      uuid.UUID                      `json:"rule_id"`
+	ProbeID                     uuid.UUID                      `json:"probe_id"`
+	CheckID                     uuid.UUID                      `json:"check_id"`
+	CheckType                   CheckType                      `json:"check_type"`
+	Status                      AlertIncidentStatus            `json:"status"`
+	ResolutionReason            *AlertIncidentResolutionReason `json:"resolution_reason"`
+	Severity                    AlertSeverity                  `json:"severity"`
+	LastEvaluationState         AlertEvaluationState           `json:"last_evaluation_state"`
+	OpenedAt                    time.Time                      `json:"opened_at"`
+	AcknowledgedAt              *time.Time                     `json:"acknowledged_at"`
+	AcknowledgedByUserID        *uuid.UUID                     `json:"acknowledged_by_user_id"`
+	ResolvedAt                  *time.Time                     `json:"resolved_at"`
+	ResolvedByUserID            *uuid.UUID                     `json:"resolved_by_user_id"`
+	LastEvaluatedAt             time.Time                      `json:"last_evaluated_at"`
+	LastTriggeredAt             time.Time                      `json:"last_triggered_at"`
+	LastValue                   *float64                       `json:"last_value"`
+	LastSummary                 []byte                         `json:"last_summary"`
+	LastNotificationSentAt      *time.Time                     `json:"last_notification_sent_at"`
+	NextNotificationEligibleAt  *time.Time                     `json:"next_notification_eligible_at"`
+	SuppressedNotificationCount int32                          `json:"suppressed_notification_count"`
+	CreatedAt                   time.Time                      `json:"created_at"`
+	UpdatedAt                   time.Time                      `json:"updated_at"`
+	ProbeName                   string                         `json:"probe_name"`
+	CheckName                   string                         `json:"check_name"`
+	CheckSummaryType            CheckType                      `json:"check_summary_type"`
+	CheckTarget                 string                         `json:"check_target"`
 }
 
 func (q *Queries) ListAlertIncidents(ctx context.Context, arg ListAlertIncidentsParams) ([]ListAlertIncidentsRow, error) {
@@ -1080,6 +1133,7 @@ func (q *Queries) ListAlertIncidents(ctx context.Context, arg ListAlertIncidents
 			&i.CheckID,
 			&i.CheckType,
 			&i.Status,
+			&i.ResolutionReason,
 			&i.Severity,
 			&i.LastEvaluationState,
 			&i.OpenedAt,
@@ -1360,6 +1414,194 @@ func (q *Queries) ListEnabledNotificationsForRule(ctx context.Context, arg ListE
 	return items, nil
 }
 
+const listInactiveActiveAlertIncidents = `-- name: ListInactiveActiveAlertIncidents :many
+SELECT alert_incidents.id AS incident_id,
+       alert_incidents.project_id AS incident_project_id,
+       alert_incidents.rule_id AS incident_rule_id,
+       alert_incidents.probe_id AS incident_probe_id,
+       alert_incidents.check_id AS incident_check_id,
+       alert_incidents.check_type AS incident_check_type,
+       alert_incidents.status AS incident_status,
+       alert_incidents.resolution_reason AS incident_resolution_reason,
+       alert_incidents.severity AS incident_severity,
+       alert_incidents.last_evaluation_state AS incident_last_evaluation_state,
+       alert_incidents.opened_at AS incident_opened_at,
+       alert_incidents.acknowledged_at AS incident_acknowledged_at,
+       alert_incidents.acknowledged_by_user_id AS incident_acknowledged_by_user_id,
+       alert_incidents.resolved_at AS incident_resolved_at,
+       alert_incidents.resolved_by_user_id AS incident_resolved_by_user_id,
+       alert_incidents.last_evaluated_at AS incident_last_evaluated_at,
+       alert_incidents.last_triggered_at AS incident_last_triggered_at,
+       alert_incidents.last_value AS incident_last_value,
+       alert_incidents.last_summary AS incident_last_summary,
+       alert_incidents.last_notification_sent_at AS incident_last_notification_sent_at,
+       alert_incidents.next_notification_eligible_at AS incident_next_notification_eligible_at,
+       alert_incidents.suppressed_notification_count AS incident_suppressed_notification_count,
+       alert_incidents.created_at AS incident_created_at,
+       alert_incidents.updated_at AS incident_updated_at,
+       alert_rules.name AS rule_name,
+       alert_rules.description AS rule_description,
+       alert_rules.status AS rule_status,
+       alert_rules.severity AS rule_severity,
+       alert_rules.check_type AS rule_check_type,
+       alert_rules.probe_id AS rule_probe_id,
+       alert_rules.check_id AS rule_check_id,
+       alert_rules.probe_selector AS rule_probe_selector,
+       alert_rules.condition AS rule_condition,
+       alert_rules.condition_version AS rule_condition_version,
+       alert_rules.trigger_after_seconds AS rule_trigger_after_seconds,
+       alert_rules.cooldown_seconds AS rule_cooldown_seconds,
+       alert_rules.created_by_user_id AS rule_created_by_user_id,
+       alert_rules.created_at AS rule_created_at,
+       alert_rules.updated_at AS rule_updated_at,
+       probes.name AS probe_name,
+       checks.name AS check_name,
+       checks.check_type AS check_summary_type,
+       checks.target AS check_target
+FROM alert_incidents
+JOIN probes
+  ON probes.project_id = alert_incidents.project_id
+ AND probes.id = alert_incidents.probe_id
+JOIN checks
+  ON checks.project_id = alert_incidents.project_id
+ AND checks.id = alert_incidents.check_id
+JOIN alert_rules
+  ON alert_rules.project_id = alert_incidents.project_id
+ AND alert_rules.id = alert_incidents.rule_id
+WHERE alert_incidents.project_id = $1
+  AND alert_incidents.status IN ('open', 'acknowledged')
+  AND (
+      probes.deleted_at IS NOT NULL
+      OR probes.enabled = false
+      OR checks.deleted_at IS NOT NULL
+      OR alert_rules.deleted_at IS NOT NULL
+      OR alert_rules.status <> 'enabled'
+      OR alert_rules.check_type <> checks.check_type
+      OR (alert_rules.probe_id IS NOT NULL AND alert_rules.probe_id <> alert_incidents.probe_id)
+      OR (alert_rules.check_id IS NOT NULL AND alert_rules.check_id <> alert_incidents.check_id)
+      OR NOT EXISTS (
+          SELECT 1
+          FROM probe_check_assignments
+          WHERE probe_check_assignments.project_id = alert_incidents.project_id
+            AND probe_check_assignments.probe_id = alert_incidents.probe_id
+            AND probe_check_assignments.check_id = alert_incidents.check_id
+            AND probe_check_assignments.deleted_at IS NULL
+      )
+  )
+ORDER BY alert_incidents.opened_at ASC, alert_incidents.id ASC
+FOR UPDATE OF alert_incidents
+`
+
+type ListInactiveActiveAlertIncidentsRow struct {
+	IncidentID                          uuid.UUID                      `json:"incident_id"`
+	IncidentProjectID                   uuid.UUID                      `json:"incident_project_id"`
+	IncidentRuleID                      uuid.UUID                      `json:"incident_rule_id"`
+	IncidentProbeID                     uuid.UUID                      `json:"incident_probe_id"`
+	IncidentCheckID                     uuid.UUID                      `json:"incident_check_id"`
+	IncidentCheckType                   CheckType                      `json:"incident_check_type"`
+	IncidentStatus                      AlertIncidentStatus            `json:"incident_status"`
+	IncidentResolutionReason            *AlertIncidentResolutionReason `json:"incident_resolution_reason"`
+	IncidentSeverity                    AlertSeverity                  `json:"incident_severity"`
+	IncidentLastEvaluationState         AlertEvaluationState           `json:"incident_last_evaluation_state"`
+	IncidentOpenedAt                    time.Time                      `json:"incident_opened_at"`
+	IncidentAcknowledgedAt              *time.Time                     `json:"incident_acknowledged_at"`
+	IncidentAcknowledgedByUserID        *uuid.UUID                     `json:"incident_acknowledged_by_user_id"`
+	IncidentResolvedAt                  *time.Time                     `json:"incident_resolved_at"`
+	IncidentResolvedByUserID            *uuid.UUID                     `json:"incident_resolved_by_user_id"`
+	IncidentLastEvaluatedAt             time.Time                      `json:"incident_last_evaluated_at"`
+	IncidentLastTriggeredAt             time.Time                      `json:"incident_last_triggered_at"`
+	IncidentLastValue                   *float64                       `json:"incident_last_value"`
+	IncidentLastSummary                 []byte                         `json:"incident_last_summary"`
+	IncidentLastNotificationSentAt      *time.Time                     `json:"incident_last_notification_sent_at"`
+	IncidentNextNotificationEligibleAt  *time.Time                     `json:"incident_next_notification_eligible_at"`
+	IncidentSuppressedNotificationCount int32                          `json:"incident_suppressed_notification_count"`
+	IncidentCreatedAt                   time.Time                      `json:"incident_created_at"`
+	IncidentUpdatedAt                   time.Time                      `json:"incident_updated_at"`
+	RuleName                            string                         `json:"rule_name"`
+	RuleDescription                     *string                        `json:"rule_description"`
+	RuleStatus                          AlertRuleStatus                `json:"rule_status"`
+	RuleSeverity                        AlertSeverity                  `json:"rule_severity"`
+	RuleCheckType                       CheckType                      `json:"rule_check_type"`
+	RuleProbeID                         *uuid.UUID                     `json:"rule_probe_id"`
+	RuleCheckID                         *uuid.UUID                     `json:"rule_check_id"`
+	RuleProbeSelector                   []byte                         `json:"rule_probe_selector"`
+	RuleCondition                       []byte                         `json:"rule_condition"`
+	RuleConditionVersion                string                         `json:"rule_condition_version"`
+	RuleTriggerAfterSeconds             int32                          `json:"rule_trigger_after_seconds"`
+	RuleCooldownSeconds                 int32                          `json:"rule_cooldown_seconds"`
+	RuleCreatedByUserID                 uuid.UUID                      `json:"rule_created_by_user_id"`
+	RuleCreatedAt                       time.Time                      `json:"rule_created_at"`
+	RuleUpdatedAt                       time.Time                      `json:"rule_updated_at"`
+	ProbeName                           string                         `json:"probe_name"`
+	CheckName                           string                         `json:"check_name"`
+	CheckSummaryType                    CheckType                      `json:"check_summary_type"`
+	CheckTarget                         string                         `json:"check_target"`
+}
+
+func (q *Queries) ListInactiveActiveAlertIncidents(ctx context.Context, projectID uuid.UUID) ([]ListInactiveActiveAlertIncidentsRow, error) {
+	rows, err := q.db.Query(ctx, listInactiveActiveAlertIncidents, projectID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListInactiveActiveAlertIncidentsRow
+	for rows.Next() {
+		var i ListInactiveActiveAlertIncidentsRow
+		if err := rows.Scan(
+			&i.IncidentID,
+			&i.IncidentProjectID,
+			&i.IncidentRuleID,
+			&i.IncidentProbeID,
+			&i.IncidentCheckID,
+			&i.IncidentCheckType,
+			&i.IncidentStatus,
+			&i.IncidentResolutionReason,
+			&i.IncidentSeverity,
+			&i.IncidentLastEvaluationState,
+			&i.IncidentOpenedAt,
+			&i.IncidentAcknowledgedAt,
+			&i.IncidentAcknowledgedByUserID,
+			&i.IncidentResolvedAt,
+			&i.IncidentResolvedByUserID,
+			&i.IncidentLastEvaluatedAt,
+			&i.IncidentLastTriggeredAt,
+			&i.IncidentLastValue,
+			&i.IncidentLastSummary,
+			&i.IncidentLastNotificationSentAt,
+			&i.IncidentNextNotificationEligibleAt,
+			&i.IncidentSuppressedNotificationCount,
+			&i.IncidentCreatedAt,
+			&i.IncidentUpdatedAt,
+			&i.RuleName,
+			&i.RuleDescription,
+			&i.RuleStatus,
+			&i.RuleSeverity,
+			&i.RuleCheckType,
+			&i.RuleProbeID,
+			&i.RuleCheckID,
+			&i.RuleProbeSelector,
+			&i.RuleCondition,
+			&i.RuleConditionVersion,
+			&i.RuleTriggerAfterSeconds,
+			&i.RuleCooldownSeconds,
+			&i.RuleCreatedByUserID,
+			&i.RuleCreatedAt,
+			&i.RuleUpdatedAt,
+			&i.ProbeName,
+			&i.CheckName,
+			&i.CheckSummaryType,
+			&i.CheckTarget,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listNotifications = `-- name: ListNotifications :many
 SELECT id,
        project_id,
@@ -1556,6 +1798,7 @@ func (q *Queries) ReplaceAlertNotifications(ctx context.Context, arg ReplaceAler
 const resolveActiveAlertIncident = `-- name: ResolveActiveAlertIncident :one
 UPDATE alert_incidents
 SET status = 'resolved',
+    resolution_reason = 'condition_cleared',
     last_evaluation_state = 'clear',
     resolved_at = $1,
     resolved_by_user_id = NULL,
@@ -1563,7 +1806,7 @@ SET status = 'resolved',
     last_summary = $3::jsonb
 WHERE id = $4
   AND status IN ('open', 'acknowledged')
-RETURNING id, project_id, rule_id, probe_id, check_id, check_type, status, severity, last_evaluation_state, opened_at, acknowledged_at, acknowledged_by_user_id, resolved_at, resolved_by_user_id, last_evaluated_at, last_triggered_at, last_value, last_summary, last_notification_sent_at, next_notification_eligible_at, suppressed_notification_count, created_at, updated_at
+RETURNING id, project_id, rule_id, probe_id, check_id, check_type, status, severity, last_evaluation_state, opened_at, acknowledged_at, acknowledged_by_user_id, resolved_at, resolved_by_user_id, last_evaluated_at, last_triggered_at, last_value, last_summary, last_notification_sent_at, next_notification_eligible_at, suppressed_notification_count, created_at, updated_at, resolution_reason
 `
 
 type ResolveActiveAlertIncidentParams struct {
@@ -1605,6 +1848,57 @@ func (q *Queries) ResolveActiveAlertIncident(ctx context.Context, arg ResolveAct
 		&i.SuppressedNotificationCount,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.ResolutionReason,
+	)
+	return i, err
+}
+
+const resolveInactiveAlertIncident = `-- name: ResolveInactiveAlertIncident :one
+UPDATE alert_incidents
+SET status = 'resolved',
+    resolution_reason = 'target_no_longer_evaluated',
+    last_evaluation_state = 'no_data',
+    resolved_at = $1,
+    resolved_by_user_id = NULL,
+    last_summary = jsonb_set(last_summary, '{state}', '"no_data"'::jsonb, true)
+WHERE id = $2
+  AND status IN ('open', 'acknowledged')
+RETURNING id, project_id, rule_id, probe_id, check_id, check_type, status, severity, last_evaluation_state, opened_at, acknowledged_at, acknowledged_by_user_id, resolved_at, resolved_by_user_id, last_evaluated_at, last_triggered_at, last_value, last_summary, last_notification_sent_at, next_notification_eligible_at, suppressed_notification_count, created_at, updated_at, resolution_reason
+`
+
+type ResolveInactiveAlertIncidentParams struct {
+	ResolvedAt *time.Time `json:"resolved_at"`
+	ID         uuid.UUID  `json:"id"`
+}
+
+func (q *Queries) ResolveInactiveAlertIncident(ctx context.Context, arg ResolveInactiveAlertIncidentParams) (AlertIncident, error) {
+	row := q.db.QueryRow(ctx, resolveInactiveAlertIncident, arg.ResolvedAt, arg.ID)
+	var i AlertIncident
+	err := row.Scan(
+		&i.ID,
+		&i.ProjectID,
+		&i.RuleID,
+		&i.ProbeID,
+		&i.CheckID,
+		&i.CheckType,
+		&i.Status,
+		&i.Severity,
+		&i.LastEvaluationState,
+		&i.OpenedAt,
+		&i.AcknowledgedAt,
+		&i.AcknowledgedByUserID,
+		&i.ResolvedAt,
+		&i.ResolvedByUserID,
+		&i.LastEvaluatedAt,
+		&i.LastTriggeredAt,
+		&i.LastValue,
+		&i.LastSummary,
+		&i.LastNotificationSentAt,
+		&i.NextNotificationEligibleAt,
+		&i.SuppressedNotificationCount,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ResolutionReason,
 	)
 	return i, err
 }
@@ -1701,7 +1995,7 @@ SET last_evaluation_state = $1,
     last_summary = $3::jsonb
 WHERE id = $4
   AND status IN ('open', 'acknowledged')
-RETURNING id, project_id, rule_id, probe_id, check_id, check_type, status, severity, last_evaluation_state, opened_at, acknowledged_at, acknowledged_by_user_id, resolved_at, resolved_by_user_id, last_evaluated_at, last_triggered_at, last_value, last_summary, last_notification_sent_at, next_notification_eligible_at, suppressed_notification_count, created_at, updated_at
+RETURNING id, project_id, rule_id, probe_id, check_id, check_type, status, severity, last_evaluation_state, opened_at, acknowledged_at, acknowledged_by_user_id, resolved_at, resolved_by_user_id, last_evaluated_at, last_triggered_at, last_value, last_summary, last_notification_sent_at, next_notification_eligible_at, suppressed_notification_count, created_at, updated_at, resolution_reason
 `
 
 type UpdateActiveAlertIncidentInsufficientParams struct {
@@ -1743,6 +2037,7 @@ func (q *Queries) UpdateActiveAlertIncidentInsufficient(ctx context.Context, arg
 		&i.SuppressedNotificationCount,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.ResolutionReason,
 	)
 	return i, err
 }
@@ -1756,7 +2051,7 @@ SET last_evaluation_state = 'firing',
     last_summary = $4::jsonb
 WHERE id = $5
   AND status IN ('open', 'acknowledged')
-RETURNING id, project_id, rule_id, probe_id, check_id, check_type, status, severity, last_evaluation_state, opened_at, acknowledged_at, acknowledged_by_user_id, resolved_at, resolved_by_user_id, last_evaluated_at, last_triggered_at, last_value, last_summary, last_notification_sent_at, next_notification_eligible_at, suppressed_notification_count, created_at, updated_at
+RETURNING id, project_id, rule_id, probe_id, check_id, check_type, status, severity, last_evaluation_state, opened_at, acknowledged_at, acknowledged_by_user_id, resolved_at, resolved_by_user_id, last_evaluated_at, last_triggered_at, last_value, last_summary, last_notification_sent_at, next_notification_eligible_at, suppressed_notification_count, created_at, updated_at, resolution_reason
 `
 
 type UpdateActiveAlertIncidentTriggeredParams struct {
@@ -1800,6 +2095,7 @@ func (q *Queries) UpdateActiveAlertIncidentTriggered(ctx context.Context, arg Up
 		&i.SuppressedNotificationCount,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.ResolutionReason,
 	)
 	return i, err
 }

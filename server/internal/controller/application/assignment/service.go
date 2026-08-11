@@ -15,6 +15,11 @@ type Service struct {
 	projectAccess ProjectAccess
 	tx            Transactor
 	events        EventRecorder
+	incidents     IncidentReconciler
+}
+
+func (s *Service) ConfigureIncidentReconciler(reconciler IncidentReconciler) {
+	s.incidents = reconciler
 }
 
 type noopTransactor struct{}
@@ -109,7 +114,7 @@ func (s *Service) refreshProbeCheckAssignmentsForProject(ctx context.Context, pr
 				return err
 			}
 		}
-		return nil
+		return s.reconcileStoppedEvaluations(ctx, projectID)
 	}); err != nil {
 		return flow.refreshFailure(AssignmentEventRefreshProjectFailure, err)
 	}
@@ -198,7 +203,7 @@ func (s *Service) refreshProbeCheckAssignmentsForLabel(ctx context.Context, proj
 				return err
 			}
 		}
-		return nil
+		return s.reconcileStoppedEvaluations(ctx, projectID)
 	}); err != nil {
 		return flow.refreshFailure(AssignmentEventRefreshLabelFailure, err)
 	}
@@ -309,13 +314,23 @@ func (s *Service) runAssignmentTargetOperation(ctx context.Context, projectID, t
 		}
 	}
 	if err := s.tx.WithinTx(ctx, func(ctx context.Context) error {
-		return op.run(ctx, projectID, targetID)
+		if err := op.run(ctx, projectID, targetID); err != nil {
+			return err
+		}
+		return s.reconcileStoppedEvaluations(ctx, projectID)
 	}); err != nil {
 		return op.mapFailure(flow, op.failureEvent, err)
 	}
 	flow.success(op.successEvent)
 
 	return nil
+}
+
+func (s *Service) reconcileStoppedEvaluations(ctx context.Context, projectID string) error {
+	if s.incidents == nil {
+		return nil
+	}
+	return s.incidents.ReconcileStoppedEvaluations(ctx, projectID)
 }
 
 func (s *Service) PreviewSelector(ctx context.Context, input PreviewSelectorInput) (SelectorPreviewOutput, error) {

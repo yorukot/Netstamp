@@ -44,6 +44,10 @@ type ProjectAccess interface {
 	GetProjectForUser(ctx context.Context, projectRef, userID string) (domainproject.Project, error)
 }
 
+type IncidentReconciler interface {
+	ReconcileStoppedEvaluations(ctx context.Context, projectID string) error
+}
+
 type EventRecorder interface {
 	RecordAssignmentEvent(ctx context.Context, event AssignmentEvent)
 }

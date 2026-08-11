@@ -215,6 +215,7 @@ SELECT alert_incidents.id,
        alert_incidents.check_id,
        alert_incidents.check_type,
        alert_incidents.status,
+       alert_incidents.resolution_reason,
        alert_incidents.severity,
        alert_incidents.last_evaluation_state,
        alert_incidents.opened_at,
@@ -270,6 +271,7 @@ SELECT alert_incidents.id,
        alert_incidents.check_id,
        alert_incidents.check_type,
        alert_incidents.status,
+       alert_incidents.resolution_reason,
        alert_incidents.severity,
        alert_incidents.last_evaluation_state,
        alert_incidents.opened_at,
@@ -382,7 +384,8 @@ SELECT id,
        next_notification_eligible_at,
        suppressed_notification_count,
        created_at,
-       updated_at
+       updated_at,
+       resolution_reason
 FROM alert_incidents
 WHERE rule_id = sqlc.arg(rule_id)
   AND probe_id = sqlc.arg(probe_id)
@@ -413,7 +416,8 @@ SELECT id,
        next_notification_eligible_at,
        suppressed_notification_count,
        created_at,
-       updated_at
+       updated_at,
+       resolution_reason
 FROM alert_incidents
 WHERE rule_id = sqlc.arg(rule_id)
   AND probe_id = sqlc.arg(probe_id)
@@ -459,7 +463,7 @@ VALUES (
     sqlc.narg(next_notification_eligible_at)
 )
 ON CONFLICT (rule_id, probe_id, check_id) WHERE status IN ('open', 'acknowledged') DO NOTHING
-RETURNING id, project_id, rule_id, probe_id, check_id, check_type, status, severity, last_evaluation_state, opened_at, acknowledged_at, acknowledged_by_user_id, resolved_at, resolved_by_user_id, last_evaluated_at, last_triggered_at, last_value, last_summary, last_notification_sent_at, next_notification_eligible_at, suppressed_notification_count, created_at, updated_at;
+RETURNING id, project_id, rule_id, probe_id, check_id, check_type, status, severity, last_evaluation_state, opened_at, acknowledged_at, acknowledged_by_user_id, resolved_at, resolved_by_user_id, last_evaluated_at, last_triggered_at, last_value, last_summary, last_notification_sent_at, next_notification_eligible_at, suppressed_notification_count, created_at, updated_at, resolution_reason;
 
 -- name: UpdateActiveAlertIncidentTriggered :one
 UPDATE alert_incidents
@@ -470,7 +474,7 @@ SET last_evaluation_state = 'firing',
     last_summary = sqlc.arg(last_summary)::jsonb
 WHERE id = sqlc.arg(id)
   AND status IN ('open', 'acknowledged')
-RETURNING id, project_id, rule_id, probe_id, check_id, check_type, status, severity, last_evaluation_state, opened_at, acknowledged_at, acknowledged_by_user_id, resolved_at, resolved_by_user_id, last_evaluated_at, last_triggered_at, last_value, last_summary, last_notification_sent_at, next_notification_eligible_at, suppressed_notification_count, created_at, updated_at;
+RETURNING id, project_id, rule_id, probe_id, check_id, check_type, status, severity, last_evaluation_state, opened_at, acknowledged_at, acknowledged_by_user_id, resolved_at, resolved_by_user_id, last_evaluated_at, last_triggered_at, last_value, last_summary, last_notification_sent_at, next_notification_eligible_at, suppressed_notification_count, created_at, updated_at, resolution_reason;
 
 -- name: UpdateActiveAlertIncidentInsufficient :one
 UPDATE alert_incidents
@@ -479,11 +483,12 @@ SET last_evaluation_state = sqlc.arg(last_evaluation_state),
     last_summary = sqlc.arg(last_summary)::jsonb
 WHERE id = sqlc.arg(id)
   AND status IN ('open', 'acknowledged')
-RETURNING id, project_id, rule_id, probe_id, check_id, check_type, status, severity, last_evaluation_state, opened_at, acknowledged_at, acknowledged_by_user_id, resolved_at, resolved_by_user_id, last_evaluated_at, last_triggered_at, last_value, last_summary, last_notification_sent_at, next_notification_eligible_at, suppressed_notification_count, created_at, updated_at;
+RETURNING id, project_id, rule_id, probe_id, check_id, check_type, status, severity, last_evaluation_state, opened_at, acknowledged_at, acknowledged_by_user_id, resolved_at, resolved_by_user_id, last_evaluated_at, last_triggered_at, last_value, last_summary, last_notification_sent_at, next_notification_eligible_at, suppressed_notification_count, created_at, updated_at, resolution_reason;
 
 -- name: ResolveActiveAlertIncident :one
 UPDATE alert_incidents
 SET status = 'resolved',
+    resolution_reason = 'condition_cleared',
     last_evaluation_state = 'clear',
     resolved_at = sqlc.arg(resolved_at),
     resolved_by_user_id = NULL,
@@ -491,7 +496,130 @@ SET status = 'resolved',
     last_summary = sqlc.arg(last_summary)::jsonb
 WHERE id = sqlc.arg(id)
   AND status IN ('open', 'acknowledged')
-RETURNING id, project_id, rule_id, probe_id, check_id, check_type, status, severity, last_evaluation_state, opened_at, acknowledged_at, acknowledged_by_user_id, resolved_at, resolved_by_user_id, last_evaluated_at, last_triggered_at, last_value, last_summary, last_notification_sent_at, next_notification_eligible_at, suppressed_notification_count, created_at, updated_at;
+RETURNING id, project_id, rule_id, probe_id, check_id, check_type, status, severity, last_evaluation_state, opened_at, acknowledged_at, acknowledged_by_user_id, resolved_at, resolved_by_user_id, last_evaluated_at, last_triggered_at, last_value, last_summary, last_notification_sent_at, next_notification_eligible_at, suppressed_notification_count, created_at, updated_at, resolution_reason;
+
+-- name: ListInactiveActiveAlertIncidents :many
+SELECT alert_incidents.id AS incident_id,
+       alert_incidents.project_id AS incident_project_id,
+       alert_incidents.rule_id AS incident_rule_id,
+       alert_incidents.probe_id AS incident_probe_id,
+       alert_incidents.check_id AS incident_check_id,
+       alert_incidents.check_type AS incident_check_type,
+       alert_incidents.status AS incident_status,
+       alert_incidents.resolution_reason AS incident_resolution_reason,
+       alert_incidents.severity AS incident_severity,
+       alert_incidents.last_evaluation_state AS incident_last_evaluation_state,
+       alert_incidents.opened_at AS incident_opened_at,
+       alert_incidents.acknowledged_at AS incident_acknowledged_at,
+       alert_incidents.acknowledged_by_user_id AS incident_acknowledged_by_user_id,
+       alert_incidents.resolved_at AS incident_resolved_at,
+       alert_incidents.resolved_by_user_id AS incident_resolved_by_user_id,
+       alert_incidents.last_evaluated_at AS incident_last_evaluated_at,
+       alert_incidents.last_triggered_at AS incident_last_triggered_at,
+       alert_incidents.last_value AS incident_last_value,
+       alert_incidents.last_summary AS incident_last_summary,
+       alert_incidents.last_notification_sent_at AS incident_last_notification_sent_at,
+       alert_incidents.next_notification_eligible_at AS incident_next_notification_eligible_at,
+       alert_incidents.suppressed_notification_count AS incident_suppressed_notification_count,
+       alert_incidents.created_at AS incident_created_at,
+       alert_incidents.updated_at AS incident_updated_at,
+       alert_rules.name AS rule_name,
+       alert_rules.description AS rule_description,
+       alert_rules.status AS rule_status,
+       alert_rules.severity AS rule_severity,
+       alert_rules.check_type AS rule_check_type,
+       alert_rules.probe_id AS rule_probe_id,
+       alert_rules.check_id AS rule_check_id,
+       alert_rules.probe_selector AS rule_probe_selector,
+       alert_rules.condition AS rule_condition,
+       alert_rules.condition_version AS rule_condition_version,
+       alert_rules.trigger_after_seconds AS rule_trigger_after_seconds,
+       alert_rules.cooldown_seconds AS rule_cooldown_seconds,
+       alert_rules.created_by_user_id AS rule_created_by_user_id,
+       alert_rules.created_at AS rule_created_at,
+       alert_rules.updated_at AS rule_updated_at,
+       probes.name AS probe_name,
+       checks.name AS check_name,
+       checks.check_type AS check_summary_type,
+       checks.target AS check_target
+FROM alert_incidents
+JOIN probes
+  ON probes.project_id = alert_incidents.project_id
+ AND probes.id = alert_incidents.probe_id
+JOIN checks
+  ON checks.project_id = alert_incidents.project_id
+ AND checks.id = alert_incidents.check_id
+JOIN alert_rules
+  ON alert_rules.project_id = alert_incidents.project_id
+ AND alert_rules.id = alert_incidents.rule_id
+WHERE alert_incidents.project_id = sqlc.arg(project_id)
+  AND alert_incidents.status IN ('open', 'acknowledged')
+  AND (
+      probes.deleted_at IS NOT NULL
+      OR probes.enabled = false
+      OR checks.deleted_at IS NOT NULL
+      OR alert_rules.deleted_at IS NOT NULL
+      OR alert_rules.status <> 'enabled'
+      OR alert_rules.check_type <> checks.check_type
+      OR (alert_rules.probe_id IS NOT NULL AND alert_rules.probe_id <> alert_incidents.probe_id)
+      OR (alert_rules.check_id IS NOT NULL AND alert_rules.check_id <> alert_incidents.check_id)
+      OR NOT EXISTS (
+          SELECT 1
+          FROM probe_check_assignments
+          WHERE probe_check_assignments.project_id = alert_incidents.project_id
+            AND probe_check_assignments.probe_id = alert_incidents.probe_id
+            AND probe_check_assignments.check_id = alert_incidents.check_id
+            AND probe_check_assignments.deleted_at IS NULL
+      )
+  )
+ORDER BY alert_incidents.opened_at ASC, alert_incidents.id ASC
+FOR UPDATE OF alert_incidents;
+
+-- name: ResolveInactiveAlertIncident :one
+UPDATE alert_incidents
+SET status = 'resolved',
+    resolution_reason = 'target_no_longer_evaluated',
+    last_evaluation_state = 'no_data',
+    resolved_at = sqlc.arg(resolved_at),
+    resolved_by_user_id = NULL,
+    last_summary = jsonb_set(last_summary, '{state}', '"no_data"'::jsonb, true)
+WHERE id = sqlc.arg(id)
+  AND status IN ('open', 'acknowledged')
+RETURNING id, project_id, rule_id, probe_id, check_id, check_type, status, severity, last_evaluation_state, opened_at, acknowledged_at, acknowledged_by_user_id, resolved_at, resolved_by_user_id, last_evaluated_at, last_triggered_at, last_value, last_summary, last_notification_sent_at, next_notification_eligible_at, suppressed_notification_count, created_at, updated_at, resolution_reason;
+
+-- name: DeleteInactiveAlertPendingEvaluations :execrows
+DELETE FROM alert_rule_pending_evaluations
+WHERE alert_rule_pending_evaluations.project_id = sqlc.arg(project_id)
+  AND EXISTS (
+      SELECT 1
+      FROM probes
+      JOIN checks
+        ON checks.project_id = alert_rule_pending_evaluations.project_id
+       AND checks.id = alert_rule_pending_evaluations.check_id
+      JOIN alert_rules
+        ON alert_rules.project_id = alert_rule_pending_evaluations.project_id
+       AND alert_rules.id = alert_rule_pending_evaluations.rule_id
+      WHERE probes.project_id = alert_rule_pending_evaluations.project_id
+        AND probes.id = alert_rule_pending_evaluations.probe_id
+        AND (
+            probes.deleted_at IS NOT NULL
+            OR probes.enabled = false
+            OR checks.deleted_at IS NOT NULL
+            OR alert_rules.deleted_at IS NOT NULL
+            OR alert_rules.status <> 'enabled'
+            OR alert_rules.check_type <> checks.check_type
+            OR (alert_rules.probe_id IS NOT NULL AND alert_rules.probe_id <> alert_rule_pending_evaluations.probe_id)
+            OR (alert_rules.check_id IS NOT NULL AND alert_rules.check_id <> alert_rule_pending_evaluations.check_id)
+            OR NOT EXISTS (
+                SELECT 1
+                FROM probe_check_assignments
+                WHERE probe_check_assignments.project_id = alert_rule_pending_evaluations.project_id
+                  AND probe_check_assignments.probe_id = alert_rule_pending_evaluations.probe_id
+                  AND probe_check_assignments.check_id = alert_rule_pending_evaluations.check_id
+                  AND probe_check_assignments.deleted_at IS NULL
+            )
+        )
+  );
 
 -- name: UpdateAlertIncidentNotificationSent :exec
 UPDATE alert_incidents

@@ -133,6 +133,10 @@
 		"suppressedLabel": "已略過通知次數",
 		"loadingDetail": "正在載入事件",
 		"unavailable": "無法取得事件。",
+		"resolutionReasons": {
+			"conditionCleared": "警示條件已解除",
+			"targetNoLongerEvaluated": "此目標已不再進行評估"
+		},
 		"targetTitle": "探測器 {{probeId}} / 檢查 {{checkId}}"
 	},
 	"notifications": {

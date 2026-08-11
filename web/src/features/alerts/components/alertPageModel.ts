@@ -249,6 +249,10 @@ export function formatAlertCondition(condition: ApiAlertRule["condition"]) {
 }
 
 export function formatIncidentReason(incident: ApiAlertIncident) {
+	if (incident.resolutionReason === "target_no_longer_evaluated") {
+		return alertT("incidents.resolutionReasons.targetNoLongerEvaluated");
+	}
+
 	const summary = incident.lastSummary;
 	if (summary.operator && typeof summary.threshold === "number") {
 		return `${metricLabel(summary.metric)} ${operatorSymbols[summary.operator]} ${formatThreshold(summary.metric, summary.threshold)}`;

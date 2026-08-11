@@ -7,6 +7,7 @@ namespace Netstamp;
 alias AlertSeverity = "info" | "warning" | "critical";
 alias AlertRuleStatus = "enabled" | "disabled";
 alias AlertIncidentStatus = "open" | "acknowledged" | "resolved";
+alias AlertIncidentResolutionReason = "condition_cleared" | "target_no_longer_evaluated";
 alias AlertEvaluationState = "firing" | "clear" | "insufficient_samples" | "no_data";
 alias AlertConditionType = "metric_threshold";
 alias AlertConditionMetric =
@@ -269,6 +270,7 @@ model AlertIncident {
 	check: AlertIncidentCheckSummary;
 	checkType: CheckType;
 	status: AlertIncidentStatus;
+	resolutionReason?: AlertIncidentResolutionReason;
 	severity: AlertSeverity;
 	lastEvaluationState: AlertEvaluationState;
 	openedAt: utcDateTime;

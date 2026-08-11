@@ -18,11 +18,14 @@ type Repository interface {
 	ClearPendingEvaluation(ctx context.Context, projectID, ruleID, probeID, checkID string) error
 	GetActiveIncident(ctx context.Context, ruleID, probeID, checkID string) (domainalert.Incident, error)
 	GetRecentResolvedIncident(ctx context.Context, ruleID, probeID, checkID string, resolvedAfter time.Time) (domainalert.Incident, error)
+	ListInactiveActiveIncidents(ctx context.Context, projectID string) ([]domainalert.InactiveIncidentCandidate, error)
 	CreateIncident(ctx context.Context, input domainalert.IncidentTransitionInput) (domainalert.Incident, error)
 	EnqueueNotificationJobs(ctx context.Context, jobs []domainalert.NotificationJobInput) error
 	UpdateIncidentTriggered(ctx context.Context, incidentID string, evaluation alertcondition.Evaluation, summary json.RawMessage, at time.Time) (domainalert.Incident, error)
 	UpdateIncidentInsufficient(ctx context.Context, incidentID string, state alertcondition.EvaluationState, summary json.RawMessage, at time.Time) (domainalert.Incident, error)
 	ResolveIncident(ctx context.Context, incidentID string, summary json.RawMessage, at time.Time) (domainalert.Incident, error)
+	ResolveInactiveIncident(ctx context.Context, incidentID string, at time.Time) (domainalert.Incident, error)
+	DeleteInactivePendingEvaluations(ctx context.Context, projectID string) error
 	ListEnabledNotificationsForRule(ctx context.Context, projectID, ruleID string) ([]domainalert.Notification, error)
 }
 
@@ -38,6 +41,7 @@ const (
 	AlertEvalEventAssignmentEvaluateFailure AlertEvalEventName = "alert_eval.assignment.evaluate.failure"
 	AlertEvalEventRuleEvaluateFailure       AlertEvalEventName = "alert_eval.rule.evaluate.failure"
 	AlertEvalEventNotificationEnqueueFail   AlertEvalEventName = "alert_eval.notification.enqueue.failure"
+	AlertEvalEventLifecycleReconcileFailure AlertEvalEventName = "alert_eval.lifecycle.reconcile.failure"
 )
 
 type AlertEvalAction string
@@ -45,6 +49,7 @@ type AlertEvalAction string
 const (
 	AlertEvalActionEvaluateAssignment AlertEvalAction = "assignment.evaluate"
 	AlertEvalActionEvaluateRule       AlertEvalAction = "rule.evaluate"
+	AlertEvalActionReconcileLifecycle AlertEvalAction = "lifecycle.reconcile"
 )
 
 type AlertEvalOutcome string
@@ -68,6 +73,8 @@ const (
 	AlertEvalReasonNotificationListFailed   AlertEvalReason = "notification_list_failed"
 	AlertEvalReasonNotificationPayloadFail  AlertEvalReason = "notification_payload_failed"
 	AlertEvalReasonNotificationEnqueueFail  AlertEvalReason = "notification_enqueue_failed"
+	AlertEvalReasonInactiveIncidentListFail AlertEvalReason = "inactive_incident_list_failed"
+	AlertEvalReasonPendingCleanupFailed     AlertEvalReason = "pending_cleanup_failed"
 )
 
 type AlertEvalEvent struct {

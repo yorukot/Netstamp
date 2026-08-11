@@ -332,6 +332,9 @@ func notificationPayload(rule domainalert.Rule, incident domainalert.Incident, n
 		"status":   incident.Status,
 		"openedAt": incident.OpenedAt,
 	}
+	if incident.ResolutionReason != nil {
+		incidentPayload["resolutionReason"] = *incident.ResolutionReason
+	}
 	probePayload := map[string]any{"id": incident.ProbeID}
 	if incident.Probe != nil {
 		probePayload["name"] = incident.Probe.Name
@@ -345,6 +348,19 @@ func notificationPayload(rule domainalert.Rule, incident domainalert.Incident, n
 		checkPayload["target"] = incident.Check.Target
 		checkPayload["type"] = incident.Check.Type
 	}
+	summaryPayload := map[string]any{
+		"state":         evaluation.State,
+		"metric":        rule.Condition.Metric,
+		"threshold":     rule.Condition.Threshold,
+		"operator":      rule.Condition.Operator,
+		"windowSeconds": rule.Condition.WindowSeconds,
+		"samples":       evaluation.Summary.Samples,
+		"minSamples":    rule.Condition.MinSamples,
+	}
+	if evaluation.State != alertcondition.EvaluationStateNoData || evaluation.Summary.HasValue {
+		summaryPayload["value"] = evaluation.Value
+	}
+
 	payload := map[string]any{
 		"eventType": eventType,
 		"sentAt":    at.UTC(),
@@ -366,16 +382,7 @@ func notificationPayload(rule domainalert.Rule, incident domainalert.Incident, n
 			"name": notification.Name,
 			"type": notification.Type,
 		},
-		"summary": map[string]any{
-			"state":         evaluation.State,
-			"metric":        rule.Condition.Metric,
-			"value":         evaluation.Value,
-			"threshold":     rule.Condition.Threshold,
-			"operator":      rule.Condition.Operator,
-			"windowSeconds": rule.Condition.WindowSeconds,
-			"samples":       evaluation.Summary.Samples,
-			"minSamples":    rule.Condition.MinSamples,
-		},
+		"summary": summaryPayload,
 	}
 	if incident.ResolvedAt != nil {
 		incidentPayload["resolvedAt"] = *incident.ResolvedAt

@@ -49,6 +49,7 @@ func mapIncident(row sqlc.AlertIncident) domainalert.Incident {
 		CheckID:                     row.CheckID.String(),
 		CheckType:                   domaincheck.Type(row.CheckType),
 		Status:                      domainalert.IncidentStatus(row.Status),
+		ResolutionReason:            mapIncidentResolutionReason(row.ResolutionReason),
 		Severity:                    domainalert.Severity(row.Severity),
 		LastEvaluationState:         alertcondition.EvaluationState(row.LastEvaluationState),
 		OpenedAt:                    row.OpenedAt,
@@ -78,6 +79,7 @@ func mapGetIncident(row sqlc.GetAlertIncidentRow) domainalert.Incident {
 		CheckID:                     row.CheckID,
 		CheckType:                   row.CheckType,
 		Status:                      row.Status,
+		ResolutionReason:            row.ResolutionReason,
 		Severity:                    row.Severity,
 		LastEvaluationState:         row.LastEvaluationState,
 		OpenedAt:                    row.OpenedAt,
@@ -109,6 +111,7 @@ func mapListIncident(row sqlc.ListAlertIncidentsRow) domainalert.Incident {
 		CheckID:                     row.CheckID,
 		CheckType:                   row.CheckType,
 		Status:                      row.Status,
+		ResolutionReason:            row.ResolutionReason,
 		Severity:                    row.Severity,
 		LastEvaluationState:         row.LastEvaluationState,
 		OpenedAt:                    row.OpenedAt,
@@ -128,6 +131,60 @@ func mapListIncident(row sqlc.ListAlertIncidentsRow) domainalert.Incident {
 	})
 	addIncidentSummaries(&incident, row.ProbeID, row.ProbeName, row.CheckID, row.CheckName, row.CheckSummaryType, row.CheckTarget)
 	return incident
+}
+
+//nolint:dupl // The aliased lifecycle query repeats the generated incident columns so it can also return rule context.
+func mapInactiveIncidentCandidate(row sqlc.ListInactiveActiveAlertIncidentsRow) domainalert.InactiveIncidentCandidate {
+	incident := mapIncident(sqlc.AlertIncident{
+		ID:                          row.IncidentID,
+		ProjectID:                   row.IncidentProjectID,
+		RuleID:                      row.IncidentRuleID,
+		ProbeID:                     row.IncidentProbeID,
+		CheckID:                     row.IncidentCheckID,
+		CheckType:                   row.IncidentCheckType,
+		Status:                      row.IncidentStatus,
+		Severity:                    row.IncidentSeverity,
+		LastEvaluationState:         row.IncidentLastEvaluationState,
+		OpenedAt:                    row.IncidentOpenedAt,
+		AcknowledgedAt:              row.IncidentAcknowledgedAt,
+		AcknowledgedByUserID:        row.IncidentAcknowledgedByUserID,
+		ResolvedAt:                  row.IncidentResolvedAt,
+		ResolvedByUserID:            row.IncidentResolvedByUserID,
+		LastEvaluatedAt:             row.IncidentLastEvaluatedAt,
+		LastTriggeredAt:             row.IncidentLastTriggeredAt,
+		LastValue:                   row.IncidentLastValue,
+		LastSummary:                 row.IncidentLastSummary,
+		LastNotificationSentAt:      row.IncidentLastNotificationSentAt,
+		NextNotificationEligibleAt:  row.IncidentNextNotificationEligibleAt,
+		SuppressedNotificationCount: row.IncidentSuppressedNotificationCount,
+		CreatedAt:                   row.IncidentCreatedAt,
+		UpdatedAt:                   row.IncidentUpdatedAt,
+		ResolutionReason:            row.IncidentResolutionReason,
+	})
+	addIncidentSummaries(&incident, row.IncidentProbeID, row.ProbeName, row.IncidentCheckID, row.CheckName, row.CheckSummaryType, row.CheckTarget)
+
+	return domainalert.InactiveIncidentCandidate{
+		Incident: incident,
+		Rule: mapRule(sqlc.AlertRule{
+			ID:                  row.IncidentRuleID,
+			ProjectID:           row.IncidentProjectID,
+			Name:                row.RuleName,
+			Description:         row.RuleDescription,
+			Status:              row.RuleStatus,
+			Severity:            row.RuleSeverity,
+			CheckType:           row.RuleCheckType,
+			ProbeID:             row.RuleProbeID,
+			CheckID:             row.RuleCheckID,
+			ProbeSelector:       row.RuleProbeSelector,
+			Condition:           row.RuleCondition,
+			ConditionVersion:    row.RuleConditionVersion,
+			TriggerAfterSeconds: row.RuleTriggerAfterSeconds,
+			CooldownSeconds:     row.RuleCooldownSeconds,
+			CreatedByUserID:     row.RuleCreatedByUserID,
+			CreatedAt:           row.RuleCreatedAt,
+			UpdatedAt:           row.RuleUpdatedAt,
+		}, nil),
+	}
 }
 
 func addIncidentSummaries(
@@ -150,6 +207,14 @@ func addIncidentSummaries(
 		Type:   domainCheckType,
 		Target: checkTarget,
 	}
+}
+
+func mapIncidentResolutionReason(value *sqlc.AlertIncidentResolutionReason) *domainalert.IncidentResolutionReason {
+	if value == nil {
+		return nil
+	}
+	reason := domainalert.IncidentResolutionReason(*value)
+	return &reason
 }
 
 func mapNotification(row sqlc.Notification) domainalert.Notification {

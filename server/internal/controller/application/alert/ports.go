@@ -33,6 +33,10 @@ type NotificationTester interface {
 	TestNotification(ctx context.Context, notification domainalert.Notification, payload json.RawMessage) NotificationTestResult
 }
 
+type IncidentReconciler interface {
+	ReconcileStoppedEvaluations(ctx context.Context, projectID string) error
+}
+
 type EventRecorder interface {
 	RecordAlertEvent(ctx context.Context, event AlertEvent)
 }
@@ -88,6 +92,7 @@ const (
 	AlertReasonNotificationTestFailed        AlertReason = "notification_test_failed"
 	AlertReasonIncidentListFailed            AlertReason = "incident_list_failed"
 	AlertReasonIncidentLookupFailed          AlertReason = "incident_lookup_failed"
+	AlertReasonIncidentReconcileFailed       AlertReason = "incident_reconcile_failed"
 )
 
 type AlertEventName string

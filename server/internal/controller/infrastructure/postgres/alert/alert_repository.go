@@ -422,6 +422,26 @@ func (r *Repository) GetRecentResolvedIncident(ctx context.Context, ruleID, prob
 	return mapIncident(row), nil
 }
 
+func (r *Repository) ListInactiveActiveIncidents(ctx context.Context, projectID string) ([]domainalert.InactiveIncidentCandidate, error) {
+	ctx, span := postgres.StartDBSpan(ctx, pgalertTracer, "alert_incidents", "postgres.alert_incidents.list_inactive", "SELECT", "SELECT active alert incidents that can no longer be evaluated")
+	defer span.End()
+
+	projectUUID, err := postgres.ParseUUID(projectID, domainproject.ErrProjectNotFound)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := postgres.Queries(ctx, r.queries).ListInactiveActiveAlertIncidents(ctx, projectUUID)
+	if err != nil {
+		postgres.RecordDBSpanError(span, err)
+		return nil, err
+	}
+	candidates := make([]domainalert.InactiveIncidentCandidate, 0, len(rows))
+	for _, row := range rows {
+		candidates = append(candidates, mapInactiveIncidentCandidate(row))
+	}
+	return candidates, nil
+}
+
 func (r *Repository) CreateIncident(ctx context.Context, input domainalert.IncidentTransitionInput) (domainalert.Incident, error) {
 	var incident domainalert.Incident
 	err := r.tx.InTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
@@ -515,6 +535,42 @@ func (r *Repository) ResolveIncident(ctx context.Context, incidentID string, sum
 		return domainalert.Incident{}, err
 	}
 	return incident, nil
+}
+
+func (r *Repository) ResolveInactiveIncident(ctx context.Context, incidentID string, at time.Time) (domainalert.Incident, error) {
+	ctx, span := postgres.StartDBSpan(ctx, pgalertTracer, "alert_incidents", "postgres.alert_incidents.resolve_inactive", "UPDATE", "RESOLVE inactive alert incident")
+	defer span.End()
+
+	id, err := postgres.ParseUUID(incidentID, domainalert.ErrIncidentNotFound)
+	if err != nil {
+		return domainalert.Incident{}, err
+	}
+	resolvedAt := at.UTC()
+	row, err := postgres.Queries(ctx, r.queries).ResolveInactiveAlertIncident(ctx, sqlc.ResolveInactiveAlertIncidentParams{
+		ID:         id,
+		ResolvedAt: &resolvedAt,
+	})
+	if err != nil {
+		err = mapNoRows(err, domainalert.ErrIncidentNotFound)
+		postgres.RecordDBSpanError(span, err)
+		return domainalert.Incident{}, err
+	}
+	return mapIncident(row), nil
+}
+
+func (r *Repository) DeleteInactivePendingEvaluations(ctx context.Context, projectID string) error {
+	ctx, span := postgres.StartDBSpan(ctx, pgalertTracer, "alert_rule_pending_evaluations", "postgres.alert_rule_pending_evaluations.delete_inactive", "DELETE", "DELETE inactive alert pending evaluations")
+	defer span.End()
+
+	projectUUID, err := postgres.ParseUUID(projectID, domainproject.ErrProjectNotFound)
+	if err != nil {
+		return err
+	}
+	_, err = postgres.Queries(ctx, r.queries).DeleteInactiveAlertPendingEvaluations(ctx, projectUUID)
+	if err != nil {
+		postgres.RecordDBSpanError(span, err)
+	}
+	return err
 }
 
 func (r *Repository) ListEnabledNotificationsForRule(ctx context.Context, projectID, ruleID string) ([]domainalert.Notification, error) {

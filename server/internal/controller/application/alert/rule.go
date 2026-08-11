@@ -61,8 +61,21 @@ func (s *Service) UpdateRule(ctx context.Context, input UpdateRuleInput) (domain
 	if err != nil {
 		return domainalert.Rule{}, flow.writeFailure(AlertReasonRuleUpdateFailed, err)
 	}
-	updated, err := s.repo.UpdateRule(ctx, rule)
+	var updated domainalert.Rule
+	writeStage := "rule"
+	err = s.tx.WithinTx(ctx, func(ctx context.Context) error {
+		var updateErr error
+		updated, updateErr = s.repo.UpdateRule(ctx, rule)
+		if updateErr != nil {
+			return updateErr
+		}
+		writeStage = "incident"
+		return s.reconcileStoppedEvaluations(ctx, project.ID)
+	})
 	if err != nil {
+		if writeStage == "incident" {
+			return domainalert.Rule{}, flow.writeFailure(AlertReasonIncidentReconcileFailed, err)
+		}
 		return domainalert.Rule{}, flow.writeFailure(AlertReasonRuleUpdateFailed, err)
 	}
 	flow.setRuleID(updated.ID)
@@ -83,7 +96,17 @@ func (s *Service) DeleteRule(ctx context.Context, input DeleteRuleInput) error {
 	if actionErr := s.requireProjectActionForFlow(ctx, flow, project.ID, input.CurrentUserID, domainproject.ActionManageAlerts); actionErr != nil {
 		return actionErr
 	}
-	if err := s.repo.DeleteRule(ctx, project.ID, input.RuleID); err != nil {
+	writeStage := "rule"
+	if err := s.tx.WithinTx(ctx, func(ctx context.Context) error {
+		if err := s.repo.DeleteRule(ctx, project.ID, input.RuleID); err != nil {
+			return err
+		}
+		writeStage = "incident"
+		return s.reconcileStoppedEvaluations(ctx, project.ID)
+	}); err != nil {
+		if writeStage == "incident" {
+			return flow.writeFailure(AlertReasonIncidentReconcileFailed, err)
+		}
 		return flow.writeFailure(AlertReasonRuleDeleteFailed, err)
 	}
 	flow.success()

@@ -33,27 +33,28 @@ type ruleScopeResponseBody struct {
 }
 
 type incidentResponseBody struct {
-	ID                          string                         `json:"id"`
-	RuleID                      string                         `json:"ruleId"`
-	ProbeID                     string                         `json:"probeId"`
-	CheckID                     string                         `json:"checkId"`
-	Probe                       incidentProbeResponseBody      `json:"probe"`
-	Check                       incidentCheckResponseBody      `json:"check"`
-	CheckType                   domaincheck.Type               `json:"checkType"`
-	Status                      domainalert.IncidentStatus     `json:"status"`
-	Severity                    domainalert.Severity           `json:"severity"`
-	LastEvaluationState         alertcondition.EvaluationState `json:"lastEvaluationState"`
-	OpenedAt                    time.Time                      `json:"openedAt"`
-	ResolvedAt                  *time.Time                     `json:"resolvedAt,omitempty"`
-	LastEvaluatedAt             time.Time                      `json:"lastEvaluatedAt"`
-	LastTriggeredAt             time.Time                      `json:"lastTriggeredAt"`
-	LastValue                   *float64                       `json:"lastValue,omitempty"`
-	LastSummary                 json.RawMessage                `json:"lastSummary"`
-	LastNotificationSentAt      *time.Time                     `json:"lastNotificationSentAt,omitempty"`
-	NextNotificationEligibleAt  *time.Time                     `json:"nextNotificationEligibleAt,omitempty"`
-	SuppressedNotificationCount int32                          `json:"suppressedNotificationCount"`
-	CreatedAt                   time.Time                      `json:"createdAt"`
-	UpdatedAt                   time.Time                      `json:"updatedAt"`
+	ID                          string                                `json:"id"`
+	RuleID                      string                                `json:"ruleId"`
+	ProbeID                     string                                `json:"probeId"`
+	CheckID                     string                                `json:"checkId"`
+	Probe                       incidentProbeResponseBody             `json:"probe"`
+	Check                       incidentCheckResponseBody             `json:"check"`
+	CheckType                   domaincheck.Type                      `json:"checkType"`
+	Status                      domainalert.IncidentStatus            `json:"status"`
+	ResolutionReason            *domainalert.IncidentResolutionReason `json:"resolutionReason,omitempty"`
+	Severity                    domainalert.Severity                  `json:"severity"`
+	LastEvaluationState         alertcondition.EvaluationState        `json:"lastEvaluationState"`
+	OpenedAt                    time.Time                             `json:"openedAt"`
+	ResolvedAt                  *time.Time                            `json:"resolvedAt,omitempty"`
+	LastEvaluatedAt             time.Time                             `json:"lastEvaluatedAt"`
+	LastTriggeredAt             time.Time                             `json:"lastTriggeredAt"`
+	LastValue                   *float64                              `json:"lastValue,omitempty"`
+	LastSummary                 json.RawMessage                       `json:"lastSummary"`
+	LastNotificationSentAt      *time.Time                            `json:"lastNotificationSentAt,omitempty"`
+	NextNotificationEligibleAt  *time.Time                            `json:"nextNotificationEligibleAt,omitempty"`
+	SuppressedNotificationCount int32                                 `json:"suppressedNotificationCount"`
+	CreatedAt                   time.Time                             `json:"createdAt"`
+	UpdatedAt                   time.Time                             `json:"updatedAt"`
 }
 
 type incidentProbeResponseBody struct {
@@ -143,6 +144,7 @@ func incidentResponse(incident domainalert.Incident) incidentResponseBody {
 		Check:                       incidentCheckResponse(incident),
 		CheckType:                   incident.CheckType,
 		Status:                      incident.Status,
+		ResolutionReason:            incident.ResolutionReason,
 		Severity:                    incident.Severity,
 		LastEvaluationState:         incident.LastEvaluationState,
 		OpenedAt:                    incident.OpenedAt,

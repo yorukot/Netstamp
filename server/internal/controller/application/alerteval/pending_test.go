@@ -170,11 +170,16 @@ func firingMetricSummary() alertcondition.MetricSummary {
 }
 
 type pendingEvaluationRepository struct {
-	rule         domainalert.Rule
-	summary      alertcondition.MetricSummary
-	pendingSince *time.Time
-	active       *domainalert.Incident
-	createCalls  int
+	rule                       domainalert.Rule
+	summary                    alertcondition.MetricSummary
+	pendingSince               *time.Time
+	active                     *domainalert.Incident
+	inactiveCandidates         []domainalert.InactiveIncidentCandidate
+	notifications              []domainalert.Notification
+	jobs                       []domainalert.NotificationJobInput
+	resolvedInactiveIncidents  []domainalert.Incident
+	deleteInactivePendingCalls int
+	createCalls                int
 }
 
 func newPendingEvaluationRepository() *pendingEvaluationRepository {
@@ -213,6 +218,10 @@ func (r *pendingEvaluationRepository) GetRecentResolvedIncident(context.Context,
 	return domainalert.Incident{}, domainalert.ErrIncidentNotFound
 }
 
+func (r *pendingEvaluationRepository) ListInactiveActiveIncidents(context.Context, string) ([]domainalert.InactiveIncidentCandidate, error) {
+	return r.inactiveCandidates, nil
+}
+
 func (r *pendingEvaluationRepository) CreateIncident(_ context.Context, input domainalert.IncidentTransitionInput) (domainalert.Incident, error) {
 	r.createCalls++
 	incident := domainalert.Incident{
@@ -233,7 +242,8 @@ func (r *pendingEvaluationRepository) CreateIncident(_ context.Context, input do
 	return incident, nil
 }
 
-func (r *pendingEvaluationRepository) EnqueueNotificationJobs(context.Context, []domainalert.NotificationJobInput) error {
+func (r *pendingEvaluationRepository) EnqueueNotificationJobs(_ context.Context, jobs []domainalert.NotificationJobInput) error {
+	r.jobs = append(r.jobs, jobs...)
 	return nil
 }
 
@@ -253,6 +263,28 @@ func (r *pendingEvaluationRepository) ResolveIncident(_ context.Context, _ strin
 	return incident, nil
 }
 
+func (r *pendingEvaluationRepository) ResolveInactiveIncident(_ context.Context, incidentID string, at time.Time) (domainalert.Incident, error) {
+	for _, candidate := range r.inactiveCandidates {
+		if candidate.Incident.ID != incidentID {
+			continue
+		}
+		incident := candidate.Incident
+		reason := domainalert.IncidentResolutionReasonTargetNoLongerEvaluated
+		incident.Status = domainalert.IncidentStatusResolved
+		incident.ResolutionReason = &reason
+		incident.LastEvaluationState = alertcondition.EvaluationStateNoData
+		incident.ResolvedAt = &at
+		r.resolvedInactiveIncidents = append(r.resolvedInactiveIncidents, incident)
+		return incident, nil
+	}
+	return domainalert.Incident{}, domainalert.ErrIncidentNotFound
+}
+
+func (r *pendingEvaluationRepository) DeleteInactivePendingEvaluations(context.Context, string) error {
+	r.deleteInactivePendingCalls++
+	return nil
+}
+
 func (r *pendingEvaluationRepository) ListEnabledNotificationsForRule(context.Context, string, string) ([]domainalert.Notification, error) {
-	return nil, nil
+	return r.notifications, nil
 }

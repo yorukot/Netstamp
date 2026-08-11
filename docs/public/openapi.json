@@ -11998,6 +11998,10 @@
 						"type": "string",
 						"enum": ["open", "acknowledged", "resolved"]
 					},
+					"resolutionReason": {
+						"type": "string",
+						"enum": ["condition_cleared", "target_no_longer_evaluated"]
+					},
 					"severity": {
 						"type": "string",
 						"enum": ["info", "warning", "critical"]

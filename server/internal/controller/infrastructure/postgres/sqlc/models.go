@@ -59,6 +59,48 @@ func (ns NullAlertEvaluationState) Value() (driver.Value, error) {
 	return string(ns.AlertEvaluationState), nil
 }
 
+type AlertIncidentResolutionReason string
+
+const (
+	AlertIncidentResolutionReasonConditionCleared        AlertIncidentResolutionReason = "condition_cleared"
+	AlertIncidentResolutionReasonTargetNoLongerEvaluated AlertIncidentResolutionReason = "target_no_longer_evaluated"
+)
+
+func (e *AlertIncidentResolutionReason) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = AlertIncidentResolutionReason(s)
+	case string:
+		*e = AlertIncidentResolutionReason(s)
+	default:
+		return fmt.Errorf("unsupported scan type for AlertIncidentResolutionReason: %T", src)
+	}
+	return nil
+}
+
+type NullAlertIncidentResolutionReason struct {
+	AlertIncidentResolutionReason AlertIncidentResolutionReason `json:"alert_incident_resolution_reason"`
+	Valid                         bool                          `json:"valid"` // Valid is true if AlertIncidentResolutionReason is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullAlertIncidentResolutionReason) Scan(value interface{}) error {
+	if value == nil {
+		ns.AlertIncidentResolutionReason, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.AlertIncidentResolutionReason.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullAlertIncidentResolutionReason) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.AlertIncidentResolutionReason), nil
+}
+
 type AlertIncidentStatus string
 
 const (
@@ -1101,29 +1143,30 @@ func (ns NullTracerouteStatus) Value() (driver.Value, error) {
 }
 
 type AlertIncident struct {
-	ID                          uuid.UUID            `json:"id"`
-	ProjectID                   uuid.UUID            `json:"project_id"`
-	RuleID                      uuid.UUID            `json:"rule_id"`
-	ProbeID                     uuid.UUID            `json:"probe_id"`
-	CheckID                     uuid.UUID            `json:"check_id"`
-	CheckType                   CheckType            `json:"check_type"`
-	Status                      AlertIncidentStatus  `json:"status"`
-	Severity                    AlertSeverity        `json:"severity"`
-	LastEvaluationState         AlertEvaluationState `json:"last_evaluation_state"`
-	OpenedAt                    time.Time            `json:"opened_at"`
-	AcknowledgedAt              *time.Time           `json:"acknowledged_at"`
-	AcknowledgedByUserID        *uuid.UUID           `json:"acknowledged_by_user_id"`
-	ResolvedAt                  *time.Time           `json:"resolved_at"`
-	ResolvedByUserID            *uuid.UUID           `json:"resolved_by_user_id"`
-	LastEvaluatedAt             time.Time            `json:"last_evaluated_at"`
-	LastTriggeredAt             time.Time            `json:"last_triggered_at"`
-	LastValue                   *float64             `json:"last_value"`
-	LastSummary                 []byte               `json:"last_summary"`
-	LastNotificationSentAt      *time.Time           `json:"last_notification_sent_at"`
-	NextNotificationEligibleAt  *time.Time           `json:"next_notification_eligible_at"`
-	SuppressedNotificationCount int32                `json:"suppressed_notification_count"`
-	CreatedAt                   time.Time            `json:"created_at"`
-	UpdatedAt                   time.Time            `json:"updated_at"`
+	ID                          uuid.UUID                      `json:"id"`
+	ProjectID                   uuid.UUID                      `json:"project_id"`
+	RuleID                      uuid.UUID                      `json:"rule_id"`
+	ProbeID                     uuid.UUID                      `json:"probe_id"`
+	CheckID                     uuid.UUID                      `json:"check_id"`
+	CheckType                   CheckType                      `json:"check_type"`
+	Status                      AlertIncidentStatus            `json:"status"`
+	Severity                    AlertSeverity                  `json:"severity"`
+	LastEvaluationState         AlertEvaluationState           `json:"last_evaluation_state"`
+	OpenedAt                    time.Time                      `json:"opened_at"`
+	AcknowledgedAt              *time.Time                     `json:"acknowledged_at"`
+	AcknowledgedByUserID        *uuid.UUID                     `json:"acknowledged_by_user_id"`
+	ResolvedAt                  *time.Time                     `json:"resolved_at"`
+	ResolvedByUserID            *uuid.UUID                     `json:"resolved_by_user_id"`
+	LastEvaluatedAt             time.Time                      `json:"last_evaluated_at"`
+	LastTriggeredAt             time.Time                      `json:"last_triggered_at"`
+	LastValue                   *float64                       `json:"last_value"`
+	LastSummary                 []byte                         `json:"last_summary"`
+	LastNotificationSentAt      *time.Time                     `json:"last_notification_sent_at"`
+	NextNotificationEligibleAt  *time.Time                     `json:"next_notification_eligible_at"`
+	SuppressedNotificationCount int32                          `json:"suppressed_notification_count"`
+	CreatedAt                   time.Time                      `json:"created_at"`
+	UpdatedAt                   time.Time                      `json:"updated_at"`
+	ResolutionReason            *AlertIncidentResolutionReason `json:"resolution_reason"`
 }
 
 type AlertNotification struct {

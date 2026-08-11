@@ -233,6 +233,8 @@ func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool
 	publicStatusSvc.ConfigureHTTP(httpRepo)
 	probeRuntimeSvc := appproberuntime.NewServiceWithResults(probeRepo, pingRepo, tcpRepo, httpRepo, tracerouteRepo, security.NewProbeSecretVerifier(), probeRuntimeEvents)
 	alertEvalSvc := appalerteval.NewServiceWithEvents(alertRepo, cfg.Alerting.EvaluationEnabled, cfg.HTTP.PublicBaseURL, alertEvalEvents, dbTx)
+	assignmentSvc.ConfigureIncidentReconciler(alertEvalSvc)
+	alertSvc.ConfigureIncidentReconciler(alertEvalSvc, dbTx)
 	probeRuntimeSvc.SetAlertEvaluator(alertEvalSvc)
 	resultSvc := appresult.NewServiceWithHTTP(pingRepo, tcpRepo, httpRepo, tracerouteRepo, resultRepo, projectRepo)
 	assignmentWorker := appassignment.NewWorker(assignmentRepo, appassignment.WorkerConfig{

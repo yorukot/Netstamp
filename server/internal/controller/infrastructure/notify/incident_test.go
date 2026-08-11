@@ -1,6 +1,9 @@
 package notify
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 const (
 	renderedIncidentNotificationPayload = `{
@@ -57,5 +60,32 @@ func TestParseIncidentNotificationPayload(t *testing.T) {
 func TestParseIncidentNotificationPayloadRejectsInvalidJSON(t *testing.T) {
 	if _, ok := parseIncidentNotificationPayload([]byte("{")); ok {
 		t.Fatal("expected invalid JSON to be rejected")
+	}
+}
+
+func TestIncidentNotificationExplainsStoppedEvaluationResolution(t *testing.T) {
+	payload := strings.Replace(
+		renderedIncidentNotificationPayload,
+		`"eventType": "incident.opened",`,
+		`"eventType": "incident.resolved", "incident": {"resolutionReason": "target_no_longer_evaluated"},`,
+		1,
+	)
+	incident, ok := parseIncidentNotificationPayload([]byte(payload))
+	if !ok {
+		t.Fatal("expected resolved incident payload to parse")
+	}
+	if got := incidentNotificationDescription(incident); got != "Target is no longer evaluated" {
+		t.Fatalf("description = %q, want stopped evaluation explanation", got)
+	}
+
+	fields := incidentNotificationFields(incident)
+	found := false
+	for _, field := range fields {
+		if field.Name == "Resolution reason" && field.Value == "Target is no longer evaluated" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("resolution reason field missing from %#v", fields)
 	}
 }
