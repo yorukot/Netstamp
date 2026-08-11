@@ -1,5 +1,5 @@
-import { type AuthCredentials, type ProjectDraft, type RegisterPayload, createSessionSnapshot, mapApiUser, mapProject } from "@/features/auth/services/authService";
-import { useCreateProjectMutation, useLoginMutation, useLogoutMutation, useRegisterMutation } from "@/shared/api/mutations";
+import { type AuthCredentials, type RegisterPayload, createSessionSnapshot, mapApiUser } from "@/features/auth/services/authService";
+import { useLoginMutation, useLogoutMutation, useRegisterMutation } from "@/shared/api/mutations";
 import { authQueries } from "@/shared/api/queries";
 import { apiQueryKeys } from "@/shared/api/queryKeys";
 import { useQuery } from "@tanstack/react-query";
@@ -28,9 +28,8 @@ export function SessionProvider({ children }: SessionProviderProps) {
 	const session = rawUser ? (sessionQuery.data ?? null) : null;
 	const loginMutation = useLoginMutation();
 	const registerMutation = useRegisterMutation();
-	const createProjectMutation = useCreateProjectMutation();
 	const logoutMutation = useLogoutMutation();
-	const submitting = loginMutation.isPending || registerMutation.isPending || createProjectMutation.isPending || logoutMutation.isPending;
+	const submitting = loginMutation.isPending || registerMutation.isPending || logoutMutation.isPending;
 	const loading = meQuery.isPending || Boolean(rawUser && sessionQuery.isPending);
 
 	async function login(payload: AuthCredentials) {
@@ -47,11 +46,6 @@ export function SessionProvider({ children }: SessionProviderProps) {
 		return { user: await mapApiUser(result.user, { onboardingRequired: true }) };
 	}
 
-	async function createProject(payload: ProjectDraft) {
-		const result = await createProjectMutation.mutateAsync(payload);
-		return mapProject(result.project);
-	}
-
 	function logout() {
 		logoutMutation.mutate();
 	}
@@ -65,7 +59,6 @@ export function SessionProvider({ children }: SessionProviderProps) {
 				isAuthenticated: Boolean(session),
 				login,
 				register,
-				createProject,
 				logout
 			}}
 		>

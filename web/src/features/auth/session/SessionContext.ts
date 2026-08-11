@@ -1,4 +1,4 @@
-import type { AuthCredentials, ProjectDraft, RegisterPayload, RegisterResult, SessionSnapshot } from "@/features/auth/services/authService";
+import type { AuthCredentials, RegisterPayload, RegisterResult, SessionSnapshot } from "@/features/auth/services/authService";
 import { createContext, useContext } from "react";
 
 export interface SessionContextValue {
@@ -8,7 +8,6 @@ export interface SessionContextValue {
 	isAuthenticated: boolean;
 	login: (payload: AuthCredentials) => Promise<SessionSnapshot["user"]>;
 	register: (payload: RegisterPayload) => Promise<RegisterResult>;
-	createProject: (payload: ProjectDraft) => Promise<NonNullable<SessionSnapshot["project"]>>;
 	logout: () => void;
 }
 

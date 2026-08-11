@@ -1,187 +1,39 @@
-.shell {
-	padding: 2rem;
-}
-
-.console {
-	--ns-frame-color: var(--ns-border);
-	width: min(58rem, 100%);
-	border: 1px solid var(--ns-frame-color);
-	background: var(--ns-surface);
-	box-shadow: none;
-}
-
-.consoleBar {
+.form,
+.inviteChoice,
+.noAccess {
 	display: grid;
-	grid-template-columns: repeat(3, 0.5rem) minmax(0, 1fr);
+	gap: 1.25rem;
+}
+
+.inviteSummary {
+	display: grid;
 	gap: 0.5rem;
-	align-items: center;
-	min-height: 2.5rem;
-	padding: 0 1rem;
-	border-bottom: 1px solid var(--ns-border-faint);
-	background: var(--ns-surface-raised);
+	border-left: 2px solid var(--ns-primary);
+	background: var(--ns-bg-subtle);
+	padding: 1rem;
 }
 
-.consoleBar span {
-	width: 0.5rem;
-	height: 0.5rem;
-	background: var(--ns-critical);
+.inviteSummary strong {
+	color: var(--ns-text);
+	font-size: 0.9375rem;
+	line-height: 1.45;
 }
 
-.consoleBar span:nth-child(2) {
-	background: var(--ns-warning);
+.inviteSummary span {
+	color: var(--ns-text-subtle);
+	font-size: 0.875rem;
+	line-height: 1.5;
 }
 
-.consoleBar span:nth-child(3) {
-	background: var(--ns-success);
-}
-
-.consoleBar strong {
-	margin-left: 0.25rem;
-	color: var(--ns-primary-hover);
-	font-family: var(--ns-font-code);
-	font-size: 0.75rem;
-	font-weight: 700;
-	letter-spacing: 0.08em;
-}
-
-.consoleBody {
-	position: relative;
-	display: grid;
-	gap: 1rem;
-	max-height: 0;
-	overflow: hidden;
-	padding: 0 1.25rem;
-	color: var(--ns-text-muted);
-	font-family: var(--ns-font-code);
-	transform: scaleY(0);
-	transform-origin: top;
-	opacity: 0;
-	animation: consoleBodyOpen 700ms cubic-bezier(0.2, 0.8, 0.2, 1) 260ms forwards;
-}
-
-.scriptLog,
-.tuiForm,
-.inviteSection,
-.inviteList,
-.successView {
-	position: relative;
-	z-index: 1;
+.choiceActions {
 	display: grid;
 	gap: 0.75rem;
 }
 
-.scriptLog {
-	min-height: 8.5rem;
-	align-content: start;
-}
-
-.scriptLine,
-.answerRow {
-	display: grid;
-	grid-template-columns: 6.5rem minmax(0, 1fr);
-	gap: 1rem;
-	align-items: baseline;
-}
-
-.scriptPrompt,
-.answerPrompt {
-	color: var(--ns-primary-hover);
-	font-size: 0.75rem;
-	font-weight: 800;
-	letter-spacing: 0.1em;
-	text-transform: uppercase;
-}
-
-.scriptPrompt::before,
-.answerPrompt::before {
-	content: "> ";
-	color: var(--ns-text-low);
-}
-
-.scriptText {
-	min-height: 1.45rem;
-	color: var(--ns-text);
-	font-size: clamp(1rem, 2.2vw, 1.35rem);
-	line-height: 1.45;
-}
-
-.cursor {
-	display: inline-block;
-	width: 0.65ch;
-	height: 1em;
-	margin-left: 0.08rem;
-	background: var(--ns-primary-hover);
-	vertical-align: -0.12em;
-	animation: cursorBlink 0.78s step-end infinite;
-}
-
-.tuiForm {
-	min-height: 13rem;
-	align-content: start;
-}
-
 .inviteSection {
-	min-height: 0;
-}
-
-.inviteList {
-	max-height: min(14rem, 32svh);
-	min-height: 0;
-	overflow-y: auto;
-	padding-right: 0.5rem;
-	overscroll-behavior: contain;
-}
-
-.inviteList::-webkit-scrollbar {
-	width: 0.5rem;
-}
-
-.inviteList::-webkit-scrollbar-track {
-	background: var(--ns-glass-light);
-}
-
-.inviteList::-webkit-scrollbar-thumb {
-	background: var(--ns-border-strong);
-}
-
-.inviteList::-webkit-scrollbar-thumb:hover {
-	background: var(--ns-primary-border);
-}
-
-.answerRow {
-	padding: 0.75rem;
-	border: 1px solid var(--ns-border-faint);
-	background: var(--ns-glass-light);
-}
-
-.answerRow input {
-	min-width: 0;
-	border: 0;
-	outline: 2px solid transparent;
-	outline-offset: 0;
-	color: var(--ns-text);
-	caret-color: var(--ns-primary-hover);
-	background: transparent;
-	font: inherit;
-}
-
-.answerRow input::placeholder {
-	color: var(--ns-text-low);
-}
-
-.answerRow input:focus-visible {
-	outline-color: transparent;
-}
-
-.answerRow:has(input:focus-visible) {
-	border-color: var(--ns-focus-ring);
-	box-shadow: none;
-}
-
-.answerRow small {
-	grid-column: 2;
-	color: var(--ns-text-low);
-	font-size: 0.75rem;
+	display: grid;
+	border-top: 1px solid var(--ns-border-faint);
+	border-bottom: 1px solid var(--ns-border-faint);
 }
 
 .inviteHeader {
@@ -189,146 +41,59 @@
 	align-items: center;
 	justify-content: space-between;
 	gap: 1rem;
-	padding-top: 0.25rem;
+	padding: 1rem 0;
 }
 
-.inviteHeader p,
-.successView p {
-	margin: 0;
-	color: var(--ns-text-low);
+.inviteHeader > div {
+	display: grid;
+	gap: 0.25rem;
+}
+
+.inviteHeader strong {
+	color: var(--ns-text);
+	font-size: 0.9375rem;
+	line-height: 1.4;
+}
+
+.inviteHeader span {
+	color: var(--ns-text-subtle);
 	font-size: 0.8125rem;
+	line-height: 1.45;
+}
+
+.inviteBody,
+.inviteList {
+	display: grid;
+	gap: 0.75rem;
+}
+
+.inviteBody {
+	padding: 0 0 1rem;
 }
 
 .inviteRow {
 	display: grid;
-	grid-template-columns: minmax(0, 1fr) auto;
+	grid-template-columns: minmax(0, 1fr);
 	gap: 0.75rem;
-	align-items: stretch;
+	align-items: end;
 }
 
-.inviteRow > .tuiMiniButton {
-	height: 100%;
+.inviteRow:has(.inviteRemoveButton) {
+	grid-template-columns: minmax(0, 1fr) auto;
 }
 
-.tuiButton,
-.tuiMiniButton {
-	--ns-frame-color: var(--ns-primary-border);
-	border: 1px solid var(--ns-primary-border);
-	color: var(--ns-primary-hover);
-	background: var(--ns-primary-muted);
-	font-family: var(--ns-font-code);
-	font-weight: 800;
-	letter-spacing: 0.08em;
-	text-transform: uppercase;
-	cursor: pointer;
+.inviteRow > .inviteRemoveButton {
+	width: calc(3rem - var(--ns-frame-border-width));
+	min-width: calc(3rem - var(--ns-frame-border-width));
+	height: calc(3rem - var(--ns-frame-border-width));
+	min-height: calc(3rem - var(--ns-frame-border-width));
+	margin: 0;
 }
 
-.tuiButton {
-	justify-self: start;
-	min-height: 2.75rem;
-	padding: 0.75rem 1rem;
+.createButton {
+	width: 100%;
 }
 
-.tuiMiniButton {
-	min-height: 2.25rem;
-	padding: 0.5rem 0.75rem;
-	font-size: 0.75rem;
-}
-
-.tuiButton:hover,
-.tuiMiniButton:hover {
-	color: var(--ns-text-on-accent);
-	background: var(--ns-primary-hover);
-}
-
-.tuiButton:focus-visible,
-.tuiMiniButton:focus-visible {
-	border-color: transparent;
-	outline: var(--ns-focus-outline);
-	outline-offset: var(--ns-focus-outline-offset);
-}
-
-.tuiButton:disabled {
-	opacity: 0.54;
-	cursor: not-allowed;
-}
-
-.successView {
-	min-height: 22rem;
-	align-content: center;
-	animation: successFadeIn 360ms ease-out;
-}
-
-.successView .scriptText {
-	color: var(--ns-success);
-}
-
-@keyframes consoleBodyOpen {
-	from {
-		max-height: 0;
-		padding-top: 0;
-		padding-bottom: 0;
-		transform: scaleY(0);
-		opacity: 0;
-	}
-
-	to {
-		max-height: 54rem;
-		padding-top: 1.25rem;
-		padding-bottom: 1.25rem;
-		transform: scaleY(1);
-		opacity: 1;
-	}
-}
-
-@keyframes cursorBlink {
-	50% {
-		opacity: 0;
-	}
-}
-
-@keyframes successFadeIn {
-	from {
-		transform: translateY(0.5rem);
-		opacity: 0;
-	}
-
-	to {
-		transform: translateY(0);
-		opacity: 1;
-	}
-}
-
-@media (max-width: 42rem) {
-	.shell {
-		padding: 1rem;
-	}
-
-	.consoleBody {
-		padding-left: 1rem;
-		padding-right: 1rem;
-	}
-
-	.scriptLine,
-	.answerRow,
-	.inviteRow {
-		grid-template-columns: 1fr;
-	}
-
-	.answerRow small {
-		grid-column: auto;
-	}
-
-	.inviteHeader {
-		display: grid;
-	}
-}
-
-@media (prefers-reduced-motion: reduce) {
-	.consoleBody,
-	.successView,
-	.cursor {
-		animation-duration: 0.01ms;
-		animation-iteration-count: 1;
-	}
+.noAccess {
+	justify-items: start;
 }

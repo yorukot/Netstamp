@@ -1,13 +1,11 @@
 import { i18n } from "@/i18n";
-import type { CreateProjectInput, LoginInput, RegisterInput, UserResponse } from "@/shared/api/types";
+import type { LoginInput, RegisterInput, UserResponse } from "@/shared/api/types";
 import { createGravatarUrl } from "@/shared/utils/gravatar";
 
 const authT = i18n.getFixedT(null, "auth") as (key: string) => string;
 
 export type AuthCredentials = LoginInput;
 export type RegisterPayload = RegisterInput;
-
-export type ProjectDraft = CreateProjectInput;
 
 export interface SessionUser {
 	id: string;
@@ -27,7 +25,6 @@ export type RegisterResult = { user: SessionUser; emailVerificationRequired?: fa
 export interface SessionSnapshot {
 	user: SessionUser;
 	controller: "connected";
-	project?: ProjectDraft & { role: string };
 }
 
 export async function mapApiUser(user: UserResponse, options: { onboardingRequired?: boolean } = {}): Promise<SessionUser> {
@@ -53,8 +50,4 @@ export async function createSessionSnapshot(user: UserResponse, options: { onboa
 		user: await mapApiUser(user, options),
 		controller: "connected"
 	};
-}
-
-export function mapProject({ name, slug }: ProjectDraft): ProjectDraft & { role: string } {
-	return { name: name || authT("onboarding.projectPlaceholder"), slug: slug || "vector-ix", role: "owner" };
 }
