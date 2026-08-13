@@ -66,6 +66,23 @@ function initDocsSearch() {
 		(results as HTMLElement).hidden = true;
 	}
 
+	const resetSearchState = () => {
+		if (closeTimer !== undefined) {
+			window.clearTimeout(closeTimer);
+			closeTimer = undefined;
+		}
+
+		restoreFocusTo = null;
+		(trigger as HTMLElement | null)?.setAttribute("aria-expanded", "false");
+		if (input instanceof HTMLInputElement) input.value = "";
+		if (dialog instanceof HTMLElement) {
+			dialog.hidden = true;
+			dialog.dataset.state = "closed";
+		}
+		clearResults();
+		document.documentElement.classList.remove("docsSearchOpen");
+	};
+
 	function resultLinks() {
 		return Array.from(results?.querySelectorAll("[data-search-result]") ?? []).filter((element): element is HTMLAnchorElement => element instanceof HTMLAnchorElement);
 	}
@@ -258,6 +275,8 @@ function initDocsSearch() {
 		}
 	}
 
+	const handleNavigationStart = () => resetSearchState();
+
 	trigger?.addEventListener("click", openSearch);
 	closeButtons.forEach(button => button.addEventListener("click", closeSearch));
 	input?.addEventListener("input", handleInput);
@@ -265,9 +284,10 @@ function initDocsSearch() {
 	results?.addEventListener("keydown", handleResultsKeydown);
 	dialog?.addEventListener("keydown", handleDialogKeydown);
 	document.addEventListener("keydown", handleKeydown);
+	document.addEventListener("astro:before-preparation", handleNavigationStart);
 
 	cleanupSearch = () => {
-		if (closeTimer) window.clearTimeout(closeTimer);
+		resetSearchState();
 		trigger?.removeEventListener("click", openSearch);
 		closeButtons.forEach(button => button.removeEventListener("click", closeSearch));
 		input?.removeEventListener("input", handleInput);
@@ -275,7 +295,7 @@ function initDocsSearch() {
 		results?.removeEventListener("keydown", handleResultsKeydown);
 		dialog?.removeEventListener("keydown", handleDialogKeydown);
 		document.removeEventListener("keydown", handleKeydown);
-		document.documentElement.classList.remove("docsSearchOpen");
+		document.removeEventListener("astro:before-preparation", handleNavigationStart);
 		cleanupSearch = () => {};
 	};
 }
