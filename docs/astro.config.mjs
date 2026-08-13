@@ -20,6 +20,52 @@ const calloutIcons = {
 	caution: "ph-warning"
 };
 
+const codeBlockLabels = {
+	en: { copy: "Copy", copied: "Copied" },
+	"zh-TW": { copy: "複製", copied: "已複製" }
+};
+
+const netstampCodeTheme = {
+	name: "netstamp",
+	type: "dark",
+	colors: {
+		"editor.background": "transparent",
+		"editor.foreground": "var(--ns-text-muted)"
+	},
+	tokenColors: [
+		{
+			scope: ["comment", "punctuation.definition.comment"],
+			settings: { foreground: "var(--ns-text-low)", fontStyle: "italic" }
+		},
+		{
+			scope: ["keyword", "keyword.operator", "storage", "storage.type"],
+			settings: { foreground: "var(--ns-primary-hover)" }
+		},
+		{
+			scope: ["string", "constant", "constant.numeric", "constant.language"],
+			settings: { foreground: "var(--ns-secondary-hover)" }
+		},
+		{
+			scope: ["entity.name.function", "entity.name.type", "entity.name.tag", "support.function", "support.type"],
+			settings: { foreground: "var(--ns-secondary)" }
+		},
+		{
+			scope: ["entity.other.attribute-name", "variable.parameter", "variable.other.property"],
+			settings: { foreground: "var(--ns-text)" }
+		},
+		{
+			scope: ["punctuation", "meta.brace", "meta.delimiter"],
+			settings: { foreground: "var(--ns-text-subtle)" }
+		},
+		{
+			scope: ["invalid", "invalid.illegal"],
+			settings: { foreground: "var(--ns-critical)" }
+		}
+	]
+};
+
+const localeForFile = file => (String(file.path || "").includes("/zh-TW/") ? "zh-TW" : "en");
+
 function remarkCallouts() {
 	return (tree, file) => {
 		const locale = String(file.path || "").includes("/zh-TW/") ? "zh-TW" : "en";
@@ -109,45 +155,105 @@ function remarkCallouts() {
 	};
 }
 
-function remarkCodeBlocks() {
-	return tree => {
-		function createAttribute(name, value) {
-			return { type: "mdxJsxAttribute", name, value };
-		}
+const rehypeTableScrollers = () => {
+	return (tree, file) => {
+		const locale = localeForFile(file);
+		const label = locale === "zh-TW" ? "可水平捲動的表格" : "Scrollable table";
 
-		function createCodeBlock(node) {
-			const attributes = [createAttribute("title", node.lang || "code")];
-
-			if (node.meta) {
-				attributes.push(createAttribute("meta", node.meta));
-			}
-
-			return {
-				type: "mdxJsxFlowElement",
-				name: "CodeBlock",
-				attributes,
-				children: [{ type: "text", value: node.value }]
-			};
-		}
-
-		function visit(node) {
+		const visit = node => {
 			const children = node.children ?? [];
 
 			for (let index = 0; index < children.length; index++) {
 				const child = children[index];
 
-				if (child.type === "code") {
-					children[index] = createCodeBlock(child);
+				if (child.type === "element" && child.tagName === "table") {
+					children[index] = {
+						type: "element",
+						tagName: "div",
+						properties: {
+							ariaLabel: label,
+							className: ["docTableScroller"],
+							role: "region",
+							tabIndex: 0
+						},
+						children: [child]
+					};
 					continue;
 				}
 
 				visit(child);
 			}
-		}
+		};
 
 		visit(tree);
 	};
-}
+};
+
+const rehypeCodeBlocks = () => {
+	return (tree, file) => {
+		const labels = codeBlockLabels[localeForFile(file)];
+		const createElement = (tagName, properties = {}, children = []) => ({ type: "element", tagName, properties, children });
+		const createText = value => ({ type: "text", value });
+
+		const languageForPre = node => {
+			if (typeof node.properties?.dataLanguage === "string") {
+				return node.properties.dataLanguage;
+			}
+
+			const code = node.children?.find(child => child.type === "element" && child.tagName === "code");
+			const classNames = Array.isArray(code?.properties?.className) ? code.properties.className : [code?.properties?.className];
+			const languageClass = classNames.find(className => typeof className === "string" && className.startsWith("language-"));
+
+			return typeof languageClass === "string" ? languageClass.slice("language-".length) : "text";
+		};
+
+		const createHeader = language =>
+			createElement("div", { className: ["docCodeHeader"] }, [
+				createElement(
+					"span",
+					{ ariaHidden: "true", className: ["docCodeWindowControls"] },
+					Array.from({ length: 3 }, () => createElement("span", { className: ["docCodeWindowControl"] }))
+				),
+				createElement("strong", { className: ["docCodeLanguage"] }, [createText(language)]),
+				createElement(
+					"button",
+					{
+						ariaLabel: labels.copy,
+						className: ["docCodeCopyButton"],
+						dataCopiedLabel: labels.copied,
+						dataCopyLabel: labels.copy,
+						dataNsCodeCopy: "",
+						title: labels.copy,
+						type: "button"
+					},
+					[createElement("span", { dataNsCodeCopyLabel: "" }, [createText(labels.copy)])]
+				)
+			]);
+
+		const visit = node => {
+			const children = node.children ?? [];
+
+			for (let index = 0; index < children.length; index++) {
+				const child = children[index];
+
+				if (child.type === "element" && child.tagName === "pre" && child.children?.some(grandchild => grandchild.type === "element" && grandchild.tagName === "code")) {
+					child.properties ??= {};
+					const currentClasses = child.properties.className ?? child.properties.class;
+					const classNames = Array.isArray(currentClasses) ? currentClasses : typeof currentClasses === "string" ? currentClasses.split(/\s+/) : [];
+					delete child.properties.class;
+					child.properties.className = [...classNames, "docCodePre"];
+					child.properties.tabIndex = 0;
+					children[index] = createElement("div", { className: ["docCodeBlock", "ns-frame"], dataNsCodeBlock: "" }, [createHeader(languageForPre(child)), child]);
+					continue;
+				}
+
+				visit(child);
+			}
+		};
+
+		visit(tree);
+	};
+};
 
 // https://astro.build/config
 export default defineConfig({
@@ -162,7 +268,13 @@ export default defineConfig({
 		}
 	},
 	markdown: {
-		processor: unified({ remarkPlugins: [remarkDirective, remarkCallouts, remarkCodeBlocks] })
+		shikiConfig: {
+			theme: netstampCodeTheme
+		},
+		processor: unified({
+			remarkPlugins: [remarkDirective, remarkCallouts],
+			rehypePlugins: [rehypeTableScrollers, rehypeCodeBlocks]
+		})
 	},
 	integrations: [react(), mdx()]
 });

@@ -2,7 +2,6 @@
 import { render } from "astro:content";
 import { getDocEntry } from "../../data/docs";
 import DocLayout from "../../layouts/DocLayout.astro";
-import LocalizedCodeBlock from "./LocalizedCodeBlock.astro";
 
 interface Props {
 	contentId: string;
@@ -20,5 +19,5 @@ const fallback = Astro.currentLocale === "zh-TW" && !translated;
 ---
 
 <DocLayout title={entry.data.title} description={entry.data.description} headings={headings} head={entry.data.head} fallback={fallback}>
-	<Content components={{ CodeBlock: LocalizedCodeBlock }} />
+	<Content />
 </DocLayout>

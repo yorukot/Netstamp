@@ -645,15 +645,24 @@ const visibleBreadcrumbs =
 			font-size: 0.9em;
 		}
 
-		:global(.docProse table) {
-			display: block;
+		:global(.docProse .docTableScroller) {
 			width: 100%;
 			max-width: 100%;
 			overflow-x: auto;
+		}
+
+		:global(.docProse .docTableScroller:focus-visible) {
+			outline: var(--ns-focus-outline);
+			outline-offset: 0.25rem;
+		}
+
+		:global(.docProse table) {
+			display: table;
+			width: 100%;
+			min-width: 100%;
 			border: 1px solid var(--ns-border);
 			border-collapse: collapse;
 			background: var(--ns-surface);
-			scrollbar-gutter: stable;
 		}
 
 		:global(.docProse thead) {
@@ -691,6 +700,115 @@ const visibleBreadcrumbs =
 
 		:global(.docProse tbody tr:hover) {
 			background: var(--ns-container-bg-hover);
+		}
+
+		:global(.docProse .docCodeBlock) {
+			--ns-frame-color: var(--ns-border);
+			display: grid;
+			grid-template-rows: auto minmax(0, auto);
+			min-width: 0;
+			overflow: hidden;
+			background: var(--ns-surface-deep);
+			box-shadow: none;
+		}
+
+		:global(.docProse .docCodeHeader) {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			min-width: 0;
+			min-height: 2rem;
+			padding: 0.25rem 0.5rem;
+			border-bottom: 1px solid var(--ns-border-faint);
+			background: var(--ns-surface-raised);
+			color: var(--ns-text-low);
+			font-family: var(--ns-font-code);
+			font-size: 0.6875rem;
+			letter-spacing: 0.08em;
+			text-transform: uppercase;
+		}
+
+		:global(.docProse .docCodeWindowControls) {
+			display: inline-flex;
+			flex: 0 0 auto;
+			align-items: center;
+			gap: 0.25rem;
+		}
+
+		:global(.docProse .docCodeWindowControl) {
+			width: 0.5rem;
+			height: 0.5rem;
+			background: var(--ns-critical);
+		}
+
+		:global(.docProse .docCodeWindowControl:nth-child(2)) {
+			background: var(--ns-warning);
+		}
+
+		:global(.docProse .docCodeWindowControl:nth-child(3)) {
+			background: var(--ns-success);
+		}
+
+		:global(.docProse .docCodeLanguage) {
+			min-width: 0;
+			overflow: hidden;
+			color: var(--ns-text-muted);
+			font-weight: 800;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+		}
+
+		:global(.docProse .docCodeCopyButton) {
+			min-height: 1.5rem;
+			margin-left: auto;
+			padding: 0 0.5rem;
+			border: 1px solid var(--ns-border-faint);
+			background: transparent;
+			color: var(--ns-text-muted);
+			font: inherit;
+			letter-spacing: 0;
+			text-transform: none;
+			cursor: pointer;
+			transition:
+				background-color var(--ns-transition),
+				border-color var(--ns-transition),
+				color var(--ns-transition);
+		}
+
+		:global(.docProse .docCodeCopyButton:hover) {
+			border-color: var(--ns-border);
+			background: var(--ns-bg-subtle);
+			color: var(--ns-text);
+		}
+
+		:global(.docProse .docCodeCopyButton:focus-visible) {
+			outline: var(--ns-focus-outline);
+			outline-offset: var(--ns-focus-outline-offset);
+		}
+
+		:global(.docProse .docCodePre) {
+			min-width: 0;
+			margin: 0;
+			padding: 1rem !important;
+			overflow: auto !important;
+			background: transparent !important;
+			color: var(--ns-text-muted);
+			font-family: var(--ns-font-code);
+			font-size: 0.8125rem;
+			line-height: 1.75;
+			white-space: pre;
+		}
+
+		:global(.docProse .docCodePre:focus-visible) {
+			outline: var(--ns-focus-outline);
+			outline-offset: -0.25rem;
+		}
+
+		:global(.docProse .docCodePre code) {
+			display: block;
+			min-width: max-content;
+			color: inherit;
+			font: inherit;
 		}
 
 		:global(:root:not([data-theme="light"])) .docProse :global([data-ns-code-block]) {
