@@ -1,7 +1,60 @@
 let cleanupDocLayout = () => {};
+let preservedDocsSidebarScrollTop: number | undefined;
+
+const normalizedPathname = (pathname: string) => (pathname.endsWith("/") ? pathname : `${pathname}/`);
+
+const syncDocsNavActiveState = () => {
+	const sidebar = document.querySelector("[data-docs-sidebar]");
+	if (!(sidebar instanceof HTMLElement)) return;
+
+	const pathname = normalizedPathname(window.location.pathname);
+	const navItems = Array.from(sidebar.querySelectorAll<HTMLAnchorElement>("[data-docs-nav-item]"));
+
+	for (const navItem of navItems) {
+		const isActive = normalizedPathname(new URL(navItem.href, window.location.origin).pathname) === pathname;
+		navItem.classList.toggle("active", isActive);
+
+		if (isActive) {
+			navItem.setAttribute("aria-current", "page");
+		} else {
+			navItem.removeAttribute("aria-current");
+		}
+	}
+
+	for (const section of sidebar.querySelectorAll("[data-docs-nav-section]")) {
+		section.classList.toggle("active", Boolean(section.querySelector('[data-docs-nav-item][aria-current="page"]')));
+	}
+};
+
+const prepareDocsSidebarSwap = (event: DocumentEventMap["astro:before-swap"]) => {
+	preservedDocsSidebarScrollTop = undefined;
+
+	const currentSidebar = document.querySelector<HTMLElement>("[data-docs-sidebar]");
+	const nextSidebar = event.newDocument.querySelector<HTMLElement>("[data-docs-sidebar]");
+	if (!currentSidebar || !nextSidebar) return;
+
+	if (currentSidebar.dataset.docsLocale === nextSidebar.dataset.docsLocale) {
+		preservedDocsSidebarScrollTop = currentSidebar.scrollTop;
+		return;
+	}
+
+	nextSidebar.removeAttribute("data-astro-transition-persist");
+};
+
+const completeDocsSidebarSwap = () => {
+	syncDocsNavActiveState();
+
+	const sidebar = document.querySelector<HTMLElement>("[data-docs-sidebar]");
+	if (sidebar) {
+		sidebar.setAttribute("data-astro-transition-persist", "docs-sidebar");
+		if (preservedDocsSidebarScrollTop !== undefined) sidebar.scrollTop = preservedDocsSidebarScrollTop;
+	}
+	preservedDocsSidebarScrollTop = undefined;
+};
 
 function initDocLayout() {
 	cleanupDocLayout();
+	syncDocsNavActiveState();
 
 	const cleanupTasks: Array<() => void> = [];
 	const mobileNavToggle = document.querySelector("[data-docs-mobile-nav-toggle]");
@@ -236,4 +289,6 @@ function initDocLayout() {
 }
 
 initDocLayout();
+document.addEventListener("astro:before-swap", prepareDocsSidebarSwap);
+document.addEventListener("astro:after-swap", completeDocsSidebarSwap);
 document.addEventListener("astro:page-load", initDocLayout);

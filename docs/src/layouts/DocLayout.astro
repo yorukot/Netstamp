@@ -98,7 +98,7 @@ const visibleBreadcrumbs =
 
 <BaseLayout title={browserTitle} description={description} head={extraHead} canonicalPath={pathname} ogType="article" schema={schema}>
 	<div class="docsShell" data-docs-shell>
-		<aside class="docsSidebar" aria-label={ui.docs.navigation}>
+		<aside class="docsSidebar" aria-label={ui.docs.navigation} data-docs-sidebar data-docs-locale={locale} transition:persist="docs-sidebar">
 			<SearchBox />
 			<Button className="docsMobileNavToggle" variant="outline" size="sm" type="button" data-docs-mobile-nav-toggle aria-expanded="false" aria-controls="docs-nav-tree">
 				<span>
@@ -110,12 +110,12 @@ const visibleBreadcrumbs =
 			<nav class="docsNavTree" id="docs-nav-tree" data-docs-nav-panel data-state="closed">
 				{
 					navGroups.map(group => (
-						<section class:list={["docsNavSection", group.active && "active"]} aria-labelledby={`docs-nav-section-${group.id}`}>
+						<section class:list={["docsNavSection", group.active && "active"]} aria-labelledby={`docs-nav-section-${group.id}`} data-docs-nav-section>
 							<h2 class="docsNavSectionTitle" id={`docs-nav-section-${group.id}`}>
 								{group.title}
 							</h2>
 							{group.items.map(item => (
-								<a href={item.href} class:list={["docsNavItem", item.active && "active"]} aria-current={item.active ? "page" : undefined} title={item.title}>
+								<a href={item.href} class:list={["docsNavItem", item.active && "active"]} aria-current={item.active ? "page" : undefined} title={item.title} data-docs-nav-item>
 									<span>{item.title}</span>
 								</a>
 							))}
