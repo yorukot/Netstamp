@@ -1,0 +1,73 @@
+---
+title: Probes
+description: Register, configure, and manage monitoring probes.
+icon: server
+navSection: use
+navOrder: 20
+---
+
+Probes run checks from the networks you want to observe. A probe is registered to one project and authenticates with its own credentials.
+
+## Requirements
+
+The probe agent supports Linux on `amd64` and `arm64`. A typical installation needs:
+
+- A host with `systemd` and root access.
+- `curl` or `wget` to download the agent.
+- Outbound HTTPS access to the Netstamp controller.
+- Network access from the host to every target the probe should check.
+
+No inbound connection from the controller to the probe is required.
+
+## Register and install a probe
+
+1. Select the project where the probe should belong.
+2. Open **Probes** and choose **New probe**.
+3. Give the probe a recognizable name and optional location.
+4. Copy the generated installation command.
+5. Run it as root on the target Linux host.
+
+The generated service installation uses the controller URL, probe ID, and a one-time secret:
+
+```bash
+sudo netstamp-agent service install \
+  --url 'https://netstamp.example.com' \
+  --probe-id '<probe UUID>' \
+  --probe-secret '<one-time secret>'
+```
+
+Treat the command as a credential. Do not paste it into tickets, chat logs, shell history shared between users, or configuration management output.
+
+## Confirm connectivity
+
+After installation, the probe page should show a recent heartbeat. The controller records agent version, addresses, public IP information, and supported IP families when available.
+
+If the probe remains offline, verify the service and logs on the host:
+
+```bash
+sudo systemctl status netstamp-agent
+sudo journalctl -u netstamp-agent -n 100 --no-pager
+```
+
+See [Probe agent operations](/docs/operations/probe-agent/) for file locations, upgrades, and recovery steps.
+
+## Name, location, and labels
+
+Use names that remain meaningful in result comparisons, such as `taipei-office` or `aws-tokyo-1`. Location is descriptive metadata.
+
+Labels control assignments. Add labels such as `region=tw`, `network=office`, or `provider=aws`, then use the same keys in check selectors. Read [Labels and assignments](/docs/guides/labels-and-assignments/) before changing labels on a production probe.
+
+## Enabled and online are different
+
+- **Enabled** controls whether Netstamp assigns checks to the probe.
+- **Online** indicates whether the controller has received a recent heartbeat.
+
+Disable a probe before planned maintenance to stop new work from being assigned. An offline but enabled probe may still affect monitoring expectations until it returns or is disabled.
+
+## Rotate credentials
+
+Rotate a probe secret if it may have been exposed or when transferring host ownership. Update the service environment on the host with the new secret and restart the agent.
+
+Only delete a probe after confirming that its historical identity and assignments are no longer needed. For temporary outages or maintenance, disable it instead.
+
+Next, add [labels and selectors](/docs/guides/labels-and-assignments/) or create a [check](/docs/guides/checks/).

@@ -1,0 +1,62 @@
+---
+title: Notifications
+description: Configure and test notification destinations for alerts.
+icon: bolt
+navSection: use
+navOrder: 70
+---
+
+Notification destinations deliver alert and incident changes to external systems. Destinations belong to a project and can be reused by multiple alert rules.
+
+## Destination types
+
+| Type     | Typical use                                                   |
+| -------- | ------------------------------------------------------------- |
+| Webhook  | Send structured events to an automation or incident platform  |
+| Slack    | Post incidents to a Slack channel through an incoming webhook |
+| Discord  | Post incidents to a Discord channel through a webhook         |
+| Telegram | Send messages through a Telegram bot                          |
+| Email    | Deliver messages through the instance SMTP configuration      |
+
+## Create a destination
+
+1. Open **Alerts**, then open **Notifications**.
+2. Choose **Add notification**.
+3. Select a type and enter the required endpoint, token, chat, or recipient details.
+4. Save the destination.
+5. Send a test notification.
+
+Test before attaching the destination to production rules. A saved configuration only proves that its fields were accepted; a successful test verifies network access and the external credentials.
+
+## Attach destinations to rules
+
+Edit an alert rule and select one or more notification destinations. A destination can be attached to multiple rules, so use names that identify both the service and audience, such as `slack-platform-oncall`.
+
+Review rule severity and destination audience together. Not every warning needs to page the same channel used for critical incidents.
+
+## Email requirements
+
+Email destinations require working instance-wide SMTP configuration. If email tests fail, a system administrator should first verify the SMTP host, port, credentials, sender address, encryption mode, and controller logs.
+
+See [Authentication and email](/docs/installation/authentication-and-email/) for SMTP setup.
+
+## Handle secrets
+
+Webhook URLs, bot tokens, and SMTP credentials are secrets. Restrict who can edit destinations, avoid exposing values in screenshots or support bundles, and rotate them when access changes or a value may have leaked.
+
+The application may mask a stored secret after it is saved. A masked value means the secret is retained; it is not a recoverable copy to share with another administrator.
+
+## Troubleshoot delivery
+
+If a test or incident notification is not delivered:
+
+- Confirm that the destination is enabled and its test succeeds.
+- Confirm that the alert rule has the destination selected.
+- Check the controller logs near the delivery time.
+- Verify outbound DNS and HTTPS or SMTP access from the controller.
+- Check external rate limits, channel permissions, recipient filters, and spam handling.
+- Rotate or re-enter the credential if the provider reports it as invalid.
+
+A resolved incident may produce a separate recovery notification. Test both firing and recovery handling in downstream automation.
+
+Next, attach the tested destination to an [alert rule](/docs/guides/alerts-and-incidents/).

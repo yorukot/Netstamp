@@ -1,0 +1,64 @@
+---
+title: Results and Insight
+description: Explore measurements, time series, certificates, and network paths.
+icon: map
+navSection: use
+navOrder: 50
+---
+
+import ProductScreenshot from "@/components/docs/ProductScreenshot.astro";
+import httpUptimeScreenshot from "@/assets/homepage-highlights/http-uptime.webp";
+import traceroutePathsScreenshot from "@/assets/homepage-highlights/traceroute-paths.webp";
+
+Netstamp stores every probe measurement and turns those results into health summaries and time-series views. Use the project overview for a quick scan and **Insight** when you need to investigate.
+
+## Start with scope
+
+Before interpreting a chart, confirm:
+
+- The selected project.
+- The check and time range.
+- The probes included in the view.
+- Whether a deployment, network change, or maintenance window overlaps the period.
+
+Different probes can report different outcomes for the same target. That difference is often the most useful signal: it can separate a target-wide outage from a regional or network-specific problem.
+
+## Ping results
+
+Ping views show reachability, packet loss, and round-trip time. Look for:
+
+- Simultaneous loss across probes, which suggests a target-side outage.
+- Loss or latency isolated to one probe, which suggests a local path or probe problem.
+- A sustained latency shift rather than a single spike.
+
+## TCP results
+
+TCP results show whether a connection succeeded and how long it took to establish. Compare TCP with Ping to distinguish basic reachability from service-port availability.
+
+For example, successful Ping with failing TCP can indicate a closed port, firewall rule, listener failure, or exhausted service.
+
+## HTTP results
+
+HTTP views combine availability with application-level evidence, including status validation, response time, request timing phases, body-match results, and TLS certificate information when HTTPS is used.
+
+<ProductScreenshot src={httpUptimeScreenshot} alt="HTTP uptime and latency trends in Netstamp" caption="Compare availability and latency across probes and time ranges." />
+
+Use timing phases to narrow down slow requests. A DNS increase points to name resolution, connection or TLS increases point to the network or handshake, and time to first byte often points to the upstream application.
+
+Certificate data helps identify expiry risk and unexpected certificate changes. Treat it as evidence from the probe's network path, especially when a proxy or private certificate authority is involved.
+
+## Traceroute results
+
+Traceroute views show the observed hops from each probe to the target.
+
+<ProductScreenshot src={traceroutePathsScreenshot} alt="Traceroute path comparison in Netstamp" caption="Compare network paths from different probes and inspect changes around an incident." />
+
+Asterisks or missing intermediate hops can mean that a router does not answer traceroute traffic; they do not necessarily prove packet loss for the monitored service. Focus on repeatable path changes and correlate them with Ping, TCP, or HTTP behavior.
+
+## Choose a useful time range
+
+Use a short range to inspect an active incident and a longer range to establish a baseline. Aggregated points are useful for trends, while raw or fine-grained points are better for exact event timing.
+
+When sharing an investigation, record the project, check, probes, time range, and timezone so another person can reproduce the same view.
+
+If the evidence meets a repeatable threshold, create an [alert rule](/docs/guides/alerts-and-incidents/) instead of relying on manual chart review.

@@ -20,7 +20,8 @@ The public site links to the app through `PUBLIC_NETSTAMP_APP_BASE_URL`, which d
 
 - `src/pages/index.astro`: public landing page shell.
 - `src/pages/docs/[...slug].astro`: renders docs content through `DocLayout.astro`.
-- `src/content/docs/**/*.mdx`: MDX documentation content with `title`, `description`, `icon`, and optional `head` frontmatter.
+- `src/content/docs/en/**/*.mdx`: English documentation sources whose paths define routes and whose `navSection` and `navOrder` frontmatter define the sidebar architecture.
+- `src/content/docs/zh-TW/**/*.mdx`: Crowdin-synchronized Traditional Chinese documentation with paths and structural frontmatter matching the English sources.
 - `src/components/landing/`: React landing page island and visual scenes.
 - `src/components/openapi/`: React OpenAPI explorer used by the public Markdown OpenAPI page.
 - `public/openapi.json`: generated backend OpenAPI contract.

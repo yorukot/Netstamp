@@ -1,0 +1,52 @@
+---
+title: Operations overview
+description: Operate, observe, secure, and troubleshoot a Netstamp installation.
+icon: wrench
+navTitle: Overview
+navSection: operate
+navOrder: 0
+---
+
+Operate Netstamp as two connected systems: the central controller and the distributed probe agents. Monitor both independently, protect their credentials, and test recovery before an outage.
+
+## Operational responsibilities
+
+- Keep the controller, database, reverse proxy, and probe agents on tested versions.
+- Monitor controller health, PostgreSQL capacity, probe heartbeat age, result queues, and notification delivery.
+- Back up PostgreSQL and deployment secrets, then restore them in a separate environment.
+- Rotate exposed credentials without destroying unrelated access.
+- Preserve logs and timestamps needed to follow a check from assignment to result and alert.
+
+## Health and metrics
+
+The controller exposes:
+
+| Endpoint          | Use                                                           |
+| ----------------- | ------------------------------------------------------------- |
+| `/healthz`        | Root health alias for load balancers and simple uptime checks |
+| `/api/v1/healthz` | Versioned API health endpoint                                 |
+| `/metrics`        | Prometheus-format controller metrics                          |
+
+Use an external monitor for the Netstamp controller itself. A check managed by the same unavailable controller cannot notify you that the controller is down.
+
+Probe metrics are disabled by default. Enable a loopback or protected-network listener when needed:
+
+```dotenv
+NETSTAMP_PROBE_METRICS_ADDR=127.0.0.1:9091
+```
+
+Do not publish controller or probe metrics directly to the internet.
+
+## What to monitor
+
+At minimum, monitor controller health and restart rate, request errors, migration failures, PostgreSQL availability and storage, backup age, probe heartbeat age, result queue pressure, assignment and notification backlog, host resources, certificate expiry, and clock synchronization.
+
+Centralize controller and agent logs with appropriate access and retention. Keep `LOG_PSEUDONYM_KEY` stable so pseudonymized identifiers remain correlatable, and sanitize logs before sharing them.
+
+## Runbooks
+
+- [Probe agent operations](/docs/operations/probe-agent/) covers service files, logs, updates, tuning, and uninstall.
+- [Security](/docs/operations/security/) covers deployment hardening, secret inventory, probe trust, and incident response.
+- [Backup and restore](/docs/installation/backup-and-restore/) covers database recovery and upgrade safety.
+
+After a material operational change, verify both health endpoints, a probe heartbeat, one result submission, one notification, and one unauthenticated status page.

@@ -1,0 +1,137 @@
+---
+title: 快速開始
+description: 使用 Docker Compose 執行 Netstamp，並從 Linux 探測器取得第一筆量測結果。
+icon: bolt
+navSection: start
+navOrder: 0
+---
+
+本指南會帶你啟動本機 Netstamp 控制器與資料庫、建立第一位系統管理員與專案、安裝 Linux 探測器，並取得一筆 Ping 量測結果。
+
+完成後，你將會有：
+
+- 一套在 `http://localhost:3000` 執行的 Netstamp
+- 一部已上線的探測器
+- 一項已指派給該探測器的檢查
+- 一筆可在「分析」中查看的結果
+
+## 事前準備
+
+- 已安裝 Docker Compose v2 的 Docker Engine
+- 瀏覽器
+- 用於產生密鑰的 OpenSSL
+- 一部供探測器使用的 Linux amd64 或 arm64 主機
+- 探測器主機上的 `curl` 或 `wget`、`sudo` 與 systemd
+
+如果只是試用，控制器與探測器可以在同一部 Linux 主機上執行。將探測器放在另一部主機或不同網路，可以提供更有意義的監測視角。
+
+## 1. 下載 Netstamp
+
+建立目錄，並下載 Netstamp 最新 release 隨附的部署檔案：
+
+```bash
+mkdir netstamp
+cd netstamp
+curl -fsSLO https://github.com/yorukot/netstamp/releases/latest/download/compose.yaml
+curl -fsSLO https://github.com/yorukot/netstamp/releases/latest/download/.env.example
+cp .env.example .env
+chmod 600 .env
+```
+
+## 2. 設定必要密鑰
+
+產生五組彼此獨立的值：
+
+```bash
+openssl rand -hex 32
+openssl rand -hex 32
+openssl rand -hex 32
+openssl rand -hex 32
+openssl rand -hex 32
+```
+
+開啟 `.env`，將不同的產生值分別填入各個必填欄位：
+
+```dotenv
+DATABASE_PASSWORD=<random value>
+LOG_PSEUDONYM_KEY=<random value>
+SYSTEM_SETTINGS_ENCRYPTION_KEY=<random value>
+AUTH_SESSION_HASH_KEY=<random value>
+AUTH_API_TOKEN_HASH_KEY=<random value>
+```
+
+重新啟動與升級時必須沿用這些值。變更它們可能會讓憑證失效，或使加密過的設定無法讀取。
+
+## 3. 啟動 Netstamp
+
+拉取映像檔並啟動服務：
+
+```bash
+docker compose pull
+docker compose up -d
+docker compose ps
+```
+
+正常狀態如下：
+
+- `postgres` 顯示 healthy；
+- `migrate` 以狀態碼 `0` 結束；以及
+- `netstamp` 持續執行。
+
+確認應用程式與 API health endpoints：
+
+```bash
+curl --fail http://localhost:3000/healthz
+curl --fail http://localhost:3000/api/v1/healthz
+```
+
+兩道命令都應成功完成。如果服務尚未就緒，請執行 `docker compose logs <service>` 查看記錄。
+
+## 4. 建立第一個帳號與專案
+
+在瀏覽器中[開啟 Netstamp](http://localhost:3000)，然後：
+
+1. 選擇**註冊**並建立帳號。
+2. 輸入第一個專案的名稱，例如 `Home Lab`。
+3. 選擇**建立專案**。
+
+全新安裝環境中註冊的第一個帳號會自動成為系統管理員。Netstamp 會依照專案名稱產生可安全用於網址的專案 slug。
+
+## 5. 安裝探測器
+
+1. 開啟**探測器**，選擇**新增探測器**。
+2. 輸入不會輕易變動的名稱，例如 `taipei-home-01`。
+3. 搜尋探測器所在位置，或選擇**手動輸入座標**並填入經緯度。
+4. 選擇**繼續安裝**。
+5. 複製產生的安裝指令，並在 Linux 探測器主機上執行。
+6. 等待精靈顯示**已收到心跳**，再選擇**完成**。
+
+這道指令會從控制器下載正確的 amd64 或 arm64 agent、將探測器憑證存入只有 root 能讀取的環境檔，並安裝 systemd 服務。
+
+:::warning 探測器密鑰只會在建立探測器或輪替密鑰時顯示。請比照密碼保管；若密鑰可能外洩，請從探測器詳細資料輪替密鑰，並重新安裝服務憑證。 :::
+
+## 6. 建立檢查
+
+1. 開啟**檢查**，選擇**新增檢查**。
+2. 在檢查名稱輸入 `cloudflare-dns`。
+3. 在目標輸入 `1.1.1.1`。
+4. 選擇 **Ping**，並將間隔設為 `30s`。
+5. 將**探測器選擇器**保留為**所有探測器**。
+6. 選擇**建立檢查**。
+
+Netstamp 會將檢查指派給所有符合選擇器的已啟用探測器。新探測器會在下一次重新整理時收到這項指派。
+
+## 7. 確認第一筆結果
+
+開啟**分析**，選擇 `cloudflare-dns` 檢查與你的探測器，然後等待第一個執行間隔完成。成功的 Ping 結果會顯示從該探測器網路視角取得的延遲與封包遺失量測。
+
+如果探測器所在網路封鎖對外 ICMP，結果可能會顯示逾時或錯誤。這筆結果仍可確認指派與回報流程正常運作；若需要成功的 Ping 量測，請改用另一個可連線的 IP 位址。
+
+你現在已有一套可從自有探測器收集量測結果的 Netstamp 環境。
+
+## 接下來
+
+- 到[核心概念](/zh-TW/docs/getting-started/core-concepts/)了解控制器、專案、探測器、檢查與指派之間的關係。
+- 透過[安裝總覽](/zh-TW/docs/installation/)準備可持續運作並公開連線的部署環境。
+- 在[檢查](/zh-TW/docs/guides/checks/)探索所有支援的檢查類型。
+- 在[警示與事件](/zh-TW/docs/guides/alerts-and-incidents/)加入事件偵測與通知傳送。

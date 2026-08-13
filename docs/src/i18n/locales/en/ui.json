@@ -44,10 +44,7 @@
 			"start": "Getting Started",
 			"install": "Installation",
 			"use": "Using Netstamp",
-			"operate": "Operations",
-			"api": "API",
-			"development": "Development",
-			"community": "Community"
+			"operate": "Operations"
 		}
 	},
 	"search": {

@@ -1,0 +1,49 @@
+---
+title: Status pages
+description: Build and publish public status pages from selected monitoring data.
+icon: compass
+navSection: use
+navOrder: 80
+---
+
+import ProductScreenshot from "@/components/docs/ProductScreenshot.astro";
+import publicDashboardScreenshot from "@/assets/homepage-highlights/public-dashboard.webp";
+
+Status pages publish selected monitoring health without requiring a Netstamp account. Each page belongs to a project and is available at `/status/<slug>`.
+
+<ProductScreenshot src={publicDashboardScreenshot} alt="Public status dashboard in Netstamp" caption="Publish only the checks and presentation intended for an external audience." />
+
+## Create a status page
+
+1. Open **Status pages** in the project.
+2. Choose **New page**.
+3. Set a name and unique slug.
+4. Add the checks that should be public.
+5. Configure the page presentation and save it.
+
+Open the public URL in a private browser window to verify what an unauthenticated visitor can see.
+
+## Choose what to publish
+
+Use status pages for externally meaningful services rather than every internal check. Group checks around the service language your audience understands, and use clear display names.
+
+Before publishing, review check names, probe names, locations, labels, targets, and incident text for internal topology or customer information. Do not put secrets in any of these fields.
+
+## Interpret status
+
+The page derives health from the selected monitoring data. A public page is only as representative as its checks and assigned probes, so confirm that:
+
+- Checks cover the actual user path.
+- Probes run from relevant networks or regions.
+- Disabled or stale checks are not presented as current evidence.
+- Alert and incident behavior matches the public message you intend to communicate.
+
+## Change a slug or remove a page
+
+Changing the slug changes the public URL. Update bookmarks, DNS redirects, and external references after a change.
+
+Disable or delete a page when it should no longer be public. Then verify the old URL from an unauthenticated session and remove any reverse-proxy or CDN caching that could retain it.
+
+Treat a status page as a public interface: keep its scope deliberate, review it after monitoring changes, and test it during incident exercises.
+
+Before sharing the URL, review the underlying [checks](/docs/guides/checks/) and [alert behavior](/docs/guides/alerts-and-incidents/).

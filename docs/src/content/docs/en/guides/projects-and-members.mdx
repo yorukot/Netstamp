@@ -1,0 +1,57 @@
+---
+title: Projects and members
+description: Organize monitoring work and collaborate with project members.
+icon: users
+navSection: use
+navOrder: 10
+---
+
+A project keeps a monitoring environment and its collaborators together. Probes, checks, alert rules, notification destinations, incidents, and status pages all belong to a project.
+
+## Create a project
+
+Open the project switcher and choose **Create project**. Give the project a recognizable name and, when available, a stable slug.
+
+The slug is used in project URLs. Use lowercase letters, numbers, and hyphens, and avoid changing it after sharing project links.
+
+The account that creates a project becomes its first owner.
+
+## Switch projects
+
+Use the project switcher in the application header to move between projects. The selected project controls the resources shown throughout the application.
+
+If a page appears empty, first confirm that the intended project is selected.
+
+## Invite a member
+
+1. Open **Project settings**.
+2. Open the members section.
+3. Enter the person's email address and choose a role.
+4. Send the invitation.
+
+An invitation only grants access to the selected project. The recipient must sign in with the invited email address before accepting it.
+
+## Project roles
+
+| Role   | Intended use                                                            |
+| ------ | ----------------------------------------------------------------------- |
+| Owner  | Full project control, including ownership and deletion decisions        |
+| Admin  | Manage project configuration and members without ownership-only actions |
+| Editor | Create and update monitoring resources                                  |
+| Viewer | Read project configuration, results, and incidents                      |
+
+Keep at least two owners for production projects. Netstamp prevents removal or demotion of the last owner so a project cannot become unmanageable.
+
+## Change or remove access
+
+Owners and authorized administrators can update a member's role or remove the member from project settings. Review access when responsibilities change, especially for accounts that can edit checks, alert rules, or notification secrets.
+
+Project membership and system administration are separate. A system administrator can manage the Netstamp instance, but still needs project membership to work with project resources.
+
+## Update or delete a project
+
+Use **Project settings** to change project metadata. Changing the slug changes project URLs and can invalidate saved links.
+
+Only an owner should delete a project. Deletion removes the project and its associated monitoring configuration and data, so export or back up anything that must be retained first.
+
+Next, [register probes](/docs/guides/probes/) for the project.

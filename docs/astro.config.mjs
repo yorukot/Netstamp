@@ -259,6 +259,10 @@ const rehypeCodeBlocks = () => {
 export default defineConfig({
 	site,
 	output: "static",
+	redirects: {
+		"/docs": { status: 301, destination: "/docs/getting-started/quick-start/" },
+		"/zh-TW/docs": { status: 301, destination: "/zh-TW/docs/getting-started/quick-start/" }
+	},
 	i18n: {
 		defaultLocale: "en",
 		locales: [...supportedLocales],

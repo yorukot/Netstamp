@@ -1,0 +1,52 @@
+---
+title: 維運概覽
+description: 維運、觀測、保護並排查 Netstamp 安裝環境。
+icon: wrench
+navTitle: 概覽
+navSection: operate
+navOrder: 0
+---
+
+維運 Netstamp 時，請將它視為兩套相互連接的系統：中央控制器與分散式探測器代理程式。兩者應分別監控、各自保護憑證，並在故障發生前測試復原流程。
+
+## 維運責任
+
+- 將控制器、資料庫、反向代理與探測器代理程式維持在測試過的版本。
+- 監控控制器健康狀態、PostgreSQL 容量、探測器心跳時間、結果佇列與通知傳送。
+- 備份 PostgreSQL 與部署密鑰，並在獨立環境實際還原。
+- 輪替外洩憑證時，不要破壞不相關的存取權。
+- 保存能從指派一路追查到結果與警示的日誌和時間資訊。
+
+## Health 與 Metrics
+
+控制器提供：
+
+| Endpoint          | 用途                                                 |
+| ----------------- | ---------------------------------------------------- |
+| `/healthz`        | 供 Load Balancer 與簡易上線監控使用的根 Health Alias |
+| `/api/v1/healthz` | 含版本的 API Health Endpoint                         |
+| `/metrics`        | Prometheus 格式的控制器指標                          |
+
+請使用外部監控服務檢查 Netstamp 控制器。若控制器本身無法使用，由相同控制器管理的檢查也無法通知你。
+
+探測器 Metrics 預設停用。需要時啟用 Loopback 或受保護網路上的 Listener：
+
+```dotenv
+NETSTAMP_PROBE_METRICS_ADDR=127.0.0.1:9091
+```
+
+不要把控制器或探測器 Metrics 直接公開到網際網路。
+
+## 建議監控項目
+
+至少監控控制器 Health 與重新啟動次數、Request Error、Migration 失敗、PostgreSQL 可用性與儲存空間、備份時間、探測器心跳時間、結果佇列壓力、指派與通知積壓、主機資源、憑證到期日與時鐘同步。
+
+集中保存控制器與 Agent 日誌，並設定適當的存取權和保留期限。維持 `LOG_PSEUDONYM_KEY` 不變，才能持續關聯假名化識別碼；分享日誌前務必移除敏感資料。
+
+## Runbook
+
+- [探測器代理程式維運](/zh-TW/docs/operations/probe-agent/)說明服務檔案、日誌、更新、調校與解除安裝。
+- [安全性](/zh-TW/docs/operations/security/)說明部署強化、密鑰清冊、探測器信任與事件處理。
+- [備份與還原](/zh-TW/docs/installation/backup-and-restore/)說明資料庫復原與安全升級。
+
+完成重大維運變更後，請驗證兩個 Health Endpoint、一筆探測器心跳、一次結果提交、一則通知，以及一個未登入即可查看的狀態頁面。

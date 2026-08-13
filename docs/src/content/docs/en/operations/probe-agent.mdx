@@ -1,0 +1,99 @@
+---
+title: Probe agent operations
+description: Install, inspect, update, and recover Netstamp probe agents.
+icon: server
+navSection: operate
+navOrder: 10
+---
+
+The probe agent is a single Linux binary with a systemd service and runtime scheduler.
+
+## Installed files
+
+| Path                                         | Purpose                                                |
+| -------------------------------------------- | ------------------------------------------------------ |
+| `/usr/local/bin/netstamp-agent`              | Agent binary                                           |
+| `/etc/netstamp/probe.env`                    | Root-owned credentials and controller URL, mode `0600` |
+| `/etc/systemd/system/netstamp-agent.service` | systemd unit                                           |
+| `/var/lib/netstamp`                          | Dedicated service user's home and data directory       |
+
+The service runs as user and group `netstamp`, receives only `CAP_NET_RAW` for ICMP, and enables systemd hardening such as `NoNewPrivileges`, private temporary files, protected home directories, and a read-only system view where possible.
+
+## Inspect status and logs
+
+```bash
+sudo netstamp-agent service status
+sudo systemctl status netstamp-agent
+sudo journalctl -u netstamp-agent -n 200 --no-pager
+sudo journalctl -u netstamp-agent --since '30 minutes ago' --follow
+```
+
+The controller's probe detail page should show a recent heartbeat, version, addresses, capabilities, and online state.
+
+## Restart or reinstall credentials
+
+```bash
+sudo systemctl restart netstamp-agent
+sudo systemctl is-active netstamp-agent
+```
+
+Running `service install` again updates the environment file and unit, reloads systemd, and enables and starts the service:
+
+```bash
+sudo netstamp-agent service install \
+  --url 'https://netstamp.example.com' \
+  --probe-id '<probe UUID>' \
+  --probe-secret '<new secret>'
+```
+
+Use a newly rotated secret. Do not reuse another probe's environment file.
+
+## Update the binary
+
+```bash
+sudo netstamp-agent update \
+  --url 'https://netstamp.example.com' \
+  --api-version 'v1'
+```
+
+The agent downloads its matching architecture from the controller, atomically replaces the installed binary, and restarts the service when the unit exists. Confirm the reported version and heartbeat afterward.
+
+## Tune the runtime
+
+Edit `/etc/netstamp/probe.env`, then restart the service. Important controls include worker concurrency, result queue and batch size, assignment polling and TTL, heartbeat interval, retry backoff, shutdown timeout, and log level.
+
+See [Configuration](/docs/installation/configuration/) for the complete variable list. Change one dimension at a time and observe queue, submission, CPU, memory, and target load.
+
+## Enable metrics and pprof
+
+Both diagnostic listeners are disabled by default. Bind to loopback unless a protected monitoring network is required:
+
+```dotenv
+NETSTAMP_PROBE_METRICS_ADDR=127.0.0.1:9091
+NETSTAMP_PROBE_PPROF_ADDR=127.0.0.1:6060
+```
+
+After restarting:
+
+```bash
+curl http://127.0.0.1:9091/metrics
+curl http://127.0.0.1:6060/debug/pprof/
+```
+
+pprof can expose sensitive runtime details. Never publish it directly.
+
+## Uninstall
+
+Keep configuration and the service user for a possible reinstall:
+
+```bash
+sudo netstamp-agent service uninstall
+```
+
+Remove the environment file, data directory, user, and group too:
+
+```bash
+sudo netstamp-agent service uninstall --purge
+```
+
+Uninstalling the host agent does not delete its probe resource in Netstamp. Disable or delete that resource separately when intended.

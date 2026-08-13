@@ -1,0 +1,137 @@
+---
+title: Quick start
+description: Run Netstamp with Docker Compose and collect the first measurement from a Linux probe.
+icon: bolt
+navSection: start
+navOrder: 0
+---
+
+This guide shows you how to start a local Netstamp controller and database, create the first administrator and project, install a Linux probe, and collect a Ping measurement.
+
+By the end, you will have:
+
+- Netstamp running at `http://localhost:3000`
+- One online probe
+- A check assigned to that probe
+- A result you can inspect in Insight
+
+## Prerequisites
+
+- Docker Engine with Docker Compose v2
+- A browser
+- OpenSSL for generating secrets
+- A Linux amd64 or arm64 host for the probe
+- `curl` or `wget`, `sudo`, and systemd on the probe host
+
+For an evaluation, the controller and probe can run on the same Linux machine. A probe on another machine or network provides a more useful monitoring viewpoint.
+
+## 1. Download Netstamp
+
+Create a directory and download the deployment files attached to the latest Netstamp release:
+
+```bash
+mkdir netstamp
+cd netstamp
+curl -fsSLO https://github.com/yorukot/netstamp/releases/latest/download/compose.yaml
+curl -fsSLO https://github.com/yorukot/netstamp/releases/latest/download/.env.example
+cp .env.example .env
+chmod 600 .env
+```
+
+## 2. Configure the required secrets
+
+Generate five independent values:
+
+```bash
+openssl rand -hex 32
+openssl rand -hex 32
+openssl rand -hex 32
+openssl rand -hex 32
+openssl rand -hex 32
+```
+
+Open `.env` and put a different generated value in each required field:
+
+```dotenv
+DATABASE_PASSWORD=<random value>
+LOG_PSEUDONYM_KEY=<random value>
+SYSTEM_SETTINGS_ENCRYPTION_KEY=<random value>
+AUTH_SESSION_HASH_KEY=<random value>
+AUTH_API_TOKEN_HASH_KEY=<random value>
+```
+
+Keep these values stable across restarts and upgrades. Changing them can invalidate credentials or make encrypted settings unreadable.
+
+## 3. Start Netstamp
+
+Pull the images and start the stack:
+
+```bash
+docker compose pull
+docker compose up -d
+docker compose ps
+```
+
+The expected state is:
+
+- `postgres` is healthy;
+- `migrate` exited with status `0`; and
+- `netstamp` is running.
+
+Verify the application and API health endpoints:
+
+```bash
+curl --fail http://localhost:3000/healthz
+curl --fail http://localhost:3000/api/v1/healthz
+```
+
+Both commands should complete successfully. If a service is not ready, inspect it with `docker compose logs <service>`.
+
+## 4. Create the first account and project
+
+[Open Netstamp](http://localhost:3000) in a browser, then:
+
+1. Select **Sign up** and create an account.
+2. Enter a name for your first project, such as `Home Lab`.
+3. Select **Create project**.
+
+The first account registered on a new installation automatically becomes a system administrator. Netstamp generates a URL-safe project slug from the project name.
+
+## 5. Install a probe
+
+1. Open **Probes** and select **New probe**.
+2. Enter a stable name, such as `taipei-home-01`.
+3. Search for its location, or select **Manual coordinates** and enter latitude and longitude.
+4. Select **Continue to install**.
+5. Copy the generated install command and run it on the Linux probe host.
+6. Wait for the wizard to show **Heartbeat received**, then select **Finish**.
+
+The command downloads the correct amd64 or arm64 agent from your controller, stores the probe credential in a root-owned environment file, and installs a systemd service.
+
+:::warning The probe secret is shown only when the probe is created or its secret is rotated. Treat it like a password. If it is exposed, rotate it from the probe detail view and reinstall the service credential. :::
+
+## 6. Create a check
+
+1. Open **Checks** and select **New check**.
+2. Enter `cloudflare-dns` for the check name.
+3. Enter `1.1.1.1` for the target.
+4. Select **Ping** and set the interval to `30s`.
+5. Leave **Probe selector** set to **All probes**.
+6. Select **Create check**.
+
+Netstamp assigns the check to every enabled probe that matches the selector. The new probe receives the assignment on its next refresh.
+
+## 7. Verify the first result
+
+Open **Insight**, select the `cloudflare-dns` check and your probe, then wait for the first interval to complete. A successful Ping result shows latency and packet-loss measurements from that probe's network viewpoint.
+
+If the probe network blocks outbound ICMP, the result can report a timeout or error. That result still confirms that the assignment and reporting path are working; use another reachable IP address if you need a successful Ping measurement.
+
+You now have a working Netstamp installation that collects measurements from a probe you control.
+
+## Next steps
+
+- Learn how controllers, projects, probes, checks, and assignments relate in [Core concepts](/docs/getting-started/core-concepts/).
+- Prepare a persistent, publicly reachable deployment with the [Installation overview](/docs/installation/).
+- Explore every supported check type in [Checks](/docs/guides/checks/).
+- Add incident detection and delivery in [Alerts and incidents](/docs/guides/alerts-and-incidents/).

@@ -1,0 +1,109 @@
+---
+title: 備份與還原
+description: 備份 Netstamp 資料並還原安裝環境。
+icon: database
+navSection: install
+navOrder: 60
+---
+
+Netstamp 將需要長期保存的應用程式狀態存放在 PostgreSQL。災難復原應使用 PostgreSQL 備份，並保留解讀加密設定與既有憑證所需的同一組部署密鑰。
+
+## 需要保留的資料
+
+將下列項目一起保存在受保護的儲存空間：
+
+- PostgreSQL Custom Format Dump。
+- Compose 檔案與固定的 Image 版本。
+- 加密保存的 `.env` 副本。
+- 還原相同公開來源所需的反向代理與 DNS 設定。
+- 書面還原程序與最近一次還原測試結果。
+
+資料庫密碼、`SYSTEM_SETTINGS_ENCRYPTION_KEY`、`AUTH_SESSION_HASH_KEY` 與 `AUTH_API_TOKEN_HASH_KEY` 都必須保留。缺少設定加密 Key 時，已保存的 SMTP 與身分供應商密鑰可能無法讀取；使用不同 Hash Key 則會使既有工作階段或 API 權杖失效。
+
+## 建立資料庫備份
+
+```bash
+backup_file="netstamp-$(date -u +%Y%m%dT%H%M%SZ).dump"
+docker compose exec -T postgres \
+  pg_dump -U netstamp -d netstamp --format=custom > "$backup_file"
+pg_restore --list "$backup_file" >/dev/null
+```
+
+將 Dump 移到 Docker 主機以外的儲存空間。列出 Archive 內容只能驗證結構；實際還原測試才能證明復原流程可用。
+
+## 還原備份
+
+盡可能先還原到拋棄式環境。若要原地還原：
+
+```bash
+docker compose stop netstamp
+docker compose exec -T postgres \
+  pg_restore -U netstamp -d netstamp --clean --if-exists --no-owner < netstamp-backup.dump
+docker compose run --rm migrate
+docker compose up -d netstamp
+```
+
+接著驗證部署：
+
+```bash
+docker compose ps
+curl --fail http://127.0.0.1:3000/api/v1/healthz
+```
+
+另外確認登入、一次結果查詢、一筆探測器心跳、通知傳送，以及一個公開狀態頁面。
+
+## 升級前先備份
+
+變更應用程式或資料庫版本以前：
+
+1. 記錄 `NETSTAMP_VERSION` 與 `TIMESCALEDB_IMAGE`。
+2. 閱讀目標版本的 Release Notes。
+3. 建立並檢查最新 Dump。
+4. 停止所有使用該資料庫的控制器。
+5. 在執行 Netstamp Migration 前升級 PostgreSQL 與 TimescaleDB。
+
+檢查已安裝的 TimescaleDB Extension 版本：
+
+```sql
+SELECT extversion
+FROM pg_extension
+WHERE extname = 'timescaledb';
+```
+
+只更換 Container Image 不會自動更新既有資料庫中的 Extension。
+
+標準 Compose 部署可使用：
+
+```bash
+docker compose stop netstamp
+docker compose pull postgres
+docker compose up -d postgres
+docker compose exec -T postgres \
+  psql -X -U netstamp -d netstamp -c 'ALTER EXTENSION timescaledb UPDATE;'
+docker compose pull
+docker compose up -d
+docker compose ps
+docker compose logs migrate
+docker compose logs --tail=200 netstamp
+```
+
+Migration Container 必須成功結束後，控制器才能啟動。維護期間不要讓新舊控制器版本同時存取資料庫。
+
+:::warning 把 Image Tag 切回舊版本不會反向執行資料庫 Migration。只有目標版本明確支援 Schema Downgrade 時才使用文件中的降版流程；其他情況請還原升級前備份。:::
+
+## 管理員 JSON 匯出
+
+系統管理員可以從**系統管理 → 資料**匯出與匯入 Netstamp JSON 資料包。這適合應用層可攜性與受控的管理工作流程。
+
+它無法取代 PostgreSQL 備份，因為不會保留 Database Extension、Ownership、資料庫層中繼資料或精確的時間點復原邊界。
+
+## 保護資料庫 Volume
+
+以下指令的效果不同：
+
+```bash
+docker compose down        # removes containers and network; keeps the database volume
+docker compose down -v     # also deletes the database volume
+```
+
+日常停止、重新啟動、升級或排錯程序都不要加入 `-v`。

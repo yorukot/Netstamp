@@ -1,0 +1,67 @@
+---
+title: Alerts and incidents
+description: Create alert rules and investigate the resulting incidents.
+icon: activity
+navSection: use
+navOrder: 60
+---
+
+import ProductScreenshot from "@/components/docs/ProductScreenshot.astro";
+import incidentsScreenshot from "@/assets/homepage-highlights/incidents.webp";
+import tlsCertificatesScreenshot from "@/assets/homepage-highlights/tls-certificates.webp";
+
+Alert rules turn measurements into actionable incidents. A rule watches one check metric, evaluates it over a window, and opens an incident only after the condition remains true for the configured trigger duration.
+
+## Supported metrics
+
+Available metrics depend on the check type:
+
+| Check type | Common alert signals                                                                    |
+| ---------- | --------------------------------------------------------------------------------------- |
+| Ping       | Reachability, packet loss, and latency                                                  |
+| TCP        | Connection success and latency                                                          |
+| HTTP       | Availability, status validation, latency, body validation, and TLS certificate lifetime |
+
+Traceroute results are intended for investigation and do not currently provide alert-rule metrics.
+
+<ProductScreenshot src={tlsCertificatesScreenshot} alt="TLS certificate monitoring in Netstamp" caption="HTTP checks can surface certificate validity and remaining lifetime for alerting." />
+
+## Create an alert rule
+
+1. Open **Alerts** in the project.
+2. Choose **Create rule**.
+3. Select a check and metric.
+4. Choose an operator and threshold.
+5. Set the evaluation window, minimum sample count, and trigger duration.
+6. Choose a severity and notification destinations.
+7. Save and enable the rule.
+
+The evaluation window determines which recent samples are considered. The minimum sample count prevents decisions based on too little data. The trigger duration reduces noise by requiring the condition to stay true before Netstamp opens an incident.
+
+Start with conservative thresholds based on observed baseline data, then tune them after reviewing real incidents.
+
+## Firing, clearing, and missing data
+
+When an enabled rule has enough samples and its condition remains true for the trigger duration, it enters the firing state and creates or updates an incident.
+
+When the condition no longer holds, Netstamp clears the firing state and resolves the incident. If there are not enough recent samples, the rule cannot make a reliable decision. Investigate assignment or probe connectivity instead of treating missing data as a healthy result.
+
+## Investigate an incident
+
+<ProductScreenshot src={incidentsScreenshot} alt="Incident history in Netstamp" caption="Incidents preserve the check, severity, timing, and lifecycle of an alert." />
+
+When an incident opens:
+
+1. Confirm the affected project, check, metric, and probes.
+2. Inspect the corresponding [results and Insight views](/docs/guides/results-and-insight/).
+3. Compare the start time with deployments or network changes.
+4. Determine whether the problem is target-wide or isolated to specific probes.
+5. Verify recovery after the rule clears.
+
+The incident record remains available after resolution so it can support post-incident review.
+
+## Tune safely
+
+Avoid changing several threshold settings during an active incident unless the rule itself is clearly wrong. After recovery, compare the incident against historical data, adjust one dimension at a time, and verify that the new rule still detects the failure you care about.
+
+Use [Notifications](/docs/guides/notifications/) to configure and test the destinations attached to alert rules.

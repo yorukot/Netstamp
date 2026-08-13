@@ -1,0 +1,52 @@
+---
+title: Account settings
+description: Manage profile, sessions, identities, passwords, and personal API tokens.
+icon: users
+navSection: use
+navOrder: 90
+---
+
+Account settings control your identity and credentials across the Netstamp instance. They are separate from project membership and system-administrator permissions.
+
+## Profile and email
+
+Update your display name and profile information from account settings. Your email address identifies the account for sign-in, invitations, and verification workflows.
+
+If email verification is required, follow the verification link delivered by the instance. A changed or unverified address may affect password recovery and project invitations.
+
+## Password
+
+Accounts that support password authentication can change their password from the security settings. Use a unique password and store it in a password manager.
+
+An account created exclusively through an external identity provider may not have a local password until the instance allows one to be set.
+
+## Linked identities
+
+Netstamp can link supported external identities, including generic OIDC, Google, and GitHub, to an existing account. Link an identity while signed in to the intended Netstamp account so a provider login returns to the same account.
+
+Before unlinking an identity, confirm that another sign-in method works. Netstamp protects against removing the last usable authentication method.
+
+## Sessions
+
+The sessions view lists active sign-ins and recent authentication context. Revoke sessions you no longer recognize or use.
+
+By default, a session expires after 24 hours of inactivity and never lasts longer than 7 days. Administrators can change both limits for the whole instance.
+
+After a suspected credential leak, change or rotate the affected credential and revoke other sessions.
+
+## Personal API tokens
+
+Personal API tokens let scripts call the Netstamp API as your account. When creating a token:
+
+1. Give it a purpose-specific name.
+2. Select only the scopes the integration requires; your current project roles still apply.
+3. Choose the shortest practical expiration.
+4. Copy the token immediately and store it in a secret manager.
+
+The full token is shown only at creation time. Revoke unused or exposed tokens; do not embed them in source code or images.
+
+## Deactivate the account
+
+Before deactivation, transfer project ownership and automation credentials that depend on the account. Netstamp will not allow a change that leaves a project without an owner or the instance without a required administrator.
+
+For instance-wide user recovery or access policy, see [System administration](/docs/guides/system-administration/).

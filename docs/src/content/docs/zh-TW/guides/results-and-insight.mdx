@@ -1,0 +1,64 @@
+---
+title: 結果與分析
+description: 探索量測資料、時間序列、憑證與網路路徑。
+icon: map
+navSection: use
+navOrder: 50
+---
+
+import ProductScreenshot from "@/components/docs/ProductScreenshot.astro";
+import httpUptimeScreenshot from "@/assets/homepage-highlights/http-uptime.webp";
+import traceroutePathsScreenshot from "@/assets/homepage-highlights/traceroute-paths.webp";
+
+Netstamp 保存每筆探測器量測，並將結果整理為健康摘要與時間序列檢視。需要快速瀏覽時使用專案總覽；需要深入調查時使用**分析**。
+
+## 先確認範圍
+
+解讀圖表以前，先確認：
+
+- 目前選取的專案。
+- 檢查與時間範圍。
+- 檢視中包含哪些探測器。
+- 該時段是否重疊部署、網路變更或維護時段。
+
+不同探測器可能對同一目標回報不同結果。這項差異通常最有價值，因為能區分整體目標中斷與特定區域或網路的問題。
+
+## Ping 結果
+
+Ping 檢視會顯示可達性、封包遺失與往返時間。請留意：
+
+- 多個探測器同時遺失，可能是目標端中斷。
+- 遺失或延遲只發生在單一探測器，可能是本地路徑或探測器問題。
+- 持續性的延遲變化，而非單次尖峰。
+
+## TCP 結果
+
+TCP 結果顯示連線是否成功，以及建立連線所需時間。把 TCP 與 Ping 放在一起比較，可以區分基本可達性與服務連接埠可用性。
+
+例如 Ping 成功但 TCP 失敗，可能代表連接埠關閉、防火牆規則、Listener 故障或服務資源耗盡。
+
+## HTTP 結果
+
+HTTP 檢視將可用性與應用層證據結合，包括狀態驗證、回應時間、各請求階段耗時、Body 比對結果，以及 HTTPS 使用時的 TLS 憑證資料。
+
+<ProductScreenshot src={httpUptimeScreenshot} alt="Netstamp 中的 HTTP 上線率與延遲趨勢" caption="比較不同探測器與時間範圍的可用性和延遲。" />
+
+各階段耗時可以協助縮小慢速請求的問題範圍。DNS 增加指向名稱解析；連線或 TLS 增加指向網路或握手；Time to First Byte 則常指向上游應用程式。
+
+憑證資料可協助發現即將到期與非預期的憑證變更。若路徑經過 Proxy 或私有 CA，請把它視為從該探測器網路位置觀察到的證據。
+
+## Traceroute 結果
+
+Traceroute 檢視會顯示每個探測器到目標的觀察路徑。
+
+<ProductScreenshot src={traceroutePathsScreenshot} alt="Netstamp 中的 Traceroute 路徑比較" caption="比較不同探測器的網路路徑，並檢查事件前後的變化。" />
+
+星號或缺少中間躍點可能表示路由器不回應 Traceroute 流量，不一定能證明受監控服務發生封包遺失。請聚焦可重複出現的路徑變化，並與 Ping、TCP 或 HTTP 行為一起判讀。
+
+## 選擇有用的時間範圍
+
+短時間範圍適合檢查進行中的事件；較長範圍則適合建立基準。聚合資料點適合觀察趨勢，原始或高精度資料點則適合確認事件時間。
+
+分享調查結果時，請記錄專案、檢查、探測器、時間範圍與時區，讓其他人能重現相同檢視。
+
+若證據符合可重複的門檻，請建立[警示規則](/zh-TW/docs/guides/alerts-and-incidents/)，不要只依賴人工檢查圖表。

@@ -1,0 +1,67 @@
+---
+title: 警示與事件
+description: 建立警示規則，並調查產生的事件。
+icon: activity
+navSection: use
+navOrder: 60
+---
+
+import ProductScreenshot from "@/components/docs/ProductScreenshot.astro";
+import incidentsScreenshot from "@/assets/homepage-highlights/incidents.webp";
+import tlsCertificatesScreenshot from "@/assets/homepage-highlights/tls-certificates.webp";
+
+警示規則會把量測轉換為可處理的事件。規則監看一個檢查指標，在指定時間窗評估，並只在條件持續達到觸發時間後開啟事件。
+
+## 支援的指標
+
+可用指標依檢查類型而定：
+
+| 檢查類型 | 常見警示訊號                                         |
+| -------- | ---------------------------------------------------- |
+| Ping     | 可達性、封包遺失與延遲                               |
+| TCP      | 連線成功與延遲                                       |
+| HTTP     | 可用性、狀態驗證、延遲、Body 驗證與 TLS 憑證剩餘時間 |
+
+Traceroute 結果用於調查，目前不提供警示規則指標。
+
+<ProductScreenshot src={tlsCertificatesScreenshot} alt="Netstamp 中的 TLS 憑證監控" caption="HTTP 檢查可顯示憑證有效性與剩餘時間，並用於警示。" />
+
+## 建立警示規則
+
+1. 開啟專案中的**警示**。
+2. 選擇**建立規則**。
+3. 選擇檢查與指標。
+4. 選擇運算子與門檻。
+5. 設定評估時間窗、最少樣本數與觸發時間。
+6. 選擇嚴重程度與通知目的地。
+7. 儲存並啟用規則。
+
+評估時間窗決定考慮哪些近期樣本；最少樣本數可避免用過少資料做決定；觸發時間則要求條件維持一段時間才開啟事件，降低雜訊。
+
+先根據觀察到的基準使用保守門檻，再依實際事件調整。
+
+## 觸發、恢復與缺少資料
+
+已啟用的規則在樣本足夠，且條件持續達到觸發時間後會進入 Firing 狀態，並建立或更新事件。
+
+條件不再成立時，Netstamp 會清除 Firing 狀態並解決事件。若近期樣本不足，規則無法做出可靠判斷。此時應調查指派或探測器連線，而不是把缺少資料視為健康。
+
+## 調查事件
+
+<ProductScreenshot src={incidentsScreenshot} alt="Netstamp 中的事件歷史" caption="事件會保留警示的檢查、嚴重程度、時間與生命週期。" />
+
+事件開啟時：
+
+1. 確認受影響的專案、檢查、指標與探測器。
+2. 檢查相對應的[結果與分析](/zh-TW/docs/guides/results-and-insight/)。
+3. 比較開始時間與部署或網路變更。
+4. 判斷問題影響整體目標，還是只出現在特定探測器。
+5. 規則恢復後確認服務確實復原。
+
+事件解決後仍會保留紀錄，可供事後檢討。
+
+## 安全調整規則
+
+除非規則明顯錯誤，否則不要在進行中的事件裡同時調整多個門檻。恢復後，將事件與歷史資料比較，一次調整一個維度，並確認新規則仍能偵測你關心的故障。
+
+請使用[通知](/zh-TW/docs/guides/notifications/)設定與測試警示規則使用的目的地。

@@ -1,0 +1,89 @@
+---
+title: Core concepts
+description: Understand the core resources and relationships that make up Netstamp.
+icon: book
+navSection: start
+navOrder: 20
+---
+
+Netstamp separates monitoring configuration from monitoring execution. The controller stores what to monitor, while probes run checks from the networks you care about.
+
+This page introduces the resources you will use throughout the product.
+
+## Controller
+
+The controller is the central Netstamp service. It serves the web application and API, authenticates users and probes, stores configuration and measurements, calculates assignments, evaluates alert rules, sends notifications, and publishes status pages.
+
+The controller does not run network checks itself. That work belongs to probes.
+
+## Projects
+
+A project is the main collaboration and authorization boundary. It contains probes, checks, alert rules, notification destinations, incidents, and status pages.
+
+Project roles determine what a member can do inside that project. System administration is a separate permission plane: being a system administrator does not automatically make someone a member of every project.
+
+## Probes
+
+A probe is a lightweight agent installed on a Linux host. Each probe:
+
+- Authenticates with its own probe ID and secret.
+- Sends heartbeats and metadata to the controller.
+- Polls for its current check assignments.
+- Runs Ping, TCP, HTTP, and Traceroute checks.
+- Buffers and submits results to the controller.
+
+Place probes in the networks or regions from which you want to observe a target. For example, you might run one probe in a data center, one in an office, and one in a cloud region.
+
+## Checks
+
+A check describes what Netstamp should measure.
+
+| Check type | Typical question                       | Example result data                                   |
+| ---------- | -------------------------------------- | ----------------------------------------------------- |
+| Ping       | Can the probe reach this host?         | Packet loss and round-trip time                       |
+| TCP        | Can the probe open this port?          | Connection success and latency                        |
+| HTTP       | Is this web endpoint healthy?          | Status, timings, body match, and TLS certificate data |
+| Traceroute | Which network path reaches the target? | Hops, addresses, and per-hop latency                  |
+
+Checks also define an interval, timeout, enabled state, and a probe selector.
+
+## Labels, selectors, and assignments
+
+Labels are key-value metadata attached to probes, such as `region=tw`, `network=office`, or `provider=aws`. A check selector chooses probes by those labels.
+
+Netstamp continuously combines the check selector with the labels of enabled probes:
+
+```text
+check selector + enabled probe labels -> effective assignment -> probe execution -> result
+```
+
+An empty selector matches every enabled probe in the project. When probe labels, check selectors, or enabled states change, the controller refreshes the effective assignments automatically.
+
+## Results and Insight
+
+Every probe submits measurements independently. Netstamp keeps those raw results and builds time-series views that help you compare probes, spot outages, inspect HTTP timings and certificates, and analyze traceroute paths.
+
+Use the project overview for a quick health summary and **Insight** for deeper investigation.
+
+## Alert rules and incidents
+
+An alert rule evaluates a metric from a check over a configured window. If the condition remains true for the trigger duration, Netstamp opens an incident and sends the rule's notifications.
+
+When the condition clears, the incident is resolved. The incident timeline preserves the operational history even after recovery.
+
+## Status pages
+
+A status page publishes a selected subset of project health data at `/status/<slug>`. It is intentionally separate from the authenticated project workspace, so only checks explicitly added to a status page become public.
+
+## How the pieces fit together
+
+1. A member creates a project and registers probes.
+2. Probes report their labels and availability.
+3. A member creates checks with selectors.
+4. The controller calculates assignments.
+5. Probes execute checks and submit results.
+6. Alert rules evaluate those results and create incidents.
+7. Notification destinations deliver incident updates.
+8. Status pages expose the health data selected for public viewing.
+
+Next, [install Netstamp](/docs/installation/) or continue with the [task-oriented guides](/docs/guides/).

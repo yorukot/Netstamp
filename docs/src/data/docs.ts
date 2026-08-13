@@ -2,7 +2,7 @@ import { getCollection, type CollectionEntry } from "astro:content";
 import { localeFromAstro, pathForLocale, uiForLocale } from "../i18n/ui";
 
 export type DocIcon = "activity" | "api" | "bolt" | "book" | "code" | "codeBlock" | "compass" | "cube" | "database" | "deployment" | "key" | "map" | "route" | "server" | "shield" | "users" | "wrench";
-export const docSectionKeys = ["start", "install", "use", "operate", "api", "development", "community"] as const;
+export const docSectionKeys = ["start", "install", "use", "operate"] as const;
 export type DocSectionKey = (typeof docSectionKeys)[number];
 
 export interface DocNavItem {
@@ -70,14 +70,12 @@ const searchContentFromSource = (source: string) =>
 		.toLowerCase();
 
 const entryLocale = (entry: DocsEntry) => (entry.id.toLowerCase() === "zh-tw" || entry.id.toLowerCase().startsWith("zh-tw/") ? "zh-TW" : "en");
-const contentIdFromEntry = (entry: DocsEntry) => {
-	if (entry.id.toLowerCase() === "en" || entry.id.toLowerCase() === "zh-tw") return "index";
-	return entry.id
+const contentIdFromEntry = (entry: DocsEntry) =>
+	entry.id
 		.replace(/^(en|zh-tw)\//i, "")
 		.replace(/\.mdx$/, "")
 		.replace(/\/index$/, "");
-};
-const routeFromContentId = (contentId: string, locale: string | undefined) => pathForLocale(contentId === "index" ? "/docs/" : `/docs/${contentId}/`, locale);
+const routeFromContentId = (contentId: string, locale: string | undefined) => pathForLocale(`/docs/${contentId}/`, locale);
 
 const sectionKeyFromEntry = (entry: DocsEntry): DocSectionKey => {
 	if (entry.data.navSection) return entry.data.navSection;
@@ -95,7 +93,6 @@ const editPathFromEntry = (entry: DocsEntry) => {
 const iconFromEntry = (entry: DocsEntry, contentId: string): DocIcon => {
 	const value = entry.data.icon;
 	if (value && docIconNames.has(value as DocIcon)) return value as DocIcon;
-	if (contentId === "index") return "compass";
 	if (contentId.startsWith("guides/")) return "bolt";
 	if (contentId.includes("api")) return "api";
 	if (contentId.includes("config")) return "wrench";

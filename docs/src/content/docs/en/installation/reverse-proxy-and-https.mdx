@@ -1,0 +1,105 @@
+---
+title: Reverse proxy and HTTPS
+description: Publish Netstamp securely behind a reverse proxy with HTTPS.
+icon: shield
+navSection: install
+navOrder: 30
+---
+
+A production Netstamp instance should have one stable HTTPS origin. Terminate TLS at a reverse proxy and forward the complete origin to the controller.
+
+## Set the public origin
+
+Configure these values before exposing the service:
+
+```dotenv
+APP_ENV=production
+PUBLIC_BASE_URL=https://netstamp.example.com
+NETSTAMP_VERSION=<tested tag or digest>
+```
+
+`PUBLIC_BASE_URL` is the single origin used for OAuth and OIDC callbacks, email and browser links, OpenAPI, notifications, and controller-served probe installers. It must contain only the HTTPS scheme and host, with no path, query, fragment, or credentials.
+
+With `APP_ENV=production`, session cookies use the `__Host-` prefix together with `Secure`, `HttpOnly`, `SameSite=Strict`, and `Path=/`. Users must access the application over HTTPS.
+
+## Forward required headers
+
+Preserve these headers through the reverse proxy:
+
+- `Host`
+- `X-Forwarded-Proto`
+- `X-Forwarded-For`
+- `X-Real-IP` when the proxy provides it
+- `Authorization`
+
+An Nginx server block can look like this:
+
+```nginx
+server {
+    listen 443 ssl http2;
+    server_name netstamp.example.com;
+
+    ssl_certificate /etc/letsencrypt/live/netstamp.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/netstamp.example.com/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Authorization $http_authorization;
+    }
+}
+```
+
+Redirect plain HTTP to the same HTTPS origin.
+
+## Limit direct controller access
+
+When the reverse proxy runs on the same host, bind the Compose port to loopback:
+
+```yaml
+services:
+  netstamp:
+    ports:
+      - "127.0.0.1:3000:8080"
+```
+
+If Netstamp must trust client addresses supplied by the proxy, set `HTTP_TRUSTED_PROXIES` to the proxy's exact address or CIDR prefixes, separated by commas. Do not trust all addresses unless the controller port is unreachable from untrusted networks.
+
+## Network direction
+
+The controller needs:
+
+- Inbound HTTPS from browsers, API clients, and probes.
+- Outbound access to configured OAuth/OIDC providers and notification endpoints.
+- Outbound SMTP access when email is enabled.
+- Database access to PostgreSQL.
+
+Probes initiate outbound HTTPS connections to the controller. The controller does not need inbound access to probe hosts.
+
+## Verify the public deployment
+
+```bash
+curl --fail https://netstamp.example.com/healthz
+curl --fail https://netstamp.example.com/api/v1/healthz
+curl --fail https://netstamp.example.com/api/v1/openapi.json >/dev/null
+curl --fail https://netstamp.example.com/api/v1/install/agent.sh >/dev/null
+```
+
+Also verify that HTTP redirects to HTTPS, the certificate chain is valid, sign-in sets secure cookies, and a disposable probe can reach the public origin.
+
+## Production checklist
+
+- [ ] `APP_ENV=production` is set.
+- [ ] `PUBLIC_BASE_URL` exactly matches the public HTTPS origin.
+- [ ] Every development secret has been replaced independently.
+- [ ] Netstamp and TimescaleDB image versions are pinned.
+- [ ] The database and controller ports are not publicly exposed.
+- [ ] Trusted proxy ranges are no broader than necessary.
+- [ ] Both health endpoints are monitored.
+- [ ] A database backup has been restored successfully in a test environment.
+
+Continue with [Authentication and email](/docs/installation/authentication-and-email/) before opening account creation broadly.

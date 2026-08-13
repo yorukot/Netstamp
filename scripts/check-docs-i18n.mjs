@@ -18,21 +18,36 @@ const assertEqual = (actual, expected, label) => {
 };
 const docsNavHrefs = html => Array.from(html.matchAll(/<a href="([^"]+)" class="docsNavItem(?: active)?"/g), match => match[1]);
 const activeDocsNavHrefs = html => Array.from(html.matchAll(/<a href="([^"]+)" class="docsNavItem active" aria-current="page"/g), match => match[1]);
-const docsSectionLabels = html => Array.from(html.matchAll(/<h2 class="docsNavSectionTitle"[^>]*>([^<]+)<\/h2>/g), match => match[1]).filter(label => !["External links", "外部連結"].includes(label));
-const sectionMarkup = (html, label) => {
-	const headingIndex = html.indexOf(`>${label}</h2>`);
-	if (headingIndex < 0) throw new Error(`Documentation navigation does not include section ${JSON.stringify(label)}`);
-
-	const sectionStart = html.lastIndexOf("<section", headingIndex);
-	const sectionEnd = html.indexOf("</section>", headingIndex);
-	if (sectionStart < 0 || sectionEnd < 0) throw new Error(`Could not isolate documentation section ${JSON.stringify(label)}`);
-
-	return html.slice(sectionStart, sectionEnd);
-};
-
-const expectedSectionKeys = ["start", "install", "use", "operate", "api", "development", "community"];
-const expectedEnglishSections = ["Getting Started", "Installation", "Using Netstamp", "Operations", "API", "Development", "Community"];
-const expectedTraditionalChineseSections = ["開始使用", "安裝", "使用 Netstamp", "維運", "API", "開發", "社群"];
+const docsSectionLabels = html =>
+	Array.from(html.matchAll(/<h2 class="docsNavSectionTitle"[^>]*>([^<]+)<\/h2>/g), match => match[1].replaceAll("&amp;", "&")).filter(label => !["External links", "外部連結"].includes(label));
+const expectedSectionKeys = ["start", "install", "use", "operate"];
+const expectedEnglishSections = ["Getting Started", "Installation", "Using Netstamp", "Operations"];
+const expectedTraditionalChineseSections = ["開始使用", "安裝", "使用 Netstamp", "維運"];
+const expectedDocRoutes = [
+	"docs/getting-started/quick-start",
+	"docs/getting-started/core-concepts",
+	"docs/installation",
+	"docs/installation/docker-compose",
+	"docs/installation/configuration",
+	"docs/installation/reverse-proxy-and-https",
+	"docs/installation/authentication-and-email",
+	"docs/installation/backup-and-restore",
+	"docs/guides",
+	"docs/guides/projects-and-members",
+	"docs/guides/probes",
+	"docs/guides/labels-and-assignments",
+	"docs/guides/checks",
+	"docs/guides/results-and-insight",
+	"docs/guides/alerts-and-incidents",
+	"docs/guides/notifications",
+	"docs/guides/status-pages",
+	"docs/guides/account-settings",
+	"docs/guides/system-administration",
+	"docs/operations",
+	"docs/operations/probe-agent",
+	"docs/operations/security"
+];
+const expectedNavHrefs = expectedDocRoutes.map(route => `/${route}/`);
 const englishUi = JSON.parse(await readFile(path.join(process.cwd(), "docs/src/i18n/locales/en/ui.json"), "utf8"));
 const traditionalChineseUi = JSON.parse(await readFile(path.join(process.cwd(), "docs/src/i18n/locales/zh-TW/ui.json"), "utf8"));
 
@@ -41,92 +56,84 @@ assertEqual(Object.values(englishUi.docs.sections), expectedEnglishSections, "En
 assertEqual(Object.keys(traditionalChineseUi.docs.sections), expectedSectionKeys, "Traditional Chinese documentation section keys");
 assertEqual(Object.values(traditionalChineseUi.docs.sections), expectedTraditionalChineseSections, "Traditional Chinese documentation section labels");
 
-const englishHome = await readPage("");
-const traditionalChineseHome = await readPage("zh-TW");
-const englishNotFound = await readFile(path.join(dist, "404.html"), "utf8");
-const traditionalChineseNotFound = await readPage("zh-TW/404.html");
-const englishGuide = await readPage("docs/guides/getting-started");
-const traditionalChineseGuide = await readPage("zh-TW/docs/guides/getting-started");
-const traditionalChineseOpenApi = await readPage("zh-TW/openapi");
-const englishDocsHome = await readPage("docs");
-const traditionalChineseDocsHome = await readPage("zh-TW/docs");
-const englishProduction = await readPage("docs/install/production");
-const traditionalChineseProduction = await readPage("zh-TW/docs/install/production");
-const englishDeploymentMarkdown = await readFile(path.join(dist, "docs/reference/deployment.md"), "utf8");
-const traditionalChineseDeploymentMarkdown = await readFile(path.join(dist, "zh-TW/docs/reference/deployment.md"), "utf8");
+const [
+	englishHome,
+	traditionalChineseHome,
+	englishNotFound,
+	traditionalChineseNotFound,
+	traditionalChineseOpenApi,
+	englishDocsRedirect,
+	traditionalChineseDocsRedirect,
+	englishQuickStart,
+	traditionalChineseQuickStart,
+	englishInstallation,
+	englishProbes,
+	sitemap
+] = await Promise.all([
+	readPage(""),
+	readPage("zh-TW"),
+	readFile(path.join(dist, "404.html"), "utf8"),
+	readPage("zh-TW/404.html"),
+	readPage("zh-TW/openapi"),
+	readPage("docs"),
+	readPage("zh-TW/docs"),
+	readPage("docs/getting-started/quick-start"),
+	readPage("zh-TW/docs/getting-started/quick-start"),
+	readPage("docs/installation"),
+	readPage("docs/guides/probes"),
+	readFile(path.join(dist, "sitemap.xml"), "utf8")
+]);
 
-const existingDocRoutes = [
-	"docs",
-	"docs/guides/api-explorer",
-	"docs/guides/api-tokens",
-	"docs/guides/getting-started",
-	"docs/guides/probe-operations",
-	"docs/guides/translating",
-	"docs/reference/architecture",
-	"docs/reference/configuration",
-	"docs/reference/deployment",
-	"docs/reference/ui-system"
-];
+await Promise.all(expectedDocRoutes.flatMap(route => [readPage(route), readPage(`zh-TW/${route}`)]));
 
-await Promise.all(existingDocRoutes.flatMap(route => [readPage(route), readPage(`zh-TW/${route}`)]));
+const englishNavHrefs = docsNavHrefs(englishQuickStart);
+const traditionalChineseNavHrefs = docsNavHrefs(traditionalChineseQuickStart).map(href => href.replace(/^\/zh-TW/, ""));
+assertEqual(englishNavHrefs, expectedNavHrefs, "English documentation navigation order");
+assertEqual(traditionalChineseNavHrefs, expectedNavHrefs, "Traditional Chinese documentation navigation order");
+assertExcludes(englishQuickStart, "--nav-depth", "English documentation navigation hierarchy");
+assertExcludes(traditionalChineseQuickStart, "--nav-depth", "Traditional Chinese documentation navigation hierarchy");
+assertEqual(activeDocsNavHrefs(englishQuickStart), ["/docs/getting-started/quick-start/"], "English Quick Start active navigation item");
+assertEqual(activeDocsNavHrefs(traditionalChineseQuickStart), ["/zh-TW/docs/getting-started/quick-start/"], "Traditional Chinese Quick Start active navigation item");
+assertEqual(activeDocsNavHrefs(englishInstallation), ["/docs/installation/"], "English installation overview active navigation item");
+assertEqual(activeDocsNavHrefs(englishProbes), ["/docs/guides/probes/"], "English probes active navigation item");
+assertIncludes(englishQuickStart, 'data-astro-transition-persist="docs-sidebar"', "English persistent documentation sidebar");
+assertIncludes(englishQuickStart, 'data-docs-locale="en"', "English documentation sidebar locale");
+assertIncludes(traditionalChineseQuickStart, 'data-astro-transition-persist="docs-sidebar"', "Traditional Chinese persistent documentation sidebar");
+assertIncludes(traditionalChineseQuickStart, 'data-docs-locale="zh-TW"', "Traditional Chinese documentation sidebar locale");
 
-const englishNavHrefs = docsNavHrefs(englishDocsHome);
-const traditionalChineseNavHrefs = docsNavHrefs(traditionalChineseDocsHome).map(href => href.replace(/^\/zh-TW/, ""));
-assertEqual(traditionalChineseNavHrefs, englishNavHrefs, "English and Traditional Chinese documentation navigation order");
-
-assertEqual(englishNavHrefs.slice(0, 3), ["/docs/", "/docs/guides/getting-started/", "/docs/start/concepts/"], "Getting Started page order");
-assertExcludes(englishDocsHome, "--nav-depth", "English documentation navigation hierarchy");
-assertExcludes(traditionalChineseDocsHome, "--nav-depth", "Traditional Chinese documentation navigation hierarchy");
-assertEqual(activeDocsNavHrefs(englishDocsHome), ["/docs/"], "English documentation home active navigation item");
-assertEqual(activeDocsNavHrefs(traditionalChineseDocsHome), ["/zh-TW/docs/"], "Traditional Chinese documentation home active navigation item");
-assertEqual(activeDocsNavHrefs(englishProduction), ["/docs/install/production/"], "English production page active navigation item");
-assertEqual(activeDocsNavHrefs(traditionalChineseProduction), ["/zh-TW/docs/install/production/"], "Traditional Chinese production page active navigation item");
-
-const englishRenderedSections = docsSectionLabels(englishDocsHome);
-const traditionalChineseRenderedSections = docsSectionLabels(traditionalChineseDocsHome);
-assertEqual(englishRenderedSections, expectedEnglishSections, "Rendered English documentation section order");
-assertEqual(traditionalChineseRenderedSections, expectedTraditionalChineseSections, "Rendered Traditional Chinese documentation section order");
-assertIncludes(sectionMarkup(englishDocsHome, "Development"), 'href="/docs/guides/translating/"', "English Development navigation section");
-assertIncludes(sectionMarkup(traditionalChineseDocsHome, "開發"), 'href="/zh-TW/docs/guides/translating/"', "Traditional Chinese Development navigation section");
+assertEqual(docsSectionLabels(englishQuickStart), expectedEnglishSections, "Rendered English documentation section order");
+assertEqual(docsSectionLabels(traditionalChineseQuickStart), expectedTraditionalChineseSections, "Rendered Traditional Chinese documentation section order");
 
 assertIncludes(englishHome, '<html lang="en"', "/");
 assertIncludes(traditionalChineseHome, '<html lang="zh-Hant-TW"', "/zh-TW/");
-assertIncludes(traditionalChineseHome, "追蹤每一條路徑", "/zh-TW/");
 assertIncludes(englishNotFound, "Page not found - Netstamp", "/404.html");
 assertIncludes(englishNotFound, 'content="noindex,nofollow,noarchive"', "/404.html");
 assertIncludes(englishNotFound, 'href="/zh-TW/404.html"', "/404.html");
 assertIncludes(traditionalChineseNotFound, '<html lang="zh-Hant-TW"', "/zh-TW/404.html/");
 assertIncludes(traditionalChineseNotFound, "找不到頁面", "/zh-TW/404.html/");
 assertIncludes(traditionalChineseNotFound, 'href="/404.html"', "/zh-TW/404.html/");
-assertIncludes(englishGuide, "Quick start - Netstamp Docs", "/docs/guides/getting-started/");
-assertIncludes(traditionalChineseGuide, "快速開始 - Netstamp 說明文件", "/zh-TW/docs/guides/getting-started/");
-assertIncludes(traditionalChineseGuide, 'href="/docs/guides/getting-started/"', "/zh-TW/docs/guides/getting-started/");
-assertIncludes(traditionalChineseGuide, 'hreflang="en"', "/zh-TW/docs/guides/getting-started/");
-assertIncludes(traditionalChineseGuide, 'hreflang="zh-TW"', "/zh-TW/docs/guides/getting-started/");
-assertIncludes(traditionalChineseGuide, 'hreflang="x-default"', "/zh-TW/docs/guides/getting-started/");
-assertIncludes(traditionalChineseGuide, 'href="https://netstamp.dev/zh-TW/docs/guides/getting-started/"', "/zh-TW/docs/guides/getting-started/");
-assertIncludes(traditionalChineseGuide, 'href="/zh-TW/docs/reference/architecture/"', "/zh-TW/docs/guides/getting-started/");
-assertExcludes(traditionalChineseGuide, 'href="/docs/reference/architecture/"', "/zh-TW/docs/guides/getting-started/");
-assertIncludes(traditionalChineseGuide, 'data-copy-label="複製"', "/zh-TW/docs/guides/getting-started/");
-assertIncludes(traditionalChineseGuide, 'data-copied-label="已複製"', "/zh-TW/docs/guides/getting-started/");
-assertIncludes(englishDocsHome, "data-language-menu-trigger", "/docs/");
-assertIncludes(englishDocsHome, "data-language-menu-content", "/docs/");
-assertIncludes(englishDocsHome, 'href="/zh-TW/docs/"', "/docs/");
-assertIncludes(traditionalChineseDocsHome, "data-language-menu-trigger", "/zh-TW/docs/");
-assertIncludes(traditionalChineseDocsHome, 'href="/docs/"', "/zh-TW/docs/");
+assertIncludes(englishDocsRedirect, 'content="0;url=/docs/getting-started/quick-start/"', "/docs/ redirect");
+assertIncludes(englishDocsRedirect, 'href="/docs/getting-started/quick-start/"', "/docs/ redirect");
+assertIncludes(traditionalChineseDocsRedirect, 'content="0;url=/zh-TW/docs/getting-started/quick-start/"', "/zh-TW/docs/ redirect");
+assertIncludes(traditionalChineseDocsRedirect, 'href="/zh-TW/docs/getting-started/quick-start/"', "/zh-TW/docs/ redirect");
+assertIncludes(englishQuickStart, "By the end, you will have", "/docs/getting-started/quick-start/");
+assertIncludes(traditionalChineseQuickStart, "完成後，你將會有", "/zh-TW/docs/getting-started/quick-start/");
+assertExcludes(traditionalChineseQuickStart, traditionalChineseUi.docs.fallbackNotice, "/zh-TW/docs/getting-started/quick-start/");
+assertExcludes(englishQuickStart, "&quot;href&quot;:&quot;/docs/&quot;", "English documentation search index");
+assertExcludes(traditionalChineseQuickStart, "&quot;href&quot;:&quot;/zh-TW/docs/&quot;", "Traditional Chinese documentation search index");
+assertIncludes(traditionalChineseQuickStart, 'href="/docs/getting-started/quick-start/"', "/zh-TW/docs/getting-started/quick-start/");
+assertIncludes(traditionalChineseQuickStart, 'hreflang="en"', "/zh-TW/docs/getting-started/quick-start/");
+assertIncludes(traditionalChineseQuickStart, 'hreflang="zh-TW"', "/zh-TW/docs/getting-started/quick-start/");
+assertIncludes(traditionalChineseQuickStart, 'hreflang="x-default"', "/zh-TW/docs/getting-started/quick-start/");
+assertIncludes(englishQuickStart, "data-language-menu-trigger", "/docs/getting-started/quick-start/");
+assertIncludes(englishQuickStart, 'href="/zh-TW/docs/getting-started/quick-start/"', "/docs/getting-started/quick-start/");
+assertIncludes(sitemap, "<loc>https://netstamp.dev/docs/getting-started/quick-start/</loc>", "English Quick Start sitemap entry");
+assertIncludes(sitemap, "<loc>https://netstamp.dev/zh-TW/docs/getting-started/quick-start/</loc>", "Traditional Chinese Quick Start sitemap entry");
+assertExcludes(sitemap, "<loc>https://netstamp.dev/docs/</loc>", "English documentation redirect sitemap entry");
+assertExcludes(sitemap, "<loc>https://netstamp.dev/zh-TW/docs/</loc>", "Traditional Chinese documentation redirect sitemap entry");
 assertIncludes(traditionalChineseOpenApi, "正在載入 API 參考資料", "/zh-TW/openapi/");
 assertIncludes(traditionalChineseOpenApi, "資料模型", "/zh-TW/openapi/");
-assertIncludes(englishProduction, 'href="https://github.com/yorukot/Netstamp/blob/main/docs/src/content/docs/en/install/production.mdx"', "/docs/install/production/");
-assertIncludes(traditionalChineseProduction, 'href="https://crowdin.com/project/netstamp"', "/zh-TW/docs/install/production/");
-assertIncludes(englishDeploymentMarkdown, "# Docker Compose", "/docs/reference/deployment.md");
-assertIncludes(englishDeploymentMarkdown, "| Service", "/docs/reference/deployment.md");
-assertIncludes(englishDeploymentMarkdown, "```bash", "/docs/reference/deployment.md");
-assertIncludes(englishDeploymentMarkdown, "`.env`", "/docs/reference/deployment.md");
-assertIncludes(englishDeploymentMarkdown, "[Production deployment](/docs/install/production/)", "/docs/reference/deployment.md");
-assertIncludes(traditionalChineseDeploymentMarkdown, "# Docker Compose", "/zh-TW/docs/reference/deployment.md");
-assertIncludes(traditionalChineseDeploymentMarkdown, "| 服務", "/zh-TW/docs/reference/deployment.md");
-assertIncludes(traditionalChineseDeploymentMarkdown, "```bash", "/zh-TW/docs/reference/deployment.md");
-assertIncludes(traditionalChineseDeploymentMarkdown, "`.env`", "/zh-TW/docs/reference/deployment.md");
-assertIncludes(traditionalChineseDeploymentMarkdown, "[正式環境部署](/zh-TW/docs/install/production/)", "/zh-TW/docs/reference/deployment.md");
 
-console.log("Localized docs output check passed for English and Traditional Chinese IA, routes, active navigation, Markdown payloads, metadata, links, and OpenAPI UI.");
+console.log(
+	`Localized docs architecture check passed for ${expectedDocRoutes.length} English routes, their matching Traditional Chinese routes, and ${expectedSectionKeys.length} navigation sections.`
+);

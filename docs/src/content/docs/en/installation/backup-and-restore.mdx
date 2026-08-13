@@ -1,0 +1,109 @@
+---
+title: Backup and restore
+description: Back up Netstamp data and restore an installation.
+icon: database
+navSection: install
+navOrder: 60
+---
+
+Netstamp stores its durable application state in PostgreSQL. Use a PostgreSQL backup for disaster recovery, and retain the matching deployment secrets needed to interpret encrypted settings and existing credentials.
+
+## What to retain
+
+Keep these items together in protected storage:
+
+- A PostgreSQL custom-format dump.
+- The Compose file and pinned image versions.
+- An encrypted copy of `.env`.
+- Reverse-proxy and DNS configuration needed to restore the same public origin.
+- A written restore procedure and the result of the latest restore test.
+
+The database password, `SYSTEM_SETTINGS_ENCRYPTION_KEY`, `AUTH_SESSION_HASH_KEY`, and `AUTH_API_TOKEN_HASH_KEY` must remain available. Without the settings key, stored SMTP and identity-provider secrets may be unreadable. Different hash keys invalidate existing sessions or API tokens.
+
+## Create a database backup
+
+```bash
+backup_file="netstamp-$(date -u +%Y%m%dT%H%M%SZ).dump"
+docker compose exec -T postgres \
+  pg_dump -U netstamp -d netstamp --format=custom > "$backup_file"
+pg_restore --list "$backup_file" >/dev/null
+```
+
+Move the dump to storage outside the Docker host. Listing the archive verifies its structure, but only a restore test proves that the recovery path works.
+
+## Restore a backup
+
+Restore into a disposable environment first whenever possible. For an in-place restore:
+
+```bash
+docker compose stop netstamp
+docker compose exec -T postgres \
+  pg_restore -U netstamp -d netstamp --clean --if-exists --no-owner < netstamp-backup.dump
+docker compose run --rm migrate
+docker compose up -d netstamp
+```
+
+Then verify the deployment:
+
+```bash
+docker compose ps
+curl --fail http://127.0.0.1:3000/api/v1/healthz
+```
+
+Also verify sign-in, one result query, one probe heartbeat, notification delivery, and one public status page.
+
+## Back up before upgrades
+
+Before changing application or database versions:
+
+1. Record `NETSTAMP_VERSION` and `TIMESCALEDB_IMAGE`.
+2. Read the target release notes.
+3. Create and inspect a fresh dump.
+4. Stop every controller that uses the database.
+5. Upgrade PostgreSQL and TimescaleDB before running Netstamp migrations.
+
+Check the installed TimescaleDB extension version:
+
+```sql
+SELECT extversion
+FROM pg_extension
+WHERE extname = 'timescaledb';
+```
+
+The extension stored in an existing database does not update merely because the container image changes.
+
+For the standard Compose deployment:
+
+```bash
+docker compose stop netstamp
+docker compose pull postgres
+docker compose up -d postgres
+docker compose exec -T postgres \
+  psql -X -U netstamp -d netstamp -c 'ALTER EXTENSION timescaledb UPDATE;'
+docker compose pull
+docker compose up -d
+docker compose ps
+docker compose logs migrate
+docker compose logs --tail=200 netstamp
+```
+
+The migration container must exit successfully before the controller starts. Do not run old and new controller versions concurrently against the database during the maintenance window.
+
+:::warning Switching an image tag back does not reverse database migrations. Use a documented schema downgrade only when the target release explicitly supports it; otherwise restore the pre-upgrade backup. :::
+
+## Admin JSON export
+
+System administrators can export and import a Netstamp JSON data package under **Admin → Data**. It is useful for application-level portability and controlled administrative workflows.
+
+It is not a substitute for a PostgreSQL backup because it does not preserve database extensions, ownership, database-level metadata, or an exact point-in-time recovery boundary.
+
+## Protect the database volume
+
+These commands have different effects:
+
+```bash
+docker compose down        # removes containers and network; keeps the database volume
+docker compose down -v     # also deletes the database volume
+```
+
+Never add `-v` to routine stop, restart, upgrade, or troubleshooting procedures.

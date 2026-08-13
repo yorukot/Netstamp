@@ -1,0 +1,78 @@
+---
+title: Security
+description: Harden a deployment and respond to credential or access incidents.
+icon: shield
+navSection: operate
+navOrder: 40
+---
+
+Netstamp handles monitoring targets, network location, user identities, probe credentials, notification secrets, and long-lived time-series data. Treat the controller as production infrastructure.
+
+## Harden the deployment boundary
+
+- Expose only the HTTPS reverse proxy.
+- Keep PostgreSQL on a private Docker or host network.
+- Restrict controller access with appropriate firewall and identity policy.
+- Set exact trusted-proxy addresses or CIDRs.
+- Keep the host, Docker, proxy, database image, and Netstamp image patched.
+- Monitor health, resource exhaustion, certificate expiry, and backup age.
+
+## Maintain a secret inventory
+
+Protect and back up:
+
+- Database password.
+- Log pseudonym key.
+- System-settings encryption key.
+- Session and API-token hash keys.
+- OAuth and OIDC client secrets.
+- SMTP password.
+- Probe secrets.
+- Personal API tokens.
+- Webhook URLs and bot tokens.
+
+Use independent random values. Store `.env` with restrictive permissions, never commit it, and avoid passing secrets through shared shell history or logs.
+
+## Protect authentication
+
+- Bootstrap the first administrator from a trusted network.
+- Add a second administrator for recovery.
+- Disable open registration when it is unnecessary.
+- Require email verification only after SMTP is reliable.
+- Keep provider JIT provisioning off unless the provider population is an intentional trust boundary.
+- Review active sessions, linked identities, administrators, and project owners.
+- Give API tokens minimal scope and practical expiration dates.
+
+## Treat probes as trusted infrastructure
+
+Each probe receives a unique credential. Never clone `/etc/netstamp/probe.env` to another probe. Rotate a secret after a host rebuild, transfer, suspected exposure, or accidental logging. Disable probes that should temporarily stop receiving work.
+
+The systemd service limits privileges but still receives raw-network capability for ICMP. Keep the agent binary and root-owned configuration writable only by administrators.
+
+## Minimize HTTP check secrets
+
+HTTP headers, bodies, query values, and response assertions can contain credentials or sensitive data. Use purpose-built, least-privilege tokens. Do not monitor endpoints with production user credentials.
+
+Review who has editor access because members who manage checks can access sensitive check configuration.
+
+## Review public status data
+
+Status pages are unauthenticated. Review targets, probe names, locations, labels, incident text, banner URLs, footer text, and other presentation fields. Prefer coarse location names when exact topology is unnecessary.
+
+## Respond to credential exposure
+
+| Exposed value                    | Immediate action                                                     |
+| -------------------------------- | -------------------------------------------------------------------- |
+| Session                          | Revoke the affected session or all sessions                          |
+| API token                        | Create a replacement, update the consumer, then revoke the old token |
+| Probe secret                     | Rotate it and reinstall the service credential                       |
+| OAuth/OIDC secret                | Rotate it at the provider and update controller configuration        |
+| Webhook, bot, or SMTP credential | Rotate it at the destination and replace the stored value            |
+| Database password                | Restrict access and rotate database and controller values together   |
+| Hash or encryption key           | Assess invalidation and recovery impact before a controlled rotation |
+
+After containment, review logs for use of the exposed value, revoke derived access where applicable, document the affected period, and test the restored path.
+
+## Report vulnerabilities privately
+
+Do not publish exploit details, secrets, or personal data in a public issue. Follow the repository [security policy](https://github.com/yorukot/netstamp/blob/main/SECURITY.md) and use GitHub private vulnerability reporting when available.

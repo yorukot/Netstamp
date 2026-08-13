@@ -1,0 +1,56 @@
+---
+title: System administration
+description: Manage instance-wide access, users, administrators, and system settings.
+icon: shield
+navSection: use
+navOrder: 100
+---
+
+System administrators manage instance-wide access and service settings. This role is separate from project roles and does not automatically grant access to every project's monitoring data.
+
+## Bootstrap administration
+
+The first account created on a new instance becomes a system administrator. Create this account deliberately, protect it with a strong sign-in method, and add a second trusted administrator before the instance becomes operational.
+
+Netstamp prevents removal of the last system administrator.
+
+## Access policy
+
+Use the administration settings to control who can create an account and how external identities are provisioned. Depending on the deployment, registration can be open, restricted, or driven by just-in-time provisioning from an approved identity provider.
+
+For production, prefer an explicit policy and verify it with both an approved and an unapproved identity.
+
+## Authentication providers
+
+Administrators configure generic OIDC, Google, and GitHub sign-in at the instance level. Provider credentials, callback URLs, claim mapping, and allowlists affect every user who selects that method.
+
+Keep at least one tested recovery sign-in method while changing provider settings. See [Authentication and email](/docs/installation/authentication-and-email/) for deployment configuration and callback URLs.
+
+## SMTP and email behavior
+
+SMTP configuration supports email verification, password recovery, and email notification destinations. Send a test message after any host, credential, sender, or TLS change.
+
+If SMTP is unavailable, understand which account recovery and notification paths will also be unavailable before enforcing email-dependent policies.
+
+## Manage users and administrators
+
+From the administration area, authorized administrators can review users, change account state, and grant or remove system-administrator access.
+
+Before disabling an account:
+
+- Check whether it is the last owner of any project.
+- Transfer automation or API tokens tied to it.
+- Review whether it is a required system administrator.
+- Preserve any audit or incident context required by policy.
+
+Project membership must be managed inside each project.
+
+## Data administration
+
+Administrative export and import tools can support migrations or controlled data maintenance. Treat exported files as sensitive because they can contain instance configuration and user-related data.
+
+For full disaster recovery, use database and volume backups rather than relying only on an application-level export. See [Backup and restore](/docs/installation/backup-and-restore/).
+
+## Operational practice
+
+Review administrators, account creation policy, external providers, SMTP delivery, and inactive accounts on a regular schedule. Record changes to instance-wide security settings and test the recovery path before it is needed.

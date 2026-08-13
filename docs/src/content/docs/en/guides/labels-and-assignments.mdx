@@ -1,0 +1,70 @@
+---
+title: Labels and assignments
+description: Organize probes and control check assignments with labels and selectors.
+icon: route
+navSection: use
+navOrder: 30
+---
+
+Labels let you describe probes. Selectors use those labels to decide where each check runs.
+
+## Label probes
+
+A label is a key-value pair attached to a probe. Prefer a small, consistent vocabulary:
+
+| Purpose                 | Example                  |
+| ----------------------- | ------------------------ |
+| Geographic region       | `region=tw`              |
+| Network boundary        | `network=office`         |
+| Infrastructure provider | `provider=aws`           |
+| Environment             | `environment=production` |
+
+Use stable facts rather than temporary status. For example, `region=tw` is a useful label; `healthy=true` is not.
+
+## Select probes for a check
+
+When creating or editing a check, its selector defines which enabled probes should execute it. A selector can match one or more label conditions.
+
+An empty selector matches all enabled probes in the project. This is convenient for small projects, but review it carefully before adding many probes because the check will fan out to each one.
+
+## Assignment lifecycle
+
+The controller derives effective assignments from the current configuration:
+
+```text
+check selector + enabled probe labels -> effective assignment
+```
+
+Probes poll the controller for assignments. Changes are not pushed directly to agents, so allow at least one assignment refresh interval before judging the result.
+
+Assignments are recalculated when you:
+
+- Create, edit, enable, disable, or delete a check.
+- Add, change, or remove probe labels.
+- Enable or disable a probe.
+
+## Plan a label change
+
+Before renaming or removing a widely used label:
+
+1. Identify the checks whose selectors use it.
+2. Add the replacement label to probes.
+3. Update the affected selectors.
+4. Confirm that results arrive from the expected probes.
+5. Remove the old label.
+
+This sequence avoids an assignment gap.
+
+## Troubleshoot missing assignments
+
+If a check does not run from the expected probe, confirm that:
+
+- The check is enabled.
+- The probe is enabled and online.
+- Every selector condition matches the probe's current labels.
+- The probe has refreshed assignments since the last change.
+- The target is reachable from that probe's network.
+
+Public status pages can expose probe names and locations associated with selected checks. Use operationally useful labels, but do not put secrets or sensitive internal topology in them.
+
+After confirming the selector preview, [create a check](/docs/guides/checks/) and verify that every expected probe submits results.

@@ -25,8 +25,8 @@ The React app uses `i18next` and `react-i18next`. Resources are bundled with the
 The Astro site uses unprefixed English routes and a `zh-TW` prefix:
 
 ```text
-/docs/guides/getting-started/        English
-/zh-TW/docs/guides/getting-started/  Traditional Chinese
+/docs/getting-started/quick-start/        English
+/zh-TW/docs/getting-started/quick-start/  Traditional Chinese
 ```
 
 Every localized page emits the correct `<html lang>`, canonical URL, `hreflang="en"`, `hreflang="zh-TW"`, and `hreflang="x-default"`. The language switcher preserves the current page path. Documentation routes are generated from the English page inventory; if a Traditional Chinese MDX file is missing, the route renders the English source with a visible fallback notice and a link to the English URL.
@@ -53,7 +53,7 @@ Do not translate product names, API names, code, commands, file paths, URLs, pla
 4. Upload sources to Crowdin and download the completed translation. Crowdin writes the matching path below `docs/src/content/docs/zh-TW/`.
 5. Check relative links, localized internal links, headings, images, code examples, sidebar order, search results, the page switcher, and both direct URLs.
 
-The supported sidebar sections, in display order, are `start`, `install`, `use`, `operate`, `api`, `development`, and `community`. Section labels are translated in `docs/src/i18n/locales/*/ui.json`; localized MDX cannot move itself to a different section or change its order. Keep Getting Started at `start` / `0`, and keep translation and contribution material under `development` rather than mixing it into product reference material.
+The supported sidebar sections, in display order, are `start`, `install`, `use`, and `operate`. Section labels are translated in `docs/src/i18n/locales/*/ui.json`; localized MDX cannot move itself to a different section or change its order. Keep the documentation overview at `start` / `0` and task-oriented product material under `use`.
 
 Astro shell, search, navigation, pagination, tracking consent, page actions, landing-page copy, accessibility labels, and metadata come from `docs/src/i18n/locales/*/ui.json` and follow the same English-source workflow.
 

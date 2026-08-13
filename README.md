@@ -74,7 +74,7 @@ Before the first start, fill every empty secret in `.env`. Before exposing Netst
 - [Getting started](./docs/src/content/docs/en/guides/getting-started.mdx) deploys Netstamp and walks through the first project, probe, check, and result.
 - [Deployment](./docs/src/content/docs/en/reference/deployment.mdx) covers Docker Compose, persistent data, public HTTPS, and production verification.
 - [Using Netstamp](./docs/src/content/docs/en/use/dashboard.mdx) covers the Dashboard, projects, probes, labels, checks, Insight, alerts, status pages, accounts, and administration.
-- [Operations](./docs/src/content/docs/en/operate/troubleshooting.mdx) covers the probe agent, observability, troubleshooting, and security hardening.
+- [Operations](./docs/src/content/docs/en/operations/index.mdx) covers the probe agent, observability, backups, and security hardening.
 - [API and automation](./docs/src/content/docs/en/guides/api-explorer.mdx) and [personal API tokens](./docs/src/content/docs/en/guides/api-tokens.mdx) cover integrations.
 - [Development](./docs/src/content/docs/en/development/local-development.mdx) covers the repository, architecture, shared UI system, contribution workflow, and localization.
 - [Localization](./docs/localization.md) explains English and Traditional Chinese resources, locale routing, Crowdin synchronization, validation, and adding languages.

@@ -1,0 +1,68 @@
+---
+title: Checks
+description: Create and manage Ping, TCP, HTTP, and Traceroute checks.
+icon: activity
+navSection: use
+navOrder: 40
+---
+
+Checks define the targets and measurements that probes execute. Netstamp supports Ping, TCP, HTTP, and Traceroute checks.
+
+## Common settings
+
+Every check has:
+
+- A name that identifies it in results, incidents, and status pages.
+- An enabled state.
+- A schedule interval and timeout.
+- A probe selector that controls assignments.
+- Type-specific target and validation settings.
+
+Choose an interval that reflects the response time you need. Short intervals detect changes sooner, but increase network traffic, storage use, and alert sample volume. Keep the timeout lower than the interval.
+
+## Ping checks
+
+Use Ping to measure basic IP reachability and round-trip time. Configure a hostname or IP address and the packet behavior exposed by the form.
+
+Ping may fail when ICMP is filtered even though an application is available. Pair it with TCP or HTTP checks when service availability matters more than ICMP reachability.
+
+## TCP checks
+
+Use TCP to verify that a host accepts connections on a specific port. A TCP check is useful for databases, mail servers, proxies, and other non-HTTP services.
+
+A successful connection proves that the port accepted a connection; it does not validate an application protocol exchange.
+
+## HTTP checks
+
+Use HTTP to validate a web endpoint. Depending on the selected options, a check can configure:
+
+- HTTP method and URL.
+- Request headers and body.
+- Accepted status codes.
+- Required response-body text.
+- Redirect and TLS behavior.
+- Per-request timeout.
+
+The form accepts up to 50 request headers, a request body up to 65,536 bytes, a timeout up to 60,000 milliseconds, and response-body match text up to 1,024 characters.
+
+Use a stable health endpoint where possible. Avoid targets that mutate data, trigger expensive work, or require credentials with broader permissions than the check needs.
+
+## Traceroute checks
+
+Use Traceroute to record the network path from each assigned probe to a target. Path data is most useful when you compare probes or inspect how the route changed around an incident.
+
+Intermediate routers may suppress replies, so missing hops do not always mean that traffic stopped there.
+
+## Choose probes
+
+Use the selector to control which probes run the check. An empty selector assigns it to every enabled probe in the project.
+
+After saving a check, allow the probe to refresh assignments and complete at least one interval. Then open the check or [Insight](/docs/guides/results-and-insight/) to confirm that results are arriving from the expected probes.
+
+## Edit, disable, or delete
+
+Editing a target, interval, timeout, selector, or enabled state refreshes assignments. Disable a check when you want to pause collection without removing its configuration.
+
+Delete a check only when its historical context is no longer required. Removing a check can also affect alert rules and status pages that depend on it, so review those relationships first.
+
+Next, use [Results and Insight](/docs/guides/results-and-insight/) to verify the measurements from each assigned probe.

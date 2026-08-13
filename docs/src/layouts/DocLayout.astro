@@ -45,21 +45,15 @@ const currentPageIndex = docsPages.findIndex(page => page.href === pathname);
 const currentPage = currentPageIndex >= 0 ? docsPages[currentPageIndex] : undefined;
 const previousPage = currentPageIndex > 0 ? docsPages[currentPageIndex - 1] : undefined;
 const nextPage = currentPageIndex >= 0 && currentPageIndex < docsPages.length - 1 ? docsPages[currentPageIndex + 1] : undefined;
-const englishSourcePath = currentPage ? `docs/src/content/docs/en/${currentPage.contentId === "index" ? "index" : currentPage.contentId}.mdx` : undefined;
+const englishSourcePath = currentPage ? `docs/src/content/docs/en/${currentPage.contentId}.mdx` : undefined;
 const editUrl = locale === "zh-TW" ? "https://crowdin.com/project/netstamp" : englishSourcePath ? `${githubBaseUrl}/${englishSourcePath}` : githubBaseUrl;
 const siteUrl = resolveSiteUrl(Astro.site);
 const pageUrl = absoluteUrl(pathname, siteUrl);
-const breadcrumbs =
-	pathname === "/docs/"
-		? [
-				{ name: "Netstamp", url: siteUrl },
-				{ name: ui.nav.docs, url: pageUrl }
-			]
-		: [
-				{ name: "Netstamp", url: siteUrl },
-				{ name: ui.nav.docs, url: absoluteUrl(pathForLocale("/docs/", locale), siteUrl) },
-				{ name: title, url: pageUrl }
-			];
+const breadcrumbs = [
+	{ name: "Netstamp", url: siteUrl },
+	{ name: ui.nav.docs, url: absoluteUrl(pathForLocale("/docs/", locale), siteUrl) },
+	{ name: title, url: pageUrl }
+];
 const schema = [createBreadcrumbSchema(breadcrumbs), createTechArticleSchema(siteUrl, pageUrl, title, description)];
 const pageAssistantPrompt =
 	locale === "zh-TW"
@@ -68,9 +62,8 @@ const pageAssistantPrompt =
 const chatGptUrl = `https://chatgpt.com/?q=${encodeURIComponent(pageAssistantPrompt)}`;
 const claudeUrl = `https://claude.ai/new?q=${encodeURIComponent(pageAssistantPrompt)}`;
 
-const docsRootPath = pathForLocale("/docs/", locale);
-const markdownUrl = currentPage?.contentId === "index" ? `${docsRootPath}index.md` : `${pathname.replace(/\/$/, "")}.md`;
-const isActiveNavItem = (href: string) => pathname === href || (href !== docsRootPath && pathname.startsWith(href));
+const markdownUrl = `${pathname.replace(/\/$/, "")}.md`;
+const isActiveNavItem = (href: string) => pathname === href;
 
 const navGroups = docsNav.map(group => ({
 	...group,
@@ -86,14 +79,11 @@ const externalLinks = [
 	{ title: "Storybook", href: "/storybook/", reload: true }
 ];
 const currentGroup = navGroups.find(group => group.active);
-const visibleBreadcrumbs =
-	pathname === "/docs/"
-		? [{ name: ui.docs.home, href: pathForLocale("/docs/", locale), current: true, icon: "home" as const }]
-		: [
-				{ name: ui.docs.home, href: pathForLocale("/docs/", locale), current: false, icon: "home" as const },
-				currentGroup ? { name: currentGroup.title, href: currentGroup.items[0]?.href ?? pathForLocale("/docs/", locale), current: false } : undefined,
-				{ name: title, href: pathname, current: true }
-			].filter((item): item is { name: string; href: string; current: boolean; icon?: "home" } => Boolean(item));
+const visibleBreadcrumbs = [
+	{ name: ui.docs.home, href: pathForLocale("/docs/", locale), current: false, icon: "home" as const },
+	currentGroup ? { name: currentGroup.title, href: currentGroup.items[0]?.href ?? pathForLocale("/docs/", locale), current: false } : undefined,
+	{ name: title, href: pathname, current: true }
+].filter((item): item is { name: string; href: string; current: boolean; icon?: "home" } => Boolean(item));
 ---
 
 <BaseLayout title={browserTitle} description={description} head={extraHead} canonicalPath={pathname} ogType="article" schema={schema}>

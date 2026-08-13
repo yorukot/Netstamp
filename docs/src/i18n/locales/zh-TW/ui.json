@@ -44,10 +44,7 @@
 			"start": "開始使用",
 			"install": "安裝",
 			"use": "使用 Netstamp",
-			"operate": "維運",
-			"api": "API",
-			"development": "開發",
-			"community": "社群"
+			"operate": "維運"
 		}
 	},
 	"search": {

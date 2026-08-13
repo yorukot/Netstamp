@@ -1,0 +1,39 @@
+---
+title: 安裝概覽
+description: 選擇部署方式並準備 Netstamp 安裝環境。
+icon: deployment
+navTitle: 概覽
+navSection: install
+navOrder: 0
+---
+
+官方支援的自架方式會以 Docker Compose 執行 Netstamp 控制器與使用 TimescaleDB 的 PostgreSQL。控制器 Image 已包含網頁應用程式、API、資料庫 Migration 與 Linux 探測器安裝檔案。
+
+## 開始前準備
+
+請準備：
+
+- 安裝 Docker Engine 與 Docker Compose v2 的 Linux 主機。
+- PostgreSQL 的持久化儲存空間。
+- 若使用者或探測器從網際網路連入，準備公開 Hostname 與 Reverse Proxy。
+- Docker 主機以外的備份目的地。
+- 若要使用外部驗證、SMTP 或通知供應商，準備所需的對外網路存取。
+
+若只在本機評估，Docker 與 Compose 就足夠。
+
+## 安裝路徑
+
+1. [啟動 Docker Compose Stack](/zh-TW/docs/installation/docker-compose/)。
+2. [檢視部署設定](/zh-TW/docs/installation/configuration/)並替換所有必要密鑰。
+3. [透過 HTTPS 發布控制器](/zh-TW/docs/installation/reverse-proxy-and-https/)。
+4. 視需要設定[外部驗證與電子郵件](/zh-TW/docs/installation/authentication-and-email/)。
+5. 建立並測試[備份與還原](/zh-TW/docs/installation/backup-and-restore/)程序。
+6. 按照[快速開始](/zh-TW/docs/getting-started/quick-start/)建立第一個檢查。
+
+## 部署邊界
+
+標準 Compose 檔案提供應用程式與資料庫，但刻意不包含公開 Reverse Proxy、TLS 自動化或異地主機備份。請將這些職責整合到現有基礎設施。
+
+探測器會向控制器發出對外請求，不需要控制器主動連入。控制器的最終公開 URL 與 TLS 憑證正常後，再安裝探測器。
+
+:::note 在把安裝視為正式環境前，請固定應用程式與資料庫 Image 版本，並在獨立環境中測試這些版本的升級與還原。:::

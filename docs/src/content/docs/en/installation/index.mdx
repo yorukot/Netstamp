@@ -1,0 +1,39 @@
+---
+title: Installation overview
+description: Choose a deployment path and prepare a Netstamp installation.
+icon: deployment
+navTitle: Overview
+navSection: install
+navOrder: 0
+---
+
+The supported self-hosted path runs the Netstamp controller and TimescaleDB-backed PostgreSQL with Docker Compose. The controller image includes the web application, API, database migrations, and Linux probe install assets.
+
+## Before you begin
+
+Prepare:
+
+- A Linux host with Docker Engine and Docker Compose v2.
+- Persistent storage for PostgreSQL.
+- A public hostname and reverse proxy if users or probes connect over the internet.
+- A backup destination outside the Docker host.
+- Outbound access for external authentication, SMTP, and notification providers you plan to use.
+
+For a local evaluation, Docker and Compose are enough.
+
+## Installation path
+
+1. [Start the Docker Compose stack](/docs/installation/docker-compose/).
+2. [Review deployment configuration](/docs/installation/configuration/) and replace every required secret.
+3. [Publish the controller behind HTTPS](/docs/installation/reverse-proxy-and-https/).
+4. Configure [external authentication and email](/docs/installation/authentication-and-email/) if needed.
+5. Establish a tested [backup and restore](/docs/installation/backup-and-restore/) procedure.
+6. Follow the [Quick Start](/docs/getting-started/quick-start/) to create the first check.
+
+## Deployment boundary
+
+The standard Compose file provides the application and database. It intentionally does not include a public reverse proxy, TLS automation, or off-host backups. Integrate those responsibilities with your existing infrastructure.
+
+Probes make outbound requests to the controller and do not require inbound controller access. Install them only after the controller's final public URL and TLS certificate are working.
+
+:::note Pin application and database image versions before treating an installation as production. Test upgrades and restores against those versions in a separate environment. :::

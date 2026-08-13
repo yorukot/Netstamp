@@ -1,0 +1,77 @@
+---
+title: Authentication and email
+description: Configure external authentication, email verification, and SMTP delivery.
+icon: key
+navSection: install
+navOrder: 40
+---
+
+Netstamp supports local passwords, generic OpenID Connect, Google OpenID Connect, and GitHub OAuth. SMTP provides email verification, password reset, and email notification delivery.
+
+## Configure the public origin first
+
+Set a valid HTTPS origin in the controller environment before enabling a provider:
+
+```dotenv
+PUBLIC_BASE_URL=https://netstamp.example.com
+```
+
+Register the matching callback URL with each identity provider:
+
+| Provider     | Callback URL                                                        |
+| ------------ | ------------------------------------------------------------------- |
+| Generic OIDC | `https://netstamp.example.com/api/v1/auth/external/oidc/callback`   |
+| Google       | `https://netstamp.example.com/api/v1/auth/external/google/callback` |
+| GitHub       | `https://netstamp.example.com/api/v1/auth/external/github/callback` |
+
+The public origin is infrastructure configuration. It is not editable in the administration UI.
+
+## Generic OIDC
+
+Open **Admin → System settings → OIDC** and enter the issuer, client credentials, display name, and just-in-time provisioning policy. Validate the candidate configuration before enabling it.
+
+The issuer must provide valid OIDC discovery metadata and match the issuer returned by discovery. A successful validation confirms endpoint readiness, but you must still test the complete browser flow.
+
+## Google
+
+Enter the Google client credentials and optional hosted-domain allowlist under **Admin → System settings → Google**. Leave the allowlist empty only when all consumer and Workspace accounts accepted by the Google application should be allowed.
+
+## GitHub
+
+Enter the GitHub client credentials, just-in-time provisioning policy, and provider-signup policy under **Admin → System settings → GitHub**.
+
+Provider signup controls GitHub's authorization-page option. It does not override Netstamp's instance account-creation policy.
+
+## Link an existing administrator first
+
+Keep just-in-time provisioning disabled during initial setup:
+
+1. Sign in with the bootstrap administrator.
+2. Open **Account settings → Login methods**.
+3. Link the external identity.
+4. Sign out and test provider sign-in in a private browser window.
+5. Confirm that the same Netstamp account opens.
+
+Only then consider changing local password or account-creation policy.
+
+The account-creation option under **Admin → System settings → Access** is the master switch for local registration and provider JIT. A provider creates a user only when both the master switch and that provider's JIT setting are enabled.
+
+## Configure SMTP
+
+Open **Admin → System settings → SMTP**, enter the mail server, sender, credentials, TLS mode, and timeout, then save and send a test message.
+
+Supported TLS modes are `starttls`, `implicit`, and `none`. Use `none` only on a trusted private connection protected by another transport layer.
+
+Secret values are encrypted in the database with `SYSTEM_SETTINGS_ENCRYPTION_KEY`. Keep that key stable and include an encrypted copy in the recovery material.
+
+## Test the complete flow
+
+1. Send an SMTP test from system settings.
+2. Create an Email destination under **Alerts → Notifications** and send a test.
+3. Request a password-reset email for a disposable account.
+4. If verification is required, register a disposable account and follow its verification link.
+5. Test every enabled external provider in a signed-out private window.
+
+:::warning Do not disable the last working administrator authentication method until an independent recovery path has been verified. :::
+
+For access policy and user administration, see [System administration](/docs/guides/system-administration/).
