@@ -9,6 +9,7 @@
 		"build:storybook": "pnpm --filter @netstamp/ui build:storybook",
 		"build:ui": "pnpm --filter @netstamp/ui build",
 		"build:web": "pnpm --filter @netstamp/web build",
+		"capture:docs-screenshots": "node scripts/docs-screenshots/capture.mjs",
 		"check:branch-name": "sh scripts/check-branch-name.sh",
 		"check:frontend-style": "node scripts/check-frontend-style.mjs",
 		"check:i18n": "node scripts/check-i18n.mjs",
@@ -32,6 +33,7 @@
 	},
 	"devDependencies": {
 		"@crowdin/cli": "^4.14.4",
+		"playwright": "^1.55.0",
 		"prettier": "^3.8.4",
 		"prettier-plugin-astro": "^0.14.1",
 		"prettier-plugin-organize-imports": "^4.3.0",
