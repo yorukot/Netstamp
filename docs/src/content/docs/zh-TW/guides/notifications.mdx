@@ -6,6 +6,10 @@ navSection: use
 navOrder: 70
 ---
 
+import ProductScreenshot from "@/components/docs/ProductScreenshot.astro";
+import notificationListScreenshot from "@/assets/screenshots/guides/notifications/list.webp";
+import notificationTypePickerScreenshot from "@/assets/screenshots/guides/notifications/type-picker.webp";
+
 通知目的地會把警示與事件變更傳送到外部系統。目的地屬於專案，並可由多個警示規則重複使用。
 
 ## 目的地類型
@@ -22,11 +26,16 @@ navOrder: 70
 
 1. 開啟**警示**，再進入**通知**。
 2. 選擇**新增通知**。
+
+<ProductScreenshot src={notificationTypePickerScreenshot} alt="包含 Webhook、Slack、Discord、Telegram 與電子郵件類型的通知編輯器" caption="先選擇傳送管道，Netstamp 接著只顯示該供應商需要的設定。" />
+
 3. 選擇類型並輸入所需 Endpoint、Token、Chat 或收件人資料。
 4. 儲存目的地。
 5. 傳送測試通知。
 
 附加到正式環境規則前先測試。儲存成功只代表欄位被接受；成功的測試才能驗證網路存取與外部憑證。
+
+<ProductScreenshot src={notificationListScreenshot} alt="顯示類型、遮蔽目的地、啟用狀態與規則使用情況的通知目的地清單" caption="目的地清單會顯示哪些管道已就緒，以及哪些警示規則依賴它們。" />
 
 ## 附加到規則
 

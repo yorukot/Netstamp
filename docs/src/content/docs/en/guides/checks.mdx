@@ -6,7 +6,20 @@ navSection: use
 navOrder: 40
 ---
 
+import ProductScreenshot from "@/components/docs/ProductScreenshot.astro";
+import checkListScreenshot from "@/assets/screenshots/guides/checks/list.webp";
+import httpFormScreenshot from "@/assets/screenshots/guides/checks/http-form.webp";
+import pingFormScreenshot from "@/assets/screenshots/guides/checks/ping-form.webp";
+import tcpFormScreenshot from "@/assets/screenshots/guides/checks/tcp-form.webp";
+import tracerouteFormScreenshot from "@/assets/screenshots/guides/checks/traceroute-form.webp";
+
 Checks define the targets and measurements that probes execute. Netstamp supports Ping, TCP, HTTP, and Traceroute checks.
+
+<ProductScreenshot
+	src={checkListScreenshot}
+	alt="Checks table with Ping, HTTP, TCP, and Traceroute definitions"
+	caption="The check registry keeps target, interval, and assignment count visible across all four check types."
+/>
 
 ## Common settings
 
@@ -26,11 +39,23 @@ Use Ping to measure basic IP reachability and round-trip time. Configure a hostn
 
 Ping may fail when ICMP is filtered even though an application is available. Pair it with TCP or HTTP checks when service availability matters more than ICMP reachability.
 
+<ProductScreenshot
+	src={pingFormScreenshot}
+	alt="Ping check form with packet count, packet size, timeout, and IP-family settings"
+	caption="Tune packet behavior after setting the common check identity and interval."
+/>
+
 ## TCP checks
 
 Use TCP to verify that a host accepts connections on a specific port. A TCP check is useful for databases, mail servers, proxies, and other non-HTTP services.
 
 A successful connection proves that the port accepted a connection; it does not validate an application protocol exchange.
+
+<ProductScreenshot
+	src={tcpFormScreenshot}
+	alt="TCP check form with port, timeout, and IP-family settings"
+	caption="A TCP check tests whether the selected port accepts a connection from the assigned probes."
+/>
 
 ## HTTP checks
 
@@ -47,11 +72,23 @@ The form accepts up to 50 request headers, a request body up to 65,536 bytes, a 
 
 Use a stable health endpoint where possible. Avoid targets that mutate data, trigger expensive work, or require credentials with broader permissions than the check needs.
 
+<ProductScreenshot
+	src={httpFormScreenshot}
+	alt="HTTP check form with method, status, redirect, TLS, and response settings"
+	caption="Use HTTP-specific assertions to test the application response rather than reachability alone."
+/>
+
 ## Traceroute checks
 
 Use Traceroute to record the network path from each assigned probe to a target. Path data is most useful when you compare probes or inspect how the route changed around an incident.
 
 Intermediate routers may suppress replies, so missing hops do not always mean that traffic stopped there.
+
+<ProductScreenshot
+	src={tracerouteFormScreenshot}
+	alt="Traceroute check form with protocol, hop, query, packet, port, and timeout settings"
+	caption="Traceroute settings control how each assigned probe samples the path to the target."
+/>
 
 ## Choose probes
 

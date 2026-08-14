@@ -1,64 +1,160 @@
 ---
 title: Results and Insight
-description: Explore measurements, time series, certificates, and network paths.
+navTitle: Insight overview
+description: Select a measurement scope, control its time window, and move between detailed and comparison views.
 icon: map
 navSection: use
 navOrder: 50
 ---
 
 import ProductScreenshot from "@/components/docs/ProductScreenshot.astro";
-import httpUptimeScreenshot from "@/assets/homepage-highlights/http-uptime.webp";
-import traceroutePathsScreenshot from "@/assets/homepage-highlights/traceroute-paths.webp";
+import checkPickerScreenshot from "@/assets/screenshots/guides/insight/check-picker.webp";
+import multiSeriesScreenshot from "@/assets/screenshots/guides/insight/multi-series.webp";
+import probePickerScreenshot from "@/assets/screenshots/guides/insight/probe-picker.webp";
+import scopeControlsScreenshot from "@/assets/screenshots/guides/insight/scope-controls.webp";
+import timePopoverScreenshot from "@/assets/screenshots/guides/insight/time-popover.webp";
 
-Netstamp stores every probe measurement and turns those results into health summaries and time-series views. Use the project overview for a quick scan and **Insight** when you need to investigate.
+**Insight** turns measurements returned by probes into summaries, time series, certificate evidence, and route diagnostics. Use the project overview for a quick health scan. Use Insight when you need to answer a specific question and preserve the scope of an investigation.
 
-## Start with scope
+This guide explains the controls shared by every Insight view. Continue with [Ping, TCP, and HTTP analysis](./analyze-measurements/) or [Traceroute investigations](./investigate-traceroute/) when you are ready to interpret the results.
 
-Before interpreting a chart, confirm:
+## Build the scope
 
-- The selected project.
-- The check and time range.
-- The probes included in the view.
-- Whether a deployment, network change, or maintenance window overlaps the period.
+An Insight scope is the set of active probe–check assignments that matches your selection:
 
-Different probes can report different outcomes for the same target. That difference is often the most useful signal: it can separate a target-wide outage from a regional or network-specific problem.
+**Selected probes × selected checks × active assignments = displayed results**
 
-## Ping results
+The two selectors are filters, not independent queries. Netstamp only displays pairs that have an active assignment.
 
-Ping views show reachability, packet loss, and round-trip time. Look for:
+### 1. Select probes
 
-- Simultaneous loss across probes, which suggests a target-side outage.
-- Loss or latency isolated to one probe, which suggests a local path or probe problem.
-- A sustained latency shift rather than a single spike.
+Open **Select probe** and choose one or more probes. You can browse by individual probe or select every probe carrying a label such as `region:tw` or `provider:cloud`.
 
-## TCP results
+<ProductScreenshot
+	src={probePickerScreenshot}
+	alt="Insight probe picker grouped by individual probes and probe labels"
+	caption="Start with the monitoring viewpoints. Selecting a label expands it to the probes that currently carry that label."
+/>
 
-TCP results show whether a connection succeeded and how long it took to establish. Compare TCP with Ping to distinguish basic reachability from service-port availability.
+The selected probe scope controls which checks are available next. If you replace the probe selection, Netstamp removes any selected check that no longer has an active assignment in that scope.
 
-For example, successful Ping with failing TCP can indicate a closed port, firewall rule, listener failure, or exhausted service.
+### 2. Select checks
 
-## HTTP results
+After selecting a probe, open **Select check**. Browse all matching checks or narrow the list by Ping, TCP, Traceroute, or HTTP/HTTPS.
 
-HTTP views combine availability with application-level evidence, including status validation, response time, request timing phases, body-match results, and TLS certificate information when HTTPS is used.
+<ProductScreenshot
+	src={checkPickerScreenshot}
+	alt="Insight check picker grouped by check type after a probe has been selected"
+	caption="The check list only contains checks assigned to the selected probes; selecting an unavailable probe–check pair is not possible."
+/>
 
-<ProductScreenshot src={httpUptimeScreenshot} alt="HTTP uptime and latency trends in Netstamp" caption="Compare availability and latency across probes and time ranges." />
+You do not always need both sides of the scope:
 
-Use timing phases to narrow down slow requests. A DNS increase points to name resolution, connection or TLS increases point to the network or handshake, and time to first byte often points to the upstream application.
+| Selection                     | Result                                                             |
+| ----------------------------- | ------------------------------------------------------------------ |
+| One probe and one check       | Detailed view for one exact assignment                             |
+| Multiple probes and one check | Compare the same check from several networks                       |
+| One probe and multiple checks | Compare different checks from one network                          |
+| Multiple probes and checks    | One series per matching active assignment, separated by check type |
 
-Certificate data helps identify expiry risk and unexpected certificate changes. Treat it as evidence from the probe's network path, especially when a proxy or private certificate authority is involved.
+To compare one check across every assigned probe, select the check and then clear the probe selection without using **Reset scope**. The retained check becomes the only filter.
 
-## Traceroute results
+### 3. Confirm the resolved scope
 
-Traceroute views show the observed hops from each probe to the target.
+The panel title shows either the exact probe-to-target path or the number of selected assignments. Confirm this title before interpreting or sharing a chart.
 
-<ProductScreenshot src={traceroutePathsScreenshot} alt="Traceroute path comparison in Netstamp" caption="Compare network paths from different probes and inspect changes around an incident." />
+<ProductScreenshot
+	src={scopeControlsScreenshot}
+	alt="Insight with one selected probe, one selected check, a relative time range, and refresh controls"
+	caption="One resolved assignment opens its detailed metrics and result panels."
+/>
 
-Asterisks or missing intermediate hops can mean that a router does not answer traceroute traffic; they do not necessarily prove packet loss for the monitored service. Focus on repeatable path changes and correlate them with Ping, TCP, or HTTP behavior.
+<ProductScreenshot
+	src={multiSeriesScreenshot}
+	alt="Insight with three selected probes and one Ping check resolved to three assignments"
+	caption="Multiple assignments switch Insight to comparison mode and render one series for every matching probe–check pair."
+/>
 
-## Choose a useful time range
+Use **Reset scope** to remove all probes, checks, legacy assignment parameters, and any selected Traceroute run. The time range and refresh preference remain available for the next investigation.
 
-Use a short range to inspect an active incident and a longer range to establish a baseline. Aggregated points are useful for trends, while raw or fine-grained points are better for exact event timing.
+## Control the time window
 
-When sharing an investigation, record the project, check, probes, time range, and timezone so another person can reproduce the same view.
+Open **Time** to choose a relative preset or an exact absolute interval.
 
-If the evidence meets a repeatable threshold, create an [alert rule](/docs/guides/alerts-and-incidents/) instead of relying on manual chart review.
+<ProductScreenshot
+	src={timePopoverScreenshot}
+	alt="Insight time control with relative presets and absolute From and To fields"
+	caption="Use relative ranges for live work and absolute ranges when reproducing a fixed incident window."
+/>
+
+### Relative ranges
+
+Relative ranges end at the current time. Insight supports the last 15 minutes, 1 hour, 6 hours, 24 hours, 7 days, and 30 days. When you refresh a relative range, its end moves forward to the new current time.
+
+Use a short range for an active incident. Use 24 hours or longer to establish whether a change is outside the normal baseline.
+
+### Absolute ranges
+
+Absolute ranges keep fixed **From** and **To** timestamps. They are useful for incident reviews and shared investigations because refreshing does not move the window.
+
+Using a chart's zoom selection or range slider changes the global Insight window to the selected absolute interval. Select **Now** to preserve that interval's duration while moving its end to the current time.
+
+:::note The browser displays absolute timestamps in its local timezone. Record the timezone with the shared URL when responders work in different regions. :::
+
+## Refresh the data
+
+**Refresh** controls how often Insight invalidates and reloads the current project data:
+
+- **Off** leaves automatic refresh disabled.
+- `10s`, `30s`, `1m`, and `5m` repeat the refresh at that interval.
+- The refresh button reloads immediately without changing the configured interval.
+
+Relative time moves forward on every refresh. Absolute time remains fixed, so it can be refreshed without changing the incident boundaries.
+
+Prefer a refresh interval that is no faster than the underlying check schedule. A 10-second page refresh does not create new measurements for a check that runs once per minute.
+
+## Read chart metadata
+
+Every series panel reports its point count and data source or resolution. A point may be a raw measurement or an aggregate representing a larger bucket, depending on the selected duration and retained data.
+
+- Use short ranges and raw points when exact event timing matters.
+- Use aggregate points for trends and baseline comparisons.
+- Do not treat a smooth aggregate line as proof that every individual run succeeded.
+- A lower-than-expected point count can reflect the check interval, missing runs, retention, or aggregation.
+
+Hover a series to read values at one timestamp. Use the legend to map each line to its probe, check, target, and location.
+
+## Share a reproducible view
+
+Insight stores probe IDs, check IDs, time mode, time range, refresh interval, and a selected Traceroute run in the page URL. Copy the URL after setting the final scope.
+
+Before sharing, record:
+
+1. The project and expected probe–check assignments.
+2. The displayed timezone.
+3. Whether the time window is relative or absolute.
+4. Any deployment, maintenance, routing, or DNS change inside the window.
+
+If a shared URL references a probe, check, or assignment that no longer exists, Insight reports an invalid shared scope instead of silently substituting another resource.
+
+## Recognize empty states
+
+| State                        | Meaning                                                            | Next action                                            |
+| ---------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------ |
+| No panels below the controls | No probe or check scope is selected                                | Select at least one probe                              |
+| No active assignment         | The selected resources exist but do not form an active pair        | Check probe labels, check selectors, and enabled state |
+| No series in the range       | The assignment exists but no retained points match the time window | Expand the range and verify the probe is reporting     |
+| Invalid shared scope         | The URL contains an unknown or removed resource                    | Reset the scope and rebuild the selection              |
+| Syncing                      | Existing data remains visible while a refresh is in progress       | Wait before comparing the newest point                 |
+
+## Investigation workflow
+
+For a repeatable investigation:
+
+1. Select the smallest scope that answers the question.
+2. Start with a relative range that includes the reported symptom.
+3. Compare multiple probes to decide whether the problem is local or target-wide.
+4. Narrow the chart to the event and switch to an absolute window.
+5. Interpret the relevant [Ping, TCP, and HTTP results](./analyze-measurements/) or [Traceroute evidence](./investigate-traceroute/).
+6. Share the final URL and correlate it with deployments or network changes.
+7. If the condition is repeatable, create an [alert rule](/docs/guides/alerts-and-incidents/) instead of relying on manual chart review.

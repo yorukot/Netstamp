@@ -6,6 +6,10 @@ navSection: use
 navOrder: 30
 ---
 
+import ProductScreenshot from "@/components/docs/ProductScreenshot.astro";
+import labelRegistryScreenshot from "@/assets/screenshots/guides/labels/registry.webp";
+import selectorPreviewScreenshot from "@/assets/screenshots/guides/labels/selector-preview.webp";
+
 標籤用來描述探測器，選擇器則依據標籤決定每個檢查在哪裡執行。
 
 ## 標記探測器
@@ -21,11 +25,15 @@ navOrder: 30
 
 使用穩定事實，不要使用暫時狀態。例如 `region=tw` 是有用的標籤，`healthy=true` 則不是。
 
+<ProductScreenshot src={labelRegistryScreenshot} alt="依鍵分組並顯示探測器與檢查使用數量的標籤清單" caption="編輯前先用清單確認專案標籤詞彙，以及每個值目前影響的範圍。" />
+
 ## 為檢查挑選探測器
 
 建立或編輯檢查時，選擇器會定義哪些已啟用的探測器執行它。選擇器可以符合一個或多個標籤條件。
 
 空白選擇器會符合專案中所有已啟用的探測器。小型專案使用很方便，但新增大量探測器前請仔細檢查，因為檢查會展開到每個探測器。
+
+<ProductScreenshot src={selectorPreviewScreenshot} alt="顯示標籤選擇器與符合探測器的檢查編輯器" caption="儲存前先預覽選擇器，確認哪些已啟用探測器會收到這項檢查。" />
 
 ## 指派生命週期
 

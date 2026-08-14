@@ -6,9 +6,18 @@ navSection: start
 navOrder: 20
 ---
 
+import ProductScreenshot from "@/components/docs/ProductScreenshot.astro";
+import resourceFlowDiagram from "@/assets/screenshots/getting-started/resource-flow.svg";
+
 Netstamp 將監控設定與實際執行分開。控制器保存要監控的內容，探測器則從你關心的網路位置執行檢查。
 
 這一頁會介紹你在產品中經常使用的資源。
+
+<ProductScreenshot
+	src={resourceFlowDiagram}
+	alt="Netstamp 專案、探測器、檢查、指派、結果、警示、通知與狀態頁面的關係圖"
+	caption="標籤與選擇器會把探測器和檢查轉換為可執行指派，而結果會提供分析、警示與公開狀態使用。"
+/>
 
 ## 控制器
 

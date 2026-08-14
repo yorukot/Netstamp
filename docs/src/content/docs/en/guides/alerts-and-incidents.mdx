@@ -7,10 +7,19 @@ navOrder: 60
 ---
 
 import ProductScreenshot from "@/components/docs/ProductScreenshot.astro";
-import incidentsScreenshot from "@/assets/homepage-highlights/incidents.webp";
-import tlsCertificatesScreenshot from "@/assets/homepage-highlights/tls-certificates.webp";
+import incidentDetailScreenshot from "@/assets/screenshots/guides/alerts/incident-detail.webp";
+import incidentListScreenshot from "@/assets/screenshots/guides/alerts/incident-list.webp";
+import ruleConditionScreenshot from "@/assets/screenshots/guides/alerts/rule-condition.webp";
+import ruleListScreenshot from "@/assets/screenshots/guides/alerts/rule-list.webp";
+import ruleNotifyScreenshot from "@/assets/screenshots/guides/alerts/rule-notify.webp";
 
 Alert rules turn measurements into actionable incidents. A rule watches one check metric, evaluates it over a window, and opens an incident only after the condition remains true for the configured trigger duration.
+
+<ProductScreenshot
+	src={incidentListScreenshot}
+	alt="Alert overview with open incidents, enabled rules, and notification readiness"
+	caption="Start in the incident list to see current attention, then move into a rule or incident for detail."
+/>
 
 ## Supported metrics
 
@@ -24,8 +33,6 @@ Available metrics depend on the check type:
 
 Traceroute results are intended for investigation and do not currently provide alert-rule metrics.
 
-<ProductScreenshot src={tlsCertificatesScreenshot} alt="TLS certificate monitoring in Netstamp" caption="HTTP checks can surface certificate validity and remaining lifetime for alerting." />
-
 ## Create an alert rule
 
 1. Open **Alerts** in the project.
@@ -36,9 +43,27 @@ Traceroute results are intended for investigation and do not currently provide a
 6. Choose a severity and notification destinations.
 7. Save and enable the rule.
 
+<ProductScreenshot
+	src={ruleConditionScreenshot}
+	alt="Alert rule editor showing check scope, metric, operator, threshold, and trigger duration"
+	caption="Define what is evaluated and how long it must remain true before an incident opens."
+/>
+
+<ProductScreenshot
+	src={ruleNotifyScreenshot}
+	alt="Alert rule editor showing severity and selected notification destinations"
+	caption="Keep routing explicit by selecting the destinations that should receive this rule's incident updates."
+/>
+
 The evaluation window determines which recent samples are considered. The minimum sample count prevents decisions based on too little data. The trigger duration reduces noise by requiring the condition to stay true before Netstamp opens an incident.
 
 Start with conservative thresholds based on observed baseline data, then tune them after reviewing real incidents.
+
+<ProductScreenshot
+	src={ruleListScreenshot}
+	alt="Enabled alert rules with scopes, conditions, timing, and notification destinations"
+	caption="The rule list summarizes the complete evaluation and delivery policy for review."
+/>
 
 ## Firing, clearing, and missing data
 
@@ -48,12 +73,16 @@ When the condition no longer holds, Netstamp clears the firing state and resolve
 
 ## Investigate an incident
 
-<ProductScreenshot src={incidentsScreenshot} alt="Incident history in Netstamp" caption="Incidents preserve the check, severity, timing, and lifecycle of an alert." />
+<ProductScreenshot
+	src={incidentDetailScreenshot}
+	alt="Incident detail with affected probe, check, evaluation state, and timeline"
+	caption="Incident detail preserves the evidence and delivery timeline needed to investigate and review recovery."
+/>
 
 When an incident opens:
 
 1. Confirm the affected project, check, metric, and probes.
-2. Inspect the corresponding [results and Insight views](/docs/guides/results-and-insight/).
+2. Inspect the corresponding [Ping, TCP, or HTTP evidence](/docs/guides/results-and-insight/analyze-measurements/).
 3. Compare the start time with deployments or network changes.
 4. Determine whether the problem is target-wide or isolated to specific probes.
 5. Verify recovery after the rule clears.

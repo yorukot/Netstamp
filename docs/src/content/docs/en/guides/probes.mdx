@@ -6,6 +6,10 @@ navSection: use
 navOrder: 20
 ---
 
+import ProductScreenshot from "@/components/docs/ProductScreenshot.astro";
+import probeDetailScreenshot from "@/assets/screenshots/guides/probes/detail.webp";
+import probeStatusListScreenshot from "@/assets/screenshots/guides/probes/status-list.webp";
+
 Probes run checks from the networks you want to observe. A probe is registered to one project and authenticates with its own credentials.
 
 ## Requirements
@@ -42,6 +46,12 @@ Treat the command as a credential. Do not paste it into tickets, chat logs, shel
 
 After installation, the probe page should show a recent heartbeat. The controller records agent version, addresses, public IP information, and supported IP families when available.
 
+<ProductScreenshot
+	src={probeStatusListScreenshot}
+	alt="Probe registry with online, disabled, IP-family, heartbeat, and label columns"
+	caption="Use the registry to compare runtime status and metadata across every monitoring viewpoint."
+/>
+
 If the probe remains offline, verify the service and logs on the host:
 
 ```bash
@@ -56,6 +66,12 @@ See [Probe agent operations](/docs/operations/probe-agent/) for file locations, 
 Use names that remain meaningful in result comparisons, such as `taipei-office` or `aws-tokyo-1`. Location is descriptive metadata.
 
 Labels control assignments. Add labels such as `region=tw`, `network=office`, or `provider=aws`, then use the same keys in check selectors. Read [Labels and assignments](/docs/guides/labels-and-assignments/) before changing labels on a production probe.
+
+<ProductScreenshot
+	src={probeDetailScreenshot}
+	alt="Probe detail drawer with status, metadata, labels, and assigned checks"
+	caption="Open a probe to review its identity, assigned work, and credential-management actions in one place."
+/>
 
 ## Enabled and online are different
 

@@ -6,6 +6,14 @@ navSection: start
 navOrder: 0
 ---
 
+import ProductScreenshot from "@/components/docs/ProductScreenshot.astro";
+import createPingCheckScreenshot from "@/assets/screenshots/getting-started/create-ping-check.webp";
+import createProjectScreenshot from "@/assets/screenshots/getting-started/create-project.webp";
+import firstResultScreenshot from "@/assets/screenshots/getting-started/first-result.webp";
+import probeHeartbeatScreenshot from "@/assets/screenshots/getting-started/probe-heartbeat.webp";
+import probeInstallScreenshot from "@/assets/screenshots/getting-started/probe-install.webp";
+import probeLocationScreenshot from "@/assets/screenshots/getting-started/probe-location.webp";
+
 本指南會帶你啟動本機 Netstamp 控制器與資料庫、建立第一位系統管理員與專案、安裝 Linux 探測器，並取得一筆 Ping 量測結果。
 
 完成後，你將會有：
@@ -97,14 +105,24 @@ curl --fail http://localhost:3000/api/v1/healthz
 
 全新安裝環境中註冊的第一個帳號會自動成為系統管理員。Netstamp 會依照專案名稱產生可安全用於網址的專案 slug。
 
+<ProductScreenshot src={createProjectScreenshot} alt="Netstamp 專案切換器中的建立專案對話框" caption="新增探測器與檢查前，先建立一個專用專案。" />
+
 ## 5. 安裝探測器
 
 1. 開啟**探測器**，選擇**新增探測器**。
 2. 輸入不會輕易變動的名稱，例如 `taipei-home-01`。
 3. 搜尋探測器所在位置，或選擇**手動輸入座標**並填入經緯度。
+
+<ProductScreenshot src={probeLocationScreenshot} alt="包含名稱與手動座標的探測器識別表單" caption="使用穩定名稱與位置，清楚標示這個探測器的監測視角。" />
+
 4. 選擇**繼續安裝**。
 5. 複製產生的安裝指令，並在 Linux 探測器主機上執行。
+
+<ProductScreenshot src={probeInstallScreenshot} alt="顯示一次性註冊權杖與安裝命令的探測器安裝步驟" caption="在 Linux 主機執行控制器產生的命令；圖中的範例權杖刻意設為無效。" />
+
 6. 等待精靈顯示**已收到心跳**，再選擇**完成**。
+
+<ProductScreenshot src={probeHeartbeatScreenshot} alt="探測器精靈顯示已收到第一筆心跳" caption="控制器確認收到已簽署的執行階段心跳後，探測器即可開始工作。" />
 
 這道指令會從控制器下載正確的 amd64 或 arm64 agent、將探測器憑證存入只有 root 能讀取的環境檔，並安裝 systemd 服務。
 
@@ -121,6 +139,8 @@ curl --fail http://localhost:3000/api/v1/healthz
 
 Netstamp 會將檢查指派給所有符合選擇器的已啟用探測器。新探測器會在下一次重新整理時收到這項指派。
 
+<ProductScreenshot src={createPingCheckScreenshot} alt="Cloudflare DNS 目標的新 Ping 檢查表單" caption="Ping 檢查會把目標與排程套用到類型設定下方所選取的探測器。" />
+
 ## 7. 確認第一筆結果
 
 開啟**分析**，選擇 `cloudflare-dns` 檢查與你的探測器，然後等待第一個執行間隔完成。成功的 Ping 結果會顯示從該探測器網路視角取得的延遲與封包遺失量測。
@@ -128,6 +148,8 @@ Netstamp 會將檢查指派給所有符合選擇器的已啟用探測器。新�
 如果探測器所在網路封鎖對外 ICMP，結果可能會顯示逾時或錯誤。這筆結果仍可確認指派與回報流程正常運作；若需要成功的 Ping 量測，請改用另一個可連線的 IP 位址。
 
 你現在已有一套可從自有探測器收集量測結果的 Netstamp 環境。
+
+<ProductScreenshot src={firstResultScreenshot} alt="Netstamp 分析中的 Ping 指標與延遲時間序列" caption="在分析頁選取一個探測器與檢查，確認第一筆結果已送達控制器。" />
 
 ## 接下來
 

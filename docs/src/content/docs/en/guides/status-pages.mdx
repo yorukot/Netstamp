@@ -7,13 +7,27 @@ navOrder: 80
 ---
 
 import ProductScreenshot from "@/components/docs/ProductScreenshot.astro";
-import publicDashboardScreenshot from "@/assets/homepage-highlights/public-dashboard.webp";
+import blockEditorScreenshot from "@/assets/screenshots/guides/status-pages/block-editor.webp";
+import builderScreenshot from "@/assets/screenshots/guides/status-pages/builder.webp";
+import statusPageListScreenshot from "@/assets/screenshots/guides/status-pages/list.webp";
+import publicDataScreenshot from "@/assets/screenshots/guides/status-pages/public-data.webp";
+import publicPageScreenshot from "@/assets/screenshots/guides/status-pages/public-page.webp";
 
 Status pages publish selected monitoring health without requiring a Netstamp account. Each page belongs to a project and is available at `/status/<slug>`.
 
-<ProductScreenshot src={publicDashboardScreenshot} alt="Public status dashboard in Netstamp" caption="Publish only the checks and presentation intended for an external audience." />
+<ProductScreenshot
+	src={publicPageScreenshot}
+	alt="Public Netstamp status page with overall health, incidents, and service history"
+	caption="Visitors see only the service blocks and incident history selected for this public page."
+/>
 
 ## Create a status page
+
+<ProductScreenshot
+	src={statusPageListScreenshot}
+	alt="Status-page registry with visibility, slug, state, and actions"
+	caption="The registry separates page administration from the unauthenticated public view."
+/>
 
 1. Open **Status pages** in the project.
 2. Choose **New page**.
@@ -23,11 +37,23 @@ Status pages publish selected monitoring health without requiring a Netstamp acc
 
 Open the public URL in a private browser window to verify what an unauthenticated visitor can see.
 
+<ProductScreenshot
+	src={builderScreenshot}
+	alt="Status-page builder with settings and a live service preview"
+	caption="Build the page while reviewing its public presentation in the adjacent live preview."
+/>
+
 ## Choose what to publish
 
 Use status pages for externally meaningful services rather than every internal check. Group checks around the service language your audience understands, and use clear display names.
 
 Before publishing, review check names, probe names, locations, labels, targets, and incident text for internal topology or customer information. Do not put secrets in any of these fields.
+
+<ProductScreenshot
+	src={publicDataScreenshot}
+	alt="Status-page public-data controls for targets, probe names, locations, incidents, and generated time"
+	caption="Treat every enabled field as an explicit disclosure decision before publishing."
+/>
 
 ## Interpret status
 
@@ -37,6 +63,12 @@ The page derives health from the selected monitoring data. A public page is only
 - Probes run from relevant networks or regions.
 - Disabled or stale checks are not presented as current evidence.
 - Alert and incident behavior matches the public message you intend to communicate.
+
+<ProductScreenshot
+	src={blockEditorScreenshot}
+	alt="Status-page block editor for assignment scope, display mode, chart range, and public label"
+	caption="Each block chooses its monitored source and the information shape visitors will see."
+/>
 
 ## Change a slug or remove a page
 

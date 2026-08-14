@@ -6,6 +6,10 @@ navSection: use
 navOrder: 70
 ---
 
+import ProductScreenshot from "@/components/docs/ProductScreenshot.astro";
+import notificationListScreenshot from "@/assets/screenshots/guides/notifications/list.webp";
+import notificationTypePickerScreenshot from "@/assets/screenshots/guides/notifications/type-picker.webp";
+
 Notification destinations deliver alert and incident changes to external systems. Destinations belong to a project and can be reused by multiple alert rules.
 
 ## Destination types
@@ -22,11 +26,24 @@ Notification destinations deliver alert and incident changes to external systems
 
 1. Open **Alerts**, then open **Notifications**.
 2. Choose **Add notification**.
+
+<ProductScreenshot
+	src={notificationTypePickerScreenshot}
+	alt="Notification editor with Webhook, Slack, Discord, Telegram, and Email destination types"
+	caption="Choose the delivery channel first; Netstamp then shows only the settings required by that provider."
+/>
+
 3. Select a type and enter the required endpoint, token, chat, or recipient details.
 4. Save the destination.
 5. Send a test notification.
 
 Test before attaching the destination to production rules. A saved configuration only proves that its fields were accepted; a successful test verifies network access and the external credentials.
+
+<ProductScreenshot
+	src={notificationListScreenshot}
+	alt="Notification destinations list with type, masked destination, enabled state, and rule usage"
+	caption="The destination list shows which channels are ready and which alert rules depend on them."
+/>
 
 ## Attach destinations to rules
 

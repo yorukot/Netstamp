@@ -38,6 +38,8 @@ const expectedDocRoutes = [
 	"docs/guides/labels-and-assignments",
 	"docs/guides/checks",
 	"docs/guides/results-and-insight",
+	"docs/guides/results-and-insight/analyze-measurements",
+	"docs/guides/results-and-insight/investigate-traceroute",
 	"docs/guides/alerts-and-incidents",
 	"docs/guides/notifications",
 	"docs/guides/status-pages",
@@ -68,6 +70,10 @@ const [
 	traditionalChineseQuickStart,
 	englishInstallation,
 	englishProbes,
+	englishAnalyzeMeasurements,
+	traditionalChineseAnalyzeMeasurements,
+	englishInvestigateTraceroute,
+	traditionalChineseInvestigateTraceroute,
 	sitemap
 ] = await Promise.all([
 	readPage(""),
@@ -81,6 +87,10 @@ const [
 	readPage("zh-TW/docs/getting-started/quick-start"),
 	readPage("docs/installation"),
 	readPage("docs/guides/probes"),
+	readPage("docs/guides/results-and-insight/analyze-measurements"),
+	readPage("zh-TW/docs/guides/results-and-insight/analyze-measurements"),
+	readPage("docs/guides/results-and-insight/investigate-traceroute"),
+	readPage("zh-TW/docs/guides/results-and-insight/investigate-traceroute"),
 	readFile(path.join(dist, "sitemap.xml"), "utf8")
 ]);
 
@@ -96,6 +106,18 @@ assertEqual(activeDocsNavHrefs(englishQuickStart), ["/docs/getting-started/quick
 assertEqual(activeDocsNavHrefs(traditionalChineseQuickStart), ["/zh-TW/docs/getting-started/quick-start/"], "Traditional Chinese Quick Start active navigation item");
 assertEqual(activeDocsNavHrefs(englishInstallation), ["/docs/installation/"], "English installation overview active navigation item");
 assertEqual(activeDocsNavHrefs(englishProbes), ["/docs/guides/probes/"], "English probes active navigation item");
+assertEqual(activeDocsNavHrefs(englishAnalyzeMeasurements), ["/docs/guides/results-and-insight/analyze-measurements/"], "English measurement analysis active navigation item");
+assertEqual(
+	activeDocsNavHrefs(traditionalChineseAnalyzeMeasurements),
+	["/zh-TW/docs/guides/results-and-insight/analyze-measurements/"],
+	"Traditional Chinese measurement analysis active navigation item"
+);
+assertEqual(activeDocsNavHrefs(englishInvestigateTraceroute), ["/docs/guides/results-and-insight/investigate-traceroute/"], "English Traceroute investigation active navigation item");
+assertEqual(
+	activeDocsNavHrefs(traditionalChineseInvestigateTraceroute),
+	["/zh-TW/docs/guides/results-and-insight/investigate-traceroute/"],
+	"Traditional Chinese Traceroute investigation active navigation item"
+);
 assertIncludes(englishQuickStart, 'data-astro-transition-persist="docs-sidebar"', "English persistent documentation sidebar");
 assertIncludes(englishQuickStart, 'data-docs-locale="en"', "English documentation sidebar locale");
 assertIncludes(traditionalChineseQuickStart, 'data-astro-transition-persist="docs-sidebar"', "Traditional Chinese persistent documentation sidebar");

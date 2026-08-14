@@ -6,6 +6,10 @@ navSection: use
 navOrder: 30
 ---
 
+import ProductScreenshot from "@/components/docs/ProductScreenshot.astro";
+import labelRegistryScreenshot from "@/assets/screenshots/guides/labels/registry.webp";
+import selectorPreviewScreenshot from "@/assets/screenshots/guides/labels/selector-preview.webp";
+
 Labels let you describe probes. Selectors use those labels to decide where each check runs.
 
 ## Label probes
@@ -21,11 +25,23 @@ A label is a key-value pair attached to a probe. Prefer a small, consistent voca
 
 Use stable facts rather than temporary status. For example, `region=tw` is a useful label; `healthy=true` is not.
 
+<ProductScreenshot
+	src={labelRegistryScreenshot}
+	alt="Label registry grouped by key with probe and check usage counts"
+	caption="The registry makes the project vocabulary and each value's current reach visible before you edit it."
+/>
+
 ## Select probes for a check
 
 When creating or editing a check, its selector defines which enabled probes should execute it. A selector can match one or more label conditions.
 
 An empty selector matches all enabled probes in the project. This is convenient for small projects, but review it carefully before adding many probes because the check will fan out to each one.
+
+<ProductScreenshot
+	src={selectorPreviewScreenshot}
+	alt="Check editor showing a label selector and the probes it matches"
+	caption="Preview a selector before saving to verify exactly which enabled probes will receive the check."
+/>
 
 ## Assignment lifecycle
 

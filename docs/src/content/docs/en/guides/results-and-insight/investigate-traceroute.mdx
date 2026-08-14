@@ -1,0 +1,151 @@
+---
+title: Investigate Traceroute results
+navTitle: Traceroute investigations
+description: Compare route topology, select individual runs, and interpret hop latency and loss without common false positives.
+icon: route
+navSection: use
+navOrder: 52
+---
+
+import ProductScreenshot from "@/components/docs/ProductScreenshot.astro";
+import tracerouteGraphScreenshot from "@/assets/screenshots/guides/insight/traceroute-graph.webp";
+import tracerouteHopTableScreenshot from "@/assets/screenshots/guides/insight/traceroute-hop-table.webp";
+import tracerouteRunTimelineScreenshot from "@/assets/screenshots/guides/insight/traceroute-run-timeline.webp";
+
+Traceroute shows the network hops observed between a probe and a target. It is strongest as supporting evidence: use it to explain a path-specific change already visible in Ping, TCP, or HTTP, not as a standalone availability test.
+
+Read [Insight scope and time controls](../) before using this guide.
+
+## Choose the investigation scope
+
+Use one exact probe–check assignment when you need a hop table or individual run. Use a broader scope when you need an aggregated route graph:
+
+| Scope                                   | What Insight displays                                                                    |
+| --------------------------------------- | ---------------------------------------------------------------------------------------- |
+| One probe and one Traceroute check      | Aggregated topology plus the selected run's hop diagnostics and timeline                 |
+| One probe and several checks            | Topology observed from that probe; non-Traceroute checks receive their own series panels |
+| Several probes and one Traceroute check | Aggregated topology for the target across the selected probes                            |
+| Several probes and several checks       | No combined topology unless one dimension is narrowed to one probe or one check          |
+
+Keep the time range short enough that route changes remain distinguishable. A large range can merge several valid paths into one complex topology.
+
+## Read the aggregated route graph
+
+<ProductScreenshot
+	src={tracerouteGraphScreenshot}
+	alt="Aggregated Traceroute graph from the Taipei probe through intermediate hops to the destination"
+	caption="The graph combines retained runs in the selected scope and time window; it is not a drawing of one packet or one run."
+/>
+
+The graph identifies:
+
+- The originating **Agent** or probe.
+- Intermediate nodes observed in retained runs.
+- The destination when it responded.
+- Normal, high-RTT, and loss states calculated from the available observations.
+- Alternative edges when different runs followed different paths.
+
+Use the graph to locate where paths diverge or where an affected probe stops sharing the same route as healthy probes. Then select one exact assignment and use the timeline to inspect a real run.
+
+:::note Hostnames are labels resolved for observed addresses. A name change does not necessarily mean that the underlying address or route changed. :::
+
+## Select a run from the timeline
+
+<ProductScreenshot
+	src={tracerouteRunTimelineScreenshot}
+	alt="Traceroute run timeline with latency points, loss and route-change states, and one selected run"
+	caption="Select a raw point to load that run's hops; drag a time interval to narrow the whole Insight window."
+/>
+
+The timeline plots final responding-hop RTT across the selected time window. Its legend distinguishes normal runs, high RTT, loss, route changes, and the selected run.
+
+Timeline behavior depends on the returned resolution:
+
+- A **raw point** represents one retained run. Selecting it loads that run into the hop table and stores its start time in the URL.
+- An **aggregate point** represents a bucket containing several runs. Selecting it narrows Insight to that bucket so raw evidence can be requested.
+- Dragging across the timeline changes the global Insight window to an absolute range.
+
+A route-change marker means the observed path differs from the preceding path. It does not prove an outage. Load the run before and after the change, then compare service behavior during the same interval.
+
+## Read one run's hop table
+
+<ProductScreenshot
+	src={tracerouteHopTableScreenshot}
+	alt="Traceroute hop table showing loss, latency rail, median, range, sent and received counts, and diagnostic state"
+	caption="The hop table describes one selected run; downstream replies determine whether an intermediate loss signal propagated."
+/>
+
+Each row represents one hop index in the selected run:
+
+| Column    | Meaning                                                         |
+| --------- | --------------------------------------------------------------- |
+| Node      | Resolved hostname and observed address, when available          |
+| Loss      | Percentage of sent probes without a reply at this hop           |
+| Latency   | Minimum, average, and maximum RTT shown on a common rail        |
+| Median    | Middle RTT sample, which is less sensitive to one extreme reply |
+| Range     | Minimum and maximum RTT for the hop                             |
+| Sent/Recv | Probe messages sent and replies received                        |
+| State     | Netstamp's diagnostic classification for the row                |
+
+Compare hop latency with the previous responding hop. A high value on one router is not automatically service latency; confirm whether the increase remains visible downstream and at the destination.
+
+## Understand hop states
+
+| State            | How Netstamp classifies it                                                                  | Interpretation                                                       |
+| ---------------- | ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| Clear            | No flagged loss or meaningful RTT increase                                                  | No issue detected in this run                                        |
+| No reply         | Messages were sent but the hop returned no replies                                          | Router may ignore or rate-limit Traceroute traffic                   |
+| RTT jump         | Average RTT increased by more than 10 ms and more than 20% from the previous responding hop | Possible path or processing change; confirm downstream persistence   |
+| Router-only loss | This hop lost replies but downstream responding hops did not preserve the loss              | Usually ICMP rate limiting at the router, not forwarded traffic loss |
+| Propagated loss  | Loss is also present on every responding downstream hop                                     | Stronger evidence of loss beginning at or before this point          |
+| Final loss       | Loss is present at the last responding hop                                                  | Destination or final visible segment may be affected                 |
+
+These states are diagnostics, not root-cause conclusions. Firewalls, control-plane protection, load balancing, and incomplete replies can all change what Traceroute exposes.
+
+## Avoid common false positives
+
+### An intermediate hop does not reply
+
+If later hops and the destination still reply, the silent router is forwarding traffic. Treat the missing row as visibility loss, not proof of service loss.
+
+### One hop reports loss but later hops are clean
+
+The router may rate-limit responses addressed to itself while forwarding transit traffic normally. Netstamp labels this **Router-only loss**. Do not escalate it without downstream loss or service impact.
+
+### RTT rises at one hop and falls later
+
+Routers can deprioritize their own replies. Latency cannot physically be removed from the path, so a non-persistent spike is not evidence that transit traffic experienced the same delay.
+
+### The route changes but the service remains healthy
+
+Routing protocols, anycast, ECMP, and load balancers can select another valid path. Investigate when a route change aligns with sustained loss, latency, connection failure, or HTTP degradation.
+
+### Different probes show different routes
+
+This is expected when probes use different providers, regions, DNS answers, or peering relationships. Compare probes to explain scope rather than expecting identical topology.
+
+## Account for Traceroute limits
+
+Traceroute cannot show the complete forward and reverse data path in every network. Interpret results with these limits:
+
+- Return traffic can take a different path from the forward probes.
+- MPLS, tunnels, NAT, firewalls, and private networks can hide hops.
+- ECMP and per-packet load balancing can produce several valid paths.
+- ICMP and UDP Traceroute traffic can be filtered or deprioritized differently from TCP or HTTP.
+- Resolved hop names can be missing, stale, generic, or operationally misleading.
+- The last responding hop may not be the application host.
+
+Traceroute checks do not currently support alert rules. Alert on Ping, TCP, or HTTP service evidence, then use Traceroute during investigation.
+
+## Investigation workflow
+
+1. Identify the incident interval in Ping, TCP, or HTTP.
+2. Open the matching Traceroute check for one affected probe.
+3. Set the same absolute time window.
+4. Check the aggregated graph for path divergence.
+5. Use the timeline to select runs before, during, and after the event.
+6. Compare the first persistent RTT or loss change in their hop tables.
+7. Repeat the comparison with an unaffected probe.
+8. Share the URL with the selected run and note the timezone.
+
+Return to [Ping, TCP, and HTTP analysis](../analyze-measurements/) to decide whether the path evidence matches user-visible service behavior.

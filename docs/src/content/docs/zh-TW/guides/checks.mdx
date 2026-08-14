@@ -6,7 +6,16 @@ navSection: use
 navOrder: 40
 ---
 
+import ProductScreenshot from "@/components/docs/ProductScreenshot.astro";
+import checkListScreenshot from "@/assets/screenshots/guides/checks/list.webp";
+import httpFormScreenshot from "@/assets/screenshots/guides/checks/http-form.webp";
+import pingFormScreenshot from "@/assets/screenshots/guides/checks/ping-form.webp";
+import tcpFormScreenshot from "@/assets/screenshots/guides/checks/tcp-form.webp";
+import tracerouteFormScreenshot from "@/assets/screenshots/guides/checks/traceroute-form.webp";
+
 檢查定義探測器要執行的目標與量測。Netstamp 支援 Ping、TCP、HTTP 與 Traceroute。
+
+<ProductScreenshot src={checkListScreenshot} alt="包含 Ping、HTTP、TCP 與 Traceroute 定義的檢查表格" caption="檢查清單會同時顯示四種檢查的目標、間隔與指派數量。" />
 
 ## 共通設定
 
@@ -26,11 +35,15 @@ Ping 用於量測基本 IP 可達性與往返時間。設定主機名稱或 IP �
 
 即使應用程式可用，ICMP 被過濾時 Ping 仍可能失敗。當服務可用性比 ICMP 可達性更重要時，請搭配 TCP 或 HTTP 檢查。
 
+<ProductScreenshot src={pingFormScreenshot} alt="包含封包數量、大小、逾時與 IP Family 設定的 Ping 檢查表單" caption="設定共通的檢查識別與間隔後，再調整封包行為。" />
+
 ## TCP 檢查
 
 TCP 用於確認主機是否接受特定連接埠的連線，適合資料庫、郵件伺服器、Proxy 與其他非 HTTP 服務。
 
 成功連線只證明連接埠接受連線，不代表應用層協定交換正確。
+
+<ProductScreenshot src={tcpFormScreenshot} alt="包含連接埠、逾時與 IP Family 設定的 TCP 檢查表單" caption="TCP 檢查會測試所選連接埠是否接受來自已指派探測器的連線。" />
 
 ## HTTP 檢查
 
@@ -47,11 +60,15 @@ HTTP 用於驗證網頁端點。依所選選項，可以設定：
 
 盡量使用穩定的健康檢查端點。避免會修改資料、觸發昂貴工作，或需要過大權限憑證的目標。
 
+<ProductScreenshot src={httpFormScreenshot} alt="包含 Method、Status、Redirect、TLS 與回應設定的 HTTP 檢查表單" caption="使用 HTTP 專屬斷言驗證應用程式回應，而不只是網路可達性。" />
+
 ## Traceroute 檢查
 
 Traceroute 會記錄每個被指派探測器到目標的網路路徑。比較不同探測器，或檢查事件前後路徑如何改變時最有價值。
 
 中間路由器可能不回應，因此缺少躍點不一定代表流量在該處中斷。
+
+<ProductScreenshot src={tracerouteFormScreenshot} alt="包含協定、躍點、查詢、封包、連接埠與逾時設定的 Traceroute 檢查表單" caption="Traceroute 設定會控制每個已指派探測器如何取樣到目標的路徑。" />
 
 ## 選擇探測器
 

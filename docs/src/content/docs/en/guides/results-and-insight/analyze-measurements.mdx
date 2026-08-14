@@ -1,0 +1,188 @@
+---
+title: Analyze Ping, TCP, and HTTP results
+navTitle: Ping, TCP, and HTTP
+description: Interpret reachability, connection, request timing, and TLS evidence across one or more probes.
+icon: activity
+navSection: use
+navOrder: 51
+---
+
+import ProductScreenshot from "@/components/docs/ProductScreenshot.astro";
+import httpSeriesScreenshot from "@/assets/screenshots/guides/insight/http-series.webp";
+import httpTimingScreenshot from "@/assets/screenshots/guides/insight/http-timing.webp";
+import pingComparisonScreenshot from "@/assets/screenshots/guides/insight/ping-comparison.webp";
+import pingSeriesScreenshot from "@/assets/screenshots/guides/insight/ping-series.webp";
+import tcpSeriesScreenshot from "@/assets/screenshots/guides/insight/tcp-series.webp";
+import tlsInventoryScreenshot from "@/assets/screenshots/guides/insight/tls-inventory.webp";
+
+Ping, TCP, and HTTP answer different questions about the same path. Investigate them in layers:
+
+1. **Ping:** Is the target reachable, and what does the round trip look like?
+2. **TCP:** Can the probe establish a connection to the service port?
+3. **HTTP:** Does the application return the expected response, and where is the request time spent?
+
+First read [Insight scope and time controls](../) if you are not yet comfortable selecting one or more assignments.
+
+## Decide between detail and comparison
+
+Select one probe and one check when you need summary metrics or the latest HTTP result. Select several probes with the same check when you need to determine whether a symptom is target-wide or isolated to one network.
+
+<ProductScreenshot
+	src={pingComparisonScreenshot}
+	alt="Three probe series comparing Ping latency for the same target"
+	caption="Comparison mode keeps one line per active assignment; use the legend to identify the probe and its location."
+/>
+
+When several check types are selected, Insight creates a separate Ping, TCP, and HTTP panel. Traceroute uses its own topology and timeline views rather than a regular line-series panel.
+
+## Investigate reachability with Ping
+
+Ping measures ICMP reachability, round-trip time, and packet loss.
+
+<ProductScreenshot
+	src={pingSeriesScreenshot}
+	alt="Ping summary metrics and round-trip-time chart for one probe and check"
+	caption="Read loss and latency together; a latency value without its probe, target, and time range is incomplete evidence."
+/>
+
+### Read the summary
+
+| Metric  | What it tells you                             | What to check next                                 |
+| ------- | --------------------------------------------- | -------------------------------------------------- |
+| Average | Typical round-trip time in the selected range | Compare with the same probe's baseline             |
+| Max     | Worst retained round-trip measurement         | Check whether it is isolated or sustained          |
+| Loss    | Share of packets without replies              | Compare other probes and downstream protocols      |
+| Success | Share of successful Ping results              | Confirm whether loss is intermittent or continuous |
+| Samples | Retained replies represented in the range     | Check schedule, range, and missing data            |
+
+Look for shapes, not only headline values:
+
+- A sustained level shift is more actionable than one isolated spike.
+- Repeating peaks can align with backups, traffic bursts, or scheduled work.
+- A gap is missing evidence; it is not automatically zero latency or a healthy period.
+- Loss and high latency beginning together often indicate congestion or an unstable path.
+
+### Compare probes
+
+| Observation                                 | Likely scope                                       | Verification                                                 |
+| ------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------ |
+| All probes change at the same time          | Target, shared upstream, or a broad event          | Compare TCP/HTTP and external changes                        |
+| One probe changes                           | Local access network, regional path, or probe host | Compare another probe in the same region                     |
+| Nearby probes change, distant probes do not | Regional provider or peering path                  | Inspect Traceroute from affected and unaffected probes       |
+| Ping fails but TCP/HTTP succeeds            | ICMP filtering or deprioritization                 | Treat the service protocol as stronger availability evidence |
+
+Do not use Ping alone to declare an application outage. Many networks filter or deprioritize ICMP while allowing the monitored service traffic.
+
+## Investigate service access with TCP
+
+TCP measures whether the configured port accepts a connection and how long connection setup takes.
+
+<ProductScreenshot
+	src={tcpSeriesScreenshot}
+	alt="TCP connection summary and connection-time series for one probe and target"
+	caption="TCP separates service-port failures from changes in connection setup time."
+/>
+
+The summary reports average and maximum connection time, failure percentage, success percentage, and connection attempts. Interpret it with Ping:
+
+| Ping       | TCP        | Interpretation                                                            |
+| ---------- | ---------- | ------------------------------------------------------------------------- |
+| Successful | Successful | The network path and service port are reachable                           |
+| Successful | Failing    | Closed port, firewall, listener failure, overload, or connection refusal  |
+| Degraded   | Degraded   | Congestion, routing instability, or a busy endpoint may affect setup time |
+| Failing    | Successful | ICMP is likely blocked or treated differently from TCP                    |
+| Failing    | Failing    | Broad reachability, routing, target, or probe-network problem             |
+
+If only one probe has slow TCP setup, investigate its network path. If every probe changes together while Ping remains stable, inspect the target listener, load balancer, firewall, and connection capacity.
+
+## Investigate application behavior with HTTP
+
+HTTP combines transport evidence with response validation. Depending on the check configuration, a result can include status validation, body matching, redirects, response size, final URL, resolved address, request phases, and TLS negotiation.
+
+<ProductScreenshot
+	src={httpSeriesScreenshot}
+	alt="HTTP success and timing summaries with total, TTFB, DNS, connection, and TLS series"
+	caption="Use the total series to locate the event, then compare request phases to identify where time increased."
+/>
+
+### Read the summary and series
+
+| Metric            | Meaning                                                           |
+| ----------------- | ----------------------------------------------------------------- |
+| Average total     | Typical end-to-end request duration in the selected range         |
+| Max total         | Slowest retained request in the selected range                    |
+| Average TTFB      | Typical time until the first response byte                        |
+| Failure           | Requests that timed out, errored, or failed configured validation |
+| Success           | Requests that completed and satisfied the check                   |
+| Certificate floor | Lowest remaining certificate lifetime observed in the range       |
+
+Use the phase series to narrow the likely owner:
+
+- **DNS increases:** resolver latency, cache misses, or name-resolution failure.
+- **Connect increases:** path latency, packet loss, firewall handling, load balancer pressure, or connection backlog.
+- **TLS increases:** handshake latency, certificate-chain work, protocol negotiation, or an intercepting proxy.
+- **TTFB increases:** upstream application, dependency, queue, or server processing time.
+- **Total increases while TTFB stays stable:** response transfer, response size, or the later part of the request is more likely.
+
+### Inspect the latest retained result
+
+<ProductScreenshot
+	src={httpTimingScreenshot}
+	alt="Latest HTTP and TLS result with certificate, request phases, response status, final URL, and resolved address"
+	caption="The latest retained result explains one request in detail, including what was contacted and what validation observed."
+/>
+
+The latest result is independent of the selected chart range. It always represents the newest retained measurement for the exact assignment, even when the chart is showing an older absolute incident window.
+
+Check:
+
+1. **Observed** and **Completed** before correlating it with the chart.
+2. **Status** and any error code or message.
+3. **Resolved address** to detect DNS or routing differences between probes.
+4. **Final URL** and **Redirects** to identify unexpected redirect behavior.
+5. **Body assertion** when the check validates response content.
+6. **Response truncated** before drawing conclusions from retained response metadata.
+
+:::warning Do not cite the latest result as evidence for an older chart interval unless its observed timestamp is inside that interval. :::
+
+## Compare TLS evidence
+
+Selecting one HTTP/HTTPS check across several probes opens the TLS certificate inventory.
+
+<ProductScreenshot
+	src={tlsInventoryScreenshot}
+	alt="TLS certificate inventory comparing the latest HTTPS result across three probes"
+	caption="The inventory compares the newest certificate and TLS negotiation observed by every selected assignment."
+/>
+
+Like the latest HTTP result, the inventory is independent of the chart time range. Use **Last observed** to confirm freshness.
+
+Differences between probes can reveal:
+
+- A regional CDN edge serving a different certificate.
+- A corporate proxy or TLS inspection device.
+- Split-horizon DNS sending probes to different endpoints.
+- A stale node that has not received a certificate rotation.
+- Different TLS protocol or cipher support along one path.
+
+A valid certificate does not prove that hostname validation, status validation, or the response body succeeded. Read the HTTP result and certificate state together.
+
+## Common mistakes
+
+- Comparing different targets or check types as if they were the same series.
+- Reading a long-range aggregate as an exact event timeline.
+- Treating a missing point as a successful measurement.
+- Treating Ping failure as proof that TCP or HTTP is unavailable.
+- Using the latest HTTP/TLS panel without checking its timestamp.
+- Comparing probes without considering their region, provider, labels, or resolved address.
+- Enabling page refresh faster than the check produces measurements.
+
+## Turn evidence into action
+
+After locating a repeatable condition:
+
+1. Narrow the chart to an absolute incident window.
+2. Save the Insight URL and note the timezone.
+3. Compare affected and unaffected probes.
+4. Use [Traceroute](../investigate-traceroute/) when the evidence points to a path-specific problem.
+5. Create an [alert rule](/docs/guides/alerts-and-incidents/) for a stable threshold such as loss, failure percentage, or latency.

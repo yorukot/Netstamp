@@ -6,6 +6,10 @@ navSection: use
 navOrder: 20
 ---
 
+import ProductScreenshot from "@/components/docs/ProductScreenshot.astro";
+import probeDetailScreenshot from "@/assets/screenshots/guides/probes/detail.webp";
+import probeStatusListScreenshot from "@/assets/screenshots/guides/probes/status-list.webp";
+
 探測器會從你想觀察的網路執行檢查。每個探測器都註冊於單一專案，並使用自己的憑證驗證身分。
 
 ## 系統需求
@@ -42,6 +46,8 @@ sudo netstamp-agent service install \
 
 安裝後，探測器頁面應顯示近期心跳。控制器會在可取得時記錄 Agent 版本、位址、公網 IP 資訊與支援的 IP Family。
 
+<ProductScreenshot src={probeStatusListScreenshot} alt="包含上線狀態、停用狀態、IP Family、心跳與標籤欄位的探測器清單" caption="使用清單比較每個監測視角的執行狀態與中繼資料。" />
+
 若探測器持續離線，請在主機上確認服務與日誌：
 
 ```bash
@@ -56,6 +62,8 @@ sudo journalctl -u netstamp-agent -n 100 --no-pager
 使用在結果比較中仍有意義的名稱，例如 `taipei-office` 或 `aws-tokyo-1`。位置是描述性中繼資料。
 
 標籤會控制指派。加入 `region=tw`、`network=office` 或 `provider=aws` 等標籤，並在檢查選擇器中使用相同鍵值。變更正式環境探測器的標籤前，先閱讀[標籤與指派](/zh-TW/docs/guides/labels-and-assignments/)。
+
+<ProductScreenshot src={probeDetailScreenshot} alt="顯示狀態、中繼資料、標籤與已指派檢查的探測器詳細資料抽屜" caption="開啟探測器即可在同一處檢視識別資訊、已指派工作與憑證管理操作。" />
 
 ## 已啟用與上線是兩件事
 

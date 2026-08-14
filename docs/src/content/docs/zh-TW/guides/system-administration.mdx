@@ -6,6 +6,12 @@ navSection: use
 navOrder: 100
 ---
 
+import ProductScreenshot from "@/components/docs/ProductScreenshot.astro";
+import accessPolicyScreenshot from "@/assets/screenshots/guides/admin/access-policy.webp";
+import authProvidersScreenshot from "@/assets/screenshots/guides/admin/auth-providers.webp";
+import smtpScreenshot from "@/assets/screenshots/guides/admin/smtp.webp";
+import usersScreenshot from "@/assets/screenshots/guides/admin/users.webp";
+
 系統管理員負責整個站台的存取與服務設定。此角色與專案角色分開，不會自動取得所有專案的監控資料。
 
 ## 建立初始管理權限
@@ -20,17 +26,23 @@ Netstamp 會阻止移除最後一位系統管理員。
 
 正式環境應使用明確政策，並分別用核准與未核准的身分驗證。
 
+<ProductScreenshot src={accessPolicyScreenshot} alt="控制帳號建立、驗證、專案與憑證變更的全站存取設定" caption="一起檢查四項存取控制，因為它們會同時影響本機與供應商登入的帳號建立流程。" />
+
 ## 驗證供應商
 
 管理員可設定全站通用 OIDC、Google 與 GitHub 登入。Provider 憑證、Callback URL、Claim Mapping 與 Allowlist 會影響所有選擇該方式的使用者。
 
 修改供應商設定時，至少保留一種測試過的復原登入方式。部署設定與 Callback URL 請參閱[驗證與電子郵件](/zh-TW/docs/installation/authentication-and-email/)。
 
+<ProductScreenshot src={authProvidersScreenshot} alt="包含 Callback URL 的 OIDC、Google 與 GitHub 驗證供應商設定" caption="分別儲存並驗證每個供應商，同時保留一種測試過的復原登入方式。" />
+
 ## SMTP 與電子郵件
 
 SMTP 設定支援電子郵件驗證、密碼復原與 Email 通知目的地。修改 Host、憑證、寄件人或 TLS 後都要傳送測試郵件。
 
 若 SMTP 無法使用，請在強制套用依賴電子郵件的政策前，先確認哪些帳號復原與通知管道會一併失效。
+
+<ProductScreenshot src={smtpScreenshot} alt="包含 Host、Port、寄件人、TLS 模式、逾時與測試操作的 SMTP 傳送設定" caption="修改 Host、憑證、寄件人或 TLS 並儲存後，都要傳送測試郵件。" />
 
 ## 管理使用者與管理員
 
@@ -44,6 +56,8 @@ SMTP 設定支援電子郵件驗證、密碼復原與 Email 通知目的地。�
 - 保留政策要求的稽核或事件脈絡。
 
 專案成員資格必須在各專案中管理。
+
+<ProductScreenshot src={usersScreenshot} alt="顯示帳號狀態、管理員權限、驗證與操作的全站使用者管理表格" caption="系統管理員在此管理帳號；專案成員資格仍是另一項專案層級決策。" />
 
 ## 資料管理
 

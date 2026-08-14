@@ -6,6 +6,12 @@ navSection: use
 navOrder: 100
 ---
 
+import ProductScreenshot from "@/components/docs/ProductScreenshot.astro";
+import accessPolicyScreenshot from "@/assets/screenshots/guides/admin/access-policy.webp";
+import authProvidersScreenshot from "@/assets/screenshots/guides/admin/auth-providers.webp";
+import smtpScreenshot from "@/assets/screenshots/guides/admin/smtp.webp";
+import usersScreenshot from "@/assets/screenshots/guides/admin/users.webp";
+
 System administrators manage instance-wide access and service settings. This role is separate from project roles and does not automatically grant access to every project's monitoring data.
 
 ## Bootstrap administration
@@ -20,17 +26,35 @@ Use the administration settings to control who can create an account and how ext
 
 For production, prefer an explicit policy and verify it with both an approved and an unapproved identity.
 
+<ProductScreenshot
+	src={accessPolicyScreenshot}
+	alt="System instance-access settings for account creation, verification, projects, and credential changes"
+	caption="Review the four access controls together because they shape both local and provider-based onboarding."
+/>
+
 ## Authentication providers
 
 Administrators configure generic OIDC, Google, and GitHub sign-in at the instance level. Provider credentials, callback URLs, claim mapping, and allowlists affect every user who selects that method.
 
 Keep at least one tested recovery sign-in method while changing provider settings. See [Authentication and email](/docs/installation/authentication-and-email/) for deployment configuration and callback URLs.
 
+<ProductScreenshot
+	src={authProvidersScreenshot}
+	alt="OIDC, Google, and GitHub authentication-provider settings with callback URLs"
+	caption="Save and validate each provider independently while preserving a tested recovery sign-in method."
+/>
+
 ## SMTP and email behavior
 
 SMTP configuration supports email verification, password recovery, and email notification destinations. Send a test message after any host, credential, sender, or TLS change.
 
 If SMTP is unavailable, understand which account recovery and notification paths will also be unavailable before enforcing email-dependent policies.
+
+<ProductScreenshot
+	src={smtpScreenshot}
+	alt="SMTP delivery settings with host, port, sender, TLS mode, timeout, and test action"
+	caption="Send a test message after saving any host, credential, sender, or TLS change."
+/>
 
 ## Manage users and administrators
 
@@ -44,6 +68,12 @@ Before disabling an account:
 - Preserve any audit or incident context required by policy.
 
 Project membership must be managed inside each project.
+
+<ProductScreenshot
+	src={usersScreenshot}
+	alt="System user-management table with account state, administrator access, verification, and actions"
+	caption="Instance administrators manage accounts here; project membership remains a separate project-level decision."
+/>
 
 ## Data administration
 

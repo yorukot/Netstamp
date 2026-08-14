@@ -6,6 +6,10 @@ navSection: use
 navOrder: 10
 ---
 
+import ProductScreenshot from "@/components/docs/ProductScreenshot.astro";
+import inviteMemberScreenshot from "@/assets/screenshots/guides/projects/invite-member.webp";
+import memberAccessScreenshot from "@/assets/screenshots/guides/projects/member-access.webp";
+
 A project keeps a monitoring environment and its collaborators together. Probes, checks, alert rules, notification destinations, incidents, and status pages all belong to a project.
 
 ## Create a project
@@ -31,6 +35,12 @@ If a page appears empty, first confirm that the intended project is selected.
 
 An invitation only grants access to the selected project. The recipient must sign in with the invited email address before accepting it.
 
+<ProductScreenshot
+	src={inviteMemberScreenshot}
+	alt="Project members page with the invite form and a pending invitation"
+	caption="Choose a project role before sending the invitation; pending access remains visible until accepted or canceled."
+/>
+
 ## Project roles
 
 | Role   | Intended use                                                            |
@@ -47,6 +57,12 @@ Keep at least two owners for production projects. Netstamp prevents removal or d
 Owners and authorized administrators can update a member's role or remove the member from project settings. Review access when responsibilities change, especially for accounts that can edit checks, alert rules, or notification secrets.
 
 Project membership and system administration are separate. A system administrator can manage the Netstamp instance, but still needs project membership to work with project resources.
+
+<ProductScreenshot
+	src={memberAccessScreenshot}
+	alt="Project member access table with owner, administrator, and viewer roles"
+	caption="Review accepted members and pending invitations together when auditing project access."
+/>
 
 ## Update or delete a project
 

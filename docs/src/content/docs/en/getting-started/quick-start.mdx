@@ -6,6 +6,14 @@ navSection: start
 navOrder: 0
 ---
 
+import ProductScreenshot from "@/components/docs/ProductScreenshot.astro";
+import createPingCheckScreenshot from "@/assets/screenshots/getting-started/create-ping-check.webp";
+import createProjectScreenshot from "@/assets/screenshots/getting-started/create-project.webp";
+import firstResultScreenshot from "@/assets/screenshots/getting-started/first-result.webp";
+import probeHeartbeatScreenshot from "@/assets/screenshots/getting-started/probe-heartbeat.webp";
+import probeInstallScreenshot from "@/assets/screenshots/getting-started/probe-install.webp";
+import probeLocationScreenshot from "@/assets/screenshots/getting-started/probe-location.webp";
+
 This guide shows you how to start a local Netstamp controller and database, create the first administrator and project, install a Linux probe, and collect a Ping measurement.
 
 By the end, you will have:
@@ -97,14 +105,36 @@ Both commands should complete successfully. If a service is not ready, inspect i
 
 The first account registered on a new installation automatically becomes a system administrator. Netstamp generates a URL-safe project slug from the project name.
 
+<ProductScreenshot src={createProjectScreenshot} alt="Create project dialog in the Netstamp project switcher" caption="Create a dedicated project before adding probes and checks." />
+
 ## 5. Install a probe
 
 1. Open **Probes** and select **New probe**.
 2. Enter a stable name, such as `taipei-home-01`.
 3. Search for its location, or select **Manual coordinates** and enter latitude and longitude.
+
+<ProductScreenshot
+	src={probeLocationScreenshot}
+	alt="Probe identity form with a name and manual coordinates"
+	caption="Give the probe a stable name and a location that identifies its monitoring viewpoint."
+/>
+
 4. Select **Continue to install**.
 5. Copy the generated install command and run it on the Linux probe host.
+
+<ProductScreenshot
+	src={probeInstallScreenshot}
+	alt="Probe install step with a one-time registration token and install command"
+	caption="Run the controller-generated command on the Linux host. The example token shown here is deliberately invalid."
+/>
+
 6. Wait for the wizard to show **Heartbeat received**, then select **Finish**.
+
+<ProductScreenshot
+	src={probeHeartbeatScreenshot}
+	alt="Probe wizard showing that the first heartbeat was received"
+	caption="The probe is ready when the controller confirms a signed runtime heartbeat."
+/>
 
 The command downloads the correct amd64 or arm64 agent from your controller, stores the probe credential in a root-owned environment file, and installs a systemd service.
 
@@ -121,6 +151,12 @@ The command downloads the correct amd64 or arm64 agent from your controller, sto
 
 Netstamp assigns the check to every enabled probe that matches the selector. The new probe receives the assignment on its next refresh.
 
+<ProductScreenshot
+	src={createPingCheckScreenshot}
+	alt="New Ping check form for the Cloudflare DNS target"
+	caption="A Ping check combines its target and schedule with the probes selected below the type-specific settings."
+/>
+
 ## 7. Verify the first result
 
 Open **Insight**, select the `cloudflare-dns` check and your probe, then wait for the first interval to complete. A successful Ping result shows latency and packet-loss measurements from that probe's network viewpoint.
@@ -128,6 +164,12 @@ Open **Insight**, select the `cloudflare-dns` check and your probe, then wait fo
 If the probe network blocks outbound ICMP, the result can report a timeout or error. That result still confirms that the assignment and reporting path are working; use another reachable IP address if you need a successful Ping measurement.
 
 You now have a working Netstamp installation that collects measurements from a probe you control.
+
+<ProductScreenshot
+	src={firstResultScreenshot}
+	alt="Ping metrics and latency series in Netstamp Insight"
+	caption="Select one probe and check in Insight to confirm that the first result reached the controller."
+/>
 
 ## Next steps
 

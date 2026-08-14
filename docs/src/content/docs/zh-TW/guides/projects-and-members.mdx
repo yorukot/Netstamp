@@ -6,6 +6,10 @@ navSection: use
 navOrder: 10
 ---
 
+import ProductScreenshot from "@/components/docs/ProductScreenshot.astro";
+import inviteMemberScreenshot from "@/assets/screenshots/guides/projects/invite-member.webp";
+import memberAccessScreenshot from "@/assets/screenshots/guides/projects/member-access.webp";
+
 專案會把一個監控環境與協作者放在一起。探測器、檢查、警示規則、通知目的地、事件與狀態頁面都屬於專案。
 
 ## 建立專案
@@ -31,6 +35,8 @@ navOrder: 10
 
 邀請只會授予所選專案的權限。收件人必須用被邀請的電子郵件地址登入後才能接受。
 
+<ProductScreenshot src={inviteMemberScreenshot} alt="包含邀請表單與待處理邀請的專案成員頁面" caption="送出邀請前先選擇專案角色；接受或取消以前，待處理權限會持續顯示。" />
+
 ## 專案角色
 
 | 角色   | 適用情境                                 |
@@ -47,6 +53,8 @@ navOrder: 10
 擁有者與具權限的管理員可以在專案設定中更新成員角色或移除成員。當職責改變時，請重新檢視權限，尤其是能編輯檢查、警示規則或通知密鑰的帳號。
 
 專案成員資格與系統管理彼此分開。系統管理員可以管理 Netstamp 站台，但仍需要成為專案成員才能操作專案資源。
+
+<ProductScreenshot src={memberAccessScreenshot} alt="包含擁有者、管理員與檢視者角色的專案成員存取表格" caption="稽核專案存取時，應一起檢查已加入的成員與待處理邀請。" />
 
 ## 更新或刪除專案
 

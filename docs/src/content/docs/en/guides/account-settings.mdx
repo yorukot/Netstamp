@@ -6,6 +6,11 @@ navSection: use
 navOrder: 90
 ---
 
+import ProductScreenshot from "@/components/docs/ProductScreenshot.astro";
+import sessionsScreenshot from "@/assets/screenshots/guides/account/sessions.webp";
+import tokenCreatedScreenshot from "@/assets/screenshots/guides/account/token-created.webp";
+import tokenFormScreenshot from "@/assets/screenshots/guides/account/token-form.webp";
+
 Account settings control your identity and credentials across the Netstamp instance. They are separate from project membership and system-administrator permissions.
 
 ## Profile and email
@@ -34,6 +39,12 @@ By default, a session expires after 24 hours of inactivity and never lasts longe
 
 After a suspected credential leak, change or rotate the affected credential and revoke other sessions.
 
+<ProductScreenshot
+	src={sessionsScreenshot}
+	alt="Active session table with current and secondary authenticated clients"
+	caption="Compare client, activity, sign-in, and expiry details before revoking access."
+/>
+
 ## Personal API tokens
 
 Personal API tokens let scripts call the Netstamp API as your account. When creating a token:
@@ -43,7 +54,19 @@ Personal API tokens let scripts call the Netstamp API as your account. When crea
 3. Choose the shortest practical expiration.
 4. Copy the token immediately and store it in a secret manager.
 
+<ProductScreenshot
+	src={tokenFormScreenshot}
+	alt="API token dialog with token name, expiration, and scoped permissions"
+	caption="Choose only the scopes the integration needs; project roles remain an additional authorization boundary."
+/>
+
 The full token is shown only at creation time. Revoke unused or exposed tokens; do not embed them in source code or images.
+
+<ProductScreenshot
+	src={tokenCreatedScreenshot}
+	alt="One-time API token result with a deliberately invalid example token and curl command"
+	caption="Copy the secret before closing this dialog. The documentation fixture is invalid and cannot authenticate."
+/>
 
 ## Deactivate the account
 

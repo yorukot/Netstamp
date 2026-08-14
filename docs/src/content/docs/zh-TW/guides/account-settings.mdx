@@ -6,6 +6,11 @@ navSection: use
 navOrder: 90
 ---
 
+import ProductScreenshot from "@/components/docs/ProductScreenshot.astro";
+import sessionsScreenshot from "@/assets/screenshots/guides/account/sessions.webp";
+import tokenCreatedScreenshot from "@/assets/screenshots/guides/account/token-created.webp";
+import tokenFormScreenshot from "@/assets/screenshots/guides/account/token-form.webp";
+
 帳號設定控制你在整個 Netstamp 站台中的身分與憑證，和專案成員資格及系統管理員權限彼此分開。
 
 ## 個人資料與電子郵件
@@ -34,6 +39,8 @@ Netstamp 可以把通用 OIDC、Google 與 GitHub 等外部身分連結到既有
 
 若懷疑憑證外洩，請變更或輪替受影響的憑證，並撤銷其他工作階段。
 
+<ProductScreenshot src={sessionsScreenshot} alt="包含目前與其他已驗證用戶端的有效工作階段表格" caption="撤銷存取以前，先比較用戶端、活動、登入與到期資訊。" />
+
 ## 個人 API 權杖
 
 個人 API 權杖讓 Script 能以你的帳號呼叫 Netstamp API。建立權杖時：
@@ -43,7 +50,11 @@ Netstamp 可以把通用 OIDC、Google 與 GitHub 等外部身分連結到既有
 3. 選擇符合用途的最短到期時間。
 4. 立即複製權杖並存入 Secret Manager。
 
+<ProductScreenshot src={tokenFormScreenshot} alt="包含權杖名稱、到期時間與範圍權限的 API 權杖對話框" caption="只選擇整合需要的權限範圍；專案角色仍是另一層授權邊界。" />
+
 完整權杖只在建立時顯示一次。請撤銷未使用或外洩的權杖，且不要寫入原始碼或圖片。
+
+<ProductScreenshot src={tokenCreatedScreenshot} alt="顯示刻意設為無效的範例權杖與 curl 命令的一次性 API 權杖結果" caption="關閉對話框以前先複製密鑰；文件 fixture 無效且無法用於驗證。" />
 
 ## 停用帳號
 
