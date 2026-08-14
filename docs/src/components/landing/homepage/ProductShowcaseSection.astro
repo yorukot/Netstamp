@@ -1,72 +1,72 @@
 ---
-import httpUptime from "@/assets/homepage-highlights/http-uptime.webp?url";
-import incidents from "@/assets/homepage-highlights/incidents.webp?url";
+import httpInsight from "@/assets/homepage-highlights/http-insight.webp?url";
+import incidentDetail from "@/assets/homepage-highlights/incident-detail.webp?url";
 import macbookFrame from "@/assets/homepage-highlights/macbook-frame.webp?url";
-import pingLatency from "@/assets/homepage-highlights/ping-latency.webp?url";
-import probeMap from "@/assets/homepage-highlights/probe-map.webp?url";
-import publicDashboard from "@/assets/homepage-highlights/public-dashboard.webp?url";
-import tcpReachability from "@/assets/homepage-highlights/tcp-reachability.webp?url";
-import tlsCertificates from "@/assets/homepage-highlights/tls-certificates.webp?url";
-import traceroutePaths from "@/assets/homepage-highlights/traceroute-paths.webp?url";
+import overview from "@/assets/homepage-highlights/overview.webp?url";
+import pingInsight from "@/assets/homepage-highlights/ping-insight.webp?url";
+import publicStatus from "@/assets/homepage-highlights/public-status.webp?url";
+import tcpInsight from "@/assets/homepage-highlights/tcp-insight.webp?url";
+import tlsInventory from "@/assets/homepage-highlights/tls-inventory.webp?url";
+import tracerouteInsight from "@/assets/homepage-highlights/traceroute-insight.webp?url";
 import { uiForLocale } from "../../../i18n/ui";
 
 const ui = uiForLocale(Astro.currentLocale);
 
 const items = [
 	{
-		id: "probe-map",
+		id: "overview",
 		title: ui.home.showcase[0][0],
 		description: ui.home.showcase[0][1],
-		image: probeMap,
+		image: overview,
 		icon: "map"
 	},
 	{
-		id: "ping-latency",
+		id: "ping-insight",
 		title: ui.home.showcase[1][0],
 		description: ui.home.showcase[1][1],
-		image: pingLatency,
+		image: pingInsight,
 		icon: "pulse"
 	},
 	{
-		id: "http-uptime",
+		id: "http-insight",
 		title: ui.home.showcase[2][0],
 		description: ui.home.showcase[2][1],
-		image: httpUptime,
+		image: httpInsight,
 		icon: "globe"
 	},
 	{
-		id: "tcp-reachability",
+		id: "tcp-insight",
 		title: ui.home.showcase[3][0],
 		description: ui.home.showcase[3][1],
-		image: tcpReachability,
+		image: tcpInsight,
 		icon: "plugs"
 	},
 	{
-		id: "traceroute-paths",
+		id: "traceroute-insight",
 		title: ui.home.showcase[4][0],
 		description: ui.home.showcase[4][1],
-		image: traceroutePaths,
+		image: tracerouteInsight,
 		icon: "route"
 	},
 	{
-		id: "tls-certificates",
+		id: "tls-inventory",
 		title: ui.home.showcase[5][0],
 		description: ui.home.showcase[5][1],
-		image: tlsCertificates,
+		image: tlsInventory,
 		icon: "shield"
 	},
 	{
-		id: "incidents",
+		id: "incident-detail",
 		title: ui.home.showcase[6][0],
 		description: ui.home.showcase[6][1],
-		image: incidents,
+		image: incidentDetail,
 		icon: "warning"
 	},
 	{
-		id: "public-dashboard",
+		id: "public-status",
 		title: ui.home.showcase[7][0],
 		description: ui.home.showcase[7][1],
-		image: publicDashboard,
+		image: publicStatus,
 		icon: "monitor"
 	}
 ];
