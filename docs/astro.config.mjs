@@ -2,15 +2,14 @@
 import { unified } from "@astrojs/markdown-remark";
 import mdx from "@astrojs/mdx";
 import react from "@astrojs/react";
-import { supportedLocales } from "@netstamp/i18n";
+import { defaultLocale, supportedLocales } from "@netstamp/i18n";
 import { defineConfig } from "astro/config";
 import remarkDirective from "remark-directive";
 
 const site = process.env.PUBLIC_SITE_URL || "https://netstamp.dev";
 
 const calloutLabels = {
-	en: { note: "Note", tip: "Tip", warning: "Warning", caution: "Caution" },
-	"zh-TW": { note: "注意", tip: "提示", warning: "警告", caution: "小心" }
+	en: { note: "Note", tip: "Tip", warning: "Warning", caution: "Caution" }
 };
 
 const calloutIcons = {
@@ -21,8 +20,7 @@ const calloutIcons = {
 };
 
 const codeBlockLabels = {
-	en: { copy: "Copy", copied: "Copied" },
-	"zh-TW": { copy: "複製", copied: "已複製" }
+	en: { copy: "Copy", copied: "Copied" }
 };
 
 const netstampCodeTheme = {
@@ -64,11 +62,11 @@ const netstampCodeTheme = {
 	]
 };
 
-const localeForFile = file => (String(file.path || "").includes("/zh-TW/") ? "zh-TW" : "en");
+const localeForFile = file => supportedLocales.find(locale => String(file.path || "").includes(`/${locale}/`)) ?? defaultLocale;
 
 function remarkCallouts() {
 	return (tree, file) => {
-		const locale = String(file.path || "").includes("/zh-TW/") ? "zh-TW" : "en";
+		const locale = localeForFile(file);
 		const localizedCalloutLabels = calloutLabels[locale];
 		function getText(node) {
 			if (!node) return "";
@@ -156,10 +154,7 @@ function remarkCallouts() {
 }
 
 const rehypeTableScrollers = () => {
-	return (tree, file) => {
-		const locale = localeForFile(file);
-		const label = locale === "zh-TW" ? "可水平捲動的表格" : "Scrollable table";
-
+	return tree => {
 		const visit = node => {
 			const children = node.children ?? [];
 
@@ -171,7 +166,7 @@ const rehypeTableScrollers = () => {
 						type: "element",
 						tagName: "div",
 						properties: {
-							ariaLabel: label,
+							ariaLabel: "Scrollable table",
 							className: ["docTableScroller"],
 							role: "region",
 							tabIndex: 0
@@ -260,8 +255,7 @@ export default defineConfig({
 	site,
 	output: "static",
 	redirects: {
-		"/docs": { status: 301, destination: "/docs/getting-started/quick-start/" },
-		"/zh-TW/docs": { status: 301, destination: "/zh-TW/docs/getting-started/quick-start/" }
+		"/docs": { status: 301, destination: "/docs/getting-started/quick-start/" }
 	},
 	i18n: {
 		defaultLocale: "en",

@@ -11,9 +11,7 @@ interface SitemapRoute {
 
 const staticRoutes: SitemapRoute[] = [
 	{ path: "/", changefreq: "weekly", priority: "1.0" },
-	{ path: "/zh-TW/", changefreq: "weekly", priority: "0.9" },
-	{ path: "/openapi/", changefreq: "weekly", priority: "0.7" },
-	{ path: "/zh-TW/openapi/", changefreq: "weekly", priority: "0.7" }
+	{ path: "/openapi/", changefreq: "weekly", priority: "0.7" }
 ];
 
 function escapeXml(value: string) {
@@ -36,7 +34,7 @@ export function GET({ site }: { site?: URL }) {
 		routes.set(route.path, route);
 	}
 
-	for (const page of [...getDocsPages("en"), ...getDocsPages("zh-TW")]) {
+	for (const page of getDocsPages("en")) {
 		if (!routes.has(page.href)) {
 			routes.set(page.href, routeForDoc(page.href));
 		}

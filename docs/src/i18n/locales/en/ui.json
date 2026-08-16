@@ -27,6 +27,8 @@
 	"docs": {
 		"navigation": "Documentation navigation",
 		"mobileNavigation": "Navigation",
+		"openNavigation": "Open navigation",
+		"closeNavigation": "Close navigation",
 		"externalLinks": "External links",
 		"breadcrumb": "Breadcrumb",
 		"home": "Docs home",
@@ -38,8 +40,8 @@
 		"noNext": "No next page",
 		"onThisPage": "On this page",
 		"noHeadings": "No headings",
-		"fallbackNotice": "This page is not yet available in Traditional Chinese. The English source is shown below.",
-		"fallbackLink": "Open the English page",
+		"fallbackNotice": "This page is not yet available in the selected language. The default-language source is shown below.",
+		"fallbackLink": "Open the default-language page",
 		"sections": {
 			"start": "Getting Started",
 			"install": "Installation",

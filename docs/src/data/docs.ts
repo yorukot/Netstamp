@@ -1,3 +1,4 @@
+import { defaultLocale, isSupportedLocale } from "@netstamp/i18n";
 import { getCollection, type CollectionEntry } from "astro:content";
 import { localeFromAstro, pathForLocale, uiForLocale } from "../i18n/ui";
 
@@ -69,12 +70,16 @@ const searchContentFromSource = (source: string) =>
 		.trim()
 		.toLowerCase();
 
-const entryLocale = (entry: DocsEntry) => (entry.id.toLowerCase() === "zh-tw" || entry.id.toLowerCase().startsWith("zh-tw/") ? "zh-TW" : "en");
-const contentIdFromEntry = (entry: DocsEntry) =>
-	entry.id
-		.replace(/^(en|zh-tw)\//i, "")
-		.replace(/\.mdx$/, "")
-		.replace(/\/index$/, "");
+const entryPathParts = (entry: DocsEntry) => entry.id.replace(/\.mdx$/, "").split("/");
+const entryLocale = (entry: DocsEntry) => {
+	const [locale] = entryPathParts(entry);
+	return isSupportedLocale(locale) ? locale : defaultLocale;
+};
+const contentIdFromEntry = (entry: DocsEntry) => {
+	const parts = entryPathParts(entry);
+	if (isSupportedLocale(parts[0])) parts.shift();
+	return parts.join("/").replace(/\/index$/, "");
+};
 const routeFromContentId = (contentId: string, locale: string | undefined) => pathForLocale(`/docs/${contentId}/`, locale);
 
 const sectionKeyFromEntry = (entry: DocsEntry): DocSectionKey => {

@@ -2,11 +2,12 @@
 import Icon from "../components/icons/Icon.astro";
 import PageActions from "../components/docs/PageActions.astro";
 import SearchBox from "../components/docs/SearchBox.astro";
+import SearchTrigger from "../components/docs/SearchTrigger.astro";
 import { getDocsNav, getDocsPages, githubBaseUrl } from "../data/docs";
 import { localeFromAstro, pathForLocale, uiForLocale } from "../i18n/ui";
 import { absoluteUrl, createBreadcrumbSchema, createTechArticleSchema, resolveSiteUrl, type HeadEntry } from "../lib/seo";
 import BaseLayout from "./BaseLayout.astro";
-import { Button } from "@netstamp/ui";
+import { defaultLocale } from "@netstamp/i18n";
 
 interface Heading {
 	depth: 2 | 3;
@@ -46,7 +47,7 @@ const currentPage = currentPageIndex >= 0 ? docsPages[currentPageIndex] : undefi
 const previousPage = currentPageIndex > 0 ? docsPages[currentPageIndex - 1] : undefined;
 const nextPage = currentPageIndex >= 0 && currentPageIndex < docsPages.length - 1 ? docsPages[currentPageIndex + 1] : undefined;
 const englishSourcePath = currentPage ? `docs/src/content/docs/en/${currentPage.contentId}.mdx` : undefined;
-const editUrl = locale === "zh-TW" ? "https://crowdin.com/project/netstamp" : englishSourcePath ? `${githubBaseUrl}/${englishSourcePath}` : githubBaseUrl;
+const editUrl = locale === defaultLocale && englishSourcePath ? `${githubBaseUrl}/${englishSourcePath}` : locale === defaultLocale ? githubBaseUrl : "https://crowdin.com/project/netstamp";
 const siteUrl = resolveSiteUrl(Astro.site);
 const pageUrl = absoluteUrl(pathname, siteUrl);
 const breadcrumbs = [
@@ -55,10 +56,7 @@ const breadcrumbs = [
 	{ name: title, url: pageUrl }
 ];
 const schema = [createBreadcrumbSchema(breadcrumbs), createTechArticleSchema(siteUrl, pageUrl, title, description)];
-const pageAssistantPrompt =
-	locale === "zh-TW"
-		? `請閱讀並解釋這個說明文件頁面：${pageUrl}\n\n請提供清楚的繁體中文摘要，並協助我理解本頁涵蓋的核心概念。`
-		: `Please read and explain this documentation page: ${pageUrl}\n\nPlease provide a clear summary and help me understand the key concepts covered in this documentation.`;
+const pageAssistantPrompt = `Please read and explain this documentation page: ${pageUrl}\n\nPlease provide a clear summary and help me understand the key concepts covered in this documentation.`;
 const chatGptUrl = `https://chatgpt.com/?q=${encodeURIComponent(pageAssistantPrompt)}`;
 const claudeUrl = `https://claude.ai/new?q=${encodeURIComponent(pageAssistantPrompt)}`;
 
@@ -87,17 +85,11 @@ const visibleBreadcrumbs = [
 ---
 
 <BaseLayout title={browserTitle} description={description} head={extraHead} canonicalPath={pathname} ogType="article" schema={schema}>
+	<SearchBox />
 	<div class="docsShell" data-docs-shell>
 		<aside class="docsSidebar" aria-label={ui.docs.navigation} data-docs-sidebar data-docs-locale={locale} transition:persist="docs-sidebar">
-			<SearchBox />
-			<Button className="docsMobileNavToggle" variant="outline" size="sm" type="button" data-docs-mobile-nav-toggle aria-expanded="false" aria-controls="docs-nav-tree">
-				<span>
-					<Icon name="toc" size={16} />
-					{ui.docs.mobileNavigation}
-				</span>
-				<Icon name="caret" size={12} />
-			</Button>
-			<nav class="docsNavTree" id="docs-nav-tree" data-docs-nav-panel data-state="closed">
+			<SearchTrigger />
+			<nav class="docsNavTree" id="docs-nav-tree">
 				{
 					navGroups.map(group => (
 						<section class:list={["docsNavSection", group.active && "active"]} aria-labelledby={`docs-nav-section-${group.id}`} data-docs-nav-section>
@@ -255,7 +247,6 @@ const visibleBreadcrumbs = [
 		.docBreadcrumb a:focus-visible,
 		.docPagerLink:focus-visible,
 		.docsToc a:focus-visible,
-		:global(.docsMobileNavToggle:focus-visible),
 		:global(.editLink:focus-visible) {
 			outline: var(--ns-focus-outline);
 			outline-offset: 0.25rem;
@@ -286,39 +277,6 @@ const visibleBreadcrumbs = [
 			width: min(14rem, 16vw);
 			max-width: calc(100vw - 2rem);
 			overflow: visible;
-		}
-
-		:global(.docsMobileNavToggle) {
-			--ns-frame-color: transparent;
-			display: none;
-			width: 100%;
-			justify-content: space-between;
-			gap: 0.75rem;
-			padding: 0.55rem 0.7rem;
-			color: var(--ns-text-muted);
-			background: var(--ns-bg-subtle);
-			font-family: var(--ns-font-code);
-			font-size: 0.68rem;
-			font-weight: 800;
-			letter-spacing: 0.1em;
-			text-transform: uppercase;
-		}
-
-		:global(.docsMobileNavToggle span) {
-			display: inline-flex;
-			align-items: center;
-			gap: 0.45rem;
-		}
-
-		:global(.docsMobileNavToggle:hover),
-		:global(.docsMobileNavToggle[aria-expanded="true"]) {
-			--ns-frame-color: transparent;
-			color: var(--ns-text);
-			background: var(--ns-primary-muted);
-		}
-
-		:global(.docsMobileNavToggle[aria-expanded="true"] > .icon:last-child) {
-			transform: rotate(180deg);
 		}
 
 		:global(.icon) {
@@ -998,10 +956,9 @@ const visibleBreadcrumbs = [
 			.docsShell {
 				grid-template-columns: 1fr;
 				gap: 1.5rem;
-				padding: 7rem 1rem 1rem;
+				padding: 5.75rem 1rem 1rem;
 			}
 
-			.docsSidebar,
 			.docsTocInner {
 				position: static;
 				width: auto;
@@ -1018,22 +975,17 @@ const visibleBreadcrumbs = [
 			}
 
 			.docsSidebar {
-				order: 0;
+				position: absolute;
+				width: 0;
+				height: 0;
+				max-height: 0;
+				overflow: visible;
+				padding: 0;
 			}
 
-			:global(.docsMobileNavToggle) {
-				display: inline-flex;
-			}
-
-			.docsNavTree[data-state="closed"] {
+			.docsSidebar :global(.docsSearchTrigger),
+			.docsNavTree {
 				display: none;
-			}
-
-			.docsNavTree[data-state="open"] {
-				display: grid;
-				max-height: 42svh;
-				overflow: auto;
-				padding-bottom: 0.25rem;
 			}
 
 			:global(.cardGrid),
@@ -1047,12 +999,6 @@ const visibleBreadcrumbs = [
 
 			.docPagerLink.next {
 				text-align: left;
-			}
-		}
-
-		@media (max-width: 48rem) {
-			.docsShell {
-				padding-top: 8.75rem;
 			}
 		}
 	</style>

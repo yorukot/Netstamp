@@ -1,0 +1,77 @@
+---
+import { Button } from "@netstamp/ui";
+import { uiForLocale } from "@/i18n/ui";
+import Icon from "../icons/Icon.astro";
+
+const ui = uiForLocale(Astro.currentLocale);
+---
+
+<Button
+	className="docsSearchTrigger"
+	variant="outline"
+	size="sm"
+	type="button"
+	data-search-open
+	aria-label={ui.search.open}
+	aria-haspopup="dialog"
+	aria-expanded="false"
+	aria-controls="docs-search-dialog"
+>
+	<span class="docsSearchTriggerLabel">
+		<Icon name="search" size={16} />
+		<span>{ui.search.label}</span>
+	</span>
+	<span class="docsSearchShortcut">Cmd K</span>
+</Button>
+
+<style>
+	:global(.docsSearchTrigger) {
+		--ns-frame-color: transparent;
+		width: 100%;
+		min-height: 2.5rem;
+		justify-content: space-between;
+		flex-wrap: nowrap;
+		overflow: hidden;
+		gap: 0.75rem;
+		padding: 0.5rem 0.75rem;
+		color: var(--ns-text-subtle);
+		background: color-mix(in srgb, var(--ns-surface) 72%, var(--ns-bg-subtle));
+		font-size: 0.875rem;
+		font-weight: 500;
+		letter-spacing: 0;
+		text-transform: none;
+	}
+
+	:global(.docsSearchTrigger:hover) {
+		--ns-frame-color: transparent;
+		color: var(--ns-text);
+		background: color-mix(in srgb, var(--ns-primary) 8%, var(--ns-surface));
+	}
+
+	.docsSearchTriggerLabel {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		min-width: 0;
+		flex: 1;
+		overflow: hidden;
+	}
+
+	.docsSearchShortcut {
+		padding: 0;
+		color: var(--ns-text-low);
+		border: 0;
+		background: transparent;
+		font-family: var(--ns-font-code);
+		font-size: 0.68rem;
+		font-weight: 750;
+		letter-spacing: 0.03em;
+		flex-shrink: 0;
+		white-space: nowrap;
+	}
+
+	:global(.docsSearchTrigger:focus-visible) {
+		outline: var(--ns-focus-outline);
+		outline-offset: 0.25rem;
+	}
+</style>

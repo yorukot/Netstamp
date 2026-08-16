@@ -1,0 +1,192 @@
+.mobileActions {
+	display: none;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.triggerSlot {
+	display: inline-flex;
+}
+
+.topNavButton {
+	--ns-frame-color: var(--ns-chrome-border);
+	width: 2.25rem;
+	min-width: 2.25rem;
+	min-height: 2.25rem;
+	padding: 0;
+	color: var(--ns-chrome-text);
+	background: transparent;
+}
+
+.topNavButton:hover,
+.topNavButton[aria-expanded="true"] {
+	--ns-frame-color: var(--ns-chrome-border);
+	color: var(--ns-chrome-text);
+	background: var(--ns-chrome-hover);
+}
+
+.drawer {
+	--ns-drawer-top-offset: 0rem;
+	padding: 1rem;
+	background: var(--ns-bg);
+}
+
+.drawerContent {
+	padding-right: 0;
+}
+
+.drawerTitle {
+	display: block;
+	color: var(--ns-text);
+	font-family: var(--ns-font-sans);
+	font-size: 0.875rem;
+	font-weight: 800;
+	letter-spacing: 0.08em;
+	line-height: 2rem;
+	text-transform: uppercase;
+}
+
+.themeToggle {
+	width: 2rem;
+	min-width: 2rem;
+	padding: 0;
+}
+
+.themeIconMoon,
+:global(:root[data-theme="light"]) .themeIconSun {
+	display: none;
+}
+
+:global(:root[data-theme="light"]) .themeIconMoon {
+	display: block;
+}
+
+.drawerBody {
+	display: grid;
+	gap: 1.5rem;
+	padding-bottom: 1rem;
+}
+
+.globalLinks {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.5rem;
+}
+
+.globalLink,
+.languageOption,
+.docsLink {
+	color: var(--ns-text-subtle);
+	text-decoration: none;
+	transition:
+		background var(--ns-transition),
+		color var(--ns-transition),
+		border-color var(--ns-transition);
+}
+
+.globalLink {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+	min-height: 2.75rem;
+	padding: 0.75rem;
+	border: 1px solid var(--ns-border-faint);
+	background: var(--ns-bg-subtle);
+	font-size: 0.875rem;
+	font-weight: 700;
+}
+
+.languageSection,
+.docsGroup {
+	display: grid;
+	gap: 0.25rem;
+}
+
+.sectionTitle {
+	margin: 0 0 0.25rem;
+	color: var(--ns-text-low);
+	font-family: var(--ns-font-sans);
+	font-size: 0.6875rem;
+	font-weight: 750;
+	letter-spacing: 0.12em;
+	line-height: 1.5;
+	text-transform: uppercase;
+}
+
+.languageOptions {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.5rem;
+}
+
+.languageOption {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+	min-height: 2.5rem;
+	padding: 0.625rem 0.75rem;
+	background: var(--ns-bg-subtle);
+	font-size: 0.8125rem;
+	font-weight: 650;
+}
+
+.docsTree {
+	display: grid;
+	gap: 1.25rem;
+}
+
+.docsLink {
+	display: block;
+	padding: 0.625rem 0.75rem;
+	border-left: 2px solid transparent;
+	font-size: 0.9375rem;
+	line-height: 1.4;
+}
+
+.globalLink:hover,
+.languageOption:hover,
+.docsLink:hover,
+.active {
+	color: var(--ns-text);
+	background: var(--ns-primary-muted);
+}
+
+.globalLink.active,
+.languageOption.active {
+	border-color: var(--ns-primary-border);
+}
+
+.docsLink.active {
+	border-left-color: var(--ns-primary);
+	font-weight: 700;
+}
+
+.globalLink:focus-visible,
+.languageOption:focus-visible,
+.docsLink:focus-visible {
+	outline: var(--ns-focus-outline);
+	outline-offset: var(--ns-focus-outline-offset);
+}
+
+@media (max-width: 68rem) {
+	.mobileActions {
+		display: flex;
+	}
+}
+
+@media (max-width: 28rem) {
+	.globalLinks,
+	.languageOptions {
+		grid-template-columns: 1fr;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.globalLink,
+	.languageOption,
+	.docsLink {
+		transition-duration: 0.01ms;
+	}
+}

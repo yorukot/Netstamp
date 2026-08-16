@@ -80,15 +80,6 @@ export function setupThemeToggle() {
 			return;
 		}
 		themeToggle.hidden = false;
-		if (themeToggle.dataset.themeBound === "true") return;
-
-		themeToggle.dataset.themeBound = "true";
-		themeToggle.addEventListener("click", () => {
-			const nextTheme = readAppliedTheme() === "dark" ? "light" : "dark";
-
-			writeStoredTheme(nextTheme);
-			applyTheme(nextTheme);
-		});
 	});
 }
 
@@ -101,6 +92,14 @@ initDocsTheme();
 
 const themeWindow = window as ThemeWindow;
 if (!themeWindow[eventBoundKey]) {
+	document.addEventListener("click", event => {
+		const themeToggle = event.target instanceof Element ? event.target.closest<HTMLElement>("[data-theme-toggle]") : null;
+		if (!themeToggle || readLockedTheme()) return;
+
+		const nextTheme = readAppliedTheme() === "dark" ? "light" : "dark";
+		writeStoredTheme(nextTheme);
+		applyTheme(nextTheme);
+	});
 	document.addEventListener("astro:after-swap", () => {
 		applyTheme();
 	});

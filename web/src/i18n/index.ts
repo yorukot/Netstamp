@@ -1,4 +1,4 @@
-import { defaultLocale, htmlLangForLocale, isSupportedLocale, localeStorageKey, resolveLocale, type SupportedLocale } from "@netstamp/i18n";
+import { defaultLocale, htmlLangForLocale, isSupportedLocale, localeStorageKey, resolveLocale, supportedLocales, type SupportedLocale } from "@netstamp/i18n";
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import { defaultNamespace, namespaces, resources } from "./resources";
@@ -38,7 +38,7 @@ export const initializeI18n = () => {
 			resources,
 			lng: detectInitialLocale(),
 			fallbackLng: defaultLocale,
-			supportedLngs: ["en", "zh-TW"],
+			supportedLngs: [...supportedLocales],
 			ns: namespaces,
 			defaultNS: defaultNamespace,
 			returnNull: false,

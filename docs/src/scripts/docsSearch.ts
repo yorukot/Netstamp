@@ -46,7 +46,7 @@ function initDocsSearch() {
 	const root = document.querySelector("[data-docs-search]");
 	if (!(root instanceof HTMLElement)) return;
 
-	const trigger = root.querySelector("[data-search-open]");
+	const searchTriggers = () => Array.from(document.querySelectorAll<HTMLElement>("[data-search-open]"));
 	const dialog = root.querySelector("[data-search-dialog]");
 	const panel = root.querySelector(".docsSearchPanel");
 	const input = root.querySelector("[data-search-input]");
@@ -73,7 +73,7 @@ function initDocsSearch() {
 		}
 
 		restoreFocusTo = null;
-		(trigger as HTMLElement | null)?.setAttribute("aria-expanded", "false");
+		searchTriggers().forEach(trigger => trigger.setAttribute("aria-expanded", "false"));
 		if (input instanceof HTMLInputElement) input.value = "";
 		if (dialog instanceof HTMLElement) {
 			dialog.hidden = true;
@@ -104,10 +104,9 @@ function initDocsSearch() {
 		links[activeResultIndex]?.focus();
 	}
 
-	function openSearch() {
+	function openSearch(trigger?: HTMLElement) {
 		if (!dialog || !input) return;
 		const dialogEl = dialog as HTMLElement;
-		const triggerEl = trigger as HTMLButtonElement | null;
 
 		if (!dialogEl.hidden && dialogEl.dataset.state === "open") return;
 
@@ -116,10 +115,10 @@ function initDocsSearch() {
 			closeTimer = undefined;
 		}
 
-		restoreFocusTo = document.activeElement;
+		restoreFocusTo = trigger ?? document.activeElement;
 		dialogEl.hidden = false;
 		dialogEl.dataset.state = "open";
-		triggerEl?.setAttribute("aria-expanded", "true");
+		searchTriggers().forEach(searchTrigger => searchTrigger.setAttribute("aria-expanded", String(searchTrigger === trigger)));
 		document.documentElement.classList.add("docsSearchOpen");
 		(input as HTMLInputElement).value = "";
 		clearResults();
@@ -129,12 +128,11 @@ function initDocsSearch() {
 	function closeSearch() {
 		if (!dialog || !input) return;
 		const dialogEl = dialog as HTMLElement;
-		const triggerEl = trigger as HTMLButtonElement | null;
 
 		if (dialogEl.hidden || dialogEl.dataset.state === "closing") return;
 
 		dialogEl.dataset.state = "closing";
-		triggerEl?.setAttribute("aria-expanded", "false");
+		searchTriggers().forEach(trigger => trigger.setAttribute("aria-expanded", "false"));
 		(input as HTMLInputElement).value = "";
 		clearResults();
 
@@ -266,7 +264,7 @@ function initDocsSearch() {
 	function handleKeydown(event: KeyboardEvent) {
 		if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
 			event.preventDefault();
-			openSearch();
+			openSearch(document.activeElement instanceof HTMLElement ? document.activeElement : undefined);
 			return;
 		}
 
@@ -277,7 +275,11 @@ function initDocsSearch() {
 
 	const handleNavigationStart = () => resetSearchState();
 
-	trigger?.addEventListener("click", openSearch);
+	const handleDocumentClick = (event: MouseEvent) => {
+		const trigger = event.target instanceof Element ? event.target.closest<HTMLElement>("[data-search-open]") : null;
+		if (trigger) openSearch(trigger);
+	};
+	document.addEventListener("click", handleDocumentClick);
 	closeButtons.forEach(button => button.addEventListener("click", closeSearch));
 	input?.addEventListener("input", handleInput);
 	input?.addEventListener("keydown", handleSearchKeydown);
@@ -288,7 +290,7 @@ function initDocsSearch() {
 
 	cleanupSearch = () => {
 		resetSearchState();
-		trigger?.removeEventListener("click", openSearch);
+		document.removeEventListener("click", handleDocumentClick);
 		closeButtons.forEach(button => button.removeEventListener("click", closeSearch));
 		input?.removeEventListener("input", handleInput);
 		input?.removeEventListener("keydown", handleSearchKeydown);

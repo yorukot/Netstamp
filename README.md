@@ -77,15 +77,15 @@ Before the first start, fill every empty secret in `.env`. Before exposing Netst
 - [Operations](./docs/src/content/docs/en/operations/index.mdx) covers the probe agent, observability, backups, and security hardening.
 - [API and automation](./docs/src/content/docs/en/guides/api-explorer.mdx) and [personal API tokens](./docs/src/content/docs/en/guides/api-tokens.mdx) cover integrations.
 - [Development](./docs/src/content/docs/en/development/local-development.mdx) covers the repository, architecture, shared UI system, contribution workflow, and localization.
-- [Localization](./docs/localization.md) explains English and Traditional Chinese resources, locale routing, Crowdin synchronization, validation, and adding languages.
+- [Localization](./docs/localization.md) explains the current English-only release, retained locale architecture, Crowdin source uploads, validation, and re-enabling additional languages.
 
-The published site is available at [netstamp.dev](https://netstamp.dev), with the Traditional Chinese site under `/zh-TW/`.
+The English-language site is available at [netstamp.dev](https://netstamp.dev).
 
 ## Contributing
 
 Read [`CONTRIBUTING.md`](./CONTRIBUTING.md) for development setup, branch and commit conventions, validation commands, and pull request requirements.
 
-You do not need to write code to help. Read [Translating Netstamp](./docs/src/content/docs/en/guides/translating.mdx) and contribute Traditional Chinese translations in the [Netstamp Crowdin project](https://crowdin.com/project/netstamp). The guide explains what to translate, which technical content must remain unchanged, how translation review works, and how maintainers synchronize translations.
+Translation downloads and localized releases are currently paused. The localization architecture remains in the repository so additional languages can be enabled again without replacing the application or documentation frameworks.
 
 ## Support and security
 

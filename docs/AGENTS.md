@@ -8,9 +8,9 @@ Read the root `AGENTS.md`, `web/AGENTS.md`, and `design.md` before changing docs
 
 ## Structure
 
-- Keep English source MDX under `src/content/docs/en/` and Crowdin-synchronized Traditional Chinese MDX under `src/content/docs/zh-TW/` with matching relative paths.
+- Keep English source MDX under `src/content/docs/en/`. Additional locale directories are currently disabled and must match the English relative paths when localization is re-enabled.
 - Treat English `navSection` and `navOrder` frontmatter as the documentation information-architecture source of truth. Localized MDX must preserve those structural values; translate section labels through `src/i18n/locales/*/ui.json` instead.
-- Keep localizable Astro shell and landing-page text in `src/i18n/locales/en/ui.json`; `src/i18n/locales/zh-TW/ui.json` is the Crowdin translation output.
+- Keep localizable Astro shell and landing-page text in `src/i18n/locales/en/ui.json`; it remains the source for future Crowdin translation outputs.
 - Keep docs-only Astro components under `src/components/docs`.
 - Keep public homepage components under `src/components/landing`.
 - Prefer small docs-local components over growing `DocLayout.astro`; navigation, pager, page actions, callouts, cards, and TOC behavior should not all live in one layout file.

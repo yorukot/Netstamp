@@ -1,23 +1,20 @@
-export const supportedLocales = ["en", "zh-TW"] as const;
+export const supportedLocales = ["en"] as const;
 
 export type SupportedLocale = (typeof supportedLocales)[number];
 
 export const defaultLocale: SupportedLocale = "en";
 export const fallbackLocale: SupportedLocale = "en";
 export const localeStorageKey = "netstamp:locale";
+export const hasMultipleLocales = supportedLocales.length > 1;
 
 export const localeMetadata = {
 	en: {
 		label: "English",
 		htmlLang: "en",
-		crowdinLocale: "en"
-	},
-	"zh-TW": {
-		label: "繁體中文",
-		htmlLang: "zh-Hant-TW",
-		crowdinLocale: "zh-TW"
+		crowdinLocale: "en",
+		openGraphLocale: "en_US"
 	}
-} as const satisfies Record<SupportedLocale, { label: string; htmlLang: string; crowdinLocale: string }>;
+} as const satisfies Record<SupportedLocale, { label: string; htmlLang: string; crowdinLocale: string; openGraphLocale: string }>;
 
 const supportedLocaleSet = new Set<string>(supportedLocales);
 
@@ -30,7 +27,6 @@ export const normalizeLocale = (value: string | null | undefined): SupportedLoca
 
 	const normalized = value.trim().replaceAll("_", "-").toLowerCase();
 	if (normalized === "en" || normalized.startsWith("en-")) return "en";
-	if (normalized === "zh-tw" || normalized === "zh-hk" || normalized === "zh-mo" || normalized === "zh-hant" || normalized.startsWith("zh-hant-")) return "zh-TW";
 
 	return undefined;
 };

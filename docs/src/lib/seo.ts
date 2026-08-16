@@ -47,6 +47,7 @@ export function absoluteUrl(pathOrUrl: string, siteUrl = fallbackSiteUrl) {
 
 export function createPageSeoHead({ title, description, canonicalUrl, imageUrl, ogType = "website", noindex = false, locale = "en" }: PageSeoOptions): HeadEntry[] {
 	const robots = noindex ? "noindex,nofollow,noarchive" : "index,follow,max-image-preview:large";
+	const alternateOpenGraphLocales = supportedLocales.filter(candidate => candidate !== locale).map(candidate => localeMetadata[candidate].openGraphLocale);
 
 	return [
 		{ tag: "link", attrs: { rel: "canonical", href: canonicalUrl } },
@@ -63,14 +64,14 @@ export function createPageSeoHead({ title, description, canonicalUrl, imageUrl, 
 		{ tag: "meta", attrs: { property: "og:image:type", content: "image/png" } },
 		{ tag: "meta", attrs: { property: "og:image:width", content: "1200" } },
 		{ tag: "meta", attrs: { property: "og:image:height", content: "600" } },
-		{ tag: "meta", attrs: { property: "og:image:alt", content: locale === "zh-TW" ? "Netstamp 網路可觀測性地圖預覽" : "Netstamp network observability map preview" } },
-		{ tag: "meta", attrs: { property: "og:locale", content: locale === "zh-TW" ? "zh_TW" : "en_US" } },
-		{ tag: "meta", attrs: { property: "og:locale:alternate", content: locale === "zh-TW" ? "en_US" : "zh_TW" } },
+		{ tag: "meta", attrs: { property: "og:image:alt", content: "Netstamp network observability map preview" } },
+		{ tag: "meta", attrs: { property: "og:locale", content: localeMetadata[locale].openGraphLocale } },
+		...alternateOpenGraphLocales.map(content => ({ tag: "meta", attrs: { property: "og:locale:alternate", content } })),
 		{ tag: "meta", attrs: { name: "twitter:card", content: "summary_large_image" } },
 		{ tag: "meta", attrs: { name: "twitter:title", content: title } },
 		{ tag: "meta", attrs: { name: "twitter:description", content: description } },
 		{ tag: "meta", attrs: { name: "twitter:image", content: imageUrl } },
-		{ tag: "meta", attrs: { name: "twitter:image:alt", content: locale === "zh-TW" ? "Netstamp 網路可觀測性地圖預覽" : "Netstamp network observability map preview" } }
+		{ tag: "meta", attrs: { name: "twitter:image:alt", content: "Netstamp network observability map preview" } }
 	];
 }
 
@@ -202,3 +203,4 @@ export function createSchemaGraph({ title, description, pageUrl, siteUrl, logoUr
 	};
 }
 import type { SupportedLocale } from "@netstamp/i18n";
+import { localeMetadata, supportedLocales } from "@netstamp/i18n";

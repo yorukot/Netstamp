@@ -12,6 +12,7 @@ const homepageOutputRoot = path.join(repositoryRoot, "docs/src/assets/homepage-h
 const artifactRoot = path.join(repositoryRoot, "output/playwright/docs-screenshots");
 const auditOnly = process.argv.includes("--audit");
 const catalogOnly = process.argv.includes("--catalog");
+const firstProjectOnly = process.argv.includes("--only=create-project");
 const fixedNow = Date.parse("2026-08-13T03:20:00.000Z");
 const allowedReadMethods = new Set(["GET", "HEAD", "OPTIONS"]);
 const leakedWrites = [];
@@ -255,6 +256,33 @@ const fillCheckIdentity = async (page, { name, target }) => {
 	await fillFirst(page, ["Target"], target);
 };
 
+const captureFirstProject = async page => {
+	const projectsListRoute = url => url.pathname === "/api/v1/projects";
+	const emptyProjectsHandler = async route => {
+		if (route.request().method() !== "GET") {
+			await route.fallback();
+			return;
+		}
+
+		await route.fulfill({
+			status: 200,
+			contentType: "application/json",
+			headers: { "Cache-Control": "no-store" },
+			body: JSON.stringify({ projects: [] })
+		});
+	};
+
+	await page.route(projectsListRoute, emptyProjectsHandler);
+	try {
+		await navigate(page, "/onboarding");
+		await page.getByRole("heading", { name: "Create your first project", exact: true }).waitFor({ state: "visible", timeout: 8000 });
+		await fillFirst(page, ["Project name"], "Home Lab");
+		await captureViewport(page, path.join(docsOutputRoot, "getting-started/create-project.webp"), { width: 1200, height: 1000 });
+	} finally {
+		await page.unroute(projectsListRoute, emptyProjectsHandler);
+	}
+};
+
 const audit = async page => {
 	const auditRoute = process.env.DOCS_SCREENSHOT_AUDIT_ROUTE || "/projects/docs-demo/dashboard";
 	await navigate(page, auditRoute);
@@ -312,10 +340,7 @@ const catalog = async page => {
 
 const captureAll = async page => {
 	// Quick Start
-	await navigate(page, "/projects/docs-demo/dashboard");
-	await chooseFirst(page, ["Select project"], "Create new project");
-	await page.waitForTimeout(250);
-	await captureDoc(page, "getting-started/create-project.webp");
+	await captureFirstProject(page);
 
 	await navigate(page, "/projects/docs-demo/probes/new");
 	await fillFirst(page, ["Probe name"], "taipei-office-02");
@@ -525,6 +550,7 @@ try {
 
 	if (auditOnly) await audit(page);
 	else if (catalogOnly) await catalog(page);
+	else if (firstProjectOnly) await captureFirstProject(page);
 	else await captureAll(page);
 
 	if (leakedWrites.length) throw new Error(`Blocked unmocked write requests:\n${leakedWrites.join("\n")}`);

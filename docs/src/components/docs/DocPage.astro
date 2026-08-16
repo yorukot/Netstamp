@@ -1,6 +1,8 @@
 ---
 import { render } from "astro:content";
+import { defaultLocale } from "@netstamp/i18n";
 import { getDocEntry } from "../../data/docs";
+import { localeFromAstro } from "../../i18n/ui";
 import DocLayout from "../../layouts/DocLayout.astro";
 
 interface Props {
@@ -15,7 +17,7 @@ if (!entry) {
 }
 
 const { Content, headings } = await render(entry);
-const fallback = Astro.currentLocale === "zh-TW" && !translated;
+const fallback = localeFromAstro(Astro.currentLocale) !== defaultLocale && !translated;
 ---
 
 <DocLayout title={entry.data.title} description={entry.data.description} headings={headings} head={entry.data.head} fallback={fallback}>

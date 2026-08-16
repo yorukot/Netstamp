@@ -1,8 +1,10 @@
 ---
 import netstampLogoLight from "@netstamp/brand/assets/netstamp-logo-light.svg?url";
-import { localeMetadata, stripLocalePrefix, supportedLocales } from "@netstamp/i18n";
+import { hasMultipleLocales, localeMetadata, stripLocalePrefix, supportedLocales } from "@netstamp/i18n";
 import { Button } from "@netstamp/ui";
+import { getDocsNav } from "@/data/docs";
 import { localeFromAstro, pathForLocale, uiForLocale } from "@/i18n/ui";
+import { MobileDocsNavigation } from "./MobileDocsNavigation";
 
 interface Props {
 	pathname?: string;
@@ -14,16 +16,35 @@ const pathname = stripLocalePrefix(Astro.props.pathname ?? Astro.url.pathname);
 const isHome = pathname === "/";
 const isDocs = pathname.startsWith("/docs");
 const isOpenAPI = pathname.startsWith("/openapi");
+const currentPathname = Astro.url.pathname.endsWith("/") ? Astro.url.pathname : `${Astro.url.pathname}/`;
 const languageOptions = supportedLocales.map(candidate => ({
 	href: pathForLocale(pathname, candidate),
+	htmlLang: localeMetadata[candidate].htmlLang,
 	isCurrent: candidate === locale,
 	label: localeMetadata[candidate].label,
 	locale: candidate
 }));
 const demoHref = "https://demo.netstamp.dev";
+const mobileDocsGroups = isDocs
+	? getDocsNav(locale).map(group => ({
+			id: group.key,
+			title: group.title,
+			items: group.items.map(item => ({
+				title: item.title,
+				href: item.href,
+				active: currentPathname === item.href
+			}))
+		}))
+	: [];
+const mobileDocsLinks = [
+	{ href: pathForLocale("/docs/", locale), label: ui.nav.docs, active: isDocs },
+	{ href: pathForLocale("/openapi/", locale), label: ui.nav.api },
+	{ href: "https://github.com/yorukot/netstamp", label: "GitHub", external: true, icon: "github" as const },
+	{ href: demoHref, label: ui.nav.viewDemo, external: true, icon: "external" as const }
+];
 ---
 
-<nav class="siteNav" aria-label={ui.nav.primary}>
+<nav class:list={["siteNav", isDocs && "siteNavDocs"]} aria-label={ui.nav.primary}>
 	<div class="siteNavPrimary">
 		<a class="siteBrand" href={pathForLocale("/", locale)} aria-label={ui.nav.home}>
 			<img class="siteBrandLogo siteBrandLogoLight" src={netstampLogoLight} alt="" aria-hidden="true" />
@@ -42,6 +63,25 @@ const demoHref = "https://demo.netstamp.dev";
 	</div>
 	<div class="siteNavActions">
 		{
+			isDocs ? (
+				<MobileDocsNavigation
+					client:load
+					groups={mobileDocsGroups}
+					languageOptions={languageOptions}
+					links={mobileDocsLinks}
+					labels={{
+						close: ui.docs.closeNavigation,
+						language: ui.common.language,
+						navigation: ui.docs.mobileNavigation,
+						open: ui.docs.openNavigation,
+						search: ui.search.open,
+						switchToDark: ui.nav.switchToDark,
+						switchToLight: ui.nav.switchToLight
+					}}
+				/>
+			) : null
+		}
+		{
 			!isHome ? (
 				<Button
 					className="siteThemeToggle"
@@ -59,41 +99,43 @@ const demoHref = "https://demo.netstamp.dev";
 				</Button>
 			) : null
 		}
-		<div class="siteLanguageMenu" data-language-menu>
-			<Button
-				className="siteLanguageTrigger"
-				variant="outline"
-				size="sm"
-				type="button"
-				aria-label={ui.common.language}
-				aria-haspopup="menu"
-				aria-expanded="false"
-				aria-controls="site-language-menu"
-				title={ui.common.language}
-				data-language-menu-trigger
-			>
-				<ph-translate size="16" weight="bold" aria-hidden="true" focusable="false"></ph-translate>
-				<span class="siteLanguageLabel">{ui.common.language}</span>
-			</Button>
-			<div class="siteLanguageMenuContent" id="site-language-menu" role="menu" aria-label={ui.common.language} data-language-menu-content data-state="closed" hidden>
-				{
-					languageOptions.map(option => (
-						<a
-							class:list={["siteLanguageOption", option.isCurrent && "current"]}
-							href={option.href}
-							lang={localeMetadata[option.locale].htmlLang}
-							hreflang={option.locale}
-							role="menuitem"
-							aria-current={option.isCurrent ? "page" : undefined}
-							data-language-menu-item
-						>
-							<span>{option.label}</span>
-							{option.isCurrent ? <ph-check size="16" weight="bold" aria-hidden="true" focusable="false" /> : null}
-						</a>
-					))
-				}
-			</div>
-		</div>
+		{
+			hasMultipleLocales ? (
+				<div class="siteLanguageMenu" data-language-menu>
+					<Button
+						className="siteLanguageTrigger"
+						variant="outline"
+						size="sm"
+						type="button"
+						aria-label={ui.common.language}
+						aria-haspopup="menu"
+						aria-expanded="false"
+						aria-controls="site-language-menu"
+						title={ui.common.language}
+						data-language-menu-trigger
+					>
+						<ph-translate size="16" weight="bold" aria-hidden="true" focusable="false" />
+						<span class="siteLanguageLabel">{ui.common.language}</span>
+					</Button>
+					<div class="siteLanguageMenuContent" id="site-language-menu" role="menu" aria-label={ui.common.language} data-language-menu-content data-state="closed" hidden>
+						{languageOptions.map(option => (
+							<a
+								class:list={["siteLanguageOption", option.isCurrent && "current"]}
+								href={option.href}
+								lang={localeMetadata[option.locale].htmlLang}
+								hreflang={option.locale}
+								role="menuitem"
+								aria-current={option.isCurrent ? "page" : undefined}
+								data-language-menu-item
+							>
+								<span>{option.label}</span>
+								{option.isCurrent ? <ph-check size="16" weight="bold" aria-hidden="true" focusable="false" /> : null}
+							</a>
+						))}
+					</div>
+				</div>
+			) : null
+		}
 		<a class="siteNavLogin" href={demoHref}>{ui.nav.viewDemo}</a>
 	</div>
 </nav>
@@ -371,8 +413,31 @@ const demoHref = "https://demo.netstamp.dev";
 		display: block;
 	}
 
+	@media (max-width: 68rem) {
+		.siteNavDocs {
+			top: 0.75rem;
+			right: 0.75rem;
+			left: 0.75rem;
+			grid-template-columns: minmax(0, 1fr) auto;
+			gap: 0.75rem;
+			min-height: 3.5rem;
+			padding: 0.5rem 0.75rem;
+		}
+
+		.siteNavDocs .siteNavLinks,
+		.siteNavDocs :global(.siteThemeToggle),
+		.siteNavDocs .siteLanguageMenu,
+		.siteNavDocs .siteNavLogin {
+			display: none;
+		}
+
+		.siteNavDocs .siteNavActions {
+			gap: 0.5rem;
+		}
+	}
+
 	@media (max-width: 48rem) {
-		.siteNav {
+		.siteNav:not(.siteNavDocs) {
 			top: 0.75rem;
 			right: 0.75rem;
 			left: 0.75rem;
@@ -381,7 +446,7 @@ const demoHref = "https://demo.netstamp.dev";
 			padding: 0.5rem 0.75rem;
 		}
 
-		.siteNavLinks {
+		.siteNav:not(.siteNavDocs) .siteNavLinks {
 			grid-column: 1 / -1;
 			order: 3;
 			width: 100%;
@@ -390,11 +455,11 @@ const demoHref = "https://demo.netstamp.dev";
 			padding-top: 0.375rem;
 		}
 
-		.siteNavPrimary {
+		.siteNav:not(.siteNavDocs) .siteNavPrimary {
 			gap: 0.75rem;
 		}
 
-		.siteNavLogin {
+		.siteNav:not(.siteNavDocs) .siteNavLogin {
 			min-width: 4.5rem;
 			min-height: 2rem;
 			padding: 0.5rem 0.75rem;

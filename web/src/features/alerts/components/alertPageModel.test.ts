@@ -23,8 +23,5 @@ describe("formatIncidentReason", () => {
 	it("explains when a resolved target is no longer evaluated", async () => {
 		await changeLocale("en");
 		expect(formatIncidentReason(stoppedIncident)).toBe("Target is no longer evaluated");
-
-		await changeLocale("zh-TW");
-		expect(formatIncidentReason(stoppedIncident)).toBe("此目標已不再進行評估");
 	});
 });

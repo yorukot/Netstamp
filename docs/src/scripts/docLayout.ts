@@ -57,8 +57,6 @@ function initDocLayout() {
 	syncDocsNavActiveState();
 
 	const cleanupTasks: Array<() => void> = [];
-	const mobileNavToggle = document.querySelector("[data-docs-mobile-nav-toggle]");
-	const mobileNavPanel = document.querySelector("[data-docs-nav-panel]");
 	const pageActions = document.querySelector("[data-docs-page-actions]");
 	const copiedLabel = pageActions instanceof HTMLElement ? pageActions.dataset.copiedLabel || "Copied" : "Copied";
 	const noContentLabel = pageActions instanceof HTMLElement ? pageActions.dataset.noContentLabel || "No page content was available." : "No page content was available.";
@@ -66,30 +64,6 @@ function initDocLayout() {
 	const pageActionsToggle = document.querySelector("[data-docs-page-actions-toggle]");
 	const pageActionsMenu = document.querySelector("[data-docs-page-actions-menu]");
 	const copyPageButton = document.querySelector("[data-docs-copy-page]");
-
-	function setMobileNavExpanded(expanded: boolean) {
-		mobileNavToggle?.setAttribute("aria-expanded", String(expanded));
-		mobileNavPanel?.setAttribute("data-state", expanded ? "open" : "closed");
-	}
-
-	if (mobileNavToggle && mobileNavPanel) {
-		const handleMobileNavToggle = () => {
-			setMobileNavExpanded(mobileNavToggle.getAttribute("aria-expanded") !== "true");
-		};
-		const handleMobileNavLinkClick = (event: Event) => {
-			if (event.target instanceof Element && event.target.closest("a")) {
-				setMobileNavExpanded(false);
-			}
-		};
-
-		setMobileNavExpanded(false);
-		mobileNavToggle.addEventListener("click", handleMobileNavToggle);
-		mobileNavPanel.addEventListener("click", handleMobileNavLinkClick);
-		cleanupTasks.push(() => {
-			mobileNavToggle.removeEventListener("click", handleMobileNavToggle);
-			mobileNavPanel.removeEventListener("click", handleMobileNavLinkClick);
-		});
-	}
 
 	function setPageActionsOpen(open: boolean) {
 		pageActionsToggle?.setAttribute("aria-expanded", String(open));

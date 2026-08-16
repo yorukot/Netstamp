@@ -1,6 +1,6 @@
 import { changeLocale, currentLocale } from "@/i18n";
 import { classNames } from "@/shared/utils/classNames";
-import { localeMetadata, supportedLocales } from "@netstamp/i18n";
+import { hasMultipleLocales, localeMetadata, supportedLocales } from "@netstamp/i18n";
 import { DropdownMenuContent, DropdownMenuItem, DropdownMenuPortal, DropdownMenuRoot, DropdownMenuTrigger } from "@netstamp/ui";
 import { CheckIcon } from "@phosphor-icons/react/dist/csr/Check";
 import { TranslateIcon } from "@phosphor-icons/react/dist/csr/Translate";
@@ -17,6 +17,7 @@ interface LanguageSwitcherProps {
 export const LanguageSwitcher = ({ className, menuClassName, onChange, showLabel = false }: LanguageSwitcherProps) => {
 	const { t } = useTranslation("common");
 	const locale = currentLocale();
+	if (!hasMultipleLocales) return null;
 
 	const selectLanguage = async (selectedLocale: (typeof supportedLocales)[number]) => {
 		if (selectedLocale !== locale) await changeLocale(selectedLocale);

@@ -7,7 +7,9 @@ const issues = [];
 const webLocalesRoot = path.join(root, "web/src/i18n/locales");
 const docsLocalesRoot = path.join(root, "docs/src/content/docs");
 const docsUiLocalesRoot = path.join(root, "docs/src/i18n/locales");
-const supportedLocales = new Set(["en", "zh-TW"]);
+const defaultLocale = "en";
+const supportedLocales = new Set([defaultLocale]);
+const translatedLocales = [...supportedLocales].filter(locale => locale !== defaultLocale);
 
 const report = ({ surface, namespace, key = "(root)", type, source, translation }) => {
 	issues.push({ surface, namespace, key, type, source, translation });
@@ -132,50 +134,6 @@ const readJson = async (file, context) => {
 	}
 };
 
-for (const locale of await directories(webLocalesRoot)) {
-	if (!supportedLocales.has(locale)) report({ surface: "web", namespace: locale, type: "invalid locale directory", source: "en or zh-TW", translation: locale });
-}
-
-const sourceNamespaces = await files(path.join(webLocalesRoot, "en"), ".json");
-const targetNamespaces = await files(path.join(webLocalesRoot, "zh-TW"), ".json");
-for (const namespaceFile of sourceNamespaces) {
-	const namespace = namespaceFile.replace(/\.json$/, "");
-	if (!targetNamespaces.includes(namespaceFile)) {
-		report({ surface: "web", namespace, type: "missing namespace", source: namespaceFile, translation: undefined });
-		continue;
-	}
-	const source = await readJson(path.join(webLocalesRoot, "en", namespaceFile), { surface: "web", namespace });
-	const translation = await readJson(path.join(webLocalesRoot, "zh-TW", namespaceFile), { surface: "web", namespace });
-	if (source !== undefined && translation !== undefined) compareValues(source, translation, { surface: "web", namespace, key: "" });
-}
-for (const namespaceFile of targetNamespaces.filter(file => !sourceNamespaces.includes(file))) {
-	report({ surface: "web", namespace: namespaceFile.replace(/\.json$/, ""), type: "extra namespace", source: undefined, translation: namespaceFile });
-}
-
-for (const locale of await directories(docsUiLocalesRoot)) {
-	if (!supportedLocales.has(locale)) report({ surface: "docs-ui", namespace: locale, type: "invalid locale directory", source: "en or zh-TW", translation: locale });
-}
-
-const sourceDocsUiNamespaces = await files(path.join(docsUiLocalesRoot, "en"), ".json");
-const targetDocsUiNamespaces = await files(path.join(docsUiLocalesRoot, "zh-TW"), ".json");
-for (const namespaceFile of sourceDocsUiNamespaces) {
-	const namespace = namespaceFile.replace(/\.json$/, "");
-	if (!targetDocsUiNamespaces.includes(namespaceFile)) {
-		report({ surface: "docs-ui", namespace, type: "missing namespace", source: namespaceFile, translation: undefined });
-		continue;
-	}
-	const source = await readJson(path.join(docsUiLocalesRoot, "en", namespaceFile), { surface: "docs-ui", namespace });
-	const translation = await readJson(path.join(docsUiLocalesRoot, "zh-TW", namespaceFile), { surface: "docs-ui", namespace });
-	if (source !== undefined && translation !== undefined) compareValues(source, translation, { surface: "docs-ui", namespace, key: "" });
-}
-for (const namespaceFile of targetDocsUiNamespaces.filter(file => !sourceDocsUiNamespaces.includes(file))) {
-	report({ surface: "docs-ui", namespace: namespaceFile.replace(/\.json$/, ""), type: "extra namespace", source: undefined, translation: namespaceFile });
-}
-
-for (const locale of await directories(docsLocalesRoot)) {
-	if (!supportedLocales.has(locale)) report({ surface: "docs", namespace: locale, type: "invalid locale directory", source: "en or zh-TW", translation: locale });
-}
-
 const recursiveFiles = async directory => {
 	const output = [];
 	for (const entry of await readdir(directory, { withFileTypes: true })) {
@@ -186,24 +144,69 @@ const recursiveFiles = async directory => {
 	return output;
 };
 
-const englishDocsRoot = path.join(docsLocalesRoot, "en");
-const targetDocsRoot = path.join(docsLocalesRoot, "zh-TW");
-for (const sourceFile of await recursiveFiles(englishDocsRoot)) {
-	const relative = path.relative(englishDocsRoot, sourceFile);
-	const targetFile = path.join(targetDocsRoot, relative);
-	let source;
-	let translation;
-	try {
-		[source, translation] = await Promise.all([readFile(sourceFile, "utf8"), readFile(targetFile, "utf8")]);
-	} catch {
-		report({ surface: "docs", namespace: relative, type: "missing translated document", source: relative, translation: undefined });
-		continue;
+const validateLocaleDirectories = async (surface, root) => {
+	for (const locale of await directories(root)) {
+		if (!supportedLocales.has(locale)) report({ surface, namespace: locale, type: "invalid locale directory", source: [...supportedLocales].join(", "), translation: locale });
 	}
-	const fencedBlocks = text => [...text.matchAll(/```[^\n]*\n([\s\S]*?)```/g)].map(match => match[1].trim());
-	const sourceBlocks = fencedBlocks(source);
-	const targetBlocks = fencedBlocks(translation);
-	if (!sameList(sourceBlocks, targetBlocks)) report({ surface: "docs", namespace: relative, type: "code block mismatch", source: sourceBlocks, translation: targetBlocks });
-	if (!translation.trim()) report({ surface: "docs", namespace: relative, type: "empty translation", source: source, translation });
+};
+
+const validateJsonLocales = async (surface, root) => {
+	await validateLocaleDirectories(surface, root);
+	const sourceNamespaces = await files(path.join(root, defaultLocale), ".json");
+	const sources = new Map();
+
+	for (const namespaceFile of sourceNamespaces) {
+		const namespace = namespaceFile.replace(/\.json$/, "");
+		sources.set(namespaceFile, await readJson(path.join(root, defaultLocale, namespaceFile), { surface, namespace }));
+	}
+
+	for (const locale of translatedLocales) {
+		const targetNamespaces = await files(path.join(root, locale), ".json");
+		for (const namespaceFile of sourceNamespaces) {
+			const namespace = namespaceFile.replace(/\.json$/, "");
+			if (!targetNamespaces.includes(namespaceFile)) {
+				report({ surface, namespace, type: "missing namespace", source: namespaceFile, translation: undefined });
+				continue;
+			}
+			const translation = await readJson(path.join(root, locale, namespaceFile), { surface, namespace });
+			const source = sources.get(namespaceFile);
+			if (source !== undefined && translation !== undefined) compareValues(source, translation, { surface, namespace, key: "" });
+		}
+		for (const namespaceFile of targetNamespaces.filter(file => !sourceNamespaces.includes(file))) {
+			report({ surface, namespace: namespaceFile.replace(/\.json$/, ""), type: "extra namespace", source: undefined, translation: namespaceFile });
+		}
+	}
+
+	return sourceNamespaces.length;
+};
+
+const sourceNamespaces = await validateJsonLocales("web", webLocalesRoot);
+const sourceDocsUiNamespaces = await validateJsonLocales("docs-ui", docsUiLocalesRoot);
+await validateLocaleDirectories("docs", docsLocalesRoot);
+
+const englishDocsRoot = path.join(docsLocalesRoot, defaultLocale);
+const englishDocsFiles = await recursiveFiles(englishDocsRoot);
+const fencedBlocks = text => [...text.matchAll(/```[^\n]*\n([\s\S]*?)```/g)].map(match => match[1].trim());
+
+for (const sourceFile of englishDocsFiles) {
+	const relative = path.relative(englishDocsRoot, sourceFile);
+	const source = await readFile(sourceFile, "utf8");
+	if (!source.trim()) report({ surface: "docs", namespace: relative, type: "empty source document", source, translation: undefined });
+
+	for (const locale of translatedLocales) {
+		const targetFile = path.join(docsLocalesRoot, locale, relative);
+		let translation;
+		try {
+			translation = await readFile(targetFile, "utf8");
+		} catch {
+			report({ surface: "docs", namespace: relative, type: "missing translated document", source: relative, translation: undefined });
+			continue;
+		}
+		if (!sameList(fencedBlocks(source), fencedBlocks(translation))) {
+			report({ surface: "docs", namespace: relative, type: "code block mismatch", source: fencedBlocks(source), translation: fencedBlocks(translation) });
+		}
+		if (!translation.trim()) report({ surface: "docs", namespace: relative, type: "empty translation", source, translation });
+	}
 }
 
 if (issues.length) {
@@ -217,5 +220,5 @@ if (issues.length) {
 }
 
 console.log(
-	`Localization check passed: ${sourceNamespaces.length} web namespaces, ${sourceDocsUiNamespaces.length} docs UI namespaces, and ${(await recursiveFiles(englishDocsRoot)).length} documentation pages.`
+	`Localization check passed: ${supportedLocales.size} active locale(s), ${sourceNamespaces} web namespaces, ${sourceDocsUiNamespaces} docs UI namespaces, and ${englishDocsFiles.length} documentation pages.`
 );

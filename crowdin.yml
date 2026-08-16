@@ -6,20 +6,11 @@ preserve_hierarchy: true
 files:
   - source: /web/src/i18n/locales/en/*.json
     translation: /web/src/i18n/locales/%locale%/%original_file_name%
-    languages_mapping:
-      locale:
-        zh-TW: zh-TW
 
   - source: /docs/src/i18n/locales/en/*.json
     translation: /docs/src/i18n/locales/%locale%/%original_file_name%
-    languages_mapping:
-      locale:
-        zh-TW: zh-TW
 
   - source: /docs/src/content/docs/en/**/*.mdx
     translation: /docs/src/content/docs/%locale%/**/%original_file_name%
     content_segmentation: 0
     update_option: update_as_unapproved
-    languages_mapping:
-      locale:
-        zh-TW: zh-TW
