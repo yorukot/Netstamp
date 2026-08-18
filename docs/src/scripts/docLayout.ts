@@ -57,18 +57,6 @@ function initDocLayout() {
 	syncDocsNavActiveState();
 
 	const cleanupTasks: Array<() => void> = [];
-	const pageActions = document.querySelector("[data-docs-page-actions]");
-	const copiedLabel = pageActions instanceof HTMLElement ? pageActions.dataset.copiedLabel || "Copied" : "Copied";
-	const noContentLabel = pageActions instanceof HTMLElement ? pageActions.dataset.noContentLabel || "No page content was available." : "No page content was available.";
-	const markdownUrl = pageActions instanceof HTMLElement ? pageActions.dataset.markdownUrl : undefined;
-	const pageActionsToggle = document.querySelector("[data-docs-page-actions-toggle]");
-	const pageActionsMenu = document.querySelector("[data-docs-page-actions-menu]");
-	const copyPageButton = document.querySelector("[data-docs-copy-page]");
-
-	function setPageActionsOpen(open: boolean) {
-		pageActionsToggle?.setAttribute("aria-expanded", String(open));
-		if (pageActionsMenu instanceof HTMLElement) pageActionsMenu.hidden = !open;
-	}
 
 	function flashActionLabel(element: Element | null, label: string) {
 		if (!(element instanceof HTMLElement)) return;
@@ -135,12 +123,27 @@ function initDocLayout() {
 		cleanupTasks.push(() => button.removeEventListener("click", handleCodeCopy));
 	}
 
-	if (pageActions && pageActionsToggle && pageActionsMenu) {
+	const pageActionRoots = Array.from(document.querySelectorAll("[data-docs-page-actions]")).filter((element): element is HTMLElement => element instanceof HTMLElement);
+
+	for (const pageActions of pageActionRoots) {
+		const copiedLabel = pageActions.dataset.copiedLabel || "Copied";
+		const noContentLabel = pageActions.dataset.noContentLabel || "No page content was available.";
+		const markdownUrl = pageActions.dataset.markdownUrl;
+		const pageActionsToggle = pageActions.querySelector<HTMLElement>("[data-docs-page-actions-toggle]");
+		const pageActionsMenu = pageActions.querySelector<HTMLElement>("[data-docs-page-actions-menu]");
+		const copyPageButton = pageActions.querySelector<HTMLElement>("[data-docs-copy-page]");
+
+		if (!pageActionsToggle || !pageActionsMenu) continue;
+
+		const setPageActionsOpen = (open: boolean) => {
+			pageActionsToggle.setAttribute("aria-expanded", String(open));
+			pageActionsMenu.hidden = !open;
+		};
 		const handlePageActionsToggle = () => {
 			const willOpen = pageActionsToggle.getAttribute("aria-expanded") !== "true";
 			setPageActionsOpen(willOpen);
 			if (willOpen) {
-				(pageActionsMenu.querySelector("button, a[href]") as HTMLElement | null)?.focus();
+				pageActionsMenu.querySelector<HTMLElement>("button, a[href]")?.focus();
 			}
 		};
 		const handleDocumentClick = (event: MouseEvent) => {
@@ -149,13 +152,11 @@ function initDocLayout() {
 			}
 		};
 		const handlePageActionsKeydown = (event: KeyboardEvent) => {
-			if (pageActionsToggle.getAttribute("aria-expanded") !== "true") return;
+			if (pageActionsToggle.getAttribute("aria-expanded") !== "true" || event.key !== "Escape") return;
 
-			if (event.key === "Escape") {
-				event.preventDefault();
-				setPageActionsOpen(false);
-				(pageActionsToggle as HTMLElement).focus();
-			}
+			event.preventDefault();
+			setPageActionsOpen(false);
+			pageActionsToggle.focus();
 		};
 		const handleCopyPage = async () => {
 			try {
@@ -173,6 +174,7 @@ function initDocLayout() {
 				flashActionLabel(pageActionsToggle, noContentLabel);
 			}
 			setPageActionsOpen(false);
+			pageActionsToggle.focus();
 		};
 
 		setPageActionsOpen(false);
@@ -188,28 +190,33 @@ function initDocLayout() {
 		});
 	}
 
-	const toc = document.querySelector("[data-docs-toc]");
-	const tocLinks = Array.from(toc?.querySelectorAll("[data-toc-link]") ?? []);
-	const tocSections = tocLinks
-		.map(link => {
-			const id = link.getAttribute("href")?.slice(1);
-			const heading = id ? document.getElementById(decodeURIComponent(id)) : null;
+	const tocLinks = Array.from(document.querySelectorAll<HTMLElement>("[data-toc-link]"));
+	const tocSectionMap = new Map<HTMLElement, HTMLElement[]>();
 
-			return heading ? { heading, link } : null;
-		})
-		.filter((section): section is { heading: HTMLElement; link: Element } => Boolean(section));
+	for (const link of tocLinks) {
+		const id = link.getAttribute("href")?.slice(1);
+		const heading = id ? document.getElementById(decodeURIComponent(id)) : null;
+		if (!heading) continue;
 
-	function setActiveTocLink(activeLink: Element) {
-		for (const { link } of tocSections) {
-			const isActive = link === activeLink;
-			link.classList.toggle("active", isActive);
-			if (isActive) {
-				link.setAttribute("aria-current", "location");
-			} else {
-				link.removeAttribute("aria-current");
+		const links = tocSectionMap.get(heading) ?? [];
+		links.push(link);
+		tocSectionMap.set(heading, links);
+	}
+
+	const tocSections = Array.from(tocSectionMap, ([heading, links]) => ({ heading, links }));
+	const setActiveTocHeading = (activeHeading: HTMLElement) => {
+		for (const { heading, links } of tocSections) {
+			const isActive = heading === activeHeading;
+			for (const link of links) {
+				link.classList.toggle("active", isActive);
+				if (isActive) {
+					link.setAttribute("aria-current", "location");
+				} else {
+					link.removeAttribute("aria-current");
+				}
 			}
 		}
-	}
+	};
 
 	function updateActiveTocLink() {
 		if (!tocSections.length) return;
@@ -225,7 +232,7 @@ function initDocLayout() {
 			}
 		}
 
-		setActiveTocLink(activeSection.link);
+		setActiveTocHeading(activeSection.heading);
 	}
 
 	let tocUpdateQueued = false;
@@ -251,6 +258,17 @@ function initDocLayout() {
 			window.removeEventListener("resize", scheduleTocUpdate);
 			window.removeEventListener("hashchange", scheduleTocUpdate);
 		});
+	}
+
+	for (const mobileToc of document.querySelectorAll<HTMLDetailsElement>("[data-docs-mobile-toc]")) {
+		const handleMobileTocClick = (event: MouseEvent) => {
+			if (event.target instanceof Element && event.target.closest("[data-toc-link]")) {
+				mobileToc.open = false;
+			}
+		};
+
+		mobileToc.addEventListener("click", handleMobileTocClick);
+		cleanupTasks.push(() => mobileToc.removeEventListener("click", handleMobileTocClick));
 	}
 
 	cleanupDocLayout = () => {

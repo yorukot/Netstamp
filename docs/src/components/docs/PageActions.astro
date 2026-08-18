@@ -8,20 +8,22 @@ import { Button } from "@netstamp/ui";
 interface Props {
 	chatGptUrl: string;
 	claudeUrl: string;
+	idPrefix?: string;
 	markdownUrl: string;
 }
 
-const { chatGptUrl, claudeUrl, markdownUrl } = Astro.props;
+const { chatGptUrl, claudeUrl, idPrefix = "docs-page-actions", markdownUrl } = Astro.props;
 const ui = uiForLocale(Astro.currentLocale);
+const menuId = `${idPrefix}-menu`;
 ---
 
 <div class="docsPageActions" data-docs-page-actions data-copied-label={ui.pageActions.copied} data-no-content-label={ui.pageActions.noContent} data-markdown-url={markdownUrl}>
-	<Button className="docsPageActionsToggle" variant="ghost" size="sm" type="button" data-docs-page-actions-toggle aria-expanded="false" aria-controls="docs-page-actions-menu">
+	<Button className="docsPageActionsToggle" variant="ghost" size="sm" type="button" data-docs-page-actions-toggle aria-expanded="false" aria-controls={menuId}>
 		<Icon name="copy" size={16} />
 		<span data-docs-action-label aria-live="polite">{ui.pageActions.copy}</span>
 		<Icon name="caret" size={12} />
 	</Button>
-	<div class="docsPageActionsMenu" id="docs-page-actions-menu" data-docs-page-actions-menu hidden>
+	<div class="docsPageActionsMenu" id={menuId} data-docs-page-actions-menu hidden>
 		<button class="docsPageActionItem" type="button" data-docs-copy-page>
 			<span class="docsPageActionIcon" aria-hidden="true">
 				<Icon name="copy" size={18} />

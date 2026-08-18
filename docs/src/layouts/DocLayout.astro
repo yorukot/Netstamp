@@ -1,5 +1,6 @@
 ---
 import Icon from "../components/icons/Icon.astro";
+import MobileDocTools from "../components/docs/MobileDocTools.astro";
 import PageActions from "../components/docs/PageActions.astro";
 import SearchBox from "../components/docs/SearchBox.astro";
 import SearchTrigger from "../components/docs/SearchTrigger.astro";
@@ -153,6 +154,7 @@ const visibleBreadcrumbs = [
 					</aside>
 				) : null
 			}
+			<MobileDocTools chatGptUrl={chatGptUrl} claudeUrl={claudeUrl} headings={headings} markdownUrl={markdownUrl} onThisPageLabel={ui.docs.onThisPage} />
 			<article class="docProse">
 				<slot />
 			</article>
@@ -206,7 +208,7 @@ const visibleBreadcrumbs = [
 
 		<aside class="docsToc" aria-label={ui.docs.onThisPage}>
 			<div class="docsTocInner">
-				<PageActions chatGptUrl={chatGptUrl} claudeUrl={claudeUrl} markdownUrl={markdownUrl} />
+				<PageActions idPrefix="docs-desktop-page-actions" chatGptUrl={chatGptUrl} claudeUrl={claudeUrl} markdownUrl={markdownUrl} />
 				{
 					headings.length ? (
 						<nav data-docs-toc>
@@ -959,19 +961,16 @@ const visibleBreadcrumbs = [
 				padding: 5.75rem 1rem 1rem;
 			}
 
-			.docsTocInner {
-				position: static;
-				width: auto;
-				max-height: none;
-				overflow: visible;
-			}
-
 			.docsToc {
-				order: 2;
+				display: none;
 			}
 
 			.docContent {
 				order: 1;
+			}
+
+			.docDescription {
+				margin-bottom: 1rem;
 			}
 
 			.docsSidebar {

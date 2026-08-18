@@ -1,0 +1,161 @@
+---
+import Icon from "@/components/icons/Icon.astro";
+import PageActions from "./PageActions.astro";
+
+interface Heading {
+	depth: 2 | 3;
+	slug: string;
+	text: string;
+}
+
+interface Props {
+	chatGptUrl: string;
+	claudeUrl: string;
+	headings: Heading[];
+	markdownUrl: string;
+	onThisPageLabel: string;
+}
+
+const { chatGptUrl, claudeUrl, headings, markdownUrl, onThisPageLabel } = Astro.props;
+---
+
+<div class="mobileDocTools">
+	{
+		headings.length ? (
+			<details class="mobileDocToc" data-docs-mobile-toc>
+				<summary class="mobileDocTocSummary">
+					<span>
+						<Icon name="toc" size={16} />
+						{onThisPageLabel}
+					</span>
+					<Icon name="caret" size={12} />
+				</summary>
+				<nav class="mobileDocTocNav" aria-label={onThisPageLabel} data-docs-toc>
+					{headings.map((heading, index) => (
+						<a href={`#${heading.slug}`} data-toc-link class:list={[heading.depth === 3 && "sub", index === 0 && "active"]} aria-current={index === 0 ? "location" : undefined}>
+							{heading.text}
+						</a>
+					))}
+				</nav>
+			</details>
+		) : null
+	}
+	<div class="mobileDocActions">
+		<PageActions idPrefix="docs-mobile-page-actions" chatGptUrl={chatGptUrl} claudeUrl={claudeUrl} markdownUrl={markdownUrl} />
+	</div>
+</div>
+
+<style>
+	.mobileDocTools {
+		display: none;
+	}
+
+	@media (max-width: 68rem) {
+		.mobileDocTools {
+			display: grid;
+			gap: 0.5rem;
+			margin-bottom: 2rem;
+		}
+
+		.mobileDocToc,
+		.mobileDocActions {
+			border: 1px solid var(--ns-border-faint);
+			background: var(--ns-surface);
+		}
+
+		.mobileDocTocSummary {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 0.75rem;
+			min-height: 2.75rem;
+			padding: 0.625rem 0.75rem;
+			color: var(--ns-text-subtle);
+			font-size: 0.8125rem;
+			font-weight: 650;
+			line-height: 1.25;
+			list-style: none;
+			cursor: pointer;
+			transition:
+				background var(--ns-transition),
+				color var(--ns-transition);
+		}
+
+		.mobileDocTocSummary::-webkit-details-marker {
+			display: none;
+		}
+
+		.mobileDocTocSummary span {
+			display: inline-flex;
+			align-items: center;
+			gap: 0.5rem;
+		}
+
+		.mobileDocTocSummary:hover,
+		.mobileDocToc[open] .mobileDocTocSummary {
+			color: var(--ns-text);
+			background: var(--ns-primary-muted);
+		}
+
+		.mobileDocTocSummary:focus-visible,
+		.mobileDocTocNav a:focus-visible {
+			outline: var(--ns-focus-outline);
+			outline-offset: var(--ns-focus-outline-offset);
+		}
+
+		.mobileDocToc[open] .mobileDocTocSummary > :global(.icon:last-child) {
+			transform: rotate(180deg);
+		}
+
+		.mobileDocTocNav {
+			display: grid;
+			gap: 0.125rem;
+			max-height: min(22rem, 45svh);
+			padding: 0.5rem;
+			overflow: auto;
+			border-top: 1px solid var(--ns-border-faint);
+		}
+
+		.mobileDocTocNav a {
+			display: block;
+			padding: 0.625rem 0.75rem;
+			color: var(--ns-text-subtle);
+			border-left: 2px solid transparent;
+			font-family: var(--ns-font-code);
+			font-size: 0.8125rem;
+			font-weight: 650;
+			line-height: 1.4;
+			text-decoration: none;
+			transition:
+				background var(--ns-transition),
+				border-color var(--ns-transition),
+				color var(--ns-transition);
+		}
+
+		.mobileDocTocNav a:hover,
+		.mobileDocTocNav a.active {
+			color: var(--ns-text);
+			background: var(--ns-primary-muted);
+		}
+
+		.mobileDocTocNav a.active {
+			border-left-color: var(--ns-primary);
+		}
+
+		.mobileDocTocNav a.sub {
+			padding-left: 1.5rem;
+		}
+
+		.mobileDocActions :global(.docsPageActionsToggle) {
+			min-height: 2.75rem;
+			padding: 0.625rem 0.75rem;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.mobileDocTocSummary,
+		.mobileDocTocNav a {
+			transition-duration: 0.01ms;
+		}
+	}
+</style>
