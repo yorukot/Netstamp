@@ -157,12 +157,12 @@ Dark mode is the same product system on a black canvas. Do not use blue-black as
 
 Reference palette extraction is based on the local image and SVG assets currently in this repository.
 
-- `docs/src/assets/homepage-highlights/overview.webp` is the canonical light-mode product capture used by the homepage showcase.
+- `docs/src/assets/homepage-highlights/overview.webp` is the canonical light-mode product capture used directly by the homepage showcase.
 - Documentation captures under `docs/src/assets/screenshots/` use the same product UI and anonymous fixtures so product color evidence remains consistent across both locales.
 - Brand SVG literals: `#090b10`, `#0b0f16`, `#11151d`, `#ea6a1a`, `#fb923c`, `#fff7ed`, `#f8fafc`.
 - Network map SVG literals: `#2563eb`, `#38bdf8`, `#77736b`, `#c4ccd9`.
 
-Implementation decision: root defaults to the dark palette, with `:root` and `:root[data-theme="dark"]` sharing the same values. Public body uses `#000000` by default and `#f4f5f7` only in explicit light mode. Public floating navigation and dark chrome use `#131518` with white text. The public homepage is locked to the unified dark design, while its product showcase uses current light-mode product captures inside the fixed device frame.
+Implementation decision: root defaults to the dark palette, with `:root` and `:root[data-theme="dark"]` sharing the same values. Public body uses `#000000` by default and `#f4f5f7` only in explicit light mode. Public floating navigation and dark chrome use `#131518` with white text. The public homepage is locked to the unified dark design, while its product showcase displays current light-mode product captures directly without a decorative device frame.
 
 Fixed dark surfaces inside a theme-switching page use the global `.ns-theme-dark` boundary. Apply it to the surface itself and to any portaled drawers, menus, or popovers so shared controls inherit the dark token set instead of the page theme.
 
