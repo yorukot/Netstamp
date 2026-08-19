@@ -1,8 +1,13 @@
 ---
-import { uiForLocale } from "../../../i18n/ui";
+import { pathForLocale, uiForLocale } from "../../../i18n/ui";
 
 const ui = uiForLocale(Astro.currentLocale);
-const faqs = ui.home.faqs.map(([question, answer]) => ({ question, answer }));
+const faqs = ui.home.faqs.map(([question, answer, linkLabel, href]) => ({
+	question,
+	answer,
+	linkLabel,
+	href: href.startsWith("/") ? pathForLocale(href, Astro.currentLocale) : href
+}));
 ---
 
 <section id="faq" class="faq" aria-labelledby="faq-title">
@@ -18,6 +23,10 @@ const faqs = ui.home.faqs.map(([question, answer]) => ({ question, answer }));
 					<div class="faq-answer">
 						<div>
 							<p>{faq.answer}</p>
+							<a href={faq.href}>
+								{faq.linkLabel}
+								<span aria-hidden="true"> →</span>
+							</a>
 						</div>
 					</div>
 				</details>
@@ -186,10 +195,26 @@ const faqs = ui.home.faqs.map(([question, answer]) => ({ question, answer }));
 
 	.faq-answer p {
 		max-width: 58rem;
-		margin: 0;
+		margin: 0 0 1rem;
 		color: color-mix(in srgb, var(--ns-bg) 74%, var(--ns-chrome-text));
 		font-size: 1.05rem;
 		line-height: 1.65;
+	}
+
+	.faq-answer a {
+		color: var(--ns-primary-active);
+		font-size: 1rem;
+		font-weight: 600;
+		text-decoration: none;
+	}
+
+	.faq-answer a:hover {
+		text-decoration: underline;
+	}
+
+	.faq-answer a:focus-visible {
+		outline: var(--ns-focus-outline);
+		outline-offset: var(--ns-focus-outline-offset);
 	}
 
 	@media (min-width: 36rem) {

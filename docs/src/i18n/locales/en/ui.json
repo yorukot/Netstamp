@@ -19,6 +19,7 @@
 		"sections": "Docs sections",
 		"docs": "Docs",
 		"api": "API",
+		"changelog": "Changelog",
 		"switchColor": "Switch color mode",
 		"switchToLight": "Switch to light mode",
 		"switchToDark": "Switch to dark mode",
@@ -29,6 +30,7 @@
 		"mobileNavigation": "Navigation",
 		"openNavigation": "Open navigation",
 		"closeNavigation": "Close navigation",
+		"projectLinks": "Project",
 		"externalLinks": "External links",
 		"breadcrumb": "Breadcrumb",
 		"home": "Docs home",
@@ -138,28 +140,52 @@
 		"faqTitle": "FAQ",
 		"faqs": [
 			[
-				"Is Netstamp just another uptime monitor?",
-				"No. Uptime is only one layer. Netstamp combines real-world probes, ping, TCP reachability, traceroute, HTTP uptime, TLS certificate checks, packet loss, latency, probe health, incidents, dashboards, and historical measurements so you can understand how a service behaves from different networks."
+				"How is Netstamp different from a conventional uptime monitor?",
+				"Netstamp runs checks from probes you control, so you can compare reachability, latency, packet loss, and routes across the networks that matter to you—not only vendor-owned cloud locations.",
+				"Understand controllers and probes",
+				"/docs/getting-started/core-concepts/"
 			],
 			[
-				"Why do I need probes I control?",
-				"Because third-party cloud checks cannot see every network that matters to you. A service may be reachable from a public monitoring region but degraded from your office, lab, ISP, edge node, private network, or user-facing environment. Netstamp gives you visibility from those real viewpoints."
+				"Is Netstamp free, and is a hosted version available?",
+				"Netstamp is free, open-source software licensed under Apache 2.0. It is currently self-hosted only, so you provide the infrastructure and operations; there is no official managed service.",
+				"View the Apache 2.0 license",
+				"https://github.com/yorukot/netstamp/blob/main/LICENSE"
 			],
 			[
-				"Can I self-host Netstamp?",
-				"Yes. Netstamp is open-source and designed for self-hosted deployments with a controller, lightweight probes, PostgreSQL, TimescaleDB, health checks, metrics, OpenAPI, and production deployment documentation."
+				"What do I need to deploy Netstamp?",
+				"You need a Linux host with Docker Engine, Docker Compose v2, and persistent database storage. Public deployments also need a hostname, reverse proxy, HTTPS, and off-host backups.",
+				"Review deployment requirements",
+				"/docs/installation/"
 			],
 			[
-				"What can Netstamp monitor?",
-				"Netstamp supports real-world network checks such as ping, TCP, traceroute, HTTP uptime, API payload checks, and TLS/SSL certificate monitoring. It also tracks probe health, latest measurements, incidents, dashboards, and historical trends."
+				"Where can I run a Netstamp probe, and what network access does it need?",
+				"Probes support Linux on amd64 or arm64 with systemd. They need outbound HTTPS access to the controller and access to their targets, but no public IP or inbound port; other platforms are not currently supported installation paths.",
+				"Review probe requirements",
+				"/docs/guides/probes/"
 			],
 			[
-				"Who is Netstamp for?",
-				"Netstamp is for developers, infrastructure teams, homelab users, SREs, network operators, researchers, and teams that need to observe services from machines, regions, ISPs, labs, edge nodes, private infrastructure, or real user-facing networks they control."
+				"Can Netstamp monitor private or internal services?",
+				"Yes. Place a probe in a network that can reach the private target; the controller does not need direct access to that network.",
+				"Learn how probes and assignments work",
+				"/docs/getting-started/core-concepts/"
 			],
 			[
-				"How does Netstamp help with debugging?",
-				"Netstamp helps you separate global outages from regional, provider-specific, probe-specific, target-specific, and route-specific problems. Historical measurements make it easier to see what changed, where it changed, and when it started."
+				"Which checks are supported today, and what are the current limitations?",
+				"Netstamp supports Ping, TCP connect, HTTP/HTTPS, and Traceroute. It does not currently provide separate DNS, browser, gRPC, SNMP, scriptable, or hosted public-probe checks, and Traceroute has no alert metrics.",
+				"Compare check types and limitations",
+				"/docs/guides/checks/"
+			],
+			[
+				"Where is my monitoring data stored, and what data leaves my infrastructure?",
+				"Netstamp stores its durable application data in your PostgreSQL database. Data leaves your infrastructure only through features you enable, such as notifications, external authentication, analytics, observability exporters, or public status pages.",
+				"Review the security boundary",
+				"/docs/operations/security/"
+			],
+			[
+				"How do alerts, incidents, and notifications work?",
+				"A sustained Ping, TCP, or HTTP rule breach opens an incident, and recovery resolves it; missing data is not treated as healthy. Notifications support Webhook, Slack, Discord, Telegram, and Email.",
+				"Configure alerts and incidents",
+				"/docs/guides/alerts-and-incidents/"
 			]
 		],
 		"finalAria": "Get started with Netstamp",

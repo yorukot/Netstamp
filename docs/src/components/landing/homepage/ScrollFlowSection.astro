@@ -4,6 +4,19 @@ import { uiForLocale } from "../../../i18n/ui";
 const ui = uiForLocale(Astro.currentLocale);
 const visuals = ["machines", "assignments", "insights", "incidents"] as const;
 const steps = ui.home.flowSteps.map((title, index) => ({ number: String(index + 1).padStart(2, "0"), title, visual: visuals[index] }));
+const insightBars = [
+	{ x: 58, y: 44, width: 52, height: 132 },
+	{ x: 122, y: 116, width: 52, height: 60 },
+	{ x: 186, y: 92, width: 52, height: 84 },
+	{ x: 250, y: 66, width: 52, height: 110 }
+] as const;
+const insightMarkerY = [140, 94, 112, 64] as const;
+const insightMarkers = insightBars.map((bar, index) => ({ x: bar.x + bar.width / 2, y: insightMarkerY[index] }));
+const insightTrendPoints = [{ x: 48, y: 152 }, ...insightMarkers, { x: 352, y: 78 }];
+const insightTrendPath = insightTrendPoints.map((point, index) => `${index === 0 ? "M" : "L"}${point.x} ${point.y}`).join(" ");
+const incidentCurveAnchor = { x: 184, y: 126 } as const;
+const incidentAlertAnchor = { x: 210, y: 151 } as const;
+const incidentPath = `M52 138 C96 70 142 72 ${incidentCurveAnchor.x} ${incidentCurveAnchor.y} S278 178 360 72`;
 ---
 
 <section id="scroll-flow" class="flow" data-scroll-progress="flow" aria-labelledby="flow-title">
@@ -45,27 +58,39 @@ const steps = ui.home.flowSteps.map((title, index) => ({ number: String(index + 
 								)}
 								{step.visual === "insights" && (
 									<>
-										<path class="wire dim" d="M56 166 H364 M56 124 H364 M56 82 H364" />
-										<path class="wire hot" d="M64 152 L118 140 L174 94 L226 112 L282 64 L352 78" />
-										<circle cx="118" cy="140" r="7" />
-										<circle cx="174" cy="94" r="7" />
-										<circle cx="226" cy="112" r="7" />
-										<circle cx="282" cy="64" r="7" />
-										<rect x="58" y="44" width="52" height="132" />
-										<rect x="122" y="116" width="52" height="60" />
-										<rect x="186" y="92" width="52" height="84" />
-										<rect x="250" y="66" width="52" height="110" />
+										<g class="visual-grid">
+											<path class="wire dim" d="M56 166 H364 M56 124 H364 M56 82 H364" />
+										</g>
+										<g class="visual-bars">
+											{insightBars.map(bar => (
+												<rect x={bar.x} y={bar.y} width={bar.width} height={bar.height} />
+											))}
+										</g>
+										<g class="visual-trend">
+											<path class="wire hot" d={insightTrendPath} />
+										</g>
+										<g class="visual-markers">
+											{insightMarkers.map(point => (
+												<circle cx={point.x} cy={point.y} r="7" />
+											))}
+										</g>
 									</>
 								)}
 								{step.visual === "incidents" && (
 									<>
-										<path class="wire dim" d="M52 138 C96 70 142 72 184 126 S278 178 360 72" />
-										<path class="wire hot" d="M52 138 C96 70 142 72 184 126 S278 178 360 72" />
-										<circle cx="52" cy="138" r="8" />
-										<circle cx="184" cy="126" r="8" />
-										<circle cx="360" cy="72" r="8" />
-										<path class="alert" d="M210 48 L252 124 H168 Z" />
-										<path class="alert-mark" d="M210 74 V101 M210 112 V116" />
+										<g class="visual-route">
+											<path class="wire dim" d={incidentPath} />
+											<path class="wire hot" d={incidentPath} />
+										</g>
+										<g class="visual-alert" transform={`translate(${incidentAlertAnchor.x} ${incidentAlertAnchor.y})`}>
+											<path class="alert-underlay" d="M0 -48 L38 28 H-38 Z" />
+											<path class="alert" d="M0 -48 L38 28 H-38 Z" />
+											<path class="alert-mark" d="M0 -22 V4 M0 15 V19" />
+										</g>
+										<g class="visual-markers">
+											<circle cx="52" cy="138" r="8" />
+											<circle cx="360" cy="72" r="8" />
+										</g>
 									</>
 								)}
 							</svg>
@@ -282,6 +307,11 @@ const steps = ui.home.flowSteps.map((title, index) => ({ number: String(index + 
 	.alert {
 		fill: color-mix(in srgb, var(--ns-primary-active) 14%, transparent);
 		stroke: var(--ns-primary-active);
+	}
+
+	.alert-underlay {
+		fill: var(--ns-surface-raised);
+		stroke: none;
 	}
 
 	.alert-mark {
