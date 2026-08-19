@@ -21,28 +21,14 @@ describe("trackerConfig", () => {
 		expect(config.posthogHost).toBe("https://posthog.example.com");
 	});
 
-	it("prefers canonical Google and Meta variables over their aliases", async () => {
+	it("maps canonical Google and Meta variables", async () => {
 		vi.stubEnv("VITE_NETSTAMP_GOOGLE_TAG_ID", "G-CANONICAL");
-		vi.stubEnv("VITE_NETSTAMP_GA_MEASUREMENT_ID", "G-ALIAS");
 		vi.stubEnv("VITE_NETSTAMP_META_PIXEL_ID", "meta-canonical");
-		vi.stubEnv("VITE_NETSTAMP_FACEBOOK_PIXEL_ID", "meta-alias");
 
 		const config = await loadTrackerConfig();
 
 		expect(config.googleTagId).toBe("G-CANONICAL");
 		expect(config.metaPixelId).toBe("meta-canonical");
-	});
-
-	it("uses aliases when the canonical variables are blank or whitespace", async () => {
-		vi.stubEnv("VITE_NETSTAMP_GOOGLE_TAG_ID", " ");
-		vi.stubEnv("VITE_NETSTAMP_GA_MEASUREMENT_ID", "G-ALIAS");
-		vi.stubEnv("VITE_NETSTAMP_META_PIXEL_ID", "");
-		vi.stubEnv("VITE_NETSTAMP_FACEBOOK_PIXEL_ID", "meta-alias");
-
-		const config = await loadTrackerConfig();
-
-		expect(config.googleTagId).toBe("G-ALIAS");
-		expect(config.metaPixelId).toBe("meta-alias");
 	});
 
 	it("normalizes immediate consent and configured countries", async () => {

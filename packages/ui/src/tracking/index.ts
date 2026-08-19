@@ -43,10 +43,8 @@ export type TrackingConsentState = "accepted" | "declined";
 
 export interface RawTrackerConfig {
 	googleTagId?: string;
-	gaMeasurementId?: string;
 	clarityProjectId?: string;
 	metaPixelId?: string;
-	facebookPixelId?: string;
 	posthogKey?: string;
 	posthogHost?: string;
 	plausibleDomain?: string;
@@ -144,11 +142,11 @@ const boundPageViewEvents = new Set<string>();
 const runtimeAllowedStorageKeys = new Set<string>();
 let lastTrackedPageLocation = "";
 
-export function normalizeTrackerConfig(raw: RawTrackerConfig): TrackerConfig {
+export const normalizeTrackerConfig = (raw: RawTrackerConfig): TrackerConfig => {
 	return {
-		googleTagId: cleanValue(raw.googleTagId) ?? cleanValue(raw.gaMeasurementId),
+		googleTagId: cleanValue(raw.googleTagId),
 		clarityProjectId: cleanValue(raw.clarityProjectId),
-		metaPixelId: cleanValue(raw.metaPixelId) ?? cleanValue(raw.facebookPixelId),
+		metaPixelId: cleanValue(raw.metaPixelId),
 		posthogKey: cleanValue(raw.posthogKey),
 		posthogHost: cleanValue(raw.posthogHost) ?? DEFAULT_POSTHOG_HOST,
 		plausibleDomain: cleanValue(raw.plausibleDomain),
@@ -159,7 +157,7 @@ export function normalizeTrackerConfig(raw: RawTrackerConfig): TrackerConfig {
 		consentCountries: parseCountryList(raw.consentCountries),
 		storageKey: cleanValue(raw.storageKey) ?? DEFAULT_STORAGE_KEY
 	};
-}
+};
 
 export function hasEnabledTrackers(config: TrackerConfig): boolean {
 	return Boolean(config.googleTagId || config.clarityProjectId || config.metaPixelId || config.posthogKey || config.plausibleDomain || config.umamiWebsiteId);
