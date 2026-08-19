@@ -55,8 +55,6 @@ Pin image values for production. The logical Compose volume is `netstamp-postgre
 | `APP_ENV`                        | `local`                 | Runtime environment; non-local enables secure session-cookie behavior |
 | `DEMO_MODE`                      | `false`                 | Enables backend demo restrictions                                     |
 | `SERVICE_NAME`                   | `controller`            | Service identity used by logs and telemetry                           |
-| `APP_VERSION`                    | `0.1.0`                 | Reported version; Compose maps `NETSTAMP_VERSION` here                |
-| `API_VERSION`                    | `v1`                    | Version segment mounted under `/api/<version>`                        |
 | `LOG_LEVEL`                      | `info`                  | `debug`, `info`, `warn`, `error`, `dpanic`, `panic`, or `fatal`       |
 | `LOG_PSEUDONYM_KEY`              | development placeholder | Stable key used to pseudonymize sensitive log identifiers             |
 | `SYSTEM_SETTINGS_ENCRYPTION_KEY` | development placeholder | Stable key used to encrypt stored administrative secrets              |
@@ -172,14 +170,15 @@ All numeric capacities and durations must be greater than zero. Maximum backoff 
 
 ## Web application build variables
 
-These values are compiled into the frontend. Changing a container's runtime environment does not modify an already-built bundle.
+The browser always calls the same-origin API path generated from the OpenAPI contract (`/api/v1`). `VITE_NETSTAMP_API_PROXY_TARGET` only controls the local Vite development proxy and is not compiled into the browser bundle.
+
+Demo credentials are public values compiled only into the dedicated demo image. The remaining values configure optional trackers and are also compiled into the frontend. Changing a container's runtime environment does not modify an already-built bundle.
 
 | Variable                                   | Default                             | Purpose                              |
 | ------------------------------------------ | ----------------------------------- | ------------------------------------ |
-| `VITE_NETSTAMP_API_BASE_URL`               | `/api/v1`                           | Browser API base URL                 |
 | `VITE_NETSTAMP_API_PROXY_TARGET`           | `http://localhost:8080`             | Vite development proxy target        |
-| `VITE_NETSTAMP_DEMO_EMAIL`                 | empty                               | Optional demo login email            |
-| `VITE_NETSTAMP_DEMO_PASSWORD`              | empty                               | Optional demo login password         |
+| `VITE_NETSTAMP_DEMO_EMAIL`                 | `demo@netstamp.local`               | Demo-image login email               |
+| `VITE_NETSTAMP_DEMO_PASSWORD`              | `password`                          | Demo-image login password            |
 | `VITE_NETSTAMP_GOOGLE_TAG_ID`              | empty                               | Google tag ID                        |
 | `VITE_NETSTAMP_CLARITY_PROJECT_ID`         | empty                               | Microsoft Clarity project ID         |
 | `VITE_NETSTAMP_META_PIXEL_ID`              | empty                               | Meta Pixel ID                        |
@@ -192,7 +191,7 @@ These values are compiled into the frontend. Changing a container's runtime envi
 | `VITE_NETSTAMP_TRACKING_CONSENT_MODE`      | `regional`                          | `regional`, `always`, or `immediate` |
 | `VITE_NETSTAMP_TRACKING_CONSENT_COUNTRIES` | built-in regional list              | ISO 3166-1 alpha-2 country codes     |
 
-Legacy aliases `VITE_NETSTAMP_GA_MEASUREMENT_ID` and `VITE_NETSTAMP_FACEBOOK_PIXEL_ID` remain supported, but the preferred Google and Meta names win when both are set. Every `VITE_*` value is public to browsers; never put a private secret in one.
+Every browser-visible `VITE_*` value is public; never put a private secret in one.
 
 ## Documentation build variables
 
@@ -201,4 +200,4 @@ Legacy aliases `VITE_NETSTAMP_GA_MEASUREMENT_ID` and `VITE_NETSTAMP_FACEBOOK_PIX
 | `PUBLIC_SITE_URL`              | `https://netstamp.dev`     | Canonical documentation origin   |
 | `PUBLIC_NETSTAMP_APP_BASE_URL` | `https://app.netstamp.dev` | Product links from documentation |
 
-The docs support the same optional trackers and consent controls with the `PUBLIC_NETSTAMP_*` prefix.
+The docs support the same optional trackers and consent controls with the `PUBLIC_NETSTAMP_*` prefix. Google and Meta use only the canonical `PUBLIC_NETSTAMP_GOOGLE_TAG_ID` and `PUBLIC_NETSTAMP_META_PIXEL_ID` names.
