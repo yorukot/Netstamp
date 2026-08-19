@@ -45,4 +45,4 @@ import { BellSimpleIcon } from "@phosphor-icons/react/dist/csr/BellSimple";
 - `pnpm --filter @netstamp/web lint`: run frontend ESLint.
 - `pnpm --filter @netstamp/web build`: build the web app.
 - `pnpm check:frontend-style`: run token, focus-visible, and px-unit guardrails for web, docs, and shared UI implementation files.
-- `pnpm --filter @netstamp/web generate:api-types`: regenerate `src/shared/api/openapi.d.ts` from `docs/public/openapi.json`.
+- `pnpm --filter @netstamp/web generate:api-types`: regenerate `src/shared/api/openapi.d.ts` and `src/shared/api/metadata.generated.ts` from `docs/public/openapi.json`.

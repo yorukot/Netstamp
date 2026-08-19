@@ -1,4 +1,4 @@
-import { absoluteApiUrl, apiBaseUrl } from "./client";
+import { absoluteApiUrl } from "./client";
 import type { paths } from "./openapi";
 
 type InstallAssetPath = Extract<keyof paths, "/install/agent.sh" | "/install/uninstall-agent.sh" | "/install/netstamp-agent-linux-amd64" | "/install/netstamp-agent-linux-arm64">;
@@ -10,37 +10,20 @@ export const installAssetPaths = {
 	linuxArm64Binary: "/install/netstamp-agent-linux-arm64"
 } as const satisfies Record<string, InstallAssetPath>;
 
-export function installAssetUrl(path: InstallAssetPath) {
-	return absoluteApiUrl(path);
-}
+export const installAssetUrl = (path: InstallAssetPath) => absoluteApiUrl(path);
 
-export function controllerInstallTarget() {
-	const url = new URL(apiBaseUrl, window.location.origin);
-	const match = url.pathname.match(/^(?<prefix>.*)\/api\/(?<version>[^/]+)\/?$/);
-	const prefix = match?.groups?.prefix || "";
+export const controllerInstallTarget = () => window.location.origin;
 
-	url.pathname = prefix || "/";
-	url.search = "";
-	url.hash = "";
+const shellQuote = (value: string) => `'${value.replace(/'/g, `'\\''`)}'`;
 
-	return {
-		apiVersion: match?.groups?.version || "v1",
-		controllerUrl: url.toString().replace(/\/$/, "")
-	};
-}
-
-function shellQuote(value: string) {
-	return `'${value.replace(/'/g, `'\\''`)}'`;
-}
-
-export function probeInstallCommand(input: { probeId: string; probeSecret: string }) {
+export const probeInstallCommand = (input: { probeId: string; probeSecret: string }) => {
 	const installerUrl = installAssetUrl(installAssetPaths.agentInstaller);
 
 	return [`curl -fsSL ${shellQuote(installerUrl)} | sudo sh`, probeServiceInstallCommand(input)].join("\n");
-}
+};
 
-export function probeServiceInstallCommand(input: { probeId: string; probeSecret: string }) {
-	const { controllerUrl } = controllerInstallTarget();
+export const probeServiceInstallCommand = (input: { probeId: string; probeSecret: string }) => {
+	const controllerUrl = controllerInstallTarget();
 
 	return [
 		`sudo netstamp-agent service install \\`,
@@ -48,10 +31,10 @@ export function probeServiceInstallCommand(input: { probeId: string; probeSecret
 		`  --probe-id ${shellQuote(input.probeId)} \\`,
 		`  --probe-secret ${shellQuote(input.probeSecret)}`
 	].join("\n");
-}
+};
 
-export function probeSecretUpdateCommand(input: { probeId: string; probeSecret: string }) {
-	const { controllerUrl } = controllerInstallTarget();
+export const probeSecretUpdateCommand = (input: { probeId: string; probeSecret: string }) => {
+	const controllerUrl = controllerInstallTarget();
 
 	return [
 		`sudo netstamp-agent service install \\`,
@@ -60,16 +43,16 @@ export function probeSecretUpdateCommand(input: { probeId: string; probeSecret: 
 		`  --probe-secret ${shellQuote(input.probeSecret)} && \\`,
 		`sudo systemctl restart netstamp-agent`
 	].join("\n");
-}
+};
 
-export function probeReinstallCommand() {
+export const probeReinstallCommand = () => {
 	const installerUrl = installAssetUrl(installAssetPaths.agentInstaller);
 
 	return [`curl -fsSL ${shellQuote(installerUrl)} | sudo sh && \\`, `sudo systemctl restart netstamp-agent`].join("\n");
-}
+};
 
-export function probeUpgradeCommand() {
-	const { apiVersion, controllerUrl } = controllerInstallTarget();
+export const probeUpgradeCommand = () => {
+	const controllerUrl = controllerInstallTarget();
 
-	return [`sudo netstamp-agent update \\`, `  --url ${shellQuote(controllerUrl)} \\`, `  --api-version ${shellQuote(apiVersion)}`].join("\n");
-}
+	return [`sudo netstamp-agent update \\`, `  --url ${shellQuote(controllerUrl)}`].join("\n");
+};

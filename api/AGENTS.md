@@ -18,7 +18,7 @@ Use the backend application and domain packages as the source of truth for resou
 - `pnpm --filter @netstamp/api generate:openapi`: compile TypeSpec and write `docs/public/openapi.json`.
 - `pnpm --filter @netstamp/api check`: compile without emitting output.
 - `pnpm --filter @netstamp/api format`: format TypeSpec files.
-- `pnpm generate:openapi`: compile TypeSpec, copy the generated artifact into the backend embedded OpenAPI location, regenerate web API types, and format generated artifacts.
+- `pnpm generate:openapi`: compile TypeSpec, copy the generated artifact into the backend embedded OpenAPI location, regenerate web API types and metadata, and format generated artifacts.
 
 ## Contract Conventions
 

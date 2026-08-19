@@ -1,5 +1,6 @@
 import type { Middleware } from "openapi-fetch";
 import createClient from "openapi-fetch";
+import { defaultApiBaseUrl } from "./metadata.generated";
 import type { components, paths } from "./openapi";
 import { isSessionUnavailableCode, reportSessionUnavailable } from "./sessionUnavailable";
 
@@ -18,7 +19,7 @@ export class ApiError extends Error {
 	}
 }
 
-export const apiBaseUrl = import.meta.env.VITE_NETSTAMP_API_BASE_URL || "/api/v1";
+export const apiBaseUrl = defaultApiBaseUrl;
 
 export const apiClient = createClient<paths>({
 	baseUrl: apiBaseUrl,

@@ -8,7 +8,7 @@ alias ProbeState = "online" | "offline";
 	lastSeenAt: utcDateTime.fromISO("2026-05-13T10:00:00Z"),
 	onlineSince: utcDateTime.fromISO("2026-05-13T09:45:00Z"),
 	uptimeSeconds: 900,
-	agentVersion: "netstamp-probe/0.1.0",
+	agentVersion: "netstamp-probe/1.2.3",
 	publicV4: "203.0.113.10",
 	publicV6: "2001:db8::10",
 	as: "AS15169 Google LLC",

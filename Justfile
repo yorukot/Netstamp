@@ -59,7 +59,7 @@ api-openapi:
     pnpm --filter {{ api_filter }} generate:openapi
     cp docs/public/openapi.json server/internal/controller/transport/http/openapi/openapi.json
     pnpm --filter {{ web_filter }} generate:api-types
-    pnpm exec prettier --write docs/public/openapi.json server/internal/controller/transport/http/openapi/openapi.json web/src/shared/api/openapi.d.ts
+    pnpm exec prettier --write docs/public/openapi.json server/internal/controller/transport/http/openapi/openapi.json web/src/shared/api/openapi.d.ts web/src/shared/api/metadata.generated.ts
 
 # Build the shared UI package.
 ui-build:

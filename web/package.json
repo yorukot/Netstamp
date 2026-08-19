@@ -1,6 +1,5 @@
 {
 	"name": "@netstamp/web",
-	"version": "0.0.0",
 	"private": true,
 	"type": "module",
 	"scripts": {
@@ -8,7 +7,7 @@
 		"build": "vite build",
 		"predev": "pnpm --filter @netstamp/i18n build && pnpm --filter @netstamp/ui build",
 		"dev": "vite",
-		"generate:api-types": "openapi-typescript ../docs/public/openapi.json -o src/shared/api/openapi.d.ts",
+		"generate:api-types": "openapi-typescript ../docs/public/openapi.json -o src/shared/api/openapi.d.ts && node scripts/generate-api-metadata.mjs",
 		"lint": "eslint .",
 		"preview": "vite preview",
 		"pretest": "pnpm --filter @netstamp/i18n build && pnpm --filter @netstamp/ui build",

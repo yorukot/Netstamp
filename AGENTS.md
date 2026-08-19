@@ -30,7 +30,7 @@ Only proceed from root guidance when the task is clearly limited to workspace me
 - `just docs-dev` or `pnpm dev:docs`: start the documentation site.
 - `pnpm dev:storybook`: start Storybook for `@netstamp/ui` components.
 - `pnpm check:frontend-style` or `just frontend-style-check`: enforce frontend token, focus-visible, and px-unit guardrails for docs, web, and shared UI.
-- `pnpm generate:openapi`: regenerate `docs/public/openapi.json` from TypeSpec, copy the backend embedded OpenAPI artifact, and refresh `web/src/shared/api/openapi.d.ts` from that contract.
+- `pnpm generate:openapi`: regenerate `docs/public/openapi.json` from TypeSpec, copy the backend embedded OpenAPI artifact, and refresh the web API types and generated API metadata from that contract.
 - `just build`: build backend, web, and docs.
 - `just test`: run shared localization validation, React tests, and backend tests.
 - `just lint`: run web ESLint and backend linting.
