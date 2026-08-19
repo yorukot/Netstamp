@@ -37,7 +37,7 @@ using OpenAPI;
 @service(#{ title: "Netstamp API" })
 @server("/api/v1", "Default v1 API base path")
 @doc("HTTP API contract for the Netstamp controller and probe runtime.")
-@info(#{ version: "0.1.0" })
+@info(#{ version: "v1" })
 @tagMetadata("System", #{ description: "Controller status and readiness endpoints." })
 @tagMetadata("Admin", #{ description: "Instance-level administrator settings and bootstrap state." })
 @tagMetadata("Auth", #{ description: "User registration, login, logout, and current-session access." })

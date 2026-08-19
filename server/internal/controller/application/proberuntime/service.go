@@ -11,6 +11,7 @@ import (
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
 	domaintcp "github.com/yorukot/netstamp/internal/domain/tcp"
 	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
+	appversion "github.com/yorukot/netstamp/internal/version"
 )
 
 type Service struct {
@@ -59,7 +60,7 @@ func (s *Service) Hello(ctx context.Context, input RuntimeAuthInput) (HelloOutpu
 
 	return HelloOutput{
 		ServerTime:                   time.Now().UTC(),
-		MinimumSupportedAgentVersion: domainprobe.DefaultMinimumSupportedAgentVersion,
+		MinimumSupportedAgentVersion: appversion.MinimumAgent,
 	}, nil
 }
 

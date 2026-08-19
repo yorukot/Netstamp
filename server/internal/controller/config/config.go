@@ -17,8 +17,6 @@ const (
 	keyAppEnv                              = "APP_ENV"
 	keyDemoMode                            = "DEMO_MODE"
 	keyServiceName                         = "SERVICE_NAME"
-	keyAppVersion                          = "APP_VERSION"
-	keyAPIVersion                          = "API_VERSION"
 	keyLogLevel                            = "LOG_LEVEL"
 	keyLogPseudonymKey                     = "LOG_PSEUDONYM_KEY"
 	keySystemSettingsEncryptionKey         = "SYSTEM_SETTINGS_ENCRYPTION_KEY"
@@ -73,8 +71,6 @@ var defaultSettings = map[string]any{
 	keyAppEnv:                              "local",
 	keyDemoMode:                            false,
 	keyServiceName:                         "controller",
-	keyAppVersion:                          "0.1.0",
-	keyAPIVersion:                          "v1",
 	keyLogLevel:                            "info",
 	keyLogPseudonymKey:                     "local-development-log-pseudonym-key-change-before-production",
 	keySystemSettingsEncryptionKey:         "local-development-system-settings-encryption-key-change-before-production",
@@ -129,8 +125,6 @@ type Config struct {
 	Env               string                  `mapstructure:"APP_ENV"`
 	DemoMode          bool                    `mapstructure:"DEMO_MODE"`
 	ServiceName       string                  `mapstructure:"SERVICE_NAME"`
-	Version           string                  `mapstructure:"APP_VERSION"`
-	APIVersion        string                  `mapstructure:"API_VERSION"`
 	LogLevel          string                  `mapstructure:"LOG_LEVEL"`
 	LogPseudonymKey   string                  `mapstructure:"LOG_PSEUDONYM_KEY"`
 	SettingsSecretKey string                  `mapstructure:"SYSTEM_SETTINGS_ENCRYPTION_KEY"`
@@ -250,8 +244,6 @@ func validate(cfg Config) []error {
 	// Global settings
 	errs = append(errs, validateRequiredString(keyAppEnv, cfg.Env)...)
 	errs = append(errs, validateRequiredString(keyServiceName, cfg.ServiceName)...)
-	errs = append(errs, validateRequiredString(keyAppVersion, cfg.Version)...)
-	errs = append(errs, validateAPIVersion(cfg.APIVersion)...)
 	errs = append(errs, validateLogLevel(cfg.LogLevel)...)
 	errs = append(errs, validateRequiredString(keyLogPseudonymKey, cfg.LogPseudonymKey)...)
 	errs = append(errs, validateRequiredString(keySystemSettingsEncryptionKey, cfg.SettingsSecretKey)...)

@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"testing"
 	"time"
+
+	appversion "github.com/yorukot/netstamp/internal/version"
 )
 
 func TestAPIAuthProjectAndProbeRuntimeFlow(t *testing.T) {
@@ -212,7 +214,7 @@ func TestAPIAuthProjectAndProbeRuntimeFlow(t *testing.T) {
 
 	t.Log("e2e: sending heartbeat and verifying probe status is online")
 	suite.doJSON(t, http.MethodPost, "/api/v1/runtime/probes/"+createdProbe.Probe.ID+"/heartbeat", map[string]any{
-		"agentVersion": "netstamp-probe/0.1.0",
+		"agentVersion": appversion.Agent(),
 	}, probeHeaders(createdProbe.Secret), http.StatusOK, nil)
 	assertProbeStatus(t, suite, sessionCookie, createdProject.Project.Slug, createdProbe.Probe.ID, "online")
 

@@ -12,6 +12,7 @@ import (
 	agentapp "github.com/yorukot/netstamp/internal/agent/app"
 	agentconfig "github.com/yorukot/netstamp/internal/agent/config"
 	agentservice "github.com/yorukot/netstamp/internal/agent/service"
+	appversion "github.com/yorukot/netstamp/internal/version"
 )
 
 type Options struct {
@@ -41,6 +42,7 @@ func NewRootCommand(ctx context.Context, options Options) *cobra.Command {
 	root := &cobra.Command{
 		Use:           "netstamp-agent",
 		Short:         "Run and manage the Netstamp probe agent",
+		Version:       appversion.Product,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		Args:          cobra.NoArgs,
@@ -52,6 +54,7 @@ func NewRootCommand(ctx context.Context, options Options) *cobra.Command {
 	root.SetOut(options.stdout())
 	root.SetErr(options.stderr())
 	root.SetArgs(options.Args)
+	root.SetVersionTemplate("{{.Version}}\n")
 
 	root.AddCommand(newRunCommand(ctx, options))
 	root.AddCommand(newUpdateCommand(ctx, options))
@@ -90,7 +93,6 @@ func newUpdateCommand(ctx context.Context, options Options) *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&config.ControllerURL, "url", "", "Netstamp controller URL")
-	cmd.Flags().StringVar(&config.APIVersion, "api-version", "", "Netstamp API version")
 	return cmd
 }
 

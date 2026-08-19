@@ -51,6 +51,7 @@ import (
 	httpmiddleware "github.com/yorukot/netstamp/internal/controller/transport/http/middleware"
 	obmetrics "github.com/yorukot/netstamp/internal/platform/observability/metrics"
 	"github.com/yorukot/netstamp/internal/platform/observability/tracing"
+	appversion "github.com/yorukot/netstamp/internal/version"
 )
 
 type controllerServices struct {
@@ -80,7 +81,7 @@ func buildObservability(ctx context.Context, cfg config.Config, log *zap.Logger)
 	metricsProvider, err := obmetrics.NewProvider(obmetrics.Config{
 		Env:            cfg.Env,
 		ServiceName:    cfg.ServiceName,
-		ServiceVersion: cfg.Version,
+		ServiceVersion: appversion.Product,
 	})
 	if err != nil {
 		return nil, nil, fmt.Errorf("create metrics provider: %w", err)
@@ -89,7 +90,7 @@ func buildObservability(ctx context.Context, cfg config.Config, log *zap.Logger)
 	tracingProvider, err := tracing.NewProvider(ctx, tracing.Config{
 		Env:                cfg.Env,
 		ServiceName:        cfg.ServiceName,
-		ServiceVersion:     cfg.Version,
+		ServiceVersion:     appversion.Product,
 		OTLPTracesEndpoint: cfg.Tracing.OTLPTracesEndpoint,
 	})
 	if err != nil {
@@ -162,7 +163,7 @@ func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool
 	externalAuthCallbackBaseURL := ""
 	externalAuthCallbackURLs := security.ExternalProviderCallbackURLs{}
 	if publicBaseURL != "" {
-		externalAuthCallbackBaseURL = publicBaseURL + "/api/" + cfg.APIVersion + "/auth/external"
+		externalAuthCallbackBaseURL = publicBaseURL + "/api/" + appversion.API + "/auth/external"
 		externalAuthCallbackURLs = security.ExternalProviderCallbackURLs{
 			OIDC:   externalAuthCallbackBaseURL + "/oidc/callback",
 			Google: externalAuthCallbackBaseURL + "/google/callback",
@@ -280,7 +281,6 @@ func buildHTTPHandler(cfg config.Config, log *zap.Logger, dbPool *pgxpool.Pool, 
 
 	return httpserver.NewRouter(httpserver.Dependencies{
 		Log:                         log,
-		APIVersion:                  cfg.APIVersion,
 		DemoMode:                    cfg.DemoMode,
 		PublicBaseURL:               cfg.HTTP.PublicBaseURL,
 		WebDir:                      cfg.HTTP.WebDir,

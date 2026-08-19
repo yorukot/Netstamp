@@ -51,9 +51,7 @@ Use a newly rotated secret. Do not reuse another probe's environment file.
 ## Update the binary
 
 ```bash
-sudo netstamp-agent update \
-  --url 'https://netstamp.example.com' \
-  --api-version 'v1'
+sudo netstamp-agent update --url 'https://netstamp.example.com'
 ```
 
 The agent downloads its matching architecture from the controller, atomically replaces the installed binary, and restarts the service when the unit exists. Confirm the reported version and heartbeat afterward.

@@ -15,6 +15,7 @@ import (
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
 	domaintcp "github.com/yorukot/netstamp/internal/domain/tcp"
 	domaintraceroute "github.com/yorukot/netstamp/internal/domain/traceroute"
+	appversion "github.com/yorukot/netstamp/internal/version"
 )
 
 const (
@@ -119,8 +120,8 @@ func TestHelloReturnsVersionWithoutUpdatingStatus(t *testing.T) {
 	if output.ServerTime.IsZero() {
 		t.Fatal("expected server time")
 	}
-	if output.MinimumSupportedAgentVersion != domainprobe.DefaultMinimumSupportedAgentVersion {
-		t.Fatalf("expected minimum supported version %q, got %q", domainprobe.DefaultMinimumSupportedAgentVersion, output.MinimumSupportedAgentVersion)
+	if output.MinimumSupportedAgentVersion != appversion.MinimumAgent {
+		t.Fatalf("expected minimum supported version %q, got %q", appversion.MinimumAgent, output.MinimumSupportedAgentVersion)
 	}
 	if probes.gotStatus.ProbeID != "" {
 		t.Fatalf("expected hello not to update status, got %#v", probes.gotStatus)
@@ -132,7 +133,7 @@ func TestHeartbeatUpdatesOnlineStatus(t *testing.T) {
 	probes := &fakeProbeRepository{}
 	recorder := &recordingProbeRuntimeEventRecorder{}
 	service := NewService(probes, &fakePingResultRepository{}, &fakeTracerouteResultRepository{}, fakeSecretVerifier{valid: true}, recorder)
-	agentVersion := "netstamp-probe/0.1.0"
+	agentVersion := appversion.Agent()
 
 	output, err := service.Heartbeat(context.Background(), RuntimeStatusInput{
 		RuntimeAuthInput: RuntimeAuthInput{

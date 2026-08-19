@@ -7,13 +7,14 @@ import (
 	"testing"
 
 	obmetrics "github.com/yorukot/netstamp/internal/platform/observability/metrics"
+	appversion "github.com/yorukot/netstamp/internal/version"
 )
 
 func TestProviderHandlerExposesRuntimeAndTargetMetrics(t *testing.T) {
 	provider, err := obmetrics.NewProvider(obmetrics.Config{
 		Env:            "test",
 		ServiceName:    "controller",
-		ServiceVersion: "0.1.0",
+		ServiceVersion: appversion.Product,
 	})
 	if err != nil {
 		t.Fatalf("create provider: %v", err)

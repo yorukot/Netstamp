@@ -31,20 +31,6 @@ func validateLogLevel(value string) []error {
 	return nil
 }
 
-func validateAPIVersion(value string) []error {
-	trimmed := strings.TrimSpace(value)
-	if trimmed == "" {
-		return []error{errors.New("API_VERSION must not be empty")}
-	}
-	if !strings.HasPrefix(trimmed, "v") {
-		return []error{errors.New("API_VERSION must start with 'v'")}
-	}
-	if strings.ContainsAny(trimmed, "/?#") || strings.Contains(trimmed, "..") {
-		return []error{errors.New("API_VERSION must be a single URL path segment")}
-	}
-	return nil
-}
-
 func validateListenAddr(key, value string) []error {
 	if strings.TrimSpace(value) == "" {
 		return []error{fmt.Errorf("%s must not be empty", key)}

@@ -14,6 +14,7 @@ import (
 	"time"
 
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
+	appversion "github.com/yorukot/netstamp/internal/version"
 )
 
 const (
@@ -27,8 +28,7 @@ const (
 	serviceFileMode os.FileMode = 0o600
 	updateFileMode  os.FileMode = 0o755
 
-	defaultUpdateAPIVersion = "v1"
-	updateHTTPTimeout       = 60 * time.Second
+	updateHTTPTimeout = 60 * time.Second
 )
 
 type InstallConfig struct {
@@ -39,7 +39,6 @@ type InstallConfig struct {
 
 type UpdateConfig struct {
 	ControllerURL string
-	APIVersion    string
 }
 
 type Paths struct {
@@ -429,13 +428,6 @@ func normalizeInstallConfig(config InstallConfig) (InstallConfig, error) {
 
 func (m *Manager) normalizeUpdateConfig(config UpdateConfig) (UpdateConfig, error) {
 	config.ControllerURL = strings.TrimSpace(config.ControllerURL)
-	config.APIVersion = strings.Trim(strings.TrimSpace(config.APIVersion), "/")
-	if config.APIVersion == "" {
-		config.APIVersion = defaultUpdateAPIVersion
-	}
-	if strings.Contains(config.APIVersion, "/") {
-		return UpdateConfig{}, errors.New("api version must not contain a slash")
-	}
 	if config.ControllerURL == "" {
 		config.ControllerURL = strings.TrimSpace(os.Getenv("NETSTAMP_PROBE_CONTROLLER_URL"))
 	}
@@ -453,9 +445,9 @@ func (m *Manager) normalizeUpdateConfig(config UpdateConfig) (UpdateConfig, erro
 }
 
 func (config UpdateConfig) agentBinaryURL(binaryFilename string) string {
-	binaryURL, err := url.JoinPath(strings.TrimRight(config.ControllerURL, "/"), "api", config.APIVersion, "install", binaryFilename)
+	binaryURL, err := url.JoinPath(strings.TrimRight(config.ControllerURL, "/"), "api", appversion.API, "install", binaryFilename)
 	if err != nil {
-		return strings.TrimRight(config.ControllerURL, "/") + "/api/" + config.APIVersion + "/install/" + binaryFilename
+		return strings.TrimRight(config.ControllerURL, "/") + "/api/" + appversion.API + "/install/" + binaryFilename
 	}
 	return binaryURL
 }

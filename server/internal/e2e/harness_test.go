@@ -246,7 +246,6 @@ func newTestRouter(pool *pgxpool.Pool) http.Handler {
 
 	return httpserver.NewRouter(httpserver.Dependencies{
 		Log:               zap.NewNop(),
-		APIVersion:        "v1",
 		AuthService:       authSvc,
 		AuthVerifier:      sessionManager,
 		AuthCookieName:    httpmiddleware.LocalSessionCookieName,

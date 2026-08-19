@@ -15,6 +15,7 @@ import (
 	"github.com/yorukot/netstamp/internal/agent/retry"
 	"github.com/yorukot/netstamp/internal/agent/scheduling"
 	agentworker "github.com/yorukot/netstamp/internal/agent/worker"
+	appversion "github.com/yorukot/netstamp/internal/version"
 )
 
 type Service struct {
@@ -73,8 +74,8 @@ func (s *Service) startHello(ctx context.Context) error {
 	for attempt := 1; ; attempt++ {
 		output, err := s.Client.Hello(ctx)
 		if err == nil {
-			if versionErr := EnsureMinimumVersion(Version, output.MinimumSupportedAgentVersion); versionErr != nil {
-				s.Log.Error("probe agent version is not supported", "minimum_supported_agent_version", output.MinimumSupportedAgentVersion, "agent_version", AgentString)
+			if versionErr := EnsureMinimumVersion(appversion.Product, output.MinimumSupportedAgentVersion); versionErr != nil {
+				s.Log.Error("probe agent version is not supported", "minimum_supported_agent_version", output.MinimumSupportedAgentVersion, "agent_version", appversion.Agent())
 				return versionErr
 			}
 			s.Log.Info("probe runtime hello succeeded", "server_time", output.ServerTime, "minimum_supported_agent_version", output.MinimumSupportedAgentVersion)

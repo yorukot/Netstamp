@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	agentservice "github.com/yorukot/netstamp/internal/agent/service"
+	appversion "github.com/yorukot/netstamp/internal/version"
 )
 
 func TestServiceInstallCommandPassesFlagsToManager(t *testing.T) {
@@ -60,7 +61,7 @@ func TestUpdateCommandPassesFlagsToManager(t *testing.T) {
 	var stdout bytes.Buffer
 
 	code := Execute(context.Background(), Options{
-		Args:           []string{"update", "--url", "https://netstamp.example.com", "--api-version", "v1"},
+		Args:           []string{"update", "--url", "https://netstamp.example.com"},
 		Stdout:         &stdout,
 		Stderr:         &bytes.Buffer{},
 		ServiceManager: manager,
@@ -74,10 +75,23 @@ func TestUpdateCommandPassesFlagsToManager(t *testing.T) {
 	if manager.updateConfig.ControllerURL != "https://netstamp.example.com" {
 		t.Fatalf("unexpected controller URL: %#v", manager.updateConfig)
 	}
-	if manager.updateConfig.APIVersion != "v1" {
-		t.Fatalf("unexpected api version: %#v", manager.updateConfig)
-	}
 	if stdout.String() != "netstamp-agent updated\n" {
+		t.Fatalf("unexpected stdout: %q", stdout.String())
+	}
+}
+
+func TestVersionFlag(t *testing.T) {
+	var stdout bytes.Buffer
+
+	code := Execute(context.Background(), Options{
+		Args:   []string{"--version"},
+		Stdout: &stdout,
+		Stderr: &bytes.Buffer{},
+	})
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d", code)
+	}
+	if stdout.String() != appversion.Product+"\n" {
 		t.Fatalf("unexpected stdout: %q", stdout.String())
 	}
 }

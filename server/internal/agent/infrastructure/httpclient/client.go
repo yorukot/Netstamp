@@ -16,11 +16,11 @@ import (
 
 	agentconfig "github.com/yorukot/netstamp/internal/agent/config"
 	domainnetwork "github.com/yorukot/netstamp/internal/domain/network"
+	appversion "github.com/yorukot/netstamp/internal/version"
 )
 
 type RuntimeClient struct {
 	baseURL    string
-	apiVersion string
 	probeID    string
 	secret     string
 	client     *http.Client
@@ -30,10 +30,9 @@ type RuntimeClient struct {
 
 func New(config agentconfig.Config) *RuntimeClient {
 	return &RuntimeClient{
-		baseURL:    strings.TrimRight(config.ControllerURL, "/"),
-		apiVersion: strings.Trim(config.APIVersion, "/"),
-		probeID:    config.ProbeID,
-		secret:     config.ProbeSecret,
+		baseURL: strings.TrimRight(config.ControllerURL, "/"),
+		probeID: config.ProbeID,
+		secret:  config.ProbeSecret,
 		client: &http.Client{
 			Timeout: config.HTTPTimeout.Value,
 		},
@@ -171,9 +170,9 @@ func (c *RuntimeClient) SubmitResults(ctx context.Context, input SubmitResultsIn
 
 // runtimeURL returns the full URL for a given operation on the runtime API
 func (c *RuntimeClient) runtimeURL(operation string) string {
-	path, err := url.JoinPath("api", c.apiVersion, "runtime", "probes", c.probeID, operation)
+	path, err := url.JoinPath("api", appversion.API, "runtime", "probes", c.probeID, operation)
 	if err != nil {
-		path = "api/" + c.apiVersion + "/runtime/probes/" + c.probeID + "/" + operation
+		path = "api/" + appversion.API + "/runtime/probes/" + c.probeID + "/" + operation
 	}
 
 	return c.baseURL + "/" + path

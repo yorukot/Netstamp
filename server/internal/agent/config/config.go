@@ -26,13 +26,11 @@ const (
 	DefaultInitialBackoff         = time.Second
 	DefaultMaxBackoff             = 30 * time.Second
 	DefaultMaxAttempts            = 5
-	DefaultAPIVersion             = "v1"
 	DefaultLogLevel               = slog.LevelInfo
 )
 
 type Config struct {
 	ControllerURL string
-	APIVersion    string
 	ProbeID       string
 	ProbeSecret   string
 
@@ -63,7 +61,6 @@ type ConfigValue[T any] struct {
 func LoadConfig() (Config, error) {
 	cfg := Config{
 		ControllerURL: strings.TrimSpace(os.Getenv("NETSTAMP_PROBE_CONTROLLER_URL")),
-		APIVersion:    DefaultAPIVersion,
 		ProbeID:       strings.TrimSpace(os.Getenv("NETSTAMP_PROBE_ID")),
 		ProbeSecret:   strings.TrimSpace(os.Getenv("NETSTAMP_PROBE_SECRET")),
 		LogLevel:      DefaultLogLevel,
@@ -369,7 +366,6 @@ func parseOptionalLogLevel(name string, fallback slog.Level) (slog.Level, error)
 func (c Config) SafeLogAttrs() []slog.Attr {
 	return []slog.Attr{
 		slog.String("controller_url", c.ControllerURL),
-		slog.String("api_version", c.APIVersion),
 		slog.String("probe_id", c.ProbeID),
 		slog.Duration("http_timeout", c.HTTPTimeout.Value),
 		slog.Int("max_workers", c.MaxWorkers.Value),

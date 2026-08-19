@@ -13,6 +13,7 @@ import (
 	httpserver "github.com/yorukot/netstamp/internal/controller/transport/http"
 	obmetrics "github.com/yorukot/netstamp/internal/platform/observability/metrics"
 	"github.com/yorukot/netstamp/internal/platform/observability/tracing"
+	appversion "github.com/yorukot/netstamp/internal/version"
 )
 
 type Application struct {
@@ -76,7 +77,7 @@ func buildLogger(cfg config.Config) (*zap.Logger, error) {
 	log, _, err := logger.New(logger.Config{
 		Env:     cfg.Env,
 		Service: cfg.ServiceName,
-		Version: cfg.Version,
+		Version: appversion.Product,
 		Level:   cfg.LogLevel,
 	})
 	if err != nil {

@@ -5,10 +5,11 @@ import (
 	"net/netip"
 
 	"github.com/yorukot/netstamp/internal/agent/infrastructure/httpclient"
+	appversion "github.com/yorukot/netstamp/internal/version"
 )
 
 func agentStatus() httpclient.HeartbeatInput {
-	agentVersion := AgentString
+	agentVersion := appversion.Agent()
 	return httpclient.HeartbeatInput{
 		AgentVersion: &agentVersion,
 		Addrs:        localAddrs(),

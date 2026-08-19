@@ -50,7 +50,7 @@ type operationSnapshot struct {
 }
 
 func TestNewRouterServesOpenAPIWithoutRuntimeServices(t *testing.T) {
-	spec := getOpenAPI(t, Dependencies{APIVersion: "v1"})
+	spec := getOpenAPI(t, Dependencies{})
 
 	assertOpenAPIOperation(t, spec, http.MethodGet, "/", "getAPIStatus")
 	assertOpenAPIOperation(t, spec, http.MethodGet, "/healthz", "getHealth")
@@ -188,7 +188,7 @@ func assertOpenAPIProbeAuth(t *testing.T, spec openAPISnapshot) {
 }
 
 func TestNewRouterOpenAPIUsesRelativeServerURLWhenPublicBaseURLUnset(t *testing.T) {
-	spec := getOpenAPI(t, Dependencies{APIVersion: "v1"})
+	spec := getOpenAPI(t, Dependencies{})
 
 	if len(spec.Servers) != 1 {
 		t.Fatalf("expected one server, got %d", len(spec.Servers))
@@ -200,7 +200,6 @@ func TestNewRouterOpenAPIUsesRelativeServerURLWhenPublicBaseURLUnset(t *testing.
 
 func TestNewRouterOpenAPIUsesPublicBaseURLServerURL(t *testing.T) {
 	spec := getOpenAPI(t, Dependencies{
-		APIVersion:    "v1",
 		PublicBaseURL: "https://app.netstamp.dev/",
 	})
 
@@ -215,7 +214,6 @@ func TestNewRouterOpenAPIUsesPublicBaseURLServerURL(t *testing.T) {
 func TestNewRouterServesScalarDocs(t *testing.T) {
 	for _, path := range []string{"/api/v1/docs", "/api/v1/docs/"} {
 		recorder := performRouterRequest(Dependencies{
-			APIVersion:     "v1",
 			RequestTimeout: time.Second,
 		}, http.MethodGet, path)
 
@@ -244,7 +242,6 @@ func TestNewRouterServesScalarDocs(t *testing.T) {
 
 func TestNewRouterProtectedRoutesRequireSessionCookie(t *testing.T) {
 	dep := Dependencies{
-		APIVersion:     "v1",
 		AuthVerifier:   staticRouterTokenVerifier{},
 		RequestTimeout: time.Second,
 	}
@@ -322,7 +319,6 @@ func TestNewRouterProtectedRoutesRequireSessionCookie(t *testing.T) {
 
 func TestNewRouterRuntimeRoutesRequireProbeCredential(t *testing.T) {
 	dep := Dependencies{
-		APIVersion:     "v1",
 		RequestTimeout: time.Second,
 	}
 
@@ -361,7 +357,6 @@ func TestNewRouterPublicRoutesBypassAuthGroups(t *testing.T) {
 	} {
 		t.Run(route.method+" "+route.path, func(t *testing.T) {
 			dep := Dependencies{
-				APIVersion:     "v1",
 				AuthVerifier:   staticRouterTokenVerifier{},
 				RequestTimeout: time.Second,
 			}
@@ -379,7 +374,6 @@ func TestNewRouterPublicRoutesBypassAuthGroups(t *testing.T) {
 
 func TestNewRouterDemoModeAllowsReadAndAuthSessionRoutes(t *testing.T) {
 	dep := Dependencies{
-		APIVersion:     "v1",
 		AuthVerifier:   staticRouterTokenVerifier{},
 		DemoMode:       true,
 		RequestTimeout: time.Second,
@@ -410,7 +404,6 @@ func TestNewRouterDemoModeAllowsReadAndAuthSessionRoutes(t *testing.T) {
 
 func TestNewRouterDemoModeBlocksUnsafeRequests(t *testing.T) {
 	dep := Dependencies{
-		APIVersion:     "v1",
 		DemoMode:       true,
 		RequestTimeout: time.Second,
 	}
@@ -445,7 +438,6 @@ func TestNewRouterDemoModeBlocksUnsafeRequests(t *testing.T) {
 
 func TestNewRouterDemoModeOffKeepsUnsafeRequestsOnOriginalHandlers(t *testing.T) {
 	recorder := performRouterRequest(Dependencies{
-		APIVersion:     "v1",
 		AuthVerifier:   staticRouterTokenVerifier{},
 		RequestTimeout: time.Second,
 	}, http.MethodPost, "/api/v1/projects")
@@ -457,7 +449,6 @@ func TestNewRouterDemoModeOffKeepsUnsafeRequestsOnOriginalHandlers(t *testing.T)
 
 func TestNewRouterWritesPlainTextNotFoundForBrowsers(t *testing.T) {
 	recorder := performRouterRequestWithHeaders(Dependencies{
-		APIVersion:     "v1",
 		RequestTimeout: time.Second,
 	}, http.MethodGet, "/api/v1/missing", map[string]string{
 		"Accept": "text/html",
@@ -476,7 +467,6 @@ func TestNewRouterWritesPlainTextNotFoundForBrowsers(t *testing.T) {
 
 func TestNewRouterWritesProblemNotFoundForAPIClients(t *testing.T) {
 	recorder := performRouterRequest(Dependencies{
-		APIVersion:     "v1",
 		RequestTimeout: time.Second,
 	}, http.MethodGet, "/api/v1/missing")
 
@@ -494,7 +484,6 @@ func TestNewRouterWritesProblemNotFoundForAPIClients(t *testing.T) {
 func TestNewRouterServesMetricsOutsideVersionedAPI(t *testing.T) {
 	webDir := writeTestWebDir(t)
 	router := NewRouter(Dependencies{
-		APIVersion:     "v1",
 		RequestTimeout: time.Second,
 		WebDir:         webDir,
 		MetricsHandler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -527,7 +516,6 @@ func TestNewRouterServesFrontendSPAWhenWebDirIsConfigured(t *testing.T) {
 	for _, route := range []string{"/", "/login", "/dashboard"} {
 		t.Run(route, func(t *testing.T) {
 			recorder := performRouterRequest(Dependencies{
-				APIVersion:     "v1",
 				RequestTimeout: time.Second,
 				WebDir:         webDir,
 			}, http.MethodGet, route)
@@ -549,7 +537,6 @@ func TestNewRouterServesFrontendAssetsWithImmutableCache(t *testing.T) {
 	webDir := writeTestWebDir(t)
 
 	recorder := performRouterRequest(Dependencies{
-		APIVersion:     "v1",
 		RequestTimeout: time.Second,
 		WebDir:         webDir,
 	}, http.MethodGet, "/assets/app.js")
@@ -569,7 +556,6 @@ func TestNewRouterDoesNotFallbackMissingAssetsToFrontendIndex(t *testing.T) {
 	webDir := writeTestWebDir(t)
 
 	recorder := performRouterRequest(Dependencies{
-		APIVersion:     "v1",
 		RequestTimeout: time.Second,
 		WebDir:         webDir,
 	}, http.MethodGet, "/assets/missing.js")
@@ -591,7 +577,6 @@ func TestNewRouterKeepsAPIAndHealthOutsideFrontendFallback(t *testing.T) {
 	for _, route := range []string{"/api/v1/healthz", "/healthz"} {
 		t.Run(route, func(t *testing.T) {
 			recorder := performRouterRequest(Dependencies{
-				APIVersion:     "v1",
 				RequestTimeout: time.Second,
 				WebDir:         webDir,
 			}, http.MethodGet, route)
@@ -609,7 +594,6 @@ func TestNewRouterKeepsAPIAndHealthOutsideFrontendFallback(t *testing.T) {
 	}
 
 	recorder := performRouterRequest(Dependencies{
-		APIVersion:     "v1",
 		RequestTimeout: time.Second,
 		WebDir:         webDir,
 	}, http.MethodGet, "/api/v1/missing")
@@ -624,7 +608,6 @@ func TestNewRouterKeepsAPIAndHealthOutsideFrontendFallback(t *testing.T) {
 
 func TestNewRouterServesAgentInstallerScript(t *testing.T) {
 	recorder := performRouterRequest(Dependencies{
-		APIVersion:     "v1",
 		RequestTimeout: time.Second,
 	}, http.MethodGet, "/api/v1/install/agent.sh")
 
@@ -663,7 +646,6 @@ func TestNewRouterServesAgentInstallerScript(t *testing.T) {
 
 func TestNewRouterServesAgentInstallerScriptWithPublicBaseURL(t *testing.T) {
 	recorder := performRouterRequest(Dependencies{
-		APIVersion:     "v1",
 		PublicBaseURL:  "https://netstamp.example.com",
 		RequestTimeout: time.Second,
 	}, http.MethodGet, "/api/v1/install/agent.sh")
@@ -684,7 +666,6 @@ func TestNewRouterServesAgentInstallerScriptWithPublicBaseURL(t *testing.T) {
 
 func TestNewRouterServesAgentUninstallerScript(t *testing.T) {
 	recorder := performRouterRequest(Dependencies{
-		APIVersion:     "v1",
 		RequestTimeout: time.Second,
 	}, http.MethodGet, "/api/v1/install/uninstall-agent.sh")
 
@@ -722,7 +703,6 @@ func TestNewRouterServesAgentBinary(t *testing.T) {
 			}
 
 			recorder := performRouterRequest(Dependencies{
-				APIVersion:     "v1",
 				RequestTimeout: time.Second,
 				AgentBinaryDir: agentDir,
 			}, http.MethodGet, "/api/v1/install/"+filename)
@@ -750,7 +730,6 @@ func TestNewRouterReportsMissingAgentBinary(t *testing.T) {
 	} {
 		t.Run(filename, func(t *testing.T) {
 			recorder := performRouterRequest(Dependencies{
-				APIVersion:     "v1",
 				RequestTimeout: time.Second,
 				AgentBinaryDir: t.TempDir(),
 			}, http.MethodGet, "/api/v1/install/"+filename)
@@ -773,7 +752,7 @@ func getOpenAPI(t *testing.T, dep Dependencies) openAPISnapshot {
 	}
 	router := NewRouter(dep)
 	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodGet, "/api/"+dep.APIVersion+"/openapi.json", http.NoBody)
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/openapi.json", http.NoBody)
 	router.ServeHTTP(recorder, request)
 
 	if recorder.Code != http.StatusOK {

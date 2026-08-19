@@ -5,7 +5,7 @@ import (
 	"net/netip"
 
 	"github.com/yorukot/netstamp/internal/agent/infrastructure/httpclient"
-	agentruntime "github.com/yorukot/netstamp/internal/agent/runtime"
+	appversion "github.com/yorukot/netstamp/internal/version"
 )
 
 type HeartbeatStatusProvider struct{}
@@ -15,7 +15,7 @@ func NewHeartbeatStatusProvider() *HeartbeatStatusProvider {
 }
 
 func (p *HeartbeatStatusProvider) Status() httpclient.HeartbeatInput {
-	agentVersion := agentruntime.AgentString
+	agentVersion := appversion.Agent()
 	return httpclient.HeartbeatInput{
 		AgentVersion: &agentVersion,
 		Addrs:        localAddrs(),

@@ -28,12 +28,6 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.ServiceName != "controller" {
 		t.Fatalf("expected default service name, got %q", cfg.ServiceName)
 	}
-	if cfg.Version != "0.1.0" {
-		t.Fatalf("expected default app version, got %q", cfg.Version)
-	}
-	if cfg.APIVersion != "v1" {
-		t.Fatalf("expected default API version, got %q", cfg.APIVersion)
-	}
 	if cfg.LogPseudonymKey != "local-development-log-pseudonym-key-change-before-production" {
 		t.Fatalf("expected default log pseudonym key, got %q", cfg.LogPseudonymKey)
 	}
@@ -89,8 +83,6 @@ func TestLoadFromEnvironment(t *testing.T) {
 	t.Setenv(keyAppEnv, "production")
 	t.Setenv(keyDemoMode, "true")
 	t.Setenv(keyServiceName, "netstamp-worker")
-	t.Setenv(keyAppVersion, "0.2.0")
-	t.Setenv(keyAPIVersion, "v2")
 	t.Setenv(keyLogPseudonymKey, "production-log-pseudonym-key-0123456789")
 	t.Setenv(keySystemSettingsEncryptionKey, "production-system-settings-key-0123456789")
 	t.Setenv(keyPublicBaseURL, "https://app.netstamp.dev/")
@@ -128,12 +120,6 @@ func TestLoadFromEnvironment(t *testing.T) {
 	}
 	if cfg.ServiceName != "netstamp-worker" {
 		t.Fatalf("expected service override, got %q", cfg.ServiceName)
-	}
-	if cfg.Version != "0.2.0" {
-		t.Fatalf("expected app version override, got %q", cfg.Version)
-	}
-	if cfg.APIVersion != "v2" {
-		t.Fatalf("expected API version override, got %q", cfg.APIVersion)
 	}
 	if cfg.LogPseudonymKey != "production-log-pseudonym-key-0123456789" {
 		t.Fatalf("expected log pseudonym key override, got %q", cfg.LogPseudonymKey)
@@ -299,7 +285,6 @@ func TestValidateReturnsErrorsForInvalidValues(t *testing.T) {
 	cfg := validConfig()
 	cfg.Env = " "
 	cfg.ServiceName = ""
-	cfg.Version = "\t"
 	cfg.LogLevel = "verbose"
 	cfg.LogPseudonymKey = ""
 	cfg.SettingsSecretKey = ""
@@ -336,7 +321,6 @@ func TestValidateReturnsErrorsForInvalidValues(t *testing.T) {
 	for _, want := range []string{
 		"APP_ENV must not be empty",
 		"SERVICE_NAME must not be empty",
-		"APP_VERSION must not be empty",
 		"LOG_LEVEL must be one of debug, info, warn, error, dpanic, panic, or fatal",
 		"LOG_PSEUDONYM_KEY must not be empty",
 		"SYSTEM_SETTINGS_ENCRYPTION_KEY must not be empty",
@@ -571,8 +555,6 @@ func validConfig() Config {
 	return Config{
 		Env:               "local",
 		ServiceName:       "controller",
-		Version:           "0.1.0",
-		APIVersion:        "v1",
 		LogLevel:          "info",
 		LogPseudonymKey:   "local-development-log-pseudonym-key-change-before-production",
 		SettingsSecretKey: "local-development-system-settings-encryption-key-change-before-production",

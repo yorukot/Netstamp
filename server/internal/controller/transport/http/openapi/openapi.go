@@ -6,12 +6,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+
+	appversion "github.com/yorukot/netstamp/internal/version"
 )
 
 //go:embed openapi.json
 var files embed.FS
 
-func Spec(apiVersion, publicBaseURL string) ([]byte, error) {
+func Spec(publicBaseURL string) ([]byte, error) {
 	data, err := files.ReadFile("openapi.json")
 	if err != nil {
 		return nil, fmt.Errorf("read embedded openapi: %w", err)
@@ -21,7 +23,7 @@ func Spec(apiVersion, publicBaseURL string) ([]byte, error) {
 	if err := json.Unmarshal(data, &spec); err != nil {
 		return nil, fmt.Errorf("decode embedded openapi: %w", err)
 	}
-	spec["servers"] = []map[string]string{{"url": serverURL(apiVersion, publicBaseURL)}}
+	spec["servers"] = []map[string]string{{"url": serverURL(publicBaseURL)}}
 
 	var formatted bytes.Buffer
 	encoder := json.NewEncoder(&formatted)
@@ -32,8 +34,8 @@ func Spec(apiVersion, publicBaseURL string) ([]byte, error) {
 	return formatted.Bytes(), nil
 }
 
-func serverURL(apiVersion, publicBaseURL string) string {
-	basePath := "/api/" + apiVersion
+func serverURL(publicBaseURL string) string {
+	basePath := "/api/" + appversion.API
 	publicBaseURL = strings.TrimRight(strings.TrimSpace(publicBaseURL), "/")
 	if publicBaseURL == "" {
 		return basePath

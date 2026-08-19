@@ -43,6 +43,7 @@ import (
 	httpmiddleware "github.com/yorukot/netstamp/internal/controller/transport/http/middleware"
 	"github.com/yorukot/netstamp/internal/controller/transport/http/openapi"
 	httptracing "github.com/yorukot/netstamp/internal/platform/observability/httptrace"
+	appversion "github.com/yorukot/netstamp/internal/version"
 )
 
 type SMTPStatusProvider interface {
@@ -51,7 +52,6 @@ type SMTPStatusProvider interface {
 
 type Dependencies struct {
 	Log                         *zap.Logger
-	APIVersion                  string
 	DemoMode                    bool
 	PublicBaseURL               string
 	WebDir                      string
@@ -187,7 +187,7 @@ func effectiveAuthCookieName(name string) string {
 
 func registerOpenAPIRoutes(api chi.Router, dep Dependencies) {
 	api.Get("/openapi.json", func(w http.ResponseWriter, r *http.Request) {
-		data, err := openapi.Spec(dep.APIVersion, dep.PublicBaseURL)
+		data, err := openapi.Spec(dep.PublicBaseURL)
 		if err != nil {
 			httpmiddleware.WriteProblem(w, r, http.StatusInternalServerError, "openapi unavailable")
 			return
@@ -209,5 +209,5 @@ func registerOpenAPIRoutes(api chi.Router, dep Dependencies) {
 }
 
 func (d *Dependencies) basePath() string {
-	return "/api/" + d.APIVersion
+	return "/api/" + appversion.API
 }
