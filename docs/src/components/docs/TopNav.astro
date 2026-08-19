@@ -16,6 +16,8 @@ const pathname = stripLocalePrefix(Astro.props.pathname ?? Astro.url.pathname);
 const isHome = pathname === "/";
 const isDocs = pathname.startsWith("/docs");
 const isOpenAPI = pathname.startsWith("/openapi");
+const isChangelog = pathname.startsWith("/changelog");
+const isDocsArea = isDocs || isChangelog;
 const currentPathname = Astro.url.pathname.endsWith("/") ? Astro.url.pathname : `${Astro.url.pathname}/`;
 const languageOptions = supportedLocales.map(candidate => ({
 	href: pathForLocale(pathname, candidate),
@@ -25,7 +27,7 @@ const languageOptions = supportedLocales.map(candidate => ({
 	locale: candidate
 }));
 const demoHref = "https://demo.netstamp.dev";
-const mobileDocsGroups = isDocs
+const mobileDocsGroups = isDocsArea
 	? getDocsNav(locale).map(group => ({
 			id: group.key,
 			title: group.title,
@@ -39,12 +41,13 @@ const mobileDocsGroups = isDocs
 const mobileDocsLinks = [
 	{ href: pathForLocale("/docs/", locale), label: ui.nav.docs, active: isDocs },
 	{ href: pathForLocale("/openapi/", locale), label: ui.nav.api },
+	{ href: pathForLocale("/changelog/", locale), label: ui.nav.changelog, active: isChangelog },
 	{ href: "https://github.com/yorukot/netstamp", label: "GitHub", external: true, icon: "github" as const },
 	{ href: demoHref, label: ui.nav.viewDemo, external: true, icon: "external" as const }
 ];
 ---
 
-<nav class:list={["siteNav", isDocs && "siteNavDocs"]} aria-label={ui.nav.primary}>
+<nav class:list={["siteNav", isDocsArea && "siteNavDocs"]} aria-label={ui.nav.primary}>
 	<div class="siteNavPrimary">
 		<a class="siteBrand" href={pathForLocale("/", locale)} aria-label={ui.nav.home}>
 			<img class="siteBrandLogo siteBrandLogoLight" src={netstampLogoLight} alt="" aria-hidden="true" />
@@ -57,13 +60,16 @@ const mobileDocsLinks = [
 		<a href={pathForLocale("/openapi/", locale)} class:list={["siteNavTextLink", isOpenAPI && "active"]}>
 			<span>{ui.nav.api}</span>
 		</a>
+		<a href={pathForLocale("/changelog/", locale)} class:list={["siteNavTextLink", isChangelog && "active"]}>
+			<span>{ui.nav.changelog}</span>
+		</a>
 		<a href="https://github.com/yorukot/netstamp" class="siteNavTextLink" target="_blank" rel="noreferrer">
 			<span>GitHub</span>
 		</a>
 	</div>
 	<div class="siteNavActions">
 		{
-			isDocs ? (
+			isDocsArea ? (
 				<MobileDocsNavigation
 					client:load
 					groups={mobileDocsGroups}

@@ -11,7 +11,7 @@ import BaseLayout from "./BaseLayout.astro";
 import { defaultLocale } from "@netstamp/i18n";
 
 interface Heading {
-	depth: 2 | 3;
+	depth: 1 | 2 | 3 | 4;
 	slug: string;
 	text: string;
 }
@@ -27,6 +27,7 @@ interface Props {
 		head?: HeadEntry[];
 	};
 	fallback?: boolean;
+	mode?: "docs" | "changelog";
 }
 
 const locale = localeFromAstro(Astro.currentLocale);
@@ -35,10 +36,12 @@ const frontmatter = Astro.props.frontmatter ?? {};
 const title = Astro.props.title ?? frontmatter.title ?? ui.nav.docs;
 const description = Astro.props.description ?? frontmatter.description ?? ui.meta.docsDescription;
 const fallback = Astro.props.fallback ?? false;
+const mode = Astro.props.mode ?? "docs";
+const isChangelog = mode === "changelog";
 const head = Astro.props.head ?? frontmatter.head ?? [];
-const browserTitle = head.find(entry => entry.tag === "title")?.content ?? `${title} - Netstamp ${ui.nav.docs}`;
+const browserTitle = head.find(entry => entry.tag === "title")?.content ?? (isChangelog ? `${title} - Netstamp` : `${title} - Netstamp ${ui.nav.docs}`);
 const extraHead = head.filter(entry => entry.tag !== "title");
-const markdownHeadings = Astro.props.headings?.filter((heading): heading is Heading => heading.depth === 2 || heading.depth === 3) ?? [];
+const markdownHeadings = Astro.props.headings?.filter((heading): heading is Heading => (isChangelog ? heading.depth === 1 || heading.depth === 4 : heading.depth === 2 || heading.depth === 3)) ?? [];
 const headings = markdownHeadings;
 const pathname = Astro.url.pathname.endsWith("/") ? Astro.url.pathname : `${Astro.url.pathname}/`;
 const docsPages = getDocsPages(locale);
@@ -48,20 +51,33 @@ const currentPage = currentPageIndex >= 0 ? docsPages[currentPageIndex] : undefi
 const previousPage = currentPageIndex > 0 ? docsPages[currentPageIndex - 1] : undefined;
 const nextPage = currentPageIndex >= 0 && currentPageIndex < docsPages.length - 1 ? docsPages[currentPageIndex + 1] : undefined;
 const englishSourcePath = currentPage ? `docs/src/content/docs/en/${currentPage.contentId}.mdx` : undefined;
-const editUrl = locale === defaultLocale && englishSourcePath ? `${githubBaseUrl}/${englishSourcePath}` : locale === defaultLocale ? githubBaseUrl : "https://crowdin.com/project/netstamp";
+const changelogSourceUrl = `${githubBaseUrl}/CHANGELOG.md`;
+const changelogMarkdownUrl = "https://raw.githubusercontent.com/yorukot/Netstamp/main/CHANGELOG.md";
+const editUrl = isChangelog
+	? changelogSourceUrl
+	: locale === defaultLocale && englishSourcePath
+		? `${githubBaseUrl}/${englishSourcePath}`
+		: locale === defaultLocale
+			? githubBaseUrl
+			: "https://crowdin.com/project/netstamp";
 const siteUrl = resolveSiteUrl(Astro.site);
 const pageUrl = absoluteUrl(pathname, siteUrl);
-const breadcrumbs = [
-	{ name: "Netstamp", url: siteUrl },
-	{ name: ui.nav.docs, url: absoluteUrl(pathForLocale("/docs/", locale), siteUrl) },
-	{ name: title, url: pageUrl }
-];
+const breadcrumbs = isChangelog
+	? [
+			{ name: "Netstamp", url: siteUrl },
+			{ name: ui.nav.changelog, url: pageUrl }
+		]
+	: [
+			{ name: "Netstamp", url: siteUrl },
+			{ name: ui.nav.docs, url: absoluteUrl(pathForLocale("/docs/", locale), siteUrl) },
+			{ name: title, url: pageUrl }
+		];
 const schema = [createBreadcrumbSchema(breadcrumbs), createTechArticleSchema(siteUrl, pageUrl, title, description)];
 const pageAssistantPrompt = `Please read and explain this documentation page: ${pageUrl}\n\nPlease provide a clear summary and help me understand the key concepts covered in this documentation.`;
 const chatGptUrl = `https://chatgpt.com/?q=${encodeURIComponent(pageAssistantPrompt)}`;
 const claudeUrl = `https://claude.ai/new?q=${encodeURIComponent(pageAssistantPrompt)}`;
 
-const markdownUrl = `${pathname.replace(/\/$/, "")}.md`;
+const markdownUrl = isChangelog ? changelogMarkdownUrl : `${pathname.replace(/\/$/, "")}.md`;
 const isActiveNavItem = (href: string) => pathname === href;
 
 const navGroups = docsNav.map(group => ({
@@ -77,12 +93,18 @@ const externalLinks = [
 	{ title: "OpenAPI", href: pathForLocale("/openapi/", locale) },
 	{ title: "Storybook", href: "/storybook/", reload: true }
 ];
+const projectLinks = [{ title: ui.nav.changelog, href: pathForLocale("/changelog/", locale), active: isChangelog }];
 const currentGroup = navGroups.find(group => group.active);
-const visibleBreadcrumbs = [
-	{ name: ui.docs.home, href: pathForLocale("/docs/", locale), current: false, icon: "home" as const },
-	currentGroup ? { name: currentGroup.title, href: currentGroup.items[0]?.href ?? pathForLocale("/docs/", locale), current: false } : undefined,
-	{ name: title, href: pathname, current: true }
-].filter((item): item is { name: string; href: string; current: boolean; icon?: "home" } => Boolean(item));
+const visibleBreadcrumbs = isChangelog
+	? [
+			{ name: ui.nav.home, href: pathForLocale("/", locale), current: false, icon: "home" as const },
+			{ name: ui.nav.changelog, href: pathname, current: true }
+		]
+	: [
+			{ name: ui.docs.home, href: pathForLocale("/docs/", locale), current: false, icon: "home" as const },
+			currentGroup ? { name: currentGroup.title, href: currentGroup.items[0]?.href ?? pathForLocale("/docs/", locale), current: false } : undefined,
+			{ name: title, href: pathname, current: true }
+		].filter((item): item is { name: string; href: string; current: boolean; icon?: "home" } => Boolean(item));
 ---
 
 <BaseLayout title={browserTitle} description={description} head={extraHead} canonicalPath={pathname} ogType="article" schema={schema}>
@@ -105,6 +127,16 @@ const visibleBreadcrumbs = [
 						</section>
 					))
 				}
+				<section class:list={["docsNavSection docsProjectLinks", isChangelog && "active"]} aria-labelledby="docs-nav-section-project" data-docs-nav-section>
+					<h2 class="docsNavSectionTitle" id="docs-nav-section-project">{ui.docs.projectLinks}</h2>
+					{
+						projectLinks.map(link => (
+							<a href={link.href} class:list={["docsNavItem", link.active && "active"]} aria-current={link.active ? "page" : undefined} title={link.title} data-docs-nav-item>
+								<span>{link.title}</span>
+							</a>
+						))
+					}
+				</section>
 				<section class="docsNavSection docsExternalLinks" aria-labelledby="docs-nav-section-external">
 					<h2 class="docsNavSectionTitle" id="docs-nav-section-external">{ui.docs.externalLinks}</h2>
 					{
@@ -144,8 +176,8 @@ const visibleBreadcrumbs = [
 					}
 				</ol>
 			</nav>
-			<h1 class="docTitle">{title}</h1>
-			<p class="docDescription">{description}</p>
+			{isChangelog ? null : <h1 class="docTitle">{title}</h1>}
+			{isChangelog ? null : <p class="docDescription">{description}</p>}
 			{
 				fallback ? (
 					<aside class="translationFallback" role="note">
@@ -155,7 +187,7 @@ const visibleBreadcrumbs = [
 				) : null
 			}
 			<MobileDocTools chatGptUrl={chatGptUrl} claudeUrl={claudeUrl} headings={headings} markdownUrl={markdownUrl} onThisPageLabel={ui.docs.onThisPage} />
-			<article class="docProse">
+			<article class:list={["docProse", isChangelog && "changelogProse"]}>
 				<slot />
 			</article>
 			<footer class="docFooter">
@@ -163,46 +195,46 @@ const visibleBreadcrumbs = [
 					<Icon name="edit" size={16} />
 					{ui.docs.edit}
 				</a>
-				<nav class="docPager" aria-label={ui.docs.pagination}>
-					{
-						previousPage ? (
-							<a class="docPagerLink previous" href={previousPage.href}>
-								<Icon name="arrowLeft" size={18} />
-								<span>
-									<small>{ui.docs.previous}</small>
-									<strong>{previousPage.title}</strong>
+				{
+					isChangelog ? null : (
+						<nav class="docPager" aria-label={ui.docs.pagination}>
+							{previousPage ? (
+								<a class="docPagerLink previous" href={previousPage.href}>
+									<Icon name="arrowLeft" size={18} />
+									<span>
+										<small>{ui.docs.previous}</small>
+										<strong>{previousPage.title}</strong>
+									</span>
+								</a>
+							) : (
+								<span class="docPagerLink previous disabled" aria-disabled="true">
+									<Icon name="arrowLeft" size={18} />
+									<span>
+										<small>{ui.docs.previous}</small>
+										<strong>{ui.docs.noPrevious}</strong>
+									</span>
 								</span>
-							</a>
-						) : (
-							<span class="docPagerLink previous disabled" aria-disabled="true">
-								<Icon name="arrowLeft" size={18} />
-								<span>
-									<small>{ui.docs.previous}</small>
-									<strong>{ui.docs.noPrevious}</strong>
+							)}
+							{nextPage ? (
+								<a class="docPagerLink next" href={nextPage.href}>
+									<span>
+										<small>{ui.docs.next}</small>
+										<strong>{nextPage.title}</strong>
+									</span>
+									<Icon name="arrowRight" size={18} />
+								</a>
+							) : (
+								<span class="docPagerLink next disabled" aria-disabled="true">
+									<span>
+										<small>{ui.docs.next}</small>
+										<strong>{ui.docs.noNext}</strong>
+									</span>
+									<Icon name="arrowRight" size={18} />
 								</span>
-							</span>
-						)
-					}
-					{
-						nextPage ? (
-							<a class="docPagerLink next" href={nextPage.href}>
-								<span>
-									<small>{ui.docs.next}</small>
-									<strong>{nextPage.title}</strong>
-								</span>
-								<Icon name="arrowRight" size={18} />
-							</a>
-						) : (
-							<span class="docPagerLink next disabled" aria-disabled="true">
-								<span>
-									<small>{ui.docs.next}</small>
-									<strong>{ui.docs.noNext}</strong>
-								</span>
-								<Icon name="arrowRight" size={18} />
-							</span>
-						)
-					}
-				</nav>
+							)}
+						</nav>
+					)
+				}
 			</footer>
 		</main>
 
@@ -213,7 +245,12 @@ const visibleBreadcrumbs = [
 					headings.length ? (
 						<nav data-docs-toc>
 							{headings.map((heading, index) => (
-								<a href={`#${heading.slug}`} data-toc-link class:list={[heading.depth === 3 && "sub", index === 0 && "active"]} aria-current={index === 0 ? "location" : undefined}>
+								<a
+									href={`#${heading.slug}`}
+									data-toc-link
+									class:list={[(heading.depth === 3 || heading.depth === 4) && "sub", index === 0 && "active"]}
+									aria-current={index === 0 ? "location" : undefined}
+								>
 									{heading.text}
 								</a>
 							))}
@@ -546,12 +583,19 @@ const visibleBreadcrumbs = [
 			white-space: nowrap;
 		}
 
+		:global(.docProse h1),
 		:global(.docProse h2),
-		:global(.docProse h3) {
+		:global(.docProse h3),
+		:global(.docProse h4) {
 			scroll-margin-top: 6rem;
 			margin: 0;
 			color: var(--ns-text);
 			letter-spacing: 0;
+		}
+
+		:global(.docProse h2),
+		:global(.docProse h3) {
+			font-weight: 800;
 		}
 
 		:global(.docProse h2) {
@@ -561,6 +605,28 @@ const visibleBreadcrumbs = [
 
 		:global(.docProse h3) {
 			font-size: clamp(1.15rem, 2vw, 1.45rem);
+		}
+
+		:global(.changelogProse > h1) {
+			margin-top: 2.25rem;
+			font-size: clamp(1.55rem, 3vw, 2.25rem);
+			line-height: 1.08;
+		}
+
+		:global(.changelogProse > h1:first-child) {
+			margin-top: 0;
+			font-size: clamp(2.1rem, 4vw, 3.25rem);
+			font-weight: 850;
+			line-height: 1.02;
+		}
+
+		:global(.changelogProse > h4) {
+			margin-top: 0.5rem;
+			font-family: var(--ns-font-code);
+			font-size: 0.78rem;
+			font-weight: 900;
+			letter-spacing: 0.1em;
+			text-transform: uppercase;
 		}
 
 		:global(.docProse p),

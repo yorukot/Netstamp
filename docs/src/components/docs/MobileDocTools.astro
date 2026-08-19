@@ -3,7 +3,7 @@ import Icon from "@/components/icons/Icon.astro";
 import PageActions from "./PageActions.astro";
 
 interface Heading {
-	depth: 2 | 3;
+	depth: 1 | 2 | 3 | 4;
 	slug: string;
 	text: string;
 }
@@ -32,7 +32,12 @@ const { chatGptUrl, claudeUrl, headings, markdownUrl, onThisPageLabel } = Astro.
 				</summary>
 				<nav class="mobileDocTocNav" aria-label={onThisPageLabel} data-docs-toc>
 					{headings.map((heading, index) => (
-						<a href={`#${heading.slug}`} data-toc-link class:list={[heading.depth === 3 && "sub", index === 0 && "active"]} aria-current={index === 0 ? "location" : undefined}>
+						<a
+							href={`#${heading.slug}`}
+							data-toc-link
+							class:list={[(heading.depth === 3 || heading.depth === 4) && "sub", index === 0 && "active"]}
+							aria-current={index === 0 ? "location" : undefined}
+						>
 							{heading.text}
 						</a>
 					))}

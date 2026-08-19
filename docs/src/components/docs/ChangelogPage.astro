@@ -1,0 +1,17 @@
+---
+import DocLayout from "@/layouts/DocLayout.astro";
+import { getCollection, render } from "astro:content";
+
+const entries = await getCollection("changelog");
+const entry = entries.at(0);
+
+if (!entry) {
+	throw new Error("Missing root CHANGELOG.md source.");
+}
+
+const { Content, headings } = await render(entry);
+---
+
+<DocLayout title="CHANGELOG" description="New features, improvements, and bug fixes for Netstamp." headings={headings} mode="changelog">
+	<Content />
+</DocLayout>

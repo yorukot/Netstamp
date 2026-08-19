@@ -67,29 +67,21 @@ Open Netstamp:
 http://localhost:3000
 ```
 
-Before the first start, fill every empty secret in `.env`. Before exposing Netstamp publicly, set `APP_ENV=production`, configure `PUBLIC_BASE_URL`, and put Netstamp behind HTTPS with your reverse proxy of choice. Release downloads are already pinned; when using the repository Compose file directly, add a tested `NETSTAMP_VERSION` override as documented in the deployment guide.
+Before the first start, fill every empty secret in `.env`. Before exposing Netstamp publicly, set `APP_ENV=production`, configure `PUBLIC_BASE_URL`, and put Netstamp behind HTTPS with your reverse proxy of choice. Release downloads are already pinned; when using the repository Compose file directly, add a tested `NETSTAMP_VERSION` override as documented in the [Docker Compose guide](./docs/src/content/docs/en/installation/docker-compose.mdx).
 
 ## Documentation
 
-- [Getting started](./docs/src/content/docs/en/guides/getting-started.mdx) deploys Netstamp and walks through the first project, probe, check, and result.
-- [Deployment](./docs/src/content/docs/en/reference/deployment.mdx) covers Docker Compose, persistent data, public HTTPS, and production verification.
-- [Using Netstamp](./docs/src/content/docs/en/use/dashboard.mdx) covers the Dashboard, projects, probes, labels, checks, Insight, alerts, status pages, accounts, and administration.
+- [Changelog](./CHANGELOG.md) records notable updates, optimizations, documentation changes, and release milestones.
+- [Quick start](./docs/src/content/docs/en/getting-started/quick-start.mdx) deploys Netstamp and walks through the first project, probe, check, and result.
+- [Installation](./docs/src/content/docs/en/installation/index.mdx) covers Docker Compose, configuration, backups, authentication, and HTTPS.
+- [Guides](./docs/src/content/docs/en/guides/index.mdx) covers projects, probes, checks, Insight, alerts, notifications, status pages, accounts, and administration.
 - [Operations](./docs/src/content/docs/en/operations/index.mdx) covers the probe agent, observability, backups, and security hardening.
-- [API and automation](./docs/src/content/docs/en/guides/api-explorer.mdx) and [personal API tokens](./docs/src/content/docs/en/guides/api-tokens.mdx) cover integrations.
-- [Development](./docs/src/content/docs/en/development/local-development.mdx) covers the repository, architecture, shared UI system, contribution workflow, and localization.
 - [Localization](./docs/localization.md) explains the current English-only release, retained locale architecture, Crowdin source uploads, validation, and re-enabling additional languages.
 
 The English-language site is available at [netstamp.dev](https://netstamp.dev).
 
-## Contributing
-
-Read [`CONTRIBUTING.md`](./CONTRIBUTING.md) for development setup, branch and commit conventions, validation commands, and pull request requirements.
-
-Translation downloads and localized releases are currently paused. The localization architecture remains in the repository so additional languages can be enabled again without replacing the application or documentation frameworks.
-
 ## Support and security
 
-- Read [`SUPPORT.md`](./SUPPORT.md) for help requests, bug reports, feature requests, and the information maintainers need to reproduce a problem.
 - Report reproducible bugs and request features through [GitHub Issues](https://github.com/yorukot/netstamp/issues).
 - Follow [`SECURITY.md`](./SECURITY.md) to report suspected vulnerabilities privately.
 - Use the generated [OpenAPI explorer](https://netstamp.dev/openapi/) for API contracts and request models.

@@ -11,6 +11,7 @@ interface SitemapRoute {
 
 const staticRoutes: SitemapRoute[] = [
 	{ path: "/", changefreq: "weekly", priority: "1.0" },
+	{ path: "/changelog/", changefreq: "monthly", priority: "0.7" },
 	{ path: "/openapi/", changefreq: "weekly", priority: "0.7" }
 ];
 

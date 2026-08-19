@@ -58,24 +58,37 @@ const expectedDocRoutes = [
 	"docs/operations/security"
 ];
 const expectedNavHrefs = expectedDocRoutes.map(route => `/${route}/`);
+expectedNavHrefs.push("/changelog/");
 const englishUi = JSON.parse(await readFile(path.join(process.cwd(), "docs/src/i18n/locales/en/ui.json"), "utf8"));
 
 assertEqual(Object.keys(englishUi.docs.sections), expectedSectionKeys, "English documentation section keys");
 assertEqual(Object.values(englishUi.docs.sections), expectedEnglishSections, "English documentation section labels");
 
-const [englishHome, englishNotFound, englishOpenApi, englishDocsRedirect, englishQuickStart, englishInstallation, englishProbes, englishAnalyzeMeasurements, englishInvestigateTraceroute, sitemap] =
-	await Promise.all([
-		readPage(""),
-		readFile(path.join(dist, "404.html"), "utf8"),
-		readPage("openapi"),
-		readPage("docs"),
-		readPage("docs/getting-started/quick-start"),
-		readPage("docs/installation"),
-		readPage("docs/guides/probes"),
-		readPage("docs/guides/results-and-insight/analyze-measurements"),
-		readPage("docs/guides/results-and-insight/investigate-traceroute"),
-		readFile(path.join(dist, "sitemap.xml"), "utf8")
-	]);
+const [
+	englishHome,
+	englishNotFound,
+	englishOpenApi,
+	englishChangelog,
+	englishDocsRedirect,
+	englishQuickStart,
+	englishInstallation,
+	englishProbes,
+	englishAnalyzeMeasurements,
+	englishInvestigateTraceroute,
+	sitemap
+] = await Promise.all([
+	readPage(""),
+	readFile(path.join(dist, "404.html"), "utf8"),
+	readPage("openapi"),
+	readPage("changelog"),
+	readPage("docs"),
+	readPage("docs/getting-started/quick-start"),
+	readPage("docs/installation"),
+	readPage("docs/guides/probes"),
+	readPage("docs/guides/results-and-insight/analyze-measurements"),
+	readPage("docs/guides/results-and-insight/investigate-traceroute"),
+	readFile(path.join(dist, "sitemap.xml"), "utf8")
+]);
 
 await Promise.all(expectedDocRoutes.map(route => readPage(route)));
 await assertMissing(path.join(dist, "zh-TW"), "Traditional Chinese output directory");
@@ -87,9 +100,10 @@ assertEqual(activeDocsNavHrefs(englishInstallation), ["/docs/installation/"], "E
 assertEqual(activeDocsNavHrefs(englishProbes), ["/docs/guides/probes/"], "English probes active navigation item");
 assertEqual(activeDocsNavHrefs(englishAnalyzeMeasurements), ["/docs/guides/results-and-insight/analyze-measurements/"], "English measurement analysis active navigation item");
 assertEqual(activeDocsNavHrefs(englishInvestigateTraceroute), ["/docs/guides/results-and-insight/investigate-traceroute/"], "English Traceroute investigation active navigation item");
+assertEqual(activeDocsNavHrefs(englishChangelog), ["/changelog/"], "English Changelog active navigation item");
 assertIncludes(englishQuickStart, 'data-astro-transition-persist="docs-sidebar"', "English persistent documentation sidebar");
 assertIncludes(englishQuickStart, 'data-docs-locale="en"', "English documentation sidebar locale");
-assertEqual(docsSectionLabels(englishQuickStart), expectedEnglishSections, "Rendered English documentation section order");
+assertEqual(docsSectionLabels(englishQuickStart), [...expectedEnglishSections, "Project"], "Rendered English documentation section order");
 
 assertIncludes(englishHome, '<html lang="en"', "/");
 assertIncludes(englishNotFound, "Page not found - Netstamp", "/404.html");
@@ -105,7 +119,10 @@ assertExcludes(englishQuickStart, '<div class="siteLanguageMenu"', "/docs/gettin
 assertExcludes(englishQuickStart, 'hreflang="zh-TW"', "/docs/getting-started/quick-start/");
 assertExcludes(englishQuickStart, "og:locale:alternate", "/docs/getting-started/quick-start/");
 assertIncludes(englishOpenApi, "Loading API reference", "/openapi/");
+assertIncludes(englishChangelog, "v0.0.0", "/changelog/");
+assertIncludes(englishChangelog, "2026-08-19", "/changelog/");
 assertIncludes(sitemap, "<loc>https://netstamp.dev/docs/getting-started/quick-start/</loc>", "English Quick Start sitemap entry");
+assertIncludes(sitemap, "<loc>https://netstamp.dev/changelog/</loc>", "English Changelog sitemap entry");
 assertExcludes(sitemap, "/zh-TW/", "English-only sitemap");
 
 console.log(`English-only docs architecture check passed for ${expectedDocRoutes.length} documentation routes and ${expectedSectionKeys.length} navigation sections.`);

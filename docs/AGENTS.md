@@ -9,6 +9,7 @@ Read the root `AGENTS.md`, `web/AGENTS.md`, and `design.md` before changing docs
 ## Structure
 
 - Keep English source MDX under `src/content/docs/en/`. Additional locale directories are currently disabled and must match the English relative paths when localization is re-enabled.
+- Treat the repository-root `CHANGELOG.md` as the canonical changelog source. `src/content/changelog.md` must remain a relative symlink to that file so GitHub and the public `/changelog/` page render the same content.
 - Treat English `navSection` and `navOrder` frontmatter as the documentation information-architecture source of truth. Localized MDX must preserve those structural values; translate section labels through `src/i18n/locales/*/ui.json` instead.
 - Keep localizable Astro shell and landing-page text in `src/i18n/locales/en/ui.json`; it remains the source for future Crowdin translation outputs.
 - Keep docs-only Astro components under `src/components/docs`.

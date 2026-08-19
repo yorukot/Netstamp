@@ -28,4 +28,9 @@ const docs = defineCollection({
 	})
 });
 
-export const collections = { docs };
+const changelog = defineCollection({
+	loader: glob({ pattern: "changelog.md", base: "./src/content" }),
+	schema: z.object({})
+});
+
+export const collections = { changelog, docs };
