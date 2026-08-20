@@ -275,7 +275,7 @@ const scalarConfiguration = {
 		text-transform: uppercase;
 	}
 
-	.scalarReferenceMount:has(:global([data-scalar-client]:not(:empty))) .scalarLoading {
+	:global(.scalarReferenceMount:has([data-scalar-client]:not(:empty)) .scalarLoading) {
 		display: none;
 	}
 
