@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	appversion "github.com/yorukot/netstamp/internal/version"
+	appversion "github.com/yorukot/netstamp/internal/platform/version"
 )
 
 //go:embed openapi.json

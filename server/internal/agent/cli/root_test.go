@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	agentservice "github.com/yorukot/netstamp/internal/agent/service"
-	appversion "github.com/yorukot/netstamp/internal/version"
+	appversion "github.com/yorukot/netstamp/internal/platform/version"
 )
 
 func TestServiceInstallCommandPassesFlagsToManager(t *testing.T) {

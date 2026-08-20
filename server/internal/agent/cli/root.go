@@ -12,7 +12,7 @@ import (
 	agentapp "github.com/yorukot/netstamp/internal/agent/app"
 	agentconfig "github.com/yorukot/netstamp/internal/agent/config"
 	agentservice "github.com/yorukot/netstamp/internal/agent/service"
-	appversion "github.com/yorukot/netstamp/internal/version"
+	appversion "github.com/yorukot/netstamp/internal/platform/version"
 )
 
 type Options struct {

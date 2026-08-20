@@ -16,7 +16,7 @@ import (
 
 	agentconfig "github.com/yorukot/netstamp/internal/agent/config"
 	domainnetwork "github.com/yorukot/netstamp/internal/domain/network"
-	appversion "github.com/yorukot/netstamp/internal/version"
+	appversion "github.com/yorukot/netstamp/internal/platform/version"
 )
 
 type RuntimeClient struct {

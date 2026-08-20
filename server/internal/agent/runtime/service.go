@@ -15,7 +15,7 @@ import (
 	"github.com/yorukot/netstamp/internal/agent/retry"
 	"github.com/yorukot/netstamp/internal/agent/scheduling"
 	agentworker "github.com/yorukot/netstamp/internal/agent/worker"
-	appversion "github.com/yorukot/netstamp/internal/version"
+	appversion "github.com/yorukot/netstamp/internal/platform/version"
 )
 
 type Service struct {

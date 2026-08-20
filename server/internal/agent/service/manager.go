@@ -14,7 +14,7 @@ import (
 	"time"
 
 	domainprobe "github.com/yorukot/netstamp/internal/domain/probe"
-	appversion "github.com/yorukot/netstamp/internal/version"
+	appversion "github.com/yorukot/netstamp/internal/platform/version"
 )
 
 const (

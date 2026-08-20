@@ -43,7 +43,7 @@ import (
 	httpmiddleware "github.com/yorukot/netstamp/internal/controller/transport/http/middleware"
 	"github.com/yorukot/netstamp/internal/controller/transport/http/openapi"
 	httptracing "github.com/yorukot/netstamp/internal/platform/observability/httptrace"
-	appversion "github.com/yorukot/netstamp/internal/version"
+	appversion "github.com/yorukot/netstamp/internal/platform/version"
 )
 
 type SMTPStatusProvider interface {

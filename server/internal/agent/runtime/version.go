@@ -3,7 +3,7 @@ package agentruntime
 import (
 	"fmt"
 
-	appversion "github.com/yorukot/netstamp/internal/version"
+	appversion "github.com/yorukot/netstamp/internal/platform/version"
 )
 
 func EnsureMinimumVersion(current, minimum string) error {

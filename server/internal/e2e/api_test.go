@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	appversion "github.com/yorukot/netstamp/internal/version"
+	appversion "github.com/yorukot/netstamp/internal/platform/version"
 )
 
 func TestAPIAuthProjectAndProbeRuntimeFlow(t *testing.T) {

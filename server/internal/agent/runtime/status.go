@@ -5,7 +5,7 @@ import (
 	"net/netip"
 
 	"github.com/yorukot/netstamp/internal/agent/infrastructure/httpclient"
-	appversion "github.com/yorukot/netstamp/internal/version"
+	appversion "github.com/yorukot/netstamp/internal/platform/version"
 )
 
 func agentStatus() httpclient.HeartbeatInput {

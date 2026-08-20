@@ -51,7 +51,7 @@ import (
 	httpmiddleware "github.com/yorukot/netstamp/internal/controller/transport/http/middleware"
 	obmetrics "github.com/yorukot/netstamp/internal/platform/observability/metrics"
 	"github.com/yorukot/netstamp/internal/platform/observability/tracing"
-	appversion "github.com/yorukot/netstamp/internal/version"
+	appversion "github.com/yorukot/netstamp/internal/platform/version"
 )
 
 type controllerServices struct {

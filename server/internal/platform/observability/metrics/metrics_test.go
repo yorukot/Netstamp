@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	obmetrics "github.com/yorukot/netstamp/internal/platform/observability/metrics"
-	appversion "github.com/yorukot/netstamp/internal/version"
+	appversion "github.com/yorukot/netstamp/internal/platform/version"
 )
 
 func TestProviderHandlerExposesRuntimeAndTargetMetrics(t *testing.T) {
