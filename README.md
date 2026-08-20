@@ -54,8 +54,8 @@ Run Netstamp with Docker Compose:
 mkdir netstamp
 cd netstamp
 curl -fsSLO https://github.com/yorukot/netstamp/releases/latest/download/compose.yaml
-curl -fsSLO https://github.com/yorukot/netstamp/releases/latest/download/.env.example
-cp .env.example .env
+curl -fsSLO https://github.com/yorukot/netstamp/releases/latest/download/env.example
+cp env.example .env
 chmod 600 .env
 # Fill the required group at the top of .env with independent `openssl rand -hex 32` values.
 docker compose up -d

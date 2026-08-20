@@ -22,8 +22,8 @@ The stack publishes one controller port. It does not include a reverse proxy or 
 mkdir -p /opt/netstamp
 cd /opt/netstamp
 curl -fsSLO https://github.com/yorukot/netstamp/releases/latest/download/compose.yaml
-curl -fsSLO https://github.com/yorukot/netstamp/releases/latest/download/.env.example
-cp .env.example .env
+curl -fsSLO https://github.com/yorukot/netstamp/releases/latest/download/env.example
+cp env.example .env
 chmod 600 .env
 ```
 

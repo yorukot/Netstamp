@@ -168,10 +168,11 @@ jobs:
           sed -i "s/NETSTAMP_VERSION:-latest/NETSTAMP_VERSION:-${RELEASE_TAG}/g" "release/netstamp-${RELEASE_TAG}/compose.yaml"
           cp deployments/.env.example "release/netstamp-${RELEASE_TAG}/.env.example"
           cp "release/netstamp-${RELEASE_TAG}/compose.yaml" release/compose.yaml
-          cp "release/netstamp-${RELEASE_TAG}/.env.example" release/.env.example
+          cp "release/netstamp-${RELEASE_TAG}/.env.example" release/env.example
           tar -C release -czf "release/netstamp-${RELEASE_TAG}.tar.gz" "netstamp-${RELEASE_TAG}"
           cd release
-          sha256sum compose.yaml .env.example "netstamp-${RELEASE_TAG}.tar.gz" > SHA256SUMS
+          sha256sum compose.yaml env.example "netstamp-${RELEASE_TAG}.tar.gz" > SHA256SUMS
+          sha256sum --check SHA256SUMS
 
       - name: Create or update GitHub release
         env:
@@ -181,7 +182,7 @@ jobs:
           gh release view "${RELEASE_TAG}" >/dev/null 2>&1 || gh release create "${RELEASE_TAG}" --generate-notes --verify-tag
           gh release upload "${RELEASE_TAG}" \
             release/compose.yaml \
-            release/.env.example \
+            release/env.example \
             "release/netstamp-${RELEASE_TAG}.tar.gz" \
             release/SHA256SUMS \
             --clobber
