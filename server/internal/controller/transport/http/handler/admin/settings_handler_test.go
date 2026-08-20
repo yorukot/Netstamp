@@ -33,6 +33,7 @@ func TestGetSettingsWritesPrivateNoStoreResponseWithoutETag(t *testing.T) {
 		{name: "OIDC", handle: (*Handler).handleGetOIDCSettings, calls: func(service *recordingSettingsService) int { return service.getOIDCCalls }},
 		{name: "Google", handle: (*Handler).handleGetGoogleSettings, calls: func(service *recordingSettingsService) int { return service.getGoogleCalls }},
 		{name: "GitHub", handle: (*Handler).handleGetGitHubSettings, calls: func(service *recordingSettingsService) int { return service.getGitHubCalls }},
+		{name: "updates", handle: (*Handler).handleGetUpdatesSettings, calls: func(service *recordingSettingsService) int { return service.getUpdatesCalls }},
 	}
 
 	for _, tt := range tests {
@@ -132,6 +133,11 @@ func TestUpdateSettingsAcceptsMissingAndIgnoredIfMatch(t *testing.T) {
 			name: "GitHub", body: `{"enabled":false}`, legacyIfMatch: `"auth.github-99"`,
 			handle: (*Handler).handleUpdateGitHubSettings,
 			calls:  func(service *recordingSettingsService) int { return service.updateGitHubCalls },
+		},
+		{
+			name: "updates", body: `{"checkForUpdates":false}`, legacyIfMatch: `"updates-99"`,
+			handle: (*Handler).handleUpdateUpdatesSettings,
+			calls:  func(service *recordingSettingsService) int { return service.updateUpdatesCalls },
 		},
 	}
 
@@ -387,22 +393,25 @@ func assertProblem(t *testing.T, recorder *httptest.ResponseRecorder, status int
 }
 
 type recordingSettingsService struct {
-	access appsettings.AccessSettings
-	smtp   appsettings.SMTPSettings
-	oidc   appsettings.OIDCSettings
-	google appsettings.GoogleSettings
-	github appsettings.GitHubSettings
+	access  appsettings.AccessSettings
+	smtp    appsettings.SMTPSettings
+	oidc    appsettings.OIDCSettings
+	google  appsettings.GoogleSettings
+	github  appsettings.GitHubSettings
+	updates appsettings.UpdatesSettings
 
 	getAccessErr      error
 	getSMTPErr        error
 	getOIDCErr        error
 	getGoogleErr      error
 	getGitHubErr      error
+	getUpdatesErr     error
 	updateAccessErr   error
 	updateSMTPErr     error
 	updateOIDCErr     error
 	updateGoogleErr   error
 	updateGitHubErr   error
+	updateUpdatesErr  error
 	validateOIDCErr   error
 	validateGoogleErr error
 	validateGitHubErr error
@@ -413,11 +422,13 @@ type recordingSettingsService struct {
 	getOIDCCalls        int
 	getGoogleCalls      int
 	getGitHubCalls      int
+	getUpdatesCalls     int
 	updateAccessCalls   int
 	updateSMTPCalls     int
 	updateOIDCCalls     int
 	updateGoogleCalls   int
 	updateGitHubCalls   int
+	updateUpdatesCalls  int
 	validateOIDCCalls   int
 	validateGoogleCalls int
 	validateGitHubCalls int
@@ -453,6 +464,11 @@ func (s *recordingSettingsService) GetGitHub(_ context.Context, _ appsettings.Ge
 	return s.github, s.getGitHubErr
 }
 
+func (s *recordingSettingsService) GetUpdates(_ context.Context, _ appsettings.GetUpdatesInput) (appsettings.UpdatesSettings, error) {
+	s.getUpdatesCalls++
+	return s.updates, s.getUpdatesErr
+}
+
 func (s *recordingSettingsService) UpdateAccess(_ context.Context, input appsettings.UpdateAccessInput) (appsettings.AccessSettings, error) {
 	s.updateAccessCalls++
 	s.lastUpdateAccess = input
@@ -478,6 +494,11 @@ func (s *recordingSettingsService) UpdateGoogle(_ context.Context, _ appsettings
 func (s *recordingSettingsService) UpdateGitHub(_ context.Context, _ appsettings.UpdateGitHubInput) (appsettings.GitHubSettings, error) {
 	s.updateGitHubCalls++
 	return s.github, s.updateGitHubErr
+}
+
+func (s *recordingSettingsService) UpdateUpdates(_ context.Context, _ appsettings.UpdateUpdatesInput) (appsettings.UpdatesSettings, error) {
+	s.updateUpdatesCalls++
+	return s.updates, s.updateUpdatesErr
 }
 
 func (s *recordingSettingsService) ValidateOIDC(_ context.Context, _ appsettings.ValidateOIDCInput) error {

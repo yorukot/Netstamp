@@ -5,6 +5,7 @@ const (
 	keyEmailVerificationRequired = "auth.email_verification_required"
 	keyProjectCreationEnabled    = "access.project_creation_enabled"
 	keyCredentialChangesEnabled  = "access.credential_changes_enabled"
+	keyUpdateCheckEnabled        = "updates.check_enabled"
 
 	keySMTPHost           = "smtp.host"
 	keySMTPPort           = "smtp.port"
@@ -41,7 +42,8 @@ var (
 		keySMTPTLSMode,
 		keySMTPTimeoutSeconds,
 	}
-	oidcKeys   = []string{keyOIDCSettings, keyOIDCClientSecret}
-	googleKeys = []string{keyGoogleSettings, keyGoogleClientSecret}
-	gitHubKeys = []string{keyGitHubSettings, keyGitHubClientSecret}
+	oidcKeys    = []string{keyOIDCSettings, keyOIDCClientSecret}
+	googleKeys  = []string{keyGoogleSettings, keyGoogleClientSecret}
+	gitHubKeys  = []string{keyGitHubSettings, keyGitHubClientSecret}
+	updatesKeys = []string{keyUpdateCheckEnabled}
 )

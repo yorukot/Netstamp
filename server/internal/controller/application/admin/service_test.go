@@ -109,6 +109,67 @@ func TestRevokeSystemAdminStoresAuditEvent(t *testing.T) {
 	}
 }
 
+func TestGetUpdateStatusRequiresSystemAdmin(t *testing.T) {
+	svc := NewService(&fakeAdminRepository{admins: map[string]bool{}})
+	svc.ConfigureUpdateSettings(fakeUpdateSettingsReader{enabled: true})
+	svc.ConfigureUpdateStatus(fakeUpdateStatusReader{})
+
+	_, err := svc.GetUpdateStatus(context.Background(), UpdateStatusInput{CurrentUserID: testTargetUserID})
+	if !errors.Is(err, ErrForbidden) {
+		t.Fatalf("expected forbidden, got %v", err)
+	}
+}
+
+func TestGetUpdateStatusReturnsCachedStatusWhenEnabled(t *testing.T) {
+	publishedAt := time.Date(2026, 8, 20, 9, 0, 0, 0, time.UTC)
+	latestVersion := "v1.2.3"
+	releaseURL := "https://github.com/yorukot/netstamp/releases/tag/v1.2.3"
+	status := UpdateStatus{
+		CurrentVersion: "0.0.0", LatestVersion: &latestVersion, UpdateAvailable: true,
+		ReleaseURL: &releaseURL, PublishedAt: &publishedAt, LastCheckedAt: &publishedAt,
+	}
+	svc := NewService(&fakeAdminRepository{admins: map[string]bool{testAdminUserID: true}})
+	svc.ConfigureUpdateSettings(fakeUpdateSettingsReader{enabled: true})
+	svc.ConfigureUpdateStatus(fakeUpdateStatusReader{status: status})
+
+	got, err := svc.GetUpdateStatus(context.Background(), UpdateStatusInput{CurrentUserID: testAdminUserID})
+	if err != nil {
+		t.Fatalf("get update status: %v", err)
+	}
+	if got.CurrentVersion != status.CurrentVersion || got.LatestVersion == nil || *got.LatestVersion != latestVersion || !got.UpdateAvailable {
+		t.Fatalf("unexpected update status: %#v", got)
+	}
+}
+
+func TestGetUpdateStatusGatesCachedStatusWhenDisabled(t *testing.T) {
+	latestVersion := "v1.2.3"
+	svc := NewService(&fakeAdminRepository{admins: map[string]bool{testAdminUserID: true}})
+	svc.ConfigureUpdateSettings(fakeUpdateSettingsReader{enabled: false})
+	svc.ConfigureUpdateStatus(fakeUpdateStatusReader{status: UpdateStatus{
+		CurrentVersion: "0.0.0", LatestVersion: &latestVersion, UpdateAvailable: true,
+	}})
+
+	got, err := svc.GetUpdateStatus(context.Background(), UpdateStatusInput{CurrentUserID: testAdminUserID})
+	if err != nil {
+		t.Fatalf("get disabled update status: %v", err)
+	}
+	if got != (UpdateStatus{CurrentVersion: "0.0.0"}) {
+		t.Fatalf("disabled status leaked cached release: %#v", got)
+	}
+}
+
+func TestGetUpdateStatusReturnsSettingsFailure(t *testing.T) {
+	settingsErr := errors.New("settings unavailable")
+	svc := NewService(&fakeAdminRepository{admins: map[string]bool{testAdminUserID: true}})
+	svc.ConfigureUpdateSettings(fakeUpdateSettingsReader{err: settingsErr})
+	svc.ConfigureUpdateStatus(fakeUpdateStatusReader{})
+
+	_, err := svc.GetUpdateStatus(context.Background(), UpdateStatusInput{CurrentUserID: testAdminUserID})
+	if !errors.Is(err, settingsErr) {
+		t.Fatalf("expected settings failure, got %v", err)
+	}
+}
+
 func TestClearManagedUserPasswordRequiresAnotherAuthenticationMethod(t *testing.T) {
 	repo := &fakeAdminRepository{admins: map[string]bool{testAdminUserID: true}}
 	svc := NewService(repo)
@@ -163,6 +224,19 @@ type fakeAdminRepository struct {
 	passwordHash          string
 	auditActions          []string
 	auditKeys             []string
+}
+
+type fakeUpdateStatusReader struct{ status UpdateStatus }
+
+func (f fakeUpdateStatusReader) ReadUpdateStatus() UpdateStatus { return f.status }
+
+type fakeUpdateSettingsReader struct {
+	enabled bool
+	err     error
+}
+
+func (f fakeUpdateSettingsReader) UpdateCheckEnabled(context.Context) (bool, error) {
+	return f.enabled, f.err
 }
 
 func (r *fakeAdminRepository) IsSystemAdmin(_ context.Context, userID string) (bool, error) {

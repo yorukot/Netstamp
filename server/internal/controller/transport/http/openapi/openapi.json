@@ -1262,6 +1262,164 @@
 				]
 			}
 		},
+		"/admin/settings/updates": {
+			"get": {
+				"operationId": "getAdminUpdateSettings",
+				"summary": "Get update settings",
+				"description": "Return whether this instance automatically checks GitHub for Netstamp releases.",
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "A successful private JSON response that must not be cached.",
+						"headers": {
+							"Cache-Control": {
+								"required": true,
+								"schema": {
+									"type": "string",
+									"enum": ["private, no-store"]
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AdminUpdateSettingsResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Admin"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			},
+			"patch": {
+				"operationId": "updateAdminUpdateSettings",
+				"summary": "Update update settings",
+				"description": "Partially update automatic release-check settings.",
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "A successful private JSON response that must not be cached.",
+						"headers": {
+							"Cache-Control": {
+								"required": true,
+								"schema": {
+									"type": "string",
+									"enum": ["private, no-store"]
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AdminUpdateSettingsResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The server could not understand the request due to invalid syntax.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "Client error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Admin"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/AdminUpdateSettingsPatch"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
 		"/admin/system-admins": {
 			"get": {
 				"operationId": "listSystemAdmins",
@@ -1458,6 +1616,71 @@
 					},
 					"409": {
 						"description": "The request conflicts with the current state of the server.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				},
+				"tags": ["Admin"],
+				"security": [
+					{
+						"SessionCookieAuth": []
+					}
+				]
+			}
+		},
+		"/admin/update-status": {
+			"get": {
+				"operationId": "getAdminUpdateStatus",
+				"summary": "Get controller update status",
+				"description": "Return the installed controller version and the latest cached GitHub release check for system administrators.",
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "A successful private JSON response that must not be cached.",
+						"headers": {
+							"Cache-Control": {
+								"required": true,
+								"schema": {
+									"type": "string",
+									"enum": ["private, no-store"]
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AdminUpdateStatus"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Access is unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Access is forbidden.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -11610,6 +11833,127 @@
 							"timeoutSeconds": 10,
 							"configured": true
 						}
+					}
+				]
+			},
+			"AdminUpdateSettings": {
+				"type": "object",
+				"required": ["checkForUpdates"],
+				"properties": {
+					"checkForUpdates": {
+						"type": "boolean",
+						"description": "Whether the controller checks the latest Netstamp GitHub release on startup and every six hours."
+					}
+				},
+				"examples": [
+					{
+						"checkForUpdates": true
+					}
+				]
+			},
+			"AdminUpdateSettingsPatch": {
+				"type": "object",
+				"properties": {
+					"checkForUpdates": {
+						"type": "boolean"
+					}
+				},
+				"description": "Partial update-check settings update. Omitted properties retain their current values.",
+				"examples": [
+					{
+						"checkForUpdates": false
+					}
+				]
+			},
+			"AdminUpdateSettingsResponse": {
+				"type": "object",
+				"required": ["settings"],
+				"properties": {
+					"settings": {
+						"$ref": "#/components/schemas/AdminUpdateSettings"
+					}
+				},
+				"examples": [
+					{
+						"settings": {
+							"checkForUpdates": true
+						}
+					}
+				]
+			},
+			"AdminUpdateStatus": {
+				"type": "object",
+				"required": ["currentVersion", "latestVersion", "updateAvailable", "releaseUrl", "publishedAt", "lastCheckedAt", "checkError"],
+				"properties": {
+					"currentVersion": {
+						"type": "string"
+					},
+					"latestVersion": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"updateAvailable": {
+						"type": "boolean"
+					},
+					"releaseUrl": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						],
+						"format": "uri"
+					},
+					"publishedAt": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "date-time"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"lastCheckedAt": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "date-time"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"checkError": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				},
+				"examples": [
+					{
+						"currentVersion": "0.1.0",
+						"latestVersion": "v0.2.0",
+						"updateAvailable": true,
+						"releaseUrl": "https://github.com/yorukot/netstamp/releases/tag/v0.2.0",
+						"publishedAt": "2026-08-20T00:00:00Z",
+						"lastCheckedAt": "2026-08-20T06:00:00Z",
+						"checkError": null
 					}
 				]
 			},

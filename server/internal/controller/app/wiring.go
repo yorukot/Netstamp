@@ -25,8 +25,10 @@ import (
 	apppublicstatus "github.com/yorukot/netstamp/internal/controller/application/publicstatus"
 	appresult "github.com/yorukot/netstamp/internal/controller/application/result"
 	appsystemsettings "github.com/yorukot/netstamp/internal/controller/application/systemsettings"
+	appupdatecheck "github.com/yorukot/netstamp/internal/controller/application/updatecheck"
 	appuser "github.com/yorukot/netstamp/internal/controller/application/user"
 	"github.com/yorukot/netstamp/internal/controller/config"
+	githubinfra "github.com/yorukot/netstamp/internal/controller/infrastructure/github"
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/notify"
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/postgres"
 	pgalert "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/alert"
@@ -192,6 +194,9 @@ func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool
 	adminSvc := appadmin.NewService(systemRepo, passwordHasher)
 	adminSvc.ConfigureSessions(sessionManager)
 	adminSvc.ConfigureAuthenticationMethods(userRepo)
+	updateCache := appupdatecheck.NewCache(appversion.Product)
+	adminSvc.ConfigureUpdateStatus(updateStatusProvider{cache: updateCache})
+	adminSvc.ConfigureUpdateSettings(settingsSvc)
 	smtpProvider := systemSettingsSMTPProvider{service: settingsSvc}
 	settingsSvc.ConfigureSMTPTest(userRepo, systemSettingsSMTPTester{})
 	notificationSender := notify.NewDynamicSender(cfg.Alerting.NotificationHTTPTimeout, smtpProvider)
@@ -252,6 +257,7 @@ func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool
 		StaleTimeout: cfg.Alerting.NotificationWorkerStaleTimeout,
 		Log:          log,
 	})
+	updateWorker := appupdatecheck.NewWorker(updateCache, githubinfra.NewReleaseClient(), settingsSvc, log)
 
 	return controllerServices{
 		authService:         authSvc,
@@ -269,7 +275,7 @@ func buildControllerServices(cfg config.Config, log *zap.Logger, dbPool *pgxpool
 		projectService:      projectSvc,
 		publicStatusService: publicStatusSvc,
 		resultService:       resultSvc,
-		backgroundWorkers:   []backgroundWorker{assignmentWorker, notificationWorker},
+		backgroundWorkers:   []backgroundWorker{assignmentWorker, notificationWorker, updateWorker},
 	}, nil
 }
 

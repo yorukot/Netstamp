@@ -28,7 +28,7 @@ Current controller application classification:
 
 - Command features: `auth`, `systemsettings`, `project`, `label`, `check`, `probe`, `proberuntime`, `assignment`, `user`, `alert`, and the mutating page/element use cases in `publicstatus`.
 - Query features: `result/latest`, `result/ping`, `result/tcp`, `result/traceroute`, and public read use cases in `publicstatus`.
-- Orchestrators and workers: `alerteval`, `notification`, and assignment refresh worker behavior.
+- Orchestrators and workers: `alerteval`, `notification`, `updatecheck`, and assignment refresh worker behavior.
 - Shared application support: `validation`, `tx`, `pingquery`, `tcpquery`, `result/shared`, and the thin `result` compatibility facade.
 
 ## Dependency Rules

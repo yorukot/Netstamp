@@ -1,6 +1,7 @@
 import type { SessionUser } from "@/features/auth/services/authService";
 import { pathForRoute } from "@/routes/routePaths";
 import { sidebarItems } from "@/routes/sidebarItems";
+import { adminQueries } from "@/shared/api/queries";
 import { useCurrentProject } from "@/shared/api/useCurrentProject";
 import { EditorDrawer } from "@/shared/components/EditorDrawer";
 import { classNames } from "@/shared/utils/classNames";
@@ -8,8 +9,12 @@ import netstampLogo from "@netstamp/brand/assets/netstamp-logo-light.svg";
 import netstampMark from "@netstamp/brand/assets/netstamp-mark-light.svg";
 import { CaretLeftIcon } from "@phosphor-icons/react/dist/csr/CaretLeft";
 import { CaretRightIcon } from "@phosphor-icons/react/dist/csr/CaretRight";
+import { ArrowSquareOutIcon } from "@phosphor-icons/react/dist/csr/ArrowSquareOut";
+import { ArrowsClockwiseIcon } from "@phosphor-icons/react/dist/csr/ArrowsClockwise";
 import { ListIcon } from "@phosphor-icons/react/dist/csr/List";
 import { XIcon } from "@phosphor-icons/react/dist/csr/X";
+import { Badge } from "@netstamp/ui";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, NavLink } from "react-router-dom";
@@ -28,7 +33,10 @@ export function Sidebar({ collapsed, user, onToggleCollapsed, onLogout }: Sideba
 	const { t } = useTranslation(["navigation", "common"]);
 	const { projectRef } = useCurrentProject();
 	const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+	const updateStatusQuery = useQuery({ ...adminQueries.updateStatus(), enabled: user.isSystemAdmin });
 	const MobileMenuIcon = mobileMenuOpen ? XIcon : ListIcon;
+	const updateStatus = updateStatusQuery.data;
+	const showUpdate = Boolean(user.isSystemAdmin && updateStatus?.updateAvailable && updateStatus.latestVersion && updateStatus.releaseUrl);
 
 	const closeMobileMenu = () => {
 		setMobileMenuOpen(false);
@@ -83,7 +91,10 @@ export function Sidebar({ collapsed, user, onToggleCollapsed, onLogout }: Sideba
 					})}
 				</nav>
 
-				<UserMenu user={user} collapsed={collapsed} onLogout={onLogout} />
+				<div className={styles.sidebarFooter}>
+					{showUpdate ? <UpdateIndicator version={updateStatus?.latestVersion ?? ""} releaseUrl={updateStatus?.releaseUrl ?? ""} collapsed={collapsed} /> : null}
+					<UserMenu user={user} collapsed={collapsed} onLogout={onLogout} />
+				</div>
 			</div>
 
 			<EditorDrawer
@@ -116,9 +127,36 @@ export function Sidebar({ collapsed, user, onToggleCollapsed, onLogout }: Sideba
 					})}
 				</nav>
 				<div className={styles.mobileDrawerUser}>
+					{showUpdate ? <UpdateIndicator version={updateStatus?.latestVersion ?? ""} releaseUrl={updateStatus?.releaseUrl ?? ""} onClick={closeMobileMenu} /> : null}
 					<UserMenuPanel user={user} onLogout={onLogout} onClose={closeMobileMenu} />
 				</div>
 			</EditorDrawer>
 		</aside>
 	);
 }
+
+const UpdateIndicator = ({ version, releaseUrl, collapsed = false, onClick }: { version: string; releaseUrl: string; collapsed?: boolean; onClick?: () => void }) => {
+	const { t } = useTranslation("navigation");
+	const displayVersion = version.startsWith("v") ? version : `v${version}`;
+	const label = t("updateAvailable", { version: displayVersion });
+
+	return (
+		<a
+			className={classNames(styles.updateIndicator, collapsed && styles.updateIndicatorCollapsed)}
+			href={releaseUrl}
+			target="_blank"
+			rel="noreferrer"
+			aria-label={label}
+			title={label}
+			onClick={onClick}
+		>
+			<span className={styles.updateIndicatorIcon}>
+				<ArrowsClockwiseIcon size="1.125rem" weight="bold" aria-hidden="true" focusable="false" />
+			</span>
+			<Badge className={styles.updateIndicatorBadge} tone="accent">
+				{label}
+			</Badge>
+			<ArrowSquareOutIcon className={styles.updateIndicatorExternal} size="1rem" aria-hidden="true" focusable="false" />
+		</a>
+	);
+};

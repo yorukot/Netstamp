@@ -311,6 +311,97 @@
 	color: var(--ns-primary);
 }
 
+.sidebarFooter {
+	display: grid;
+	gap: 0.75rem;
+	min-width: 0;
+}
+
+.updateIndicator {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	width: 100%;
+	min-width: 0;
+	min-height: 2.75rem;
+	padding: 0.5rem 0.75rem;
+	border: 1px solid var(--ns-primary-border);
+	color: var(--ns-primary-hover);
+	background: var(--ns-primary-muted);
+	text-decoration: none;
+	animation: sidebarUpdateIndicatorIn 240ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+	transition:
+		color var(--ns-transition),
+		background var(--ns-transition),
+		border-color var(--ns-transition);
+}
+
+.updateIndicator:hover {
+	color: var(--ns-primary);
+	background: var(--ns-primary-subtle);
+	border-color: var(--ns-primary);
+}
+
+.updateIndicator:focus-visible {
+	outline: var(--ns-focus-outline);
+	outline-offset: var(--ns-focus-outline-offset);
+}
+
+.updateIndicatorIcon {
+	position: relative;
+	display: inline-grid;
+	place-items: center;
+	flex: 0 0 auto;
+}
+
+.updateIndicatorBadge {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.updateIndicatorExternal {
+	flex: 0 0 auto;
+	margin-left: auto;
+}
+
+.updateIndicatorCollapsed {
+	justify-content: center;
+	justify-self: center;
+	width: 2.75rem;
+	height: 2.75rem;
+	padding: 0;
+}
+
+.updateIndicatorCollapsed .updateIndicatorIcon::after {
+	position: absolute;
+	top: -0.25rem;
+	right: -0.375rem;
+	width: 0.5rem;
+	height: 0.5rem;
+	border: 1px solid var(--ns-chrome-bg);
+	background: var(--ns-primary);
+	content: "";
+}
+
+.updateIndicatorCollapsed .updateIndicatorBadge,
+.updateIndicatorCollapsed .updateIndicatorExternal {
+	display: none;
+}
+
+@keyframes sidebarUpdateIndicatorIn {
+	from {
+		opacity: 0;
+		transform: translate3d(0, 0.25rem, 0);
+	}
+
+	to {
+		opacity: 1;
+		transform: translate3d(0, 0, 0);
+	}
+}
+
 .collapsed .sidebarScroll {
 	grid-template-rows: auto auto 1fr auto;
 }
@@ -505,8 +596,13 @@
 
 	.mobileDrawerUser {
 		display: grid;
+		gap: 0.75rem;
 		margin-top: auto;
 		padding-top: 1rem;
+	}
+
+	.sidebarFooter {
+		display: none;
 	}
 
 	.nav {
@@ -561,7 +657,12 @@
 
 @media (prefers-reduced-motion: reduce) {
 	.nav a,
-	.navLabel {
+	.navLabel,
+	.updateIndicator {
 		transition: none;
+	}
+
+	.updateIndicator {
+		animation-duration: 0.01ms;
 	}
 }

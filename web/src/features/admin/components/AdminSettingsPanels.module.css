@@ -53,6 +53,40 @@
 	gap: 0.75rem;
 }
 
+.statusRows {
+	display: grid;
+}
+
+.releaseLink {
+	display: inline-flex;
+	justify-self: start;
+	align-items: center;
+	gap: 0.5rem;
+	min-height: 2.5rem;
+	padding: 0.5rem 0.75rem;
+	border: 1px solid var(--ns-primary-border);
+	color: var(--ns-primary-hover);
+	background: var(--ns-primary-muted);
+	font-size: 0.875rem;
+	font-weight: 700;
+	text-decoration: none;
+	transition:
+		color var(--ns-transition),
+		background var(--ns-transition),
+		border-color var(--ns-transition);
+}
+
+.releaseLink:hover {
+	color: var(--ns-primary);
+	background: var(--ns-primary-subtle);
+	border-color: var(--ns-primary);
+}
+
+.releaseLink:focus-visible {
+	outline: var(--ns-focus-outline);
+	outline-offset: var(--ns-focus-outline-offset);
+}
+
 .checkboxRow {
 	display: grid;
 	grid-template-columns: auto minmax(0, 1fr);

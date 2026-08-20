@@ -2,6 +2,7 @@ import { queryOptions } from "@tanstack/react-query";
 import {
 	readAdminSettings,
 	type AdminAccessSettings,
+	type AdminUpdateSettings,
 	type AdminGitHubProviderSettings,
 	type AdminGoogleProviderSettings,
 	type AdminOIDCProviderSettings,
@@ -16,6 +17,18 @@ export const adminQueries = {
 			queryKey: apiQueryKeys.admin.accessSettings(),
 			queryFn: ({ signal }) => readAdminSettings<AdminAccessSettings>(apiClient.GET("/admin/settings/access", { signal })),
 			staleTime: 30 * 1000
+		}),
+	updateSettings: () =>
+		queryOptions({
+			queryKey: apiQueryKeys.admin.updateSettings(),
+			queryFn: ({ signal }) => readAdminSettings<AdminUpdateSettings>(apiClient.GET("/admin/settings/updates", { signal })),
+			staleTime: 30 * 1000
+		}),
+	updateStatus: () =>
+		queryOptions({
+			queryKey: apiQueryKeys.admin.updateStatus(),
+			queryFn: ({ signal }) => readApiData(apiClient.GET("/admin/update-status", { signal })),
+			staleTime: 5 * 60 * 1000
 		}),
 	smtpSettings: () =>
 		queryOptions({

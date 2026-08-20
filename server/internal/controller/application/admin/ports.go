@@ -36,3 +36,11 @@ type ManagedPasswordRepository interface {
 type AuthenticationMethodRepository interface {
 	CountUserAuthenticationMethods(ctx context.Context, userID string) (bool, int64, error)
 }
+
+type UpdateStatusReader interface {
+	ReadUpdateStatus() UpdateStatus
+}
+
+type UpdateSettingsReader interface {
+	UpdateCheckEnabled(ctx context.Context) (bool, error)
+}

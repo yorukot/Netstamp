@@ -1,6 +1,10 @@
 package admin
 
-import domainsystem "github.com/yorukot/netstamp/internal/domain/system"
+import (
+	"time"
+
+	domainsystem "github.com/yorukot/netstamp/internal/domain/system"
+)
 
 type SystemAdmin = domainsystem.AdminUser
 
@@ -24,6 +28,20 @@ type RevokeSystemAdminInput struct {
 
 type ListManagedUsersInput struct {
 	CurrentUserID string
+}
+
+type UpdateStatusInput struct {
+	CurrentUserID string
+}
+
+type UpdateStatus struct {
+	CurrentVersion  string
+	LatestVersion   *string
+	UpdateAvailable bool
+	ReleaseURL      *string
+	PublishedAt     *time.Time
+	LastCheckedAt   *time.Time
+	CheckError      *string
 }
 
 type UpdateManagedUserInput struct {

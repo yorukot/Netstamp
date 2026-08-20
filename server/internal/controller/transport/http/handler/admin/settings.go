@@ -50,6 +50,10 @@ type accessSettingsPatchBody struct {
 	CredentialChangesEnabled  optionalNonNull[bool] `json:"credentialChangesEnabled"`
 }
 
+type updatesSettingsPatchBody struct {
+	CheckForUpdates optionalNonNull[bool] `json:"checkForUpdates"`
+}
+
 type smtpSettingsPatchBody struct {
 	Host           optionalNonNull[string] `json:"host"`
 	Port           optionalNonNull[int32]  `json:"port"`
@@ -92,6 +96,10 @@ type accessSettingsResponseBody struct {
 	EmailVerificationRequired bool `json:"emailVerificationRequired"`
 	ProjectCreationEnabled    bool `json:"projectCreationEnabled"`
 	CredentialChangesEnabled  bool `json:"credentialChangesEnabled"`
+}
+
+type updatesSettingsResponseBody struct {
+	CheckForUpdates bool `json:"checkForUpdates"`
 }
 
 type smtpSettingsResponseBody struct {

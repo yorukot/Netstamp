@@ -80,6 +80,7 @@ func TestSettingsPatchRejectsNullForEveryNonSecretField(t *testing.T) {
 		{name: "access email verification", body: `{"emailVerificationRequired":null}`, target: func() any { return &accessSettingsPatchBody{} }},
 		{name: "access project creation", body: `{"projectCreationEnabled":null}`, target: func() any { return &accessSettingsPatchBody{} }},
 		{name: "access credential changes", body: `{"credentialChangesEnabled":null}`, target: func() any { return &accessSettingsPatchBody{} }},
+		{name: "updates check", body: `{"checkForUpdates":null}`, target: func() any { return &updatesSettingsPatchBody{} }},
 		{name: "SMTP host", body: `{"host":null}`, target: func() any { return &smtpSettingsPatchBody{} }},
 		{name: "SMTP port", body: `{"port":null}`, target: func() any { return &smtpSettingsPatchBody{} }},
 		{name: "SMTP username", body: `{"username":null}`, target: func() any { return &smtpSettingsPatchBody{} }},

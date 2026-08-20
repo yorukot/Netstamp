@@ -5,11 +5,12 @@ import "time"
 type Resource string
 
 const (
-	ResourceAccess Resource = "access"
-	ResourceSMTP   Resource = "smtp"
-	ResourceOIDC   Resource = "auth.oidc"
-	ResourceGoogle Resource = "auth.google"
-	ResourceGitHub Resource = "auth.github"
+	ResourceAccess  Resource = "access"
+	ResourceSMTP    Resource = "smtp"
+	ResourceOIDC    Resource = "auth.oidc"
+	ResourceGoogle  Resource = "auth.google"
+	ResourceGitHub  Resource = "auth.github"
+	ResourceUpdates Resource = "updates"
 )
 
 // OptionalSecret preserves the three JSON PATCH states used by secret fields:
@@ -32,6 +33,10 @@ type AccessSettings struct {
 	EmailVerificationRequired bool
 	ProjectCreationEnabled    bool
 	CredentialChangesEnabled  bool
+}
+
+type UpdatesSettings struct {
+	CheckForUpdates bool
 }
 
 type SMTPSettings struct {
@@ -132,6 +137,10 @@ type GetGitHubInput struct {
 	CurrentUserID string
 }
 
+type GetUpdatesInput struct {
+	CurrentUserID string
+}
+
 type UpdateAccessInput struct {
 	CurrentUserID             string
 	AccountCreationEnabled    *bool
@@ -179,6 +188,11 @@ type UpdateGitHubInput struct {
 	DisplayName   *string
 	JITEnabled    *bool
 	AllowSignup   *bool
+}
+
+type UpdateUpdatesInput struct {
+	CurrentUserID   string
+	CheckForUpdates *bool
 }
 
 type (

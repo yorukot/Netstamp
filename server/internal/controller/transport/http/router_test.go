@@ -84,6 +84,9 @@ func TestNewRouterServesOpenAPIWithoutRuntimeServices(t *testing.T) {
 	assertOpenAPIPathAbsent(t, spec, "/admin/data-export")
 	assertOpenAPIPathAbsent(t, spec, "/admin/data-import")
 	assertOpenAPIPathAbsent(t, spec, "/admin/settings")
+	assertOpenAPIOperation(t, spec, http.MethodGet, "/admin/update-status", "getAdminUpdateStatus")
+	assertOpenAPIOperation(t, spec, http.MethodGet, "/admin/settings/updates", "getAdminUpdateSettings")
+	assertOpenAPIOperation(t, spec, http.MethodPatch, "/admin/settings/updates", "updateAdminUpdateSettings")
 	assertOpenAPIOperation(t, spec, http.MethodGet, "/admin/settings/access", "getAdminAccessSettings")
 	assertOpenAPIOperation(t, spec, http.MethodPatch, "/admin/settings/access", "updateAdminAccessSettings")
 	assertOpenAPIOperation(t, spec, http.MethodGet, "/admin/settings/smtp", "getAdminSMTPSettings")
@@ -264,6 +267,9 @@ func TestNewRouterProtectedRoutesRequireSessionCookie(t *testing.T) {
 		{method: http.MethodGet, path: "/api/v1/admin/users"},
 		{method: http.MethodPatch, path: "/api/v1/admin/users/user-1"},
 		{method: http.MethodPost, path: "/api/v1/admin/users/user-1/password"},
+		{method: http.MethodGet, path: "/api/v1/admin/update-status"},
+		{method: http.MethodGet, path: "/api/v1/admin/settings/updates"},
+		{method: http.MethodPatch, path: "/api/v1/admin/settings/updates"},
 		{method: http.MethodGet, path: "/api/v1/admin/settings/access"},
 		{method: http.MethodPatch, path: "/api/v1/admin/settings/access"},
 		{method: http.MethodGet, path: "/api/v1/admin/settings/smtp"},

@@ -14,6 +14,59 @@ import (
 
 const testSystemSettingsAdminID = "11111111-1111-1111-1111-111111111111"
 
+func TestEffectiveUpdatesDefaultsEnabledAndReadsStoredValue(t *testing.T) {
+	repo := newMemorySettingsRepository()
+	service := newTestSettingsService(repo, &fakeSecretCipher{}, nil, nil)
+
+	defaults, err := service.EffectiveUpdates(context.Background())
+	if err != nil {
+		t.Fatalf("read default updates settings: %v", err)
+	}
+	if !defaults.CheckForUpdates {
+		t.Fatalf("expected update checks enabled by default, got %#v", defaults)
+	}
+
+	repo.settings[keyUpdateCheckEnabled] = testPublicSetting(t, keyUpdateCheckEnabled, false)
+	stored, err := service.EffectiveUpdates(context.Background())
+	if err != nil {
+		t.Fatalf("read stored updates settings: %v", err)
+	}
+	if stored.CheckForUpdates {
+		t.Fatalf("expected stored update check disable, got %#v", stored)
+	}
+}
+
+func TestUpdateUpdatesUsesResourceLockAndSkipsNoopWrites(t *testing.T) {
+	repo := newMemorySettingsRepository()
+	service := newTestSettingsService(repo, &fakeSecretCipher{}, nil, nil)
+	disabled := false
+
+	updated, err := service.UpdateUpdates(context.Background(), UpdateUpdatesInput{
+		CurrentUserID: testSystemSettingsAdminID, CheckForUpdates: &disabled,
+	})
+	if err != nil {
+		t.Fatalf("update updates settings: %v", err)
+	}
+	if updated.CheckForUpdates {
+		t.Fatalf("expected update checks disabled, got %#v", updated)
+	}
+	if !reflect.DeepEqual(repo.lockAttempts, []string{string(ResourceUpdates)}) {
+		t.Fatalf("unexpected updates lock attempts: %#v", repo.lockAttempts)
+	}
+	if !reflect.DeepEqual(repo.upsertAttempts, []string{keyUpdateCheckEnabled}) || repo.auditAttempts != 1 {
+		t.Fatalf("unexpected writes: upserts=%#v audits=%d", repo.upsertAttempts, repo.auditAttempts)
+	}
+
+	if _, err := service.UpdateUpdates(context.Background(), UpdateUpdatesInput{
+		CurrentUserID: testSystemSettingsAdminID, CheckForUpdates: &disabled,
+	}); err != nil {
+		t.Fatalf("repeat updates settings update: %v", err)
+	}
+	if len(repo.upsertAttempts) != 1 || repo.auditAttempts != 1 {
+		t.Fatal("no-op updates patch wrote a setting or audit event")
+	}
+}
+
 func TestUpdateAccessRollsBackWritesWhenAuditFails(t *testing.T) {
 	auditErr := errors.New("audit failed")
 	repo := newMemorySettingsRepository()

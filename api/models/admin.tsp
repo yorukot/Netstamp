@@ -142,6 +142,45 @@ model SetManagedUserPasswordRequest {
 	password: string;
 }
 
+@example(#{ checkForUpdates: true })
+model AdminUpdateSettings {
+	@doc("Whether the controller checks the latest Netstamp GitHub release on startup and every six hours.")
+	checkForUpdates: boolean;
+}
+
+@example(#{ checkForUpdates: false })
+@doc("Partial update-check settings update. Omitted properties retain their current values.")
+model AdminUpdateSettingsPatch {
+	checkForUpdates?: boolean;
+}
+
+@example(#{ settings: #{ checkForUpdates: true } })
+model AdminUpdateSettingsResponse {
+	settings: AdminUpdateSettings;
+}
+
+@example(#{
+	currentVersion: "0.1.0",
+	latestVersion: "v0.2.0",
+	updateAvailable: true,
+	releaseUrl: "https://github.com/yorukot/netstamp/releases/tag/v0.2.0",
+	publishedAt: utcDateTime.fromISO("2026-08-20T00:00:00Z"),
+	lastCheckedAt: utcDateTime.fromISO("2026-08-20T06:00:00Z"),
+	checkError: null,
+})
+model AdminUpdateStatus {
+	currentVersion: string;
+	latestVersion: string | null;
+	updateAvailable: boolean;
+
+	@format("uri")
+	releaseUrl: string | null;
+
+	publishedAt: utcDateTime | null;
+	lastCheckedAt: utcDateTime | null;
+	checkError: string | null;
+}
+
 @example(#{ accountCreationEnabled: true, emailVerificationRequired: true, projectCreationEnabled: true, credentialChangesEnabled: true })
 model AdminAccessSettings {
 	@doc("Whether new accounts may be created through password registration or external-provider JIT provisioning.")

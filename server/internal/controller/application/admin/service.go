@@ -2,16 +2,19 @@ package admin
 
 import (
 	"context"
+	"errors"
 
 	"github.com/yorukot/netstamp/internal/domain/identity"
 )
 
 type Service struct {
-	repo        Repository
-	sessions    SessionRepository
-	apiTokens   APITokenRevoker
-	hasher      PasswordHasher
-	authMethods AuthenticationMethodRepository
+	repo           Repository
+	sessions       SessionRepository
+	apiTokens      APITokenRevoker
+	hasher         PasswordHasher
+	authMethods    AuthenticationMethodRepository
+	updateStatus   UpdateStatusReader
+	updateSettings UpdateSettingsReader
 }
 
 func (s *Service) ConfigureAuthenticationMethods(repo AuthenticationMethodRepository) {
@@ -32,6 +35,10 @@ func (s *Service) ConfigureSessions(repo SessionRepository) {
 
 func (s *Service) ConfigureAPITokens(revoker APITokenRevoker) { s.apiTokens = revoker }
 
+func (s *Service) ConfigureUpdateStatus(reader UpdateStatusReader) { s.updateStatus = reader }
+
+func (s *Service) ConfigureUpdateSettings(reader UpdateSettingsReader) { s.updateSettings = reader }
+
 func (s *Service) ListSystemAdmins(ctx context.Context, input ListSystemAdminsInput) ([]SystemAdmin, error) {
 	if err := s.requireSystemAdmin(ctx, input.CurrentUserID); err != nil {
 		return nil, err
@@ -48,6 +55,27 @@ func (s *Service) ListManagedUsers(ctx context.Context, input ListManagedUsersIn
 		return nil, err
 	}
 	return s.repo.ListManagedUsers(ctx)
+}
+
+func (s *Service) GetUpdateStatus(ctx context.Context, input UpdateStatusInput) (UpdateStatus, error) {
+	if err := s.requireSystemAdmin(ctx, input.CurrentUserID); err != nil {
+		return UpdateStatus{}, err
+	}
+	if s.updateSettings == nil {
+		return UpdateStatus{}, errors.New("update settings reader is unavailable")
+	}
+	enabled, err := s.updateSettings.UpdateCheckEnabled(ctx)
+	if err != nil {
+		return UpdateStatus{}, err
+	}
+	if s.updateStatus == nil {
+		return UpdateStatus{}, errors.New("update status reader is unavailable")
+	}
+	status := s.updateStatus.ReadUpdateStatus()
+	if !enabled {
+		return UpdateStatus{CurrentVersion: status.CurrentVersion}, nil
+	}
+	return status, nil
 }
 
 func (s *Service) GrantSystemAdmin(ctx context.Context, input GrantSystemAdminInput) (SystemAdmin, error) {

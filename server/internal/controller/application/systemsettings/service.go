@@ -125,6 +125,10 @@ func (s *Service) GetGitHub(ctx context.Context, input GetGitHubInput) (GitHubSe
 	return getSetting(ctx, s, input.CurrentUserID, s.effectiveGitHubView)
 }
 
+func (s *Service) GetUpdates(ctx context.Context, input GetUpdatesInput) (UpdatesSettings, error) {
+	return getSetting(ctx, s, input.CurrentUserID, s.EffectiveUpdates)
+}
+
 func getSetting[T any](
 	ctx context.Context,
 	service *Service,
@@ -156,6 +160,18 @@ func (s *Service) EffectiveAccess(ctx context.Context) (AccessSettings, error) {
 		if err := applyPublicSetting(rows, key, target); err != nil {
 			return AccessSettings{}, err
 		}
+	}
+	return value, nil
+}
+
+func (s *Service) EffectiveUpdates(ctx context.Context) (UpdatesSettings, error) {
+	value := UpdatesSettings{CheckForUpdates: true}
+	rows, err := s.settingsByKeys(ctx, updatesKeys)
+	if err != nil {
+		return UpdatesSettings{}, err
+	}
+	if err := applyPublicSetting(rows, keyUpdateCheckEnabled, &value.CheckForUpdates); err != nil {
+		return UpdatesSettings{}, err
 	}
 	return value, nil
 }
@@ -426,6 +442,11 @@ func (s *Service) ProjectCreationEnabled(ctx context.Context) (bool, error) {
 func (s *Service) CredentialChangesEnabled(ctx context.Context) (bool, error) {
 	value, err := s.EffectiveAccess(ctx)
 	return value.CredentialChangesEnabled, err
+}
+
+func (s *Service) UpdateCheckEnabled(ctx context.Context) (bool, error) {
+	value, err := s.EffectiveUpdates(ctx)
+	return value.CheckForUpdates, err
 }
 
 func (s *Service) TestSMTP(ctx context.Context, input TestSMTPInput) error {

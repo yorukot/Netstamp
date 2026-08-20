@@ -7,12 +7,43 @@ import (
 	"strings"
 	"time"
 
+	appadmin "github.com/yorukot/netstamp/internal/controller/application/admin"
 	appsystemsettings "github.com/yorukot/netstamp/internal/controller/application/systemsettings"
+	appupdatecheck "github.com/yorukot/netstamp/internal/controller/application/updatecheck"
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/notify"
 	"github.com/yorukot/netstamp/internal/controller/infrastructure/security"
 	httpserver "github.com/yorukot/netstamp/internal/controller/transport/http"
 	"github.com/yorukot/netstamp/internal/domain/identity"
 )
+
+type updateStatusProvider struct {
+	cache *appupdatecheck.Cache
+}
+
+func (p updateStatusProvider) ReadUpdateStatus() appadmin.UpdateStatus {
+	status := p.cache.Snapshot()
+	return appadmin.UpdateStatus{
+		CurrentVersion: status.CurrentVersion, LatestVersion: optionalString(status.LatestVersion),
+		UpdateAvailable: status.UpdateAvailable, ReleaseURL: optionalString(status.ReleaseURL),
+		PublishedAt: optionalTime(status.PublishedAt), LastCheckedAt: optionalTime(status.LastCheckedAt),
+		CheckError: optionalString(status.CheckError),
+	}
+}
+
+func optionalString(value string) *string {
+	if strings.TrimSpace(value) == "" {
+		return nil
+	}
+	return &value
+}
+
+func optionalTime(value time.Time) *time.Time {
+	if value.IsZero() {
+		return nil
+	}
+	value = value.UTC()
+	return &value
+}
 
 type systemSettingsSMTPProvider struct {
 	service *appsystemsettings.Service

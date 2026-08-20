@@ -4,6 +4,8 @@ import {
 	readAdminSettingsValidation,
 	type AdminAccessSettings,
 	type AdminAccessSettingsPatch,
+	type AdminUpdateSettings,
+	type AdminUpdateSettingsPatch,
 	type AdminGitHubProviderSettings,
 	type AdminGitHubProviderSettingsPatch,
 	type AdminGoogleProviderSettings,
@@ -21,6 +23,11 @@ import { requireWritableAccess } from "./shared";
 export const updateAdminAccessSettings = (body: AdminAccessSettingsPatch) => {
 	requireWritableAccess();
 	return readAdminSettings<AdminAccessSettings>(apiClient.PATCH("/admin/settings/access", { body }));
+};
+
+export const updateAdminUpdateSettings = (body: AdminUpdateSettingsPatch) => {
+	requireWritableAccess();
+	return readAdminSettings<AdminUpdateSettings>(apiClient.PATCH("/admin/settings/updates", { body }));
 };
 
 export const updateAdminSMTPSettings = (body: AdminSMTPSettingsPatch) => {
@@ -97,6 +104,18 @@ export function useUpdateAdminAccessSettingsMutation() {
 			queryClient.setQueryData(apiQueryKeys.admin.accessSettings(), data);
 			queryClient.invalidateQueries({ queryKey: apiQueryKeys.auth.me() });
 			queryClient.invalidateQueries({ queryKey: apiQueryKeys.auth.methods() });
+		}
+	});
+}
+
+export function useUpdateAdminUpdateSettingsMutation() {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: updateAdminUpdateSettings,
+		onSuccess: data => {
+			queryClient.setQueryData(apiQueryKeys.admin.updateSettings(), data);
+			queryClient.invalidateQueries({ queryKey: apiQueryKeys.admin.updateStatus() });
 		}
 	});
 }

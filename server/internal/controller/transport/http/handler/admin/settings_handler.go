@@ -17,11 +17,13 @@ type settingsService interface {
 	GetOIDC(context.Context, appsettings.GetOIDCInput) (appsettings.OIDCSettings, error)
 	GetGoogle(context.Context, appsettings.GetGoogleInput) (appsettings.GoogleSettings, error)
 	GetGitHub(context.Context, appsettings.GetGitHubInput) (appsettings.GitHubSettings, error)
+	GetUpdates(context.Context, appsettings.GetUpdatesInput) (appsettings.UpdatesSettings, error)
 	UpdateAccess(context.Context, appsettings.UpdateAccessInput) (appsettings.AccessSettings, error)
 	UpdateSMTP(context.Context, appsettings.UpdateSMTPInput) (appsettings.SMTPSettings, error)
 	UpdateOIDC(context.Context, appsettings.UpdateOIDCInput) (appsettings.OIDCSettings, error)
 	UpdateGoogle(context.Context, appsettings.UpdateGoogleInput) (appsettings.GoogleSettings, error)
 	UpdateGitHub(context.Context, appsettings.UpdateGitHubInput) (appsettings.GitHubSettings, error)
+	UpdateUpdates(context.Context, appsettings.UpdateUpdatesInput) (appsettings.UpdatesSettings, error)
 	ValidateOIDC(context.Context, appsettings.ValidateOIDCInput) error
 	ValidateGoogle(context.Context, appsettings.ValidateGoogleInput) error
 	ValidateGitHub(context.Context, appsettings.ValidateGitHubInput) error
@@ -36,6 +38,7 @@ func (h *Handler) registerSettingsReadRoutes(r chi.Router) {
 	r.Get("/admin/settings/authentication-providers/oidc", h.handleGetOIDCSettings)
 	r.Get("/admin/settings/authentication-providers/google", h.handleGetGoogleSettings)
 	r.Get("/admin/settings/authentication-providers/github", h.handleGetGitHubSettings)
+	r.Get("/admin/settings/updates", h.handleGetUpdatesSettings)
 }
 
 func (h *Handler) registerSettingsSensitiveRoutes(r chi.Router) {
@@ -48,6 +51,7 @@ func (h *Handler) registerSettingsSensitiveRoutes(r chi.Router) {
 	r.Post("/admin/settings/authentication-providers/google/validate", h.handleValidateGoogleSettings)
 	r.Patch("/admin/settings/authentication-providers/github", h.handleUpdateGitHubSettings)
 	r.Post("/admin/settings/authentication-providers/github/validate", h.handleValidateGitHubSettings)
+	r.Patch("/admin/settings/updates", h.handleUpdateUpdatesSettings)
 }
 
 func (h *Handler) handleGetAccessSettings(w http.ResponseWriter, r *http.Request) {
@@ -115,6 +119,19 @@ func (h *Handler) handleGetGitHubSettings(w http.ResponseWriter, r *http.Request
 	writeSettings(w, githubSettingsResponse(result))
 }
 
+func (h *Handler) handleGetUpdatesSettings(w http.ResponseWriter, r *http.Request) {
+	userID, ok := h.settingsRequestUser(w, r)
+	if !ok {
+		return
+	}
+	result, err := h.settings.GetUpdates(r.Context(), appsettings.GetUpdatesInput{CurrentUserID: userID})
+	if err != nil {
+		writeSettingsProblem(w, r, err, "get updates settings failed")
+		return
+	}
+	writeSettings(w, updatesSettingsResponse(result))
+}
+
 func (h *Handler) handleUpdateAccessSettings(w http.ResponseWriter, r *http.Request) {
 	userID, ok := h.settingsRequestUser(w, r)
 	if !ok {
@@ -137,6 +154,26 @@ func (h *Handler) handleUpdateAccessSettings(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	writeSettings(w, accessSettingsResponse(result))
+}
+
+func (h *Handler) handleUpdateUpdatesSettings(w http.ResponseWriter, r *http.Request) {
+	userID, ok := h.settingsRequestUser(w, r)
+	if !ok {
+		return
+	}
+	var body updatesSettingsPatchBody
+	if err := httpx.DecodeJSON(r, &body); err != nil {
+		httpx.WriteProblem(w, r, err)
+		return
+	}
+	result, err := h.settings.UpdateUpdates(r.Context(), appsettings.UpdateUpdatesInput{
+		CurrentUserID: userID, CheckForUpdates: body.CheckForUpdates.Value,
+	})
+	if err != nil {
+		writeSettingsProblem(w, r, err, "update updates settings failed")
+		return
+	}
+	writeSettings(w, updatesSettingsResponse(result))
 }
 
 func (h *Handler) handleUpdateSMTPSettings(w http.ResponseWriter, r *http.Request) {
@@ -377,6 +414,10 @@ func accessSettingsResponse(value appsettings.AccessSettings) accessSettingsResp
 		AccountCreationEnabled: value.AccountCreationEnabled, EmailVerificationRequired: value.EmailVerificationRequired,
 		ProjectCreationEnabled: value.ProjectCreationEnabled, CredentialChangesEnabled: value.CredentialChangesEnabled,
 	}
+}
+
+func updatesSettingsResponse(value appsettings.UpdatesSettings) updatesSettingsResponseBody {
+	return updatesSettingsResponseBody{CheckForUpdates: value.CheckForUpdates}
 }
 
 func smtpSettingsResponse(value appsettings.SMTPSettings) smtpSettingsResponseBody {

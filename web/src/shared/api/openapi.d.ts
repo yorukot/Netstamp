@@ -221,6 +221,30 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	"/admin/settings/updates": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Get update settings
+		 * @description Return whether this instance automatically checks GitHub for Netstamp releases.
+		 */
+		get: operations["getAdminUpdateSettings"];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		/**
+		 * Update update settings
+		 * @description Partially update automatic release-check settings.
+		 */
+		patch: operations["updateAdminUpdateSettings"];
+		trace?: never;
+	};
 	"/admin/system-admins": {
 		parameters: {
 			query?: never;
@@ -260,6 +284,26 @@ export interface paths {
 		 * @description Revoke instance-level administrator access from a user. The current administrator cannot revoke themselves, and the system must keep at least one administrator.
 		 */
 		delete: operations["revokeSystemAdmin"];
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	"/admin/update-status": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Get controller update status
+		 * @description Return the installed controller version and the latest cached GitHub release check for system administrators.
+		 */
+		get: operations["getAdminUpdateStatus"];
+		put?: never;
+		post?: never;
+		delete?: never;
 		options?: never;
 		head?: never;
 		patch?: never;
@@ -2120,6 +2164,55 @@ export interface components {
 		 */
 		AdminSMTPSettingsResponse: {
 			settings: components["schemas"]["AdminSMTPSettings"];
+		};
+		/**
+		 * @example {
+		 *       "checkForUpdates": true
+		 *     }
+		 */
+		AdminUpdateSettings: {
+			/** @description Whether the controller checks the latest Netstamp GitHub release on startup and every six hours. */
+			checkForUpdates: boolean;
+		};
+		/**
+		 * @description Partial update-check settings update. Omitted properties retain their current values.
+		 * @example {
+		 *       "checkForUpdates": false
+		 *     }
+		 */
+		AdminUpdateSettingsPatch: {
+			checkForUpdates?: boolean;
+		};
+		/**
+		 * @example {
+		 *       "settings": {
+		 *         "checkForUpdates": true
+		 *       }
+		 *     }
+		 */
+		AdminUpdateSettingsResponse: {
+			settings: components["schemas"]["AdminUpdateSettings"];
+		};
+		/**
+		 * @example {
+		 *       "currentVersion": "0.1.0",
+		 *       "latestVersion": "v0.2.0",
+		 *       "updateAvailable": true,
+		 *       "releaseUrl": "https://github.com/yorukot/netstamp/releases/tag/v0.2.0",
+		 *       "publishedAt": "2026-08-20T00:00:00Z",
+		 *       "lastCheckedAt": "2026-08-20T06:00:00Z",
+		 *       "checkError": null
+		 *     }
+		 */
+		AdminUpdateStatus: {
+			currentVersion: string;
+			latestVersion: string | null;
+			updateAvailable: boolean;
+			/** Format: uri */
+			releaseUrl: string | null;
+			publishedAt: string | null;
+			lastCheckedAt: string | null;
+			checkError: string | null;
 		};
 		/**
 		 * @example {
@@ -6892,6 +6985,124 @@ export interface operations {
 			};
 		};
 	};
+	getAdminUpdateSettings: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description A successful private JSON response that must not be cached. */
+			200: {
+				headers: {
+					"Cache-Control": "private, no-store";
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["AdminUpdateSettingsResponse"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	updateAdminUpdateSettings: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				"application/json": components["schemas"]["AdminUpdateSettingsPatch"];
+			};
+		};
+		responses: {
+			/** @description A successful private JSON response that must not be cached. */
+			200: {
+				headers: {
+					"Cache-Control": "private, no-store";
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["AdminUpdateSettingsResponse"];
+				};
+			};
+			/** @description The server could not understand the request due to invalid syntax. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Client error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
 	listSystemAdmins: {
 		parameters: {
 			query?: never;
@@ -7064,6 +7275,54 @@ export interface operations {
 			};
 			/** @description The request conflicts with the current state of the server. */
 			409: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Server error */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+		};
+	};
+	getAdminUpdateStatus: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description A successful private JSON response that must not be cached. */
+			200: {
+				headers: {
+					"Cache-Control": "private, no-store";
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["AdminUpdateStatus"];
+				};
+			};
+			/** @description Access is unauthorized. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ProblemDetails"];
+				};
+			};
+			/** @description Access is forbidden. */
+			403: {
 				headers: {
 					[name: string]: unknown;
 				};

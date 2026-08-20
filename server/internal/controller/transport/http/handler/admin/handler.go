@@ -41,6 +41,7 @@ func (h *Handler) RegisterRoutes(api chi.Router) {
 
 		r.Get("/admin/system-admins", h.handleListSystemAdmins)
 		r.Get("/admin/users", h.handleListManagedUsers)
+		r.Get("/admin/update-status", h.handleGetUpdateStatus)
 		h.registerSettingsReadRoutes(r)
 		registerSensitive := func(sensitive chi.Router) {
 			sensitive.Post("/admin/system-admins", h.handleGrantSystemAdmin)

@@ -11,6 +11,8 @@ const (
 	Product      = "0.0.0"
 	API          = "v1"
 	MinimumAgent = Product
+	GitHubOwner  = "yorukot"
+	GitHubRepo   = "netstamp"
 	agentPrefix  = "netstamp-probe/"
 )
 

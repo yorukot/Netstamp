@@ -80,6 +80,33 @@ interface AdminService {
 	@route("/users/{user_id}/password")
 	clearManagedUserPassword(...UserIdPathParam): OkJson<ManagedUserResponse> | UnauthorizedProblem | ForbiddenProblem | ConflictProblem | NotFoundProblem | InternalServerProblem;
 
+	@operationId("getAdminUpdateStatus")
+	@summary("Get controller update status")
+	@doc("Return the installed controller version and the latest cached GitHub release check for system administrators.")
+	@get
+	@route("/update-status")
+	getAdminUpdateStatus(): PrivateNoStoreOkJson<AdminUpdateStatus> | UnauthorizedProblem | ForbiddenProblem | InternalServerProblem;
+
+	@operationId("getAdminUpdateSettings")
+	@summary("Get update settings")
+	@doc("Return whether this instance automatically checks GitHub for Netstamp releases.")
+	@get
+	@route("/settings/updates")
+	getAdminUpdateSettings(): PrivateNoStoreOkJson<AdminUpdateSettingsResponse> | UnauthorizedProblem | ForbiddenProblem | InternalServerProblem;
+
+	@operationId("updateAdminUpdateSettings")
+	@summary("Update update settings")
+	@doc("Partially update automatic release-check settings.")
+	@patch
+	@route("/settings/updates")
+	updateAdminUpdateSettings(@body body: AdminUpdateSettingsPatch):
+		| PrivateNoStoreOkJson<AdminUpdateSettingsResponse>
+		| BadRequestProblem
+		| UnauthorizedProblem
+		| ForbiddenProblem
+		| UnprocessableEntityProblem
+		| InternalServerProblem;
+
 	@operationId("getAdminAccessSettings")
 	@summary("Get instance access settings")
 	@doc("Return the current account, project, and credential-management policies.")
