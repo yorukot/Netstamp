@@ -43,15 +43,6 @@ func New(base error, field, message string, value any) error {
 	})
 }
 
-func NewCode(base error, field, code, message string, value any) error {
-	return NewFields(base, FieldError{
-		Field:   field,
-		Code:    normalizeFieldCode(code),
-		Message: message,
-		Value:   value,
-	})
-}
-
 func NewFields(base error, fields ...FieldError) error {
 	copied := make([]FieldError, len(fields))
 	copy(copied, fields)

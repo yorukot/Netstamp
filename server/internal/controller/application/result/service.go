@@ -18,10 +18,6 @@ type Service struct {
 	httpResults   *apphttp.Service
 }
 
-func NewService(pings PingSeriesRepository, tcps TCPInsightRepository, traceroutes TracerouteRunsRepository, latestResults LatestRepository, projectAccess ProjectAccess) *Service {
-	return NewServiceWithHTTP(pings, tcps, nil, traceroutes, latestResults, projectAccess)
-}
-
 func NewServiceWithHTTP(pings PingSeriesRepository, tcps TCPInsightRepository, httpResults HTTPInsightRepository, traceroutes TracerouteRunsRepository, latestResults LatestRepository, projectAccess ProjectAccess) *Service {
 	return &Service{
 		pings:         ping.NewService(pings, projectAccess),

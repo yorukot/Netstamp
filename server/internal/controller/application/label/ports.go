@@ -32,24 +32,22 @@ type EventRecorder interface {
 type LabelEventName string
 
 const (
-	LabelEventListFailure    LabelEventName = "label.list.failure"
-	LabelEventCreateSuccess  LabelEventName = "label.create.success"
-	LabelEventCreateFailure  LabelEventName = "label.create.failure"
-	LabelEventUpdateSuccess  LabelEventName = "label.update.success"
-	LabelEventUpdateFailure  LabelEventName = "label.update.failure"
-	LabelEventDeleteSuccess  LabelEventName = "label.delete.success"
-	LabelEventDeleteFailure  LabelEventName = "label.delete.failure"
-	LabelEventResolveFailure LabelEventName = "label.resolve.failure"
+	LabelEventListFailure   LabelEventName = "label.list.failure"
+	LabelEventCreateSuccess LabelEventName = "label.create.success"
+	LabelEventCreateFailure LabelEventName = "label.create.failure"
+	LabelEventUpdateSuccess LabelEventName = "label.update.success"
+	LabelEventUpdateFailure LabelEventName = "label.update.failure"
+	LabelEventDeleteSuccess LabelEventName = "label.delete.success"
+	LabelEventDeleteFailure LabelEventName = "label.delete.failure"
 )
 
 type LabelEventAction string
 
 const (
-	LabelActionList    LabelEventAction = "list"
-	LabelActionCreate  LabelEventAction = "create"
-	LabelActionUpdate  LabelEventAction = "update"
-	LabelActionDelete  LabelEventAction = "delete"
-	LabelActionResolve LabelEventAction = "resolve"
+	LabelActionList   LabelEventAction = "list"
+	LabelActionCreate LabelEventAction = "create"
+	LabelActionUpdate LabelEventAction = "update"
+	LabelActionDelete LabelEventAction = "delete"
 )
 
 type LabelEventOutcome string
@@ -75,7 +73,6 @@ const (
 	LabelReasonLabelCreateFailed       LabelEventReason = "label_create_failed"
 	LabelReasonLabelUpdateFailed       LabelEventReason = "label_update_failed"
 	LabelReasonLabelDeleteFailed       LabelEventReason = "label_delete_failed"
-	LabelReasonLabelResolveFailed      LabelEventReason = "label_resolve_failed"
 	LabelReasonAssignmentRefreshFailed LabelEventReason = "assignment_refresh_failed"
 )
 

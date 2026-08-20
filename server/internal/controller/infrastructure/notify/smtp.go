@@ -124,10 +124,6 @@ func (s *AlertEmailSender) Send(ctx context.Context, notification domainalert.No
 	return smtpSender.SendAlert(ctx, config, payload)
 }
 
-func NewPasswordResetMailer(cfg SMTPConfig) *PasswordResetMailer {
-	return &PasswordResetMailer{smtp: NewSMTPSender(cfg)}
-}
-
 func NewDynamicPasswordResetMailer(provider SMTPConfigProvider) *PasswordResetMailer {
 	return &PasswordResetMailer{dynamic: NewDynamicSMTPSender(provider)}
 }

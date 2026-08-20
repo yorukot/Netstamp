@@ -61,13 +61,6 @@ func (f *labelFlow) setProject(project domainproject.Project) {
 	}
 }
 
-func (f *labelFlow) setProjectID(projectID string) {
-	f.projectID = projectID
-	if projectID != "" {
-		f.span.SetAttributes(attrProjectID.String(projectID))
-	}
-}
-
 func (f *labelFlow) setLabelID(labelID string) {
 	f.labelID = labelID
 	if labelID != "" {
@@ -119,19 +112,6 @@ func (f *labelFlow) writeFailure(event LabelEventName, technicalReason LabelEven
 		return f.businessFailure(event, LabelReasonProjectNotFound, err)
 	default:
 		return f.technicalFailure(event, technicalReason, err)
-	}
-}
-
-func (f *labelFlow) resolveFailure(err error) error {
-	switch {
-	case errors.Is(err, label.ErrLabelNotFound):
-		return f.businessFailure(LabelEventResolveFailure, LabelReasonLabelNotFound, err)
-	case errors.Is(err, ErrInvalidInput), errors.Is(err, label.ErrInvalidInput):
-		return f.businessFailure(LabelEventResolveFailure, LabelReasonInvalidInput, err)
-	case errors.Is(err, domainproject.ErrProjectNotFound):
-		return f.businessFailure(LabelEventResolveFailure, LabelReasonProjectNotFound, err)
-	default:
-		return f.technicalFailure(LabelEventResolveFailure, LabelReasonLabelResolveFailed, err)
 	}
 }
 

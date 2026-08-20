@@ -186,28 +186,6 @@ func (s *Service) DeleteLabel(ctx context.Context, input DeleteLabelInput) error
 	return nil
 }
 
-func (s *Service) GetActiveLabelsByIDsForProject(ctx context.Context, projectID string, labelIDs []string) ([]domainlabel.Label, error) {
-	ctx, flow := s.startLabelFlow(ctx, "label.resolve", LabelActionResolve, "")
-	defer flow.end()
-	flow.setProjectID(projectID)
-
-	var normalizedLabelIDs []string
-	for _, labelID := range labelIDs {
-		normalizedLabelID, err := domainlabel.VNLabelID(labelID)
-		if err != nil {
-			return nil, flow.resolveFailure(err)
-		}
-		normalizedLabelIDs = append(normalizedLabelIDs, normalizedLabelID)
-	}
-
-	labels, err := s.repo.GetActiveLabelsByIDsForProject(ctx, projectID, normalizedLabelIDs)
-	if err != nil {
-		return nil, flow.resolveFailure(err)
-	}
-
-	return labels, nil
-}
-
 func (s *Service) loadProject(ctx context.Context, flow *labelFlow, projectRef, userID string, failureEvent LabelEventName) (domainproject.Project, error) {
 	project, err := s.projectAccess.GetProjectForUser(ctx, projectRef, userID)
 	if errors.Is(err, domainproject.ErrProjectNotFound) {
