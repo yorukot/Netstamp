@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/yorukot/netstamp/internal/controller/transport/http/clientip"
-	"github.com/yorukot/netstamp/internal/platform/normalize"
 )
 
 type PasswordResetRateLimitConfig struct {
@@ -69,7 +68,7 @@ func (l *PasswordResetRateLimiter) Allow(ctx context.Context, clientKey, email s
 		return false
 	}
 
-	email = normalize.Email(email)
+	email = strings.ToLower(strings.TrimSpace(email))
 	if email == "" {
 		return true
 	}
