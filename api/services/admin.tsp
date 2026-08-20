@@ -80,20 +80,6 @@ interface AdminService {
 	@route("/users/{user_id}/password")
 	clearManagedUserPassword(...UserIdPathParam): OkJson<ManagedUserResponse> | UnauthorizedProblem | ForbiddenProblem | ConflictProblem | NotFoundProblem | InternalServerProblem;
 
-	@operationId("exportAdminData")
-	@summary("Export admin data")
-	@doc("Export Netstamp application data as a JSON backup. The export includes sensitive account and credential material such as password hashes and stored secrets.")
-	@get
-	@route("/data-export")
-	exportAdminData(): OkJson<AdminDataExport> | UnauthorizedProblem | ForbiddenProblem | InternalServerProblem;
-
-	@operationId("importAdminData")
-	@summary("Import admin data")
-	@doc("Import a JSON backup produced by exportAdminData. Existing application data in the managed tables is replaced.")
-	@post
-	@route("/data-import")
-	importAdminData(@body body: AdminDataExport): OkJson<AdminDataImportResponse> | BadRequestProblem | UnauthorizedProblem | ForbiddenProblem | UnprocessableEntityProblem | InternalServerProblem;
-
 	@operationId("getAdminAccessSettings")
 	@summary("Get instance access settings")
 	@doc("Return the current account, project, and credential-management policies.")

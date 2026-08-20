@@ -14,8 +14,6 @@ type Repository interface {
 	CountActiveSystemAdmins(ctx context.Context) (int64, error)
 	SetManagedUserDisabledAt(ctx context.Context, userID string, disabled bool) (ManagedUser, error)
 	SetManagedUserPasswordHash(ctx context.Context, userID, passwordHash string) (ManagedUser, error)
-	ExportData(ctx context.Context) (DataExport, error)
-	ImportData(ctx context.Context, export DataExport) (DataImportResult, error)
 	CreateSystemSettingAuditEvent(ctx context.Context, key, action string, updatedByUserID *string) error
 }
 

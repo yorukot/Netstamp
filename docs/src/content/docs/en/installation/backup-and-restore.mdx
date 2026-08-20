@@ -91,12 +91,6 @@ The migration container must exit successfully before the controller starts. Do 
 
 :::warning Switching an image tag back does not reverse database migrations. Use a documented schema downgrade only when the target release explicitly supports it; otherwise restore the pre-upgrade backup. :::
 
-## Admin JSON export
-
-System administrators can export and import a Netstamp JSON data package under **Admin → Data**. It is useful for application-level portability and controlled administrative workflows.
-
-It is not a substitute for a PostgreSQL backup because it does not preserve database extensions, ownership, database-level metadata, or an exact point-in-time recovery boundary.
-
 ## Protect the database volume
 
 These commands have different effects:

@@ -246,14 +246,6 @@ func (r *fakeAdminRepository) ClearManagedUserPassword(_ context.Context, userID
 	return ManagedUser{}, errors.New("not found")
 }
 
-func (r *fakeAdminRepository) ExportData(context.Context) (DataExport, error) {
-	return DataExport{Format: "netstamp.admin.data.v1"}, nil
-}
-
-func (r *fakeAdminRepository) ImportData(context.Context, DataExport) (DataImportResult, error) {
-	return DataImportResult{}, nil
-}
-
 func (r *fakeAdminRepository) CreateSystemSettingAuditEvent(_ context.Context, key, action string, _ *string) error {
 	r.auditKeys = append(r.auditKeys, key)
 	r.auditActions = append(r.auditActions, action)

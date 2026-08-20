@@ -355,35 +355,6 @@ func (s *Service) RevokeSystemAdmin(ctx context.Context, input RevokeSystemAdmin
 	return nil
 }
 
-func (s *Service) ExportData(ctx context.Context, input ExportDataInput) (DataExport, error) {
-	input, err := normalizeExportDataInput(input)
-	if err != nil {
-		return DataExport{}, err
-	}
-	if requireErr := s.requireSystemAdmin(ctx, input.CurrentUserID); requireErr != nil {
-		return DataExport{}, requireErr
-	}
-	return s.repo.ExportData(ctx)
-}
-
-func (s *Service) ImportData(ctx context.Context, input ImportDataInput) (DataImportResult, error) {
-	input, err := normalizeImportDataInput(input)
-	if err != nil {
-		return DataImportResult{}, err
-	}
-	if requireErr := s.requireSystemAdmin(ctx, input.CurrentUserID); requireErr != nil {
-		return DataImportResult{}, requireErr
-	}
-	result, err := s.repo.ImportData(ctx, input.Export)
-	if err != nil {
-		return DataImportResult{}, err
-	}
-	if auditErr := s.repo.CreateSystemSettingAuditEvent(ctx, "data_import", auditActionDataImport, &input.CurrentUserID); auditErr != nil {
-		return DataImportResult{}, auditErr
-	}
-	return result, nil
-}
-
 func (s *Service) IsSystemAdmin(ctx context.Context, userID string) (bool, error) {
 	if s == nil || s.repo == nil {
 		return false, nil

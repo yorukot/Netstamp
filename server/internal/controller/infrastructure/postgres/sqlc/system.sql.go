@@ -98,23 +98,6 @@ func (q *Queries) CreateSystemSettingAuditEvent(ctx context.Context, arg CreateS
 	return err
 }
 
-const deleteLegacyEmptySystemSettingSecrets = `-- name: DeleteLegacyEmptySystemSettingSecrets :exec
-DELETE FROM system_settings
-WHERE secret = true
-  AND octet_length(encrypted_value) = 16
-  AND key IN (
-      'smtp.password',
-      'auth.provider.oidc.client_secret',
-      'auth.provider.google.client_secret',
-      'auth.provider.github.client_secret'
-  )
-`
-
-func (q *Queries) DeleteLegacyEmptySystemSettingSecrets(ctx context.Context) error {
-	_, err := q.db.Exec(ctx, deleteLegacyEmptySystemSettingSecrets)
-	return err
-}
-
 const deleteSystemSetting = `-- name: DeleteSystemSetting :exec
 DELETE FROM system_settings
 WHERE key = $1

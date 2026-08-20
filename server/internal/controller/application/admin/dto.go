@@ -8,10 +8,6 @@ type SystemAdminRevokeResult = domainsystem.AdminRevokeResult
 
 type ManagedUser = domainsystem.ManagedUser
 
-type DataExport = domainsystem.DataExport
-
-type DataImportResult = domainsystem.DataImportResult
-
 type ListSystemAdminsInput struct {
 	CurrentUserID string
 }
@@ -46,13 +42,4 @@ type SetManagedUserPasswordInput struct {
 type ClearManagedUserPasswordInput struct {
 	CurrentUserID string
 	UserID        string
-}
-
-type ExportDataInput struct {
-	CurrentUserID string
-}
-
-type ImportDataInput struct {
-	CurrentUserID string
-	Export        DataExport
 }

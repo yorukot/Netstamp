@@ -11,10 +11,6 @@ export type PasswordSudoInput = components["schemas"]["PasswordSudoRequest"];
 export type ApiToken = components["schemas"]["APIToken"];
 export type ApiTokenScope = ApiToken["scopes"][number];
 export type CreateApiTokenInput = components["schemas"]["CreateAPITokenRequest"];
-export type ApiAdminDataExport = Omit<components["schemas"]["AdminDataExport"], "tables"> & {
-	tables: Record<string, unknown[]>;
-};
-export type ApiAdminDataImportResponse = components["schemas"]["AdminDataImportResponse"];
 export type ApiManagedUser = components["schemas"]["ManagedUser"];
 export type ApiSystemAdminUser = components["schemas"]["SystemAdminUser"];
 export type ApiLabel = components["schemas"]["Label"];

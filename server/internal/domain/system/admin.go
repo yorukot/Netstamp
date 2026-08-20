@@ -1,9 +1,6 @@
 package system
 
-import (
-	"encoding/json"
-	"time"
-)
+import "time"
 
 type AdminUser struct {
 	ID              string
@@ -34,17 +31,3 @@ type AdminRevokeResult struct {
 	TargetWasAdmin bool
 	Revoked        bool
 }
-
-type DataExport struct {
-	Format     string
-	ExportedAt time.Time
-	Tables     map[string][]RawDataRow
-}
-
-type DataImportResult struct {
-	Format         string
-	ImportedTables int
-	ImportedRows   int
-}
-
-type RawDataRow = json.RawMessage

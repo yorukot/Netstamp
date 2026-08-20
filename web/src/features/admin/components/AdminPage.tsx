@@ -1,9 +1,9 @@
 import { useRequireSudo } from "@/features/auth/hooks/useRequireSudo";
 import { useSession } from "@/features/auth/session/SessionContext";
 import { formatDateTime } from "@/i18n/format";
-import { useClearManagedUserPasswordMutation, useExportAdminDataMutation, useImportAdminDataMutation, useSetManagedUserPasswordMutation, useUpdateManagedUserMutation } from "@/shared/api/mutations";
+import { useClearManagedUserPasswordMutation, useSetManagedUserPasswordMutation, useUpdateManagedUserMutation } from "@/shared/api/mutations";
 import { adminQueries } from "@/shared/api/queries";
-import type { ApiAdminDataExport, ApiManagedUser } from "@/shared/api/types";
+import type { ApiManagedUser } from "@/shared/api/types";
 import { useConfirm, usePromptDialog } from "@/shared/components/confirmContext";
 import { PageStack } from "@/shared/components/PageStack";
 import { ScreenHeader } from "@/shared/components/ScreenHeader";
@@ -11,8 +11,7 @@ import { pushToast } from "@/shared/toast/toastStore";
 import { requestErrorMessage } from "@/shared/utils/requestErrorMessage";
 import { Badge, BodyCopy, Button, DataTable, Panel, Spinner, TextField, type DataColumn } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
-import type { ChangeEvent } from "react";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import styles from "./AdminPage.module.css";
 import { AdminSettingsPanels } from "./AdminSettingsPanels";
@@ -29,26 +28,6 @@ function formatTimestamp(value: string | undefined) {
 		dateStyle: "medium",
 		timeStyle: "short"
 	});
-}
-
-function isAdminDataExport(value: unknown): value is ApiAdminDataExport {
-	if (!value || typeof value !== "object") {
-		return false;
-	}
-	const candidate = value as Partial<ApiAdminDataExport>;
-	return typeof candidate.format === "string" && typeof candidate.exportedAt === "string" && Boolean(candidate.tables) && typeof candidate.tables === "object";
-}
-
-function downloadAdminDataExport(data: ApiAdminDataExport) {
-	const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-	const href = URL.createObjectURL(blob);
-	const link = document.createElement("a");
-	link.href = href;
-	link.download = `netstamp-data-export-${new Date().toISOString().slice(0, 10)}.json`;
-	document.body.append(link);
-	link.click();
-	link.remove();
-	URL.revokeObjectURL(href);
 }
 
 function managedUserSearchText(user: ApiManagedUser, labels: string[]) {
@@ -73,13 +52,10 @@ export function AdminPage() {
 	const confirm = useConfirm();
 	const prompt = usePromptDialog();
 	const requireSudo = useRequireSudo();
-	const importInputRef = useRef<HTMLInputElement | null>(null);
 	const usersQuery = useQuery({ ...adminQueries.users(), enabled: Boolean(session?.user.isSystemAdmin) });
 	const updateManagedUserMutation = useUpdateManagedUserMutation();
 	const setManagedUserPasswordMutation = useSetManagedUserPasswordMutation();
 	const clearManagedUserPasswordMutation = useClearManagedUserPasswordMutation();
-	const exportDataMutation = useExportAdminDataMutation();
-	const importDataMutation = useImportAdminDataMutation();
 	const [userSearch, setUserSearch] = useState("");
 	const userRows = useMemo(() => usersQuery.data?.users ?? [], [usersQuery.data?.users]);
 	const filteredUserRows = useMemo(
@@ -276,61 +252,6 @@ export function AdminPage() {
 		);
 	}
 
-	function exportData() {
-		void requireSudo(() =>
-			exportDataMutation.mutate(undefined, {
-				onSuccess: data => {
-					downloadAdminDataExport(data);
-					pushToast({ title: t("data.exported"), message: t("data.exportedDescription"), tone: "success" });
-				},
-				onError: error => {
-					pushToast({ title: t("data.exportFailed"), message: requestErrorMessage(error, t("data.exportError")), tone: "critical" });
-				}
-			})
-		);
-	}
-
-	async function importData(event: ChangeEvent<HTMLInputElement>) {
-		const file = event.currentTarget.files?.[0];
-		event.currentTarget.value = "";
-		if (!file) {
-			return;
-		}
-
-		let parsed: unknown;
-		try {
-			parsed = JSON.parse(await file.text());
-		} catch {
-			pushToast({ title: t("data.importFailed"), message: t("data.invalidJson"), tone: "critical" });
-			return;
-		}
-		if (!isAdminDataExport(parsed)) {
-			pushToast({ title: t("data.importFailed"), message: t("data.invalidExport"), tone: "critical" });
-			return;
-		}
-
-		const accepted = await confirm({
-			title: t("data.confirmImport"),
-			message: t("data.confirmImportDescription"),
-			confirmLabel: t("data.confirmImportAction"),
-			tone: "danger"
-		});
-		if (!accepted) {
-			return;
-		}
-
-		await requireSudo(() =>
-			importDataMutation.mutate(parsed, {
-				onSuccess: data => {
-					pushToast({ title: t("data.imported"), message: t("data.importedRows", { count: data.result.importedRows }), tone: "success" });
-				},
-				onError: error => {
-					pushToast({ title: t("data.importFailed"), message: requestErrorMessage(error, t("data.importError")), tone: "critical" });
-				}
-			})
-		);
-	}
-
 	function userRowActions(user: ApiManagedUser) {
 		const isSelf = user.id === currentUserID;
 		const lastActiveAdmin = user.isSystemAdmin && !user.disabledAt && activeAdminCount <= 1;
@@ -363,24 +284,6 @@ export function AdminPage() {
 			<ScreenHeader title={t("title")} />
 
 			<AdminSettingsPanels />
-			<Panel
-				tone="glass"
-				title={t("data.title")}
-				actions={
-					<div className={styles.toolActions}>
-						<Button type="button" variant="outline" disabled={exportDataMutation.isPending} onClick={exportData}>
-							{exportDataMutation.isPending ? t("data.exporting") : t("data.export")}
-						</Button>
-						<Button type="button" variant="danger" disabled={importDataMutation.isPending} onClick={() => void requireSudo(() => importInputRef.current?.click())}>
-							{importDataMutation.isPending ? t("data.importing") : t("data.import")}
-						</Button>
-						<input ref={importInputRef} className={styles.fileInput} type="file" accept="application/json,.json" onChange={event => void importData(event)} />
-					</div>
-				}
-			>
-				<BodyCopy>{t("data.description")}</BodyCopy>
-			</Panel>
-
 			<Panel
 				tone="glass"
 				title={t("users.title")}

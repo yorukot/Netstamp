@@ -32,12 +32,11 @@ const (
 )
 
 const (
-	CodeUserNotFound           = "USER_NOT_FOUND"
-	CodeEmailAlreadyExists     = "EMAIL_ALREADY_EXISTS"
-	CodeLastSystemAdmin        = "LAST_SYSTEM_ADMIN"
-	CodeSystemAdminRequired    = "SYSTEM_ADMIN_REQUIRED"
-	CodeSelfSystemAdminAction  = "SELF_SYSTEM_ADMIN_ACTION"
-	CodeInvalidAdminDataImport = "INVALID_ADMIN_DATA_IMPORT"
+	CodeUserNotFound          = "USER_NOT_FOUND"
+	CodeEmailAlreadyExists    = "EMAIL_ALREADY_EXISTS"
+	CodeLastSystemAdmin       = "LAST_SYSTEM_ADMIN"
+	CodeSystemAdminRequired   = "SYSTEM_ADMIN_REQUIRED"
+	CodeSelfSystemAdminAction = "SELF_SYSTEM_ADMIN_ACTION"
 )
 
 const (

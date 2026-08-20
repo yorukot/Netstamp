@@ -305,17 +305,6 @@ RETURNING key,
 DELETE FROM system_settings
 WHERE key = sqlc.arg(key);
 
--- name: DeleteLegacyEmptySystemSettingSecrets :exec
-DELETE FROM system_settings
-WHERE secret = true
-  AND octet_length(encrypted_value) = 16
-  AND key IN (
-      'smtp.password',
-      'auth.provider.oidc.client_secret',
-      'auth.provider.google.client_secret',
-      'auth.provider.github.client_secret'
-  );
-
 -- name: CreateSystemSettingAuditEvent :exec
 INSERT INTO system_setting_audit_events (key, action, updated_by_user_id)
 VALUES ($1, $2, sqlc.narg(updated_by_user_id));

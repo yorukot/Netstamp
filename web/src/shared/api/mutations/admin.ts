@@ -15,7 +15,7 @@ import {
 } from "../adminSettings";
 import { apiClient, readApiData, readEmptyApiResponse } from "../client";
 import { apiQueryKeys } from "../queryKeys";
-import type { ApiAdminDataExport, GrantSystemAdminInput, SetManagedUserPasswordInput, UpdateManagedUserInput } from "../types";
+import type { GrantSystemAdminInput, SetManagedUserPasswordInput, UpdateManagedUserInput } from "../types";
 import { requireWritableAccess } from "./shared";
 
 export const updateAdminAccessSettings = (body: AdminAccessSettingsPatch) => {
@@ -86,16 +86,6 @@ export function setManagedUserPassword(userId: string, body: SetManagedUserPassw
 export function clearManagedUserPassword(userId: string) {
 	requireWritableAccess();
 	return readApiData(apiClient.DELETE("/admin/users/{user_id}/password", { params: { path: { user_id: userId } } }));
-}
-
-export function exportAdminData() {
-	requireWritableAccess();
-	return readApiData(apiClient.GET("/admin/data-export")) as Promise<ApiAdminDataExport>;
-}
-
-export function importAdminData(body: ApiAdminDataExport) {
-	requireWritableAccess();
-	return readApiData(apiClient.POST("/admin/data-import", { body: body as never }));
 }
 
 export function useUpdateAdminAccessSettingsMutation() {
@@ -235,23 +225,6 @@ export function useClearManagedUserPasswordMutation() {
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: apiQueryKeys.admin.users() });
 			queryClient.invalidateQueries({ queryKey: apiQueryKeys.auth.me() });
-		}
-	});
-}
-
-export function useExportAdminDataMutation() {
-	return useMutation({
-		mutationFn: exportAdminData
-	});
-}
-
-export function useImportAdminDataMutation() {
-	const queryClient = useQueryClient();
-
-	return useMutation({
-		mutationFn: importAdminData,
-		onSuccess: () => {
-			queryClient.invalidateQueries();
 		}
 	});
 }

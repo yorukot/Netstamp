@@ -15,15 +15,10 @@
 	font-size: 0.78rem;
 }
 
-.toolActions,
 .userActions {
 	display: flex;
 	gap: 0.5rem;
 	justify-content: flex-end;
-}
-
-.toolActions {
-	flex-wrap: wrap;
 }
 
 .userActions {
@@ -44,16 +39,11 @@
 	margin-bottom: 1rem;
 }
 
-.fileInput {
-	display: none;
-}
-
 .tableMessage {
 	padding: 1rem;
 }
 
 @media (max-width: 78rem) {
-	.toolActions,
 	.userActions {
 		justify-content: flex-start;
 	}

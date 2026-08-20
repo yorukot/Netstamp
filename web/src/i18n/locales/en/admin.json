@@ -119,27 +119,6 @@
 		"setting": "Setting",
 		"removing": "Removing"
 	},
-	"data": {
-		"title": "Data tools",
-		"exporting": "Exporting",
-		"export": "Export data",
-		"importing": "Importing",
-		"import": "Import data",
-		"description": "Exports include account, project, probe, check, alert, public status, result, and system setting data. Imported backups replace existing managed data.",
-		"exported": "Data exported",
-		"exportedDescription": "A JSON backup was downloaded.",
-		"exportFailed": "Export failed",
-		"exportError": "Could not export admin data.",
-		"importFailed": "Import failed",
-		"invalidJson": "The selected file is not valid JSON.",
-		"invalidExport": "The selected file is not a Netstamp data export.",
-		"confirmImport": "Import data",
-		"confirmImportDescription": "Existing managed data will be replaced by this backup.",
-		"confirmImportAction": "Import",
-		"imported": "Data imported",
-		"importedRows": "{{count}} rows were imported.",
-		"importError": "Could not import admin data."
-	},
 	"users": {
 		"title": "User management",
 		"syncing": "Syncing",

@@ -48,8 +48,6 @@ func (h *Handler) RegisterRoutes(api chi.Router) {
 			sensitive.Patch("/admin/users/{user_id}", h.handleUpdateManagedUser)
 			sensitive.Post("/admin/users/{user_id}/password", h.handleSetManagedUserPassword)
 			sensitive.Delete("/admin/users/{user_id}/password", h.handleClearManagedUserPassword)
-			sensitive.Get("/admin/data-export", h.handleExportData)
-			sensitive.Post("/admin/data-import", h.handleImportData)
 			h.registerSettingsSensitiveRoutes(sensitive)
 		}
 		r.Group(func(sensitive chi.Router) {
@@ -90,8 +88,6 @@ func mapAdminError(err error, fallback string) error {
 		return httpx.ConflictCode(httpx.CodeAuthLastCredential, "account must keep at least one authentication method")
 	case errors.Is(err, appadmin.ErrSelfSystemAdminRemoval), errors.Is(err, appadmin.ErrSelfAccountDisable):
 		return httpx.ConflictCode(httpx.CodeSelfSystemAdminAction, "system administrator cannot remove or disable self")
-	case errors.Is(err, appadmin.ErrDataImportInvalid):
-		return httpx.UnprocessableEntityCode(httpx.CodeInvalidAdminDataImport, "invalid admin data import")
 	case errors.Is(err, appadmin.ErrInvalidInput):
 		return invalidAdminInputError(err)
 	default:

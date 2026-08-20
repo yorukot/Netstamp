@@ -81,8 +81,8 @@ func TestNewRouterServesOpenAPIWithoutRuntimeServices(t *testing.T) {
 	assertOpenAPIOperation(t, spec, http.MethodGet, "/admin/users", "listManagedUsers")
 	assertOpenAPIOperation(t, spec, http.MethodPatch, "/admin/users/{user_id}", "updateManagedUser")
 	assertOpenAPIOperation(t, spec, http.MethodPost, "/admin/users/{user_id}/password", "setManagedUserPassword")
-	assertOpenAPIOperation(t, spec, http.MethodGet, "/admin/data-export", "exportAdminData")
-	assertOpenAPIOperation(t, spec, http.MethodPost, "/admin/data-import", "importAdminData")
+	assertOpenAPIPathAbsent(t, spec, "/admin/data-export")
+	assertOpenAPIPathAbsent(t, spec, "/admin/data-import")
 	assertOpenAPIPathAbsent(t, spec, "/admin/settings")
 	assertOpenAPIOperation(t, spec, http.MethodGet, "/admin/settings/access", "getAdminAccessSettings")
 	assertOpenAPIOperation(t, spec, http.MethodPatch, "/admin/settings/access", "updateAdminAccessSettings")
@@ -264,8 +264,6 @@ func TestNewRouterProtectedRoutesRequireSessionCookie(t *testing.T) {
 		{method: http.MethodGet, path: "/api/v1/admin/users"},
 		{method: http.MethodPatch, path: "/api/v1/admin/users/user-1"},
 		{method: http.MethodPost, path: "/api/v1/admin/users/user-1/password"},
-		{method: http.MethodGet, path: "/api/v1/admin/data-export"},
-		{method: http.MethodPost, path: "/api/v1/admin/data-import"},
 		{method: http.MethodGet, path: "/api/v1/admin/settings/access"},
 		{method: http.MethodPatch, path: "/api/v1/admin/settings/access"},
 		{method: http.MethodGet, path: "/api/v1/admin/settings/smtp"},
@@ -418,7 +416,6 @@ func TestNewRouterDemoModeBlocksUnsafeRequests(t *testing.T) {
 		{method: http.MethodPost, path: "/api/v1/users/me/deactivation"},
 		{method: http.MethodPatch, path: "/api/v1/admin/users/user-1"},
 		{method: http.MethodPost, path: "/api/v1/admin/users/user-1/password"},
-		{method: http.MethodPost, path: "/api/v1/admin/data-import"},
 		{method: http.MethodPost, path: "/api/v1/projects"},
 		{method: http.MethodDelete, path: "/api/v1/projects/vector-ix/members/user-1"},
 		{method: http.MethodPost, path: "/api/v1/runtime/probes/probe-1/results"},
@@ -478,6 +475,30 @@ func TestNewRouterWritesProblemNotFoundForAPIClients(t *testing.T) {
 	}
 	if body := recorder.Body.String(); !strings.Contains(body, `"detail":"route not found"`) {
 		t.Fatalf("expected problem not found body, got %q", body)
+	}
+}
+
+func TestNewRouterDoesNotExposeAdminDataTransferRoutes(t *testing.T) {
+	for _, route := range []struct {
+		method string
+		path   string
+	}{
+		{method: http.MethodGet, path: "/api/v1/admin/data-export"},
+		{method: http.MethodPost, path: "/api/v1/admin/data-import"},
+	} {
+		t.Run(route.method+" "+route.path, func(t *testing.T) {
+			recorder := performCSRFAuthenticatedRouterRequest(Dependencies{
+				AuthVerifier:   staticRouterTokenVerifier{},
+				RequestTimeout: time.Second,
+			}, route.method, route.path)
+
+			if recorder.Code != http.StatusNotFound {
+				t.Fatalf("expected removed route status 404, got %d", recorder.Code)
+			}
+			if body := recorder.Body.String(); !strings.Contains(body, `"detail":"route not found"`) {
+				t.Fatalf("expected route not found body, got %q", body)
+			}
+		})
 	}
 }
 

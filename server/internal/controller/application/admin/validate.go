@@ -1,8 +1,6 @@
 package admin
 
 import (
-	"strings"
-
 	appvalidation "github.com/yorukot/netstamp/internal/controller/application/validation"
 	"github.com/yorukot/netstamp/internal/domain/identity"
 	domainsystem "github.com/yorukot/netstamp/internal/domain/system"
@@ -15,7 +13,6 @@ const (
 	auditActionEnableUser        = "enable_user"
 	auditActionSetPassword       = "set_user_password"
 	auditActionClearPassword     = "clear_user_password"
-	auditActionDataImport        = "data_import"
 )
 
 func normalizeGrantSystemAdminInput(input GrantSystemAdminInput) (GrantSystemAdminInput, error) {
@@ -100,31 +97,6 @@ func normalizeClearManagedUserPasswordInput(input ClearManagedUserPasswordInput)
 	collector.AddError("currentUserId", currentUserErr, input.CurrentUserID)
 	collector.AddError("userId", userErr, input.UserID)
 	return ClearManagedUserPasswordInput{}, collector.Err(ErrInvalidInput)
-}
-
-func normalizeExportDataInput(input ExportDataInput) (ExportDataInput, error) {
-	currentUserID, currentUserErr := identity.VNUserID(input.CurrentUserID)
-	if currentUserErr == nil {
-		return ExportDataInput{CurrentUserID: currentUserID}, nil
-	}
-
-	collector := appvalidation.Collector{}
-	collector.AddError("currentUserId", currentUserErr, input.CurrentUserID)
-	return ExportDataInput{}, collector.Err(ErrInvalidInput)
-}
-
-func normalizeImportDataInput(input ImportDataInput) (ImportDataInput, error) {
-	currentUserID, currentUserErr := identity.VNUserID(input.CurrentUserID)
-	if currentUserErr != nil {
-		collector := appvalidation.Collector{}
-		collector.AddError("currentUserId", currentUserErr, input.CurrentUserID)
-		return ImportDataInput{}, collector.Err(ErrInvalidInput)
-	}
-	if strings.TrimSpace(input.Export.Format) == "" || input.Export.Tables == nil {
-		return ImportDataInput{}, ErrDataImportInvalid
-	}
-	input.CurrentUserID = currentUserID
-	return input, nil
 }
 
 func systemAdminAuditKey(admin domainsystem.AdminUser) string {
