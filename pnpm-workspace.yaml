@@ -8,4 +8,5 @@ allowBuilds:
   sharp: true
 peerDependencyRules:
   allowedVersions:
+    "@scalar/astro>astro": "^7.0.0"
     "openapi-typescript>typescript": "^6.0.0"

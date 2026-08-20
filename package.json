@@ -31,9 +31,9 @@
 		"test:web": "pnpm --filter @netstamp/web test"
 	},
 	"devDependencies": {
-		"@crowdin/cli": "^4.14.4",
-		"playwright": "^1.55.0",
-		"prettier": "^3.8.4",
+		"@crowdin/cli": "^4.15.0",
+		"playwright": "^1.62.1",
+		"prettier": "^3.9.6",
 		"prettier-plugin-astro": "^0.14.1",
 		"prettier-plugin-organize-imports": "^4.3.0",
 		"prettier-plugin-packagejson": "^3.0.2"
