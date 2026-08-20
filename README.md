@@ -76,7 +76,6 @@ Before the first start, fill every empty secret in `.env`. Before exposing Netst
 - [Installation](./docs/src/content/docs/en/installation/index.mdx) covers Docker Compose, configuration, backups, authentication, and HTTPS.
 - [Guides](./docs/src/content/docs/en/guides/index.mdx) covers projects, probes, checks, Insight, alerts, notifications, status pages, accounts, and administration.
 - [Operations](./docs/src/content/docs/en/operations/index.mdx) covers the probe agent, observability, backups, and security hardening.
-- [Localization](./docs/localization.md) explains the current English-only release, retained locale architecture, Crowdin source uploads, validation, and re-enabling additional languages.
 
 The English-language site is available at [netstamp.dev](https://netstamp.dev).
 
