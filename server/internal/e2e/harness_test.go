@@ -38,6 +38,7 @@ import (
 	pgassignment "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/assignment"
 	pgauthsession "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/authsession"
 	pgcheck "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/check"
+	pghttpcheck "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/httpcheck"
 	pglabel "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/label"
 	pgping "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/ping"
 	pgprobe "github.com/yorukot/netstamp/internal/controller/infrastructure/postgres/probe"
@@ -222,6 +223,7 @@ func newTestRouter(pool *pgxpool.Pool) http.Handler {
 	probeRepo := pgprobe.NewProbeRepository(pool)
 	pingRepo := pgping.NewPingRepository(pool)
 	tcpRepo := pgtcp.NewTCPRepository(pool)
+	httpRepo := pghttpcheck.NewRepository(pool)
 	tracerouteRepo := pgtraceroute.NewTracerouteRepository(pool)
 	resultRepo := pgresult.NewResultRepository(pool)
 	assignmentRepo := pgassignment.NewAssignmentRepository(pool)
@@ -254,16 +256,17 @@ func newTestRouter(pool *pgxpool.Pool) http.Handler {
 		CheckService:      appcheck.NewService(checkRepo, projectRepo, labelRepo, assignmentSvc, events),
 		LabelService:      applabel.NewService(labelRepo, projectRepo, events, assignmentSvc),
 		ProbeService:      appprobe.NewService(probeRepo, projectRepo, labelRepo, assignmentSvc, security.NewProbeSecretGenerator(), events),
-		ProbeRuntime: appproberuntime.NewServiceWithTCP(
+		ProbeRuntime: appproberuntime.NewServiceWithResults(
 			probeRepo,
 			pingRepo,
 			tcpRepo,
+			httpRepo,
 			tracerouteRepo,
 			security.NewProbeSecretVerifier(),
 			events,
 		),
 		ProjectService: appproject.NewService(projectRepo, userRepo, events),
-		ResultService:  appresult.NewService(pingRepo, tcpRepo, tracerouteRepo, resultRepo, projectRepo),
+		ResultService:  appresult.NewServiceWithHTTP(pingRepo, tcpRepo, httpRepo, tracerouteRepo, resultRepo, projectRepo),
 		ReadinessCheck: postgres.NewReadinessCheck(pool),
 		RequestTimeout: 15 * time.Second,
 	})
