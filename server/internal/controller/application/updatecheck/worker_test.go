@@ -5,6 +5,8 @@ import (
 	"errors"
 	"testing"
 	"time"
+
+	appversion "github.com/yorukot/netstamp/internal/platform/version"
 )
 
 func TestWorkerRunOnceStoresAvailableRelease(t *testing.T) {
@@ -15,7 +17,7 @@ func TestWorkerRunOnceStoresAvailableRelease(t *testing.T) {
 		URL:         "https://github.com/yorukot/netstamp/releases/tag/v1.2.3",
 		PublishedAt: publishedAt,
 	}}
-	cache := NewCache("0.0.0")
+	cache := NewCache(appversion.Product)
 	worker := NewWorker(cache, releases, fakeSettingsReader{enabled: true}, nil)
 	worker.now = func() time.Time { return checkedAt }
 
@@ -23,7 +25,7 @@ func TestWorkerRunOnceStoresAvailableRelease(t *testing.T) {
 		t.Fatalf("run update check: %v", err)
 	}
 	status := cache.Snapshot()
-	if status.CurrentVersion != "0.0.0" || status.LatestVersion != "v1.2.3" || !status.UpdateAvailable {
+	if status.CurrentVersion != appversion.Product || status.LatestVersion != "v1.2.3" || !status.UpdateAvailable {
 		t.Fatalf("unexpected update status: %#v", status)
 	}
 	if status.ReleaseURL != releases.release.URL || status.PublishedAt != publishedAt || status.LastCheckedAt != checkedAt || status.CheckError != "" {
@@ -32,16 +34,16 @@ func TestWorkerRunOnceStoresAvailableRelease(t *testing.T) {
 }
 
 func TestWorkerRunOnceStoresNoUpdateForCurrentRelease(t *testing.T) {
-	cache := NewCache("0.0.0")
+	cache := NewCache(appversion.Product)
 	worker := NewWorker(cache, &fakeReleaseSource{release: Release{
-		TagName: "v0.0.0", URL: "https://github.com/yorukot/netstamp/releases/tag/v0.0.0",
+		TagName: "v" + appversion.Product, URL: "https://github.com/yorukot/netstamp/releases/tag/v" + appversion.Product,
 		PublishedAt: time.Date(2026, 8, 20, 9, 0, 0, 0, time.UTC),
 	}}, fakeSettingsReader{enabled: true}, nil)
 
 	if err := worker.RunOnce(context.Background()); err != nil {
 		t.Fatalf("run update check: %v", err)
 	}
-	if status := cache.Snapshot(); status.UpdateAvailable || status.LatestVersion != "v0.0.0" {
+	if status := cache.Snapshot(); status.UpdateAvailable || status.LatestVersion != "v"+appversion.Product {
 		t.Fatalf("unexpected update status: %#v", status)
 	}
 }
@@ -49,7 +51,7 @@ func TestWorkerRunOnceStoresNoUpdateForCurrentRelease(t *testing.T) {
 func TestWorkerRunOnceFailurePreservesSuccessfulResult(t *testing.T) {
 	firstCheck := time.Date(2026, 8, 20, 10, 0, 0, 0, time.UTC)
 	secondCheck := firstCheck.Add(time.Hour)
-	cache := NewCache("0.0.0")
+	cache := NewCache(appversion.Product)
 	releases := &fakeReleaseSource{release: Release{
 		TagName: "v1.0.0", URL: "https://github.com/yorukot/netstamp/releases/tag/v1.0.0",
 		PublishedAt: firstCheck.Add(-time.Hour),
@@ -75,8 +77,8 @@ func TestWorkerRunOnceFailurePreservesSuccessfulResult(t *testing.T) {
 }
 
 func TestWorkerRunOnceDisabledClearsStatusWithoutFetching(t *testing.T) {
-	cache := NewCache("0.0.0")
-	cache.StoreSuccess(Status{CurrentVersion: "0.0.0", LatestVersion: "v1.0.0", UpdateAvailable: true})
+	cache := NewCache(appversion.Product)
+	cache.StoreSuccess(Status{CurrentVersion: appversion.Product, LatestVersion: "v1.0.0", UpdateAvailable: true})
 	releases := &fakeReleaseSource{}
 	worker := NewWorker(cache, releases, fakeSettingsReader{enabled: false}, nil)
 
@@ -86,15 +88,15 @@ func TestWorkerRunOnceDisabledClearsStatusWithoutFetching(t *testing.T) {
 	if releases.calls != 0 {
 		t.Fatalf("disabled update check fetched %d releases", releases.calls)
 	}
-	if status := cache.Snapshot(); status != (Status{CurrentVersion: "0.0.0"}) {
+	if status := cache.Snapshot(); status != (Status{CurrentVersion: appversion.Product}) {
 		t.Fatalf("disabled update check did not clear status: %#v", status)
 	}
 }
 
 func TestWorkerRunOnceSettingFailurePreservesStatus(t *testing.T) {
 	checkedAt := time.Date(2026, 8, 20, 10, 0, 0, 0, time.UTC)
-	cache := NewCache("0.0.0")
-	cache.StoreSuccess(Status{CurrentVersion: "0.0.0", LatestVersion: "v1.0.0", UpdateAvailable: true})
+	cache := NewCache(appversion.Product)
+	cache.StoreSuccess(Status{CurrentVersion: appversion.Product, LatestVersion: "v1.0.0", UpdateAvailable: true})
 	worker := NewWorker(cache, &fakeReleaseSource{}, fakeSettingsReader{err: errors.New("database unavailable")}, nil)
 	worker.now = func() time.Time { return checkedAt }
 

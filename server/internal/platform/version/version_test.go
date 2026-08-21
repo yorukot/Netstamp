@@ -5,11 +5,11 @@ import "testing"
 func TestProductVersion(t *testing.T) {
 	t.Parallel()
 
-	if Product != "0.0.0" {
-		t.Fatalf("Product = %q, want 0.0.0", Product)
+	if Product != "0.0.1" {
+		t.Fatalf("Product = %q, want 0.0.1", Product)
 	}
-	if Agent() != "netstamp-probe/0.0.0" {
-		t.Fatalf("Agent() = %q, want netstamp-probe/0.0.0", Agent())
+	if Agent() != "netstamp-probe/0.0.1" {
+		t.Fatalf("Agent() = %q, want netstamp-probe/0.0.1", Agent())
 	}
 	if MinimumAgent != Product {
 		t.Fatalf("MinimumAgent = %q, want Product %q", MinimumAgent, Product)
