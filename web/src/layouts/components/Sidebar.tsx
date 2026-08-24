@@ -13,7 +13,6 @@ import { ArrowSquareOutIcon } from "@phosphor-icons/react/dist/csr/ArrowSquareOu
 import { ArrowsClockwiseIcon } from "@phosphor-icons/react/dist/csr/ArrowsClockwise";
 import { ListIcon } from "@phosphor-icons/react/dist/csr/List";
 import { XIcon } from "@phosphor-icons/react/dist/csr/X";
-import { Badge } from "@netstamp/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -138,7 +137,7 @@ export function Sidebar({ collapsed, user, onToggleCollapsed, onLogout }: Sideba
 const UpdateIndicator = ({ version, releaseUrl, collapsed = false, onClick }: { version: string; releaseUrl: string; collapsed?: boolean; onClick?: () => void }) => {
 	const { t } = useTranslation("navigation");
 	const displayVersion = version.startsWith("v") ? version : `v${version}`;
-	const label = t("updateAvailable", { version: displayVersion });
+	const label = t("updateAvailableLabel", { version: displayVersion });
 
 	return (
 		<a
@@ -151,11 +150,12 @@ const UpdateIndicator = ({ version, releaseUrl, collapsed = false, onClick }: { 
 			onClick={onClick}
 		>
 			<span className={styles.updateIndicatorIcon}>
-				<ArrowsClockwiseIcon size="1.125rem" weight="bold" aria-hidden="true" focusable="false" />
+				<ArrowsClockwiseIcon size="1rem" weight="bold" aria-hidden="true" focusable="false" />
 			</span>
-			<Badge className={styles.updateIndicatorBadge} tone="accent">
-				{label}
-			</Badge>
+			<span className={styles.updateIndicatorCopy}>
+				<span className={styles.updateIndicatorLabel}>{t("updateAvailable")}</span>
+				<span className={styles.updateIndicatorVersion}>{displayVersion}</span>
+			</span>
 			<ArrowSquareOutIcon className={styles.updateIndicatorExternal} size="1rem" aria-hidden="true" focusable="false" />
 		</a>
 	);

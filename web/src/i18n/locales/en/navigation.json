@@ -22,7 +22,8 @@
 	"status": "Status",
 	"userMenu": "User menu",
 	"openUserMenu": "Open user menu for {{name}}",
-	"updateAvailable": "New version {{version}} available",
+	"updateAvailable": "Update available",
+	"updateAvailableLabel": "Update available: {{version}}",
 	"pageTitles": {
 		"account": "Account",
 		"alerts": "Alerts",
