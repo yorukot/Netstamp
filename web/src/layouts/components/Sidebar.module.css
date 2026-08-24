@@ -318,28 +318,26 @@
 }
 
 .updateIndicator {
-	display: flex;
+	display: grid;
+	grid-template-columns: 2rem minmax(0, 1fr) 1rem;
 	align-items: center;
 	gap: 0.5rem;
 	width: 100%;
 	min-width: 0;
-	min-height: 2.75rem;
-	padding: 0.5rem 0.75rem;
-	border: 1px solid var(--ns-primary-border);
-	color: var(--ns-primary-hover);
-	background: var(--ns-primary-muted);
+	min-height: 3.5rem;
+	padding: 0.5rem;
+	border: 0;
+	color: var(--ns-chrome-text);
+	background: transparent;
 	text-decoration: none;
 	animation: sidebarUpdateIndicatorIn 240ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 	transition:
 		color var(--ns-transition),
-		background var(--ns-transition),
-		border-color var(--ns-transition);
+		background var(--ns-transition);
 }
 
 .updateIndicator:hover {
-	color: var(--ns-primary);
-	background: var(--ns-primary-subtle);
-	border-color: var(--ns-primary);
+	background: var(--sidebar-hover-bg);
 }
 
 .updateIndicator:focus-visible {
@@ -351,22 +349,65 @@
 	position: relative;
 	display: inline-grid;
 	place-items: center;
+	width: 2rem;
+	height: 2rem;
 	flex: 0 0 auto;
+	color: var(--ns-primary-hover);
+	background: var(--ns-primary-muted);
+	transition:
+		color var(--ns-transition),
+		background var(--ns-transition);
 }
 
-.updateIndicatorBadge {
+.updateIndicator:hover .updateIndicatorIcon,
+.updateIndicator:focus-visible .updateIndicatorIcon {
+	color: var(--ns-primary);
+	background: var(--ns-primary-subtle);
+}
+
+.updateIndicatorCopy {
+	display: grid;
+	gap: 0.25rem;
+	min-width: 0;
+}
+
+.updateIndicatorLabel,
+.updateIndicatorVersion {
 	min-width: 0;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
+.updateIndicatorLabel {
+	color: var(--ns-chrome-text-muted);
+	font-size: 0.75rem;
+	font-weight: 650;
+	line-height: 1;
+}
+
+.updateIndicatorVersion {
+	color: var(--ns-primary-hover);
+	font-family: var(--ns-font-code);
+	font-size: 0.75rem;
+	font-weight: 650;
+	line-height: 1;
+}
+
 .updateIndicatorExternal {
 	flex: 0 0 auto;
-	margin-left: auto;
+	color: var(--ns-chrome-text-muted);
+	transition: color var(--ns-transition);
+}
+
+.updateIndicator:hover .updateIndicatorExternal,
+.updateIndicator:focus-visible .updateIndicatorExternal {
+	color: var(--ns-primary);
 }
 
 .updateIndicatorCollapsed {
+	grid-template-columns: 1fr;
+	justify-items: center;
 	justify-content: center;
 	justify-self: center;
 	width: 2.75rem;
@@ -385,7 +426,7 @@
 	content: "";
 }
 
-.updateIndicatorCollapsed .updateIndicatorBadge,
+.updateIndicatorCollapsed .updateIndicatorCopy,
 .updateIndicatorCollapsed .updateIndicatorExternal {
 	display: none;
 }
