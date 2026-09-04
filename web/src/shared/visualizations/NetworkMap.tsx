@@ -1,9 +1,10 @@
 import { useTheme } from "@/shared/theme/useTheme";
 import { Spinner } from "@netstamp/ui";
-import type { Map as MapLibreMap, Marker as MapLibreMarker, StyleSpecification } from "maplibre-gl";
+import type { Map as MapLibreMap, Marker as MapLibreMarker } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { loadMapLibre, type MapLibreModule } from "./maplibre";
 import styles from "./NetworkMap.module.css";
 
 export interface NetworkMapMarker {
@@ -30,7 +31,6 @@ const defaultCenter: [number, number] = [74, 29];
 const defaultFleetFitPadding = { top: 128, right: 96, bottom: 180, left: 96 };
 const defaultFleetMaxZoom = 4.2;
 type MapTheme = "dark" | "light";
-type MapLibreModule = typeof import("maplibre-gl");
 type MapPadding = number | { top: number; right: number; bottom: number; left: number };
 interface MarkerRecord {
 	marker: MapLibreMarker;
@@ -38,39 +38,10 @@ interface MarkerRecord {
 	probeId: string;
 }
 
-function createCartoStyle(theme: MapTheme): StyleSpecification {
-	const cartoVariant = theme === "light" ? "light_all" : "dark_all";
-
-	return {
-		version: 8,
-		sources: {
-			"carto-base": {
-				type: "raster",
-				tiles: [
-					`https://a.basemaps.cartocdn.com/${cartoVariant}/{z}/{x}/{y}.png`,
-					`https://b.basemaps.cartocdn.com/${cartoVariant}/{z}/{x}/{y}.png`,
-					`https://c.basemaps.cartocdn.com/${cartoVariant}/{z}/{x}/{y}.png`,
-					`https://d.basemaps.cartocdn.com/${cartoVariant}/{z}/{x}/{y}.png`
-				],
-				tileSize: 256,
-				attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-			}
-		},
-		layers: [
-			{
-				id: "carto-base",
-				type: "raster",
-				source: "carto-base",
-				paint: {
-					"raster-opacity": 1,
-					"raster-brightness-min": theme === "light" ? 0 : 0.08,
-					"raster-brightness-max": theme === "light" ? 0.96 : 1,
-					"raster-contrast": theme === "light" ? 0.2 : 0.14,
-					"raster-saturation": 0
-				}
-			}
-		]
-	};
+// OpenFreeMap serves keyless vector basemaps derived from the CARTO Positron / Dark Matter designs.
+// The style JSON carries its own OpenStreetMap / OpenFreeMap attribution.
+function getBasemapStyleUrl(theme: MapTheme): string {
+	return theme === "light" ? "https://tiles.openfreemap.org/styles/positron" : "https://tiles.openfreemap.org/styles/dark";
 }
 
 function setMarkerActive(element: HTMLElement, active: boolean) {
@@ -198,7 +169,7 @@ export function NetworkMap({
 		let cancelled = false;
 
 		async function initializeMap() {
-			const maplibregl = await import("maplibre-gl");
+			const maplibregl = await loadMapLibre();
 
 			if (cancelled || !mapContainerRef.current || mapRef.current) {
 				return;
@@ -206,7 +177,7 @@ export function NetworkMap({
 
 			const map = new maplibregl.Map({
 				container: mapContainerRef.current,
-				style: createCartoStyle(themeRef.current),
+				style: getBasemapStyleUrl(themeRef.current),
 				center: defaultCenter,
 				zoom: 2.15,
 				attributionControl: { compact: true }
@@ -247,7 +218,7 @@ export function NetworkMap({
 		}
 
 		appliedThemeRef.current = mapTheme;
-		map.setStyle(createCartoStyle(mapTheme));
+		map.setStyle(getBasemapStyleUrl(mapTheme));
 	}, [mapReady, mapTheme]);
 
 	useEffect(() => {
