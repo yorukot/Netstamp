@@ -10,7 +10,6 @@ interface SitemapRoute {
 }
 
 const staticRoutes: SitemapRoute[] = [
-	{ path: "/", changefreq: "weekly", priority: "1.0" },
 	{ path: "/changelog/", changefreq: "monthly", priority: "0.7" },
 	{ path: "/openapi/", changefreq: "weekly", priority: "0.7" }
 ];
@@ -23,7 +22,7 @@ function routeForDoc(path: string): SitemapRoute {
 	return {
 		path,
 		changefreq: "monthly",
-		priority: path.endsWith("/getting-started/quick-start/") ? "0.8" : "0.6"
+		priority: path.endsWith("/getting-started/quick-start/") ? "1.0" : "0.6"
 	};
 }
 

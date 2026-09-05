@@ -31,4 +31,4 @@ After a fix is available, the project may publish a GitHub Security Advisory wit
 
 ## Operational security
 
-Deployment hardening, secret rotation, probe trust, public status privacy, and incident-response guidance live in the [Netstamp security documentation](https://netstamp.dev/docs/operate/security/).
+Deployment hardening, secret rotation, probe trust, public status privacy, and incident-response guidance live in the [Netstamp security documentation](https://netstamp.dev/docs/operations/security/).
