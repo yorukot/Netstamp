@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file. Dates are displayed in UTC (YYYY-MM-DD).
 
+# [**v0.0.2**](https://github.com/yorukot/netstamp/releases/tag/v0.0.2)
+
+> 2026-09-05
+
+#### Update
+
+- Switch the map basemap to OpenFreeMap and refine the sidebar update indicator.
+
+#### Fix
+
+- Fix the MapLibre worker bundling under Vite.
+- Bound the traceroute sampled-run refresh job's hop join to its refresh window and stop rewriting unchanged buckets; the unbounded join hashed the whole hop hypertable every minute and spilled terabytes of temp files per day.
+
+#### Documentation
+
+- Refresh the homepage copy, add a deployment summary, drop the three.js hero animation, and hand the quick start off to a first two-probe comparison.
+
+#### Misc
+
+- Prepare `v0.0.2` as a distribution test ahead of the first product release, `v0.1.0`.
+
 # [**v0.0.1**](https://github.com/yorukot/netstamp/releases/tag/v0.0.1)
 
 > 2026-08-21

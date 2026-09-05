@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	Product      = "0.0.1"
+	Product      = "0.0.2"
 	API          = "v1"
 	MinimumAgent = Product
 	GitHubOwner  = "yorukot"
