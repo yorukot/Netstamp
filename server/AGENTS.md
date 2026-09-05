@@ -205,8 +205,8 @@ Commands below come from the root `Justfile`, root `package.json`, `server/.air.
 - `just backend-test` or `pnpm test:server`: run `go test ./...` inside `server/`.
 - `NETSTAMP_TEST_DATABASE_URL=postgres://netstamp:netstamp@localhost:5432/netstamp?sslmode=disable just backend-test-integration`: run opt-in API E2E tests against a local PostgreSQL/TimescaleDB instance.
 - `just backend-fmt`: run configured golangci formatters with `../golangci.yaml`.
-- `just backend-lint`: run `golangci-lint` with `../golangci.yaml`.
-- `just backend-lint-fix`: apply safe `golangci-lint` fixes.
+- `just backend-lint`: run `golangci-lint` with `../golangci.yaml` under the `GOTOOLCHAIN` pinned by `go_lint_toolchain` in the root `Justfile`, because the bundled staticcheck cannot analyze a newer Go standard library than it was released for.
+- `just backend-lint-fix`: apply safe `golangci-lint` fixes under the same pinned toolchain.
 - `just backend-sqlc`: regenerate sqlc code from `sqlc.yaml`.
 - `just backend-migrate-status`, `just backend-migrate-up`, `just backend-migrate-down`: run `cmd/migrate`.
 - `docker compose --env-file deployments/.env -f deployments/compose.yaml up -d`: run the self-host stack from Docker Hub with PostgreSQL, one-shot migrations, and the Netstamp app serving both frontend and API.

@@ -79,6 +79,10 @@ if ! command -v golangci-lint >/dev/null 2>&1; then
 fi
 
 required_golangci_lint_version="2.12.2"
+# Keep in sync with go_lint_toolchain in the root Justfile: golangci-lint's
+# bundled staticcheck cannot analyze a newer Go standard library than it was
+# released for.
+go_lint_toolchain="go1.26.2"
 actual_golangci_lint_version=$(golangci-lint version --short)
 if [ "$actual_golangci_lint_version" != "$required_golangci_lint_version" ]; then
 	echo "Backend checks require golangci-lint $required_golangci_lint_version; found $actual_golangci_lint_version." >&2
@@ -93,7 +97,7 @@ if ! (cd server && golangci-lint fmt --config ../golangci.yaml --diff); then
 fi
 
 echo "Checking backend Go lint..."
-if ! (cd server && golangci-lint run --config ../golangci.yaml ./...); then
+if ! (cd server && GOTOOLCHAIN="$go_lint_toolchain" golangci-lint run --config ../golangci.yaml ./...); then
 	echo "Backend lint failed. Run: just backend-lint" >&2
 	exit 1
 fi

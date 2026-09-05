@@ -1,6 +1,9 @@
 set dotenv-load := true
 
 server_dir := "server"
+# golangci-lint's bundled staticcheck cannot analyze a newer Go standard library
+# than it was released for, so lint runs use the Go release the module targets.
+go_lint_toolchain := "go1.26.2"
 api_filter := "@netstamp/api"
 web_filter := "@netstamp/web"
 docs_filter := "@netstamp/docs"
@@ -141,11 +144,11 @@ backend-fmt:
 
 # Run golangci-lint on backend code.
 backend-lint:
-    cd {{ server_dir }} && golangci-lint run --config ../golangci.yaml ./...
+    cd {{ server_dir }} && GOTOOLCHAIN={{ go_lint_toolchain }} golangci-lint run --config ../golangci.yaml ./...
 
 # Apply safe golangci-lint fixes.
 backend-lint-fix:
-    cd {{ server_dir }} && golangci-lint run --fix --config ../golangci.yaml ./...
+    cd {{ server_dir }} && GOTOOLCHAIN={{ go_lint_toolchain }} golangci-lint run --fix --config ../golangci.yaml ./...
 
 # Tidy backend Go modules.
 backend-tidy:
