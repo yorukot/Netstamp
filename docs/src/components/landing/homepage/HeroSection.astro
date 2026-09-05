@@ -7,7 +7,6 @@ const ui = uiForLocale(locale);
 
 <section class="hero" aria-labelledby="homepage-title">
 	<canvas id="ns-canvas" aria-hidden="true"></canvas>
-	<canvas id="ns-cable-canvas" aria-hidden="true"></canvas>
 
 	<div class="vignette" aria-hidden="true"></div>
 	<div class="hero-content">
@@ -37,8 +36,7 @@ const ui = uiForLocale(locale);
 		background: var(--ns-surface-deep);
 	}
 
-	#ns-canvas,
-	#ns-cable-canvas {
+	#ns-canvas {
 		position: absolute;
 		inset: 0;
 		display: block;
@@ -49,10 +47,6 @@ const ui = uiForLocale(locale);
 
 	#ns-canvas {
 		z-index: 0;
-	}
-
-	#ns-cable-canvas {
-		z-index: 1;
 	}
 
 	.vignette {

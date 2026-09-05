@@ -255,7 +255,6 @@ export default defineConfig({
 	site,
 	output: "static",
 	redirects: {
-		"/": { status: 301, destination: "/docs/getting-started/quick-start/" },
 		"/docs": { status: 301, destination: "/docs/getting-started/quick-start/" }
 	},
 	i18n: {
