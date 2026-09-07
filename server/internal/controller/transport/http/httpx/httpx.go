@@ -68,20 +68,12 @@ func BadRequest(detail string) error {
 	return NewError(http.StatusBadRequest, detail)
 }
 
-func BadRequestCode(code, detail string) error {
-	return NewErrorCode(http.StatusBadRequest, code, detail)
-}
-
 func Unauthorized(detail string) error {
 	return NewError(http.StatusUnauthorized, detail)
 }
 
 func UnauthorizedCode(code, detail string) error {
 	return NewErrorCode(http.StatusUnauthorized, code, detail)
-}
-
-func Forbidden(detail string) error {
-	return NewError(http.StatusForbidden, detail)
 }
 
 func ForbiddenCode(code, detail string) error {
@@ -94,10 +86,6 @@ func NotFound(detail string) error {
 
 func NotFoundCode(code, detail string) error {
 	return NewErrorCode(http.StatusNotFound, code, detail)
-}
-
-func Conflict(detail string) error {
-	return NewError(http.StatusConflict, detail)
 }
 
 func ConflictCode(code, detail string) error {

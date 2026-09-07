@@ -3,6 +3,16 @@ name: Docs
 on:
   push:
     branches: [main]
+    paths:
+      - ".github/workflows/docs.yaml"
+      - ".prettierrc"
+      - "docs/**"
+      - "packages/brand/**"
+      - "packages/i18n/**"
+      - "packages/ui/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
   workflow_dispatch:
 
 permissions:
@@ -10,9 +20,15 @@ permissions:
   pages: write
   id-token: write
 
+env:
+  PUBLIC_NETSTAMP_UMAMI_WEBSITE_ID: ${{ vars.NETSTAMP_UMAMI_WEBSITE_ID }}
+  PUBLIC_NETSTAMP_UMAMI_SCRIPT_URL: ${{ vars.NETSTAMP_UMAMI_SCRIPT_URL || 'https://cloud.umami.is/script.js' }}
+  PUBLIC_NETSTAMP_TRACKING_CONSENT_MODE: ${{ vars.NETSTAMP_TRACKING_CONSENT_MODE || 'regional' }}
+  PUBLIC_NETSTAMP_TRACKING_CONSENT_COUNTRIES: ${{ vars.NETSTAMP_TRACKING_CONSENT_COUNTRIES }}
+
 concurrency:
   group: pages
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build-and-deploy:

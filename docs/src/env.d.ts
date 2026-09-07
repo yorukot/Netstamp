@@ -5,13 +5,6 @@ import type { HTMLAttributes } from "react";
 declare global {
 	interface ImportMetaEnv {
 		readonly PUBLIC_NETSTAMP_APP_BASE_URL?: string;
-		readonly PUBLIC_NETSTAMP_GOOGLE_TAG_ID?: string;
-		readonly PUBLIC_NETSTAMP_CLARITY_PROJECT_ID?: string;
-		readonly PUBLIC_NETSTAMP_META_PIXEL_ID?: string;
-		readonly PUBLIC_NETSTAMP_POSTHOG_KEY?: string;
-		readonly PUBLIC_NETSTAMP_POSTHOG_HOST?: string;
-		readonly PUBLIC_NETSTAMP_PLAUSIBLE_DOMAIN?: string;
-		readonly PUBLIC_NETSTAMP_PLAUSIBLE_SCRIPT_URL?: string;
 		readonly PUBLIC_NETSTAMP_UMAMI_WEBSITE_ID?: string;
 		readonly PUBLIC_NETSTAMP_UMAMI_SCRIPT_URL?: string;
 		readonly PUBLIC_NETSTAMP_TRACKING_CONSENT_MODE?: "regional" | "always" | "immediate";

@@ -15,9 +15,9 @@ import {
 	type AdminSMTPSettings,
 	type AdminSMTPSettingsPatch
 } from "../adminSettings";
-import { apiClient, readApiData, readEmptyApiResponse } from "../client";
+import { apiClient, readApiData } from "../client";
 import { apiQueryKeys } from "../queryKeys";
-import type { GrantSystemAdminInput, SetManagedUserPasswordInput, UpdateManagedUserInput } from "../types";
+import type { SetManagedUserPasswordInput, UpdateManagedUserInput } from "../types";
 import { requireWritableAccess } from "./shared";
 
 export const updateAdminAccessSettings = (body: AdminAccessSettingsPatch) => {
@@ -69,16 +69,6 @@ export const testAdminSMTP = () => {
 	requireWritableAccess();
 	return readAdminSettingsValidation(apiClient.POST("/admin/settings/smtp/test", {}));
 };
-
-export function grantSystemAdmin(body: GrantSystemAdminInput) {
-	requireWritableAccess();
-	return readApiData(apiClient.POST("/admin/system-admins", { body }));
-}
-
-export function revokeSystemAdmin(userId: string) {
-	requireWritableAccess();
-	return readEmptyApiResponse(apiClient.DELETE("/admin/system-admins/{user_id}", { params: { path: { user_id: userId } } }));
-}
 
 export function updateManagedUser(userId: string, body: UpdateManagedUserInput) {
 	requireWritableAccess();
@@ -186,31 +176,6 @@ export function useTestAdminSMTPMutation() {
 	return useMutation({ mutationFn: testAdminSMTP });
 }
 
-export function useGrantSystemAdminMutation() {
-	const queryClient = useQueryClient();
-
-	return useMutation({
-		mutationFn: grantSystemAdmin,
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: apiQueryKeys.admin.systemAdmins() });
-			queryClient.invalidateQueries({ queryKey: apiQueryKeys.admin.users() });
-		}
-	});
-}
-
-export function useRevokeSystemAdminMutation() {
-	const queryClient = useQueryClient();
-
-	return useMutation({
-		mutationFn: revokeSystemAdmin,
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: apiQueryKeys.admin.systemAdmins() });
-			queryClient.invalidateQueries({ queryKey: apiQueryKeys.admin.users() });
-			queryClient.invalidateQueries({ queryKey: apiQueryKeys.auth.me() });
-		}
-	});
-}
-
 export function useUpdateManagedUserMutation() {
 	const queryClient = useQueryClient();
 
@@ -218,7 +183,6 @@ export function useUpdateManagedUserMutation() {
 		mutationFn: ({ userId, body }: { userId: string; body: UpdateManagedUserInput }) => updateManagedUser(userId, body),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: apiQueryKeys.admin.users() });
-			queryClient.invalidateQueries({ queryKey: apiQueryKeys.admin.systemAdmins() });
 			queryClient.invalidateQueries({ queryKey: apiQueryKeys.auth.me() });
 			queryClient.invalidateQueries({ queryKey: apiQueryKeys.projects.all });
 		}

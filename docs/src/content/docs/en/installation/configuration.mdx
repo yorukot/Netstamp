@@ -174,22 +174,15 @@ The browser always calls the same-origin API path generated from the OpenAPI con
 
 Demo credentials are public values compiled only into the dedicated demo image. The remaining values configure optional trackers and are also compiled into the frontend. Changing a container's runtime environment does not modify an already-built bundle.
 
-| Variable                                   | Default                             | Purpose                              |
-| ------------------------------------------ | ----------------------------------- | ------------------------------------ |
-| `VITE_NETSTAMP_API_PROXY_TARGET`           | `http://localhost:8080`             | Vite development proxy target        |
-| `VITE_NETSTAMP_DEMO_EMAIL`                 | `demo@netstamp.local`               | Demo-image login email               |
-| `VITE_NETSTAMP_DEMO_PASSWORD`              | `password`                          | Demo-image login password            |
-| `VITE_NETSTAMP_GOOGLE_TAG_ID`              | empty                               | Google tag ID                        |
-| `VITE_NETSTAMP_CLARITY_PROJECT_ID`         | empty                               | Microsoft Clarity project ID         |
-| `VITE_NETSTAMP_META_PIXEL_ID`              | empty                               | Meta Pixel ID                        |
-| `VITE_NETSTAMP_POSTHOG_KEY`                | empty                               | Public PostHog project key           |
-| `VITE_NETSTAMP_POSTHOG_HOST`               | `https://us.i.posthog.com`          | PostHog ingest host                  |
-| `VITE_NETSTAMP_PLAUSIBLE_DOMAIN`           | empty                               | Domain reported to Plausible         |
-| `VITE_NETSTAMP_PLAUSIBLE_SCRIPT_URL`       | `https://plausible.io/js/script.js` | Plausible script URL                 |
-| `VITE_NETSTAMP_UMAMI_WEBSITE_ID`           | empty                               | Umami website ID                     |
-| `VITE_NETSTAMP_UMAMI_SCRIPT_URL`           | `https://cloud.umami.is/script.js`  | Umami script URL                     |
-| `VITE_NETSTAMP_TRACKING_CONSENT_MODE`      | `regional`                          | `regional`, `always`, or `immediate` |
-| `VITE_NETSTAMP_TRACKING_CONSENT_COUNTRIES` | built-in regional list              | ISO 3166-1 alpha-2 country codes     |
+| Variable                                   | Default                            | Purpose                              |
+| ------------------------------------------ | ---------------------------------- | ------------------------------------ |
+| `VITE_NETSTAMP_API_PROXY_TARGET`           | `http://localhost:8080`            | Vite development proxy target        |
+| `VITE_NETSTAMP_DEMO_EMAIL`                 | `demo@netstamp.local`              | Demo-image login email               |
+| `VITE_NETSTAMP_DEMO_PASSWORD`              | `password`                         | Demo-image login password            |
+| `VITE_NETSTAMP_UMAMI_WEBSITE_ID`           | empty                              | Umami website ID                     |
+| `VITE_NETSTAMP_UMAMI_SCRIPT_URL`           | `https://cloud.umami.is/script.js` | Umami script URL                     |
+| `VITE_NETSTAMP_TRACKING_CONSENT_MODE`      | `regional`                         | `regional`, `always`, or `immediate` |
+| `VITE_NETSTAMP_TRACKING_CONSENT_COUNTRIES` | built-in regional list             | ISO 3166-1 alpha-2 country codes     |
 
 Every browser-visible `VITE_*` value is public; never put a private secret in one.
 
@@ -200,4 +193,4 @@ Every browser-visible `VITE_*` value is public; never put a private secret in on
 | `PUBLIC_SITE_URL`              | `https://netstamp.dev`     | Canonical documentation origin   |
 | `PUBLIC_NETSTAMP_APP_BASE_URL` | `https://app.netstamp.dev` | Product links from documentation |
 
-The docs support the same optional trackers and consent controls with the `PUBLIC_NETSTAMP_*` prefix. Google and Meta use only the canonical `PUBLIC_NETSTAMP_GOOGLE_TAG_ID` and `PUBLIC_NETSTAMP_META_PIXEL_ID` names.
+The docs support the same optional trackers and consent controls with the `PUBLIC_NETSTAMP_*` prefix.

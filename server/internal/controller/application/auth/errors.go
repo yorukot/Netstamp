@@ -24,8 +24,6 @@ var (
 	ErrExternalAuthUnavailable       = errors.New("external authentication unavailable")
 	ErrExternalAuthCallbackInvalid   = errors.New("external authentication callback invalid")
 	ErrExternalAuthSudoUnsupported   = errors.New("external authentication does not support sudo")
-	ErrOIDCUnavailable               = ErrExternalAuthUnavailable
-	ErrOIDCCallbackInvalid           = ErrExternalAuthCallbackInvalid
 	ErrIdentityConflict              = errors.New("identity conflict")
 	ErrIdentityNotFound              = errors.New("identity not found")
 	ErrJITProvisioningDisabled       = errors.New("external authentication jit provisioning disabled")

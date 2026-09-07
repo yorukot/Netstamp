@@ -264,17 +264,6 @@ func VNSeverity(severity Severity) (Severity, error) {
 	}
 }
 
-func VNRuleStatus(status RuleStatus) (RuleStatus, error) {
-	switch RuleStatus(strings.TrimSpace(string(status))) {
-	case "", RuleStatusEnabled:
-		return RuleStatusEnabled, nil
-	case RuleStatusDisabled:
-		return RuleStatusDisabled, nil
-	default:
-		return "", errors.New("invalid alert rule status")
-	}
-}
-
 func VNCooldownSeconds(value int32) (int32, error) {
 	if value == 0 {
 		value = DefaultCooldownSeconds

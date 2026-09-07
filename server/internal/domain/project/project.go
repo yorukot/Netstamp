@@ -45,22 +45,6 @@ type Project struct {
 	DeletedAt       *time.Time `json:"-"`
 }
 
-func VNProjectCreatedByUserID(userID string) (string, error) {
-	userID = strings.TrimSpace(userID)
-
-	err := spvalidator.Required(userID)
-	if err != nil {
-		return "", err
-	}
-
-	err = spvalidator.UUID(userID)
-	if err != nil {
-		return "", err
-	}
-
-	return userID, nil
-}
-
 func VNProjectName(name string) (string, error) {
 	name = strings.TrimSpace(name)
 

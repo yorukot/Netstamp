@@ -50,19 +50,6 @@ func VNLabelIDs(labelIDs []string) ([]string, error) {
 	return normalized, nil
 }
 
-func VNOptionalLabelIDs(labelIDs *[]string) (*[]string, error) {
-	if labelIDs == nil {
-		return nil, nil //nolint:nilnil // Nil means the caller did not provide label IDs.
-	}
-
-	normalized, err := VNLabelIDs(*labelIDs)
-	if err != nil {
-		return nil, err
-	}
-
-	return &normalized, nil
-}
-
 func VNLabelKey(key string) (string, error) {
 	key = strings.TrimSpace(key)
 

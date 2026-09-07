@@ -6,13 +6,6 @@ import { uiForLocale } from "../../i18n/ui";
 const ui = uiForLocale(Astro.currentLocale);
 
 const trackerConfig = normalizeTrackerConfig({
-	googleTagId: import.meta.env.PUBLIC_NETSTAMP_GOOGLE_TAG_ID,
-	clarityProjectId: import.meta.env.PUBLIC_NETSTAMP_CLARITY_PROJECT_ID,
-	metaPixelId: import.meta.env.PUBLIC_NETSTAMP_META_PIXEL_ID,
-	posthogKey: import.meta.env.PUBLIC_NETSTAMP_POSTHOG_KEY,
-	posthogHost: import.meta.env.PUBLIC_NETSTAMP_POSTHOG_HOST,
-	plausibleDomain: import.meta.env.PUBLIC_NETSTAMP_PLAUSIBLE_DOMAIN,
-	plausibleScriptUrl: import.meta.env.PUBLIC_NETSTAMP_PLAUSIBLE_SCRIPT_URL,
 	umamiWebsiteId: import.meta.env.PUBLIC_NETSTAMP_UMAMI_WEBSITE_ID,
 	umamiScriptUrl: import.meta.env.PUBLIC_NETSTAMP_UMAMI_SCRIPT_URL,
 	consentMode: import.meta.env.PUBLIC_NETSTAMP_TRACKING_CONSENT_MODE,

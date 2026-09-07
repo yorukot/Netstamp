@@ -65,10 +65,6 @@ func (d *NotificationDispatcher) SendNotification(ctx context.Context, notificat
 	}
 }
 
-func (d *NotificationDispatcher) EmailConfigured() bool {
-	return d.email != nil && d.email.Configured()
-}
-
 func (d *NotificationDispatcher) TestNotification(ctx context.Context, notification domainalert.Notification, payload json.RawMessage) appalert.NotificationTestResult {
 	result := d.SendNotification(ctx, notification, payload)
 	return appalert.NotificationTestResult{

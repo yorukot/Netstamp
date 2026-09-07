@@ -52,14 +52,11 @@ function loadChartRuntime() {
 				charts.LineChart,
 				charts.BarChart,
 				charts.CustomChart,
-				charts.GraphChart,
-				charts.ScatterChart,
 				components.GridComponent,
 				components.TooltipComponent,
 				components.LegendComponent,
 				components.ToolboxComponent,
 				components.DataZoomComponent,
-				components.VisualMapComponent,
 				renderers.CanvasRenderer
 			]);
 

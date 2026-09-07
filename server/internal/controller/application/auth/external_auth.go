@@ -14,16 +14,7 @@ const (
 	ExternalAuthIntentLogin = "login"
 	ExternalAuthIntentSudo  = "sudo"
 	ExternalAuthIntentLink  = "link"
-
-	// Compatibility aliases for callers using the original generic OIDC API.
-	OIDCIntentLogin = ExternalAuthIntentLogin
-	OIDCIntentSudo  = ExternalAuthIntentSudo
-	OIDCIntentLink  = ExternalAuthIntentLink
 )
-
-func (s *Service) ExternalProviderMethods() []ExternalProviderMethod {
-	return s.externalProviderMethods(s.externalProviders)
-}
 
 func (s *Service) ExternalProviderMethodsContext(ctx context.Context) []ExternalProviderMethod {
 	providers := make(map[string]configuredExternalProvider)

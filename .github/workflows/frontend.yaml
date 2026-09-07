@@ -27,7 +27,7 @@ jobs:
     name: Detect frontend changes
     runs-on: ubuntu-latest
     outputs:
-      relevant: ${{ github.event_name == 'workflow_dispatch' || steps.filter.outputs.relevant == 'true' }}
+      relevant: ${{ github.event_name == 'workflow_dispatch' || steps.filter.outputs.workflow == 'true' || steps.filter.outputs.prettier == 'true' || steps.filter.outputs.package == 'true' || steps.filter.outputs.lock == 'true' || steps.filter.outputs.workspace == 'true' || steps.filter.outputs.docs == 'true' || steps.filter.outputs.web == 'true' || steps.filter.outputs.ui == 'true' || steps.filter.outputs.brand == 'true' }}
     steps:
       - name: Checkout repo
         if: github.event_name != 'workflow_dispatch'
@@ -38,18 +38,28 @@ jobs:
         if: github.event_name != 'workflow_dispatch'
         uses: dorny/paths-filter@v3
         with:
+          predicate-quantifier: every
           filters: |
-            relevant:
+            workflow:
               - ".github/workflows/frontend.yaml"
+            prettier:
               - ".prettierignore"
               - ".prettierrc"
+            package:
+              - "package.json"
+            lock:
+              - "pnpm-lock.yaml"
+            workspace:
+              - "pnpm-workspace.yaml"
+            docs:
               - "docs/**"
               - "!docs/public/openapi.json"
-              - "package.json"
-              - "packages/**"
-              - "pnpm-lock.yaml"
-              - "pnpm-workspace.yaml"
+            web:
               - "web/**"
+            ui:
+              - "packages/ui/**"
+            brand:
+              - "packages/brand/**"
 
   Format:
     name: Check frontend formatting
@@ -185,7 +195,7 @@ jobs:
   Docs:
     name: Test docs build
     needs: Changes
-    if: always()
+    if: always() && github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: Require change detection

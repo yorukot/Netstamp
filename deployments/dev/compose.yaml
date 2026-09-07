@@ -6,13 +6,6 @@ x-nginx-build: &nginx-build
   context: ../..
   dockerfile: deployments/dev/nginx.Dockerfile
   args:
-    VITE_NETSTAMP_GOOGLE_TAG_ID: ${VITE_NETSTAMP_GOOGLE_TAG_ID:-}
-    VITE_NETSTAMP_CLARITY_PROJECT_ID: ${VITE_NETSTAMP_CLARITY_PROJECT_ID:-}
-    VITE_NETSTAMP_META_PIXEL_ID: ${VITE_NETSTAMP_META_PIXEL_ID:-}
-    VITE_NETSTAMP_POSTHOG_KEY: ${VITE_NETSTAMP_POSTHOG_KEY:-}
-    VITE_NETSTAMP_POSTHOG_HOST: ${VITE_NETSTAMP_POSTHOG_HOST:-}
-    VITE_NETSTAMP_PLAUSIBLE_DOMAIN: ${VITE_NETSTAMP_PLAUSIBLE_DOMAIN:-}
-    VITE_NETSTAMP_PLAUSIBLE_SCRIPT_URL: ${VITE_NETSTAMP_PLAUSIBLE_SCRIPT_URL:-}
     VITE_NETSTAMP_UMAMI_WEBSITE_ID: ${VITE_NETSTAMP_UMAMI_WEBSITE_ID:-}
     VITE_NETSTAMP_UMAMI_SCRIPT_URL: ${VITE_NETSTAMP_UMAMI_SCRIPT_URL:-}
     VITE_NETSTAMP_TRACKING_CONSENT_MODE: ${VITE_NETSTAMP_TRACKING_CONSENT_MODE:-regional}
@@ -25,13 +18,6 @@ x-demo-build: &demo-build
   args:
     VITE_NETSTAMP_DEMO_EMAIL: ${VITE_NETSTAMP_DEMO_EMAIL:-demo@netstamp.local}
     VITE_NETSTAMP_DEMO_PASSWORD: ${VITE_NETSTAMP_DEMO_PASSWORD:-password}
-    VITE_NETSTAMP_GOOGLE_TAG_ID: ${VITE_NETSTAMP_GOOGLE_TAG_ID:-}
-    VITE_NETSTAMP_CLARITY_PROJECT_ID: ${VITE_NETSTAMP_CLARITY_PROJECT_ID:-}
-    VITE_NETSTAMP_META_PIXEL_ID: ${VITE_NETSTAMP_META_PIXEL_ID:-}
-    VITE_NETSTAMP_POSTHOG_KEY: ${VITE_NETSTAMP_POSTHOG_KEY:-}
-    VITE_NETSTAMP_POSTHOG_HOST: ${VITE_NETSTAMP_POSTHOG_HOST:-}
-    VITE_NETSTAMP_PLAUSIBLE_DOMAIN: ${VITE_NETSTAMP_PLAUSIBLE_DOMAIN:-}
-    VITE_NETSTAMP_PLAUSIBLE_SCRIPT_URL: ${VITE_NETSTAMP_PLAUSIBLE_SCRIPT_URL:-}
     VITE_NETSTAMP_UMAMI_WEBSITE_ID: ${VITE_NETSTAMP_UMAMI_WEBSITE_ID:-}
     VITE_NETSTAMP_UMAMI_SCRIPT_URL: ${VITE_NETSTAMP_UMAMI_SCRIPT_URL:-}
     VITE_NETSTAMP_TRACKING_CONSENT_MODE: ${VITE_NETSTAMP_TRACKING_CONSENT_MODE:-regional}
@@ -95,6 +81,7 @@ services:
       - netstamp.logs=enabled
 
   postgres-exporter-init:
+    profiles: [observability]
     image: ${POSTGRES_CLIENT_IMAGE:-postgres:16-alpine}
     restart: "no"
     depends_on:
@@ -123,6 +110,7 @@ services:
       - netstamp.logs=enabled
 
   postgres-exporter:
+    profiles: [observability]
     image: ${POSTGRES_EXPORTER_IMAGE:-prometheuscommunity/postgres-exporter:v0.17.1}
     restart: unless-stopped
     depends_on:
@@ -145,6 +133,7 @@ services:
       - netstamp.logs=enabled
 
   migrate:
+    profiles: [app, demo]
     image: netstamp-controller:${NETSTAMP_IMAGE_TAG:-local}
     build: *backend-build
     restart: "no"
@@ -158,6 +147,7 @@ services:
       - netstamp.logs=enabled
 
   controller:
+    profiles: [app]
     image: netstamp-controller:${NETSTAMP_IMAGE_TAG:-local}
     build: *backend-build
     restart: unless-stopped
@@ -177,6 +167,7 @@ services:
       - netstamp.logs=enabled
 
   demo:
+    profiles: [demo]
     image: netstamp-demo:${NETSTAMP_IMAGE_TAG:-local}
     build: *demo-build
     restart: unless-stopped
@@ -202,6 +193,7 @@ services:
       - default
 
   nginx:
+    profiles: [app]
     image: netstamp-web:${NETSTAMP_IMAGE_TAG:-local}
     build: *nginx-build
     restart: unless-stopped
@@ -217,6 +209,7 @@ services:
       - default
 
   victoria-traces:
+    profiles: [app, demo]
     image: ${VICTORIA_TRACES_IMAGE:-victoriametrics/victoria-traces:v0.8.2}
     restart: unless-stopped
     command:
@@ -228,6 +221,7 @@ services:
       - netstamp.logs=enabled
 
   victoria-metrics:
+    profiles: [observability]
     image: ${VICTORIA_METRICS_IMAGE:-victoriametrics/victoria-metrics:v1.140.0}
     restart: unless-stopped
     command:
@@ -243,6 +237,7 @@ services:
       - netstamp.logs=enabled
 
   victoria-logs:
+    profiles: [observability]
     image: ${VICTORIA_LOGS_IMAGE:-victoriametrics/victoria-logs:v1.50.0}
     restart: unless-stopped
     command:
@@ -254,6 +249,7 @@ services:
       - netstamp.logs=enabled
 
   vector:
+    profiles: [observability]
     image: ${VECTOR_IMAGE:-timberio/vector:0.55.0-alpine}
     restart: unless-stopped
     user: root
@@ -266,6 +262,7 @@ services:
       - ./vector/vector.yaml:/etc/vector/vector.yaml:ro
 
   grafana:
+    profiles: [observability]
     image: ${GRAFANA_IMAGE:-grafana/grafana:13.0}
     restart: unless-stopped
     depends_on:

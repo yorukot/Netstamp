@@ -56,22 +56,6 @@ func VNProbeID(probeID string) (string, error) {
 	return probeID, nil
 }
 
-func VNProbeProjectID(projectID string) (string, error) {
-	projectID = strings.TrimSpace(projectID)
-
-	err := spvalidator.Required(projectID)
-	if err != nil {
-		return "", err
-	}
-
-	err = spvalidator.UUID(projectID)
-	if err != nil {
-		return "", err
-	}
-
-	return projectID, nil
-}
-
 func VNProbeName(name string) (string, error) {
 	name = strings.TrimSpace(name)
 
@@ -86,19 +70,6 @@ func VNProbeName(name string) (string, error) {
 	}
 
 	return name, nil
-}
-
-func VNProbeOptionalName(name *string) (*string, error) {
-	if name == nil {
-		return nil, nil //nolint:nilnil // Nil means the caller did not provide a probe name.
-	}
-
-	normalized, err := VNProbeName(*name)
-	if err != nil {
-		return nil, err
-	}
-
-	return &normalized, nil
 }
 
 func VNProbeLocationName(locationName string) (string, error) {
@@ -182,51 +153,6 @@ type IPFamilyCapabilities struct {
 	PublicV6 *netip.Addr `json:"publicV6"`
 	UpdateV4 bool        `json:"updateV4"`
 	UpdateV6 bool        `json:"updateV6"`
-}
-
-func VNProbeStatus(status Status) (Status, error) {
-	probeID, err := VNProbeID(status.ProbeID)
-	if err != nil {
-		return Status{}, err
-	}
-	state, err := VNProbeState(status.State)
-	if err != nil {
-		return Status{}, err
-	}
-	agentVersion, err := VNProbeOptionalAgentVersion(status.AgentVersion)
-	if err != nil {
-		return Status{}, err
-	}
-	publicV4, err := VNProbePublicV4(status.PublicV4)
-	if err != nil {
-		return Status{}, err
-	}
-	publicV6, err := VNProbePublicV6(status.PublicV6)
-	if err != nil {
-		return Status{}, err
-	}
-	as, err := VNProbeOptionalAS(status.AS)
-	if err != nil {
-		return Status{}, err
-	}
-	addrs, err := VNProbeAddrs(status.Addrs)
-	if err != nil {
-		return Status{}, err
-	}
-
-	return Status{
-		ProbeID:       probeID,
-		State:         state,
-		LastSeenAt:    status.LastSeenAt,
-		OnlineSince:   status.OnlineSince,
-		UptimeSeconds: status.UptimeSeconds,
-		AgentVersion:  agentVersion,
-		PublicV4:      publicV4,
-		PublicV6:      publicV6,
-		AS:            as,
-		Addrs:         addrs,
-		UpdatedAt:     status.UpdatedAt,
-	}, nil
 }
 
 func VNProbeState(state State) (State, error) {
