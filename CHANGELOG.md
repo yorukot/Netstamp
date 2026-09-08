@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. Dates are displayed in UTC (YYYY-MM-DD).
 
+# [**v0.1.0**](https://github.com/yorukot/netstamp/releases/tag/v0.1.0)
+
+> 2026-09-08
+
+#### Update
+
+- Promote Netstamp to its first product release. The `v0.0.x` tags were distribution and listing tests; `v0.1.0` is the first version intended for self-hosted use.
+
+#### Optimization
+
+- Decouple the minimum supported probe agent version from the product version so a release no longer forces every probe to update. The probe runtime contract is unchanged since `v0.0.0`, so agents from any earlier release keep running against this controller.
+
+#### Misc
+
+- Pin the backend lint toolchain to `go1.26.2` so the bundled staticcheck matches the Go release the module targets.
+
 # [**v0.0.2**](https://github.com/yorukot/netstamp/releases/tag/v0.0.2)
 
 > 2026-09-05
