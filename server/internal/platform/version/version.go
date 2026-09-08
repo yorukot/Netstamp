@@ -8,9 +8,11 @@ import (
 )
 
 const (
-	Product      = "0.0.2"
-	API          = "v1"
-	MinimumAgent = Product
+	Product = "0.1.0"
+	API     = "v1"
+	// MinimumAgent is the oldest probe agent build that still speaks this controller's runtime
+	// contract. Agents below it refuse to start, so raise it only for a breaking runtime change.
+	MinimumAgent = "0.0.0"
 	GitHubOwner  = "yorukot"
 	GitHubRepo   = "netstamp"
 	agentPrefix  = "netstamp-probe/"
